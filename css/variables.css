@@ -6,6 +6,18 @@
     --page-padding: 15px;
     --content-max-width: 750px;
     --menu-bar-height: 50px;
+    --base03: #002b36;
+    --base02: #073642;
+    --base01: #586e75;
+    --base00: #657b83;
+    --base0: #839496;
+    --base1: #93a1a1;
+    --base2: #eee8d5;
+    --base3: #fdf6e3;
+    --yellow: #b58900;
+    --cyan: #2aa198;
+    --blue: #268bd2;
+    --orange: #cb4b16;
 }
 
 /* Themes */
@@ -48,6 +60,34 @@
     --searchresults-border-color: #888;
     --searchresults-li-bg: #252932;
     --search-mark-bg: #e3b171;
+}
+
+.solarized-light {
+    --bg: var(--base3);
+    --fg: var(--base00);
+    --title: var(--base01);
+
+    --links: var(--blue);
+
+    --inline-code-color: var(--yellow); /*var(--base1);*/
+
+    --table-border-color: var(--base2);
+    --table-header-bg: var(--base2);
+    --table-alternate-bg: var(--base2);
+}
+
+.solarized-dark {
+    --bg: var(--base03);
+    --fg: var(--base0);
+    --title: var(--base1);
+
+    --links: var(--cyan);
+
+    --inline-code-color: var(--yellow); /*var(--base00);*/
+
+    --table-border-color: var(--base02);
+    --table-header-bg: var(--base02);
+    --table-alternate-bg: var(--base02);
 }
 
 .coal {

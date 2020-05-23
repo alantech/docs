@@ -133,18 +133,20 @@
 
         <div id="content" class="content">
             <main>
-                <h1><a class="header" href="#hello-js" id="hello-js">Hello JS</a></h1>
-<p>Running javascript in an mdBook is possible! Right now the code snippet
+                <h1><a class="header" href="#hello-alan" id="hello-alan">Hello Alan</a></h1>
+<p>Right now the code snippet
 has to be of type &quot;rust&quot; to get the proper html pieces in place. It should
 be possible to get around this but for now since the mdbook will only have
 code snippets for one language and <code>alan</code> has no syntax highlighting it 
 should be fine.</p>
-<pre><pre class="playpen"><code class="language-rust editable">// You can make code do what you want
-console.log(5);
+<pre><pre class="playpen"><code class="language-rust editable">
+import @std/app
+on app.start {
+  app.print(&quot;Hello, World!&quot;)
+  emit app.exit 0
+}
 
 </code></pre></pre>
-<p>We can add more files to theme to overwrite the default client-side configuration:</p>
-<p><a href="https://rust-lang.github.io/mdBook/format/theme/index.html">Theme Configuration</a></p>
 
             </main>
 
@@ -197,16 +199,18 @@ console.log(5);
     <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
 
 
-<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
-<script src="book.js" type="text/javascript" charset="utf-8"></script>
-
 <!-- Custom JS scripts -->
+
+    <script type="text/javascript" src="bundle.js"></script>
 
     <script type="text/javascript" src="theme-solarized_dark.js"></script>
 
     <script type="text/javascript" src="theme-solarized_light.js"></script>
 
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+<script src="book.js" type="text/javascript" charset="utf-8"></script>
 
 </body>
 </html>

@@ -1,9 +1,47 @@
 require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+const stdlibs = require('./stdlibs.json')
+
+const Ast = require('../dist/lntoamm/Ast')
+const Module = require('../dist/lntoamm/Module')
+const Scope = require('../dist/lntoamm/Scope')
+const opcodeScope = require('../dist/lntoamm/opcodes').exportScope
+
+module.exports = {
+  loadStdModules: (modules) => {
+    const stdAsts = Object.keys(stdlibs).map(n => ({
+      name: n,
+      ast: Ast.fromString(stdlibs[n]),
+    }))
+    // Load the rootScope first, all the others depend on it
+    let rootModule
+    stdAsts.forEach((moduleAst) => {
+      if (moduleAst.name == 'root.ln') {
+        rootModule = Module.populateModule('<root>', moduleAst.ast, opcodeScope)
+        Module.getAllModules()['<root>'] = rootModule
+      }
+    })
+    // Now load the remainig modules based on the root scope
+    stdAsts.forEach((moduleAst) => {
+      if (moduleAst.name != 'root.ln') {
+        moduleAst.name = '@std/' + moduleAst.name.replace(/.ln$/, '')
+        const stdModule = Module.populateModule(
+          moduleAst.name,
+          moduleAst.ast,
+          rootModule.exportScope
+        )
+        Module.getAllModules()[moduleAst.name] = stdModule
+      }
+    })
+  },
+}
+
+},{"../dist/lntoamm/Ast":13,"../dist/lntoamm/Module":25,"../dist/lntoamm/Scope":27,"../dist/lntoamm/opcodes":33,"./stdlibs.json":2}],2:[function(require,module,exports){
+module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out)\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\"\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status)\n\n","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Special _ variable\nexport const _: void\n\n// Default Interfaces\nexport interface any {}\nexport interface Stringifiable {\n  toString(Stringifiable): string\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n)\nexport fn toFloat64(n: int16) = i16f64(n)\nexport fn toFloat64(n: int32) = i32f64(n)\nexport fn toFloat64(n: int64) = i64f64(n)\nexport fn toFloat64(n: float32) = f32f64(n)\nexport fn toFloat64(n: float64) = n\nexport fn toFloat64(n: string) = strf64(n)\nexport fn toFloat64(n: bool) = boolf64(n)\n\nexport fn toFloat32(n: int8) = i8f32(n)\nexport fn toFloat32(n: int16) = i16f32(n)\nexport fn toFloat32(n: int32) = i32f32(n)\nexport fn toFloat32(n: int64) = i64f32(n)\nexport fn toFloat32(n: float32) = n\nexport fn toFloat32(n: float64) = f64f32(n)\nexport fn toFloat32(n: string) = strf32(n)\nexport fn toFloat32(n: bool) = boolf32(n)\n\nexport fn toInt64(n: int8) = i8i64(n)\nexport fn toInt64(n: int16) = i16i64(n)\nexport fn toInt64(n: int32) = i32i64(n)\nexport fn toInt64(n: int64) = n\nexport fn toInt64(n: float32) = f32i64(n)\nexport fn toInt64(n: float64) = f64i64(n)\nexport fn toInt64(n: string) = stri64(n)\nexport fn toInt64(n: bool) = booli64(n)\n\nexport fn toInt32(n: int8) = i8i32(n)\nexport fn toInt32(n: int16) = i16i32(n)\nexport fn toInt32(n: int32) = n\nexport fn toInt32(n: int64) = i64i32(n)\nexport fn toInt32(n: float32) = f32i32(n)\nexport fn toInt32(n: float64) = f64i32(n)\nexport fn toInt32(n: string) = stri32(n)\nexport fn toInt32(n: bool) = booli32(n)\n\nexport fn toInt16(n: int8) = i8i16(n)\nexport fn toInt16(n: int16) = n\nexport fn toInt16(n: int32) = i32i16(n)\nexport fn toInt16(n: int64) = i64i16(n)\nexport fn toInt16(n: float32) = f32i16(n)\nexport fn toInt16(n: float64) = f64i16(n)\nexport fn toInt16(n: string) = stri16(n)\nexport fn toInt16(n: bool) = booli16(n)\n\nexport fn toInt8(n: int8) = n\nexport fn toInt8(n: int16) = i16i8(n)\nexport fn toInt8(n: int32) = i32i8(n)\nexport fn toInt8(n: int64) = i64i8(n)\nexport fn toInt8(n: float32) = f32i8(n)\nexport fn toInt8(n: float64) = f64i8(n)\nexport fn toInt8(n: string) = stri8(n)\nexport fn toInt8(n: bool) = booli8(n)\n\nexport fn toBool(n: int8) = i8bool(n)\nexport fn toBool(n: int16) = i16bool(n)\nexport fn toBool(n: int32) = i32bool(n)\nexport fn toBool(n: int64) = i64bool(n)\nexport fn toBool(n: float32) = f32bool(n)\nexport fn toBool(n: float64) = f64bool(n)\nexport fn toBool(n: string) = strbool(n)\nexport fn toBool(n: bool) = n\n\nexport fn toString(n: int8) = i8str(n)\nexport fn toString(n: int16) = i16str(n)\nexport fn toString(n: int32) = i32str(n)\nexport fn toString(n: int64) = i64str(n)\nexport fn toString(n: float32) = f32str(n)\nexport fn toString(n: float64) = f64str(n)\nexport fn toString(n: string) = n\nexport fn toString(n: bool) = boolstr(n)\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b)\nexport fn add(a: int16, b: int16) = addi16(a, b)\nexport fn add(a: int32, b: int32) = addi32(a, b)\nexport fn add(a: int64, b: int64) = addi64(a, b)\nexport fn add(a: float32, b: float32) = addf32(a, b)\nexport fn add(a: float64, b: float64) = addf64(a, b)\n\nexport fn sub(a: int8, b: int8) = subi8(a, b)\nexport fn sub(a: int16, b: int16) = subi16(a, b)\nexport fn sub(a: int32, b: int32) = subi32(a, b)\nexport fn sub(a: int64, b: int64) = subi64(a, b)\nexport fn sub(a: float32, b: float32) = subf32(a, b)\nexport fn sub(a: float64, b: float64) = subf64(a, b)\n\nexport fn negate(n: int8) = negi8(n)\nexport fn negate(n: int16) = negi16(n)\nexport fn negate(n: int32) = negi32(n)\nexport fn negate(n: int64) = negi64(n)\nexport fn negate(n: float32) = negf32(n)\nexport fn negate(n: float64) = negf64(n)\n\nexport fn mul(a: int8, b: int8) = muli8(a, b)\nexport fn mul(a: int16, b: int16) = muli16(a, b)\nexport fn mul(a: int32, b: int32) = muli32(a, b)\nexport fn mul(a: int64, b: int64) = muli64(a, b)\nexport fn mul(a: float32, b: float32) = mulf32(a, b)\nexport fn mul(a: float64, b: float64) = mulf64(a, b)\n\nexport fn div(a: int8, b: int8) = divi8(a, b)\nexport fn div(a: int16, b: int16) = divi16(a, b)\nexport fn div(a: int32, b: int32) = divi32(a, b)\nexport fn div(a: int64, b: int64) = divi64(a, b)\nexport fn div(a: float32, b: float32) = divf32(a, b)\nexport fn div(a: float64, b: float64) = divf64(a, b)\n\nexport fn mod(a: int8, b: int8) = modi8(a, b)\nexport fn mod(a: int16, b: int16) = modi16(a, b)\nexport fn mod(a: int32, b: int32) = modi32(a, b)\nexport fn mod(a: int64, b: int64) = modi64(a, b)\n\nexport fn pow(a: int8, b: int8) = powi8(a, b)\nexport fn pow(a: int16, b: int16) = powi16(a, b)\nexport fn pow(a: int32, b: int32) = powi32(a, b)\nexport fn pow(a: int64, b: int64) = powi64(a, b)\nexport fn pow(a: float32, b: float32) = powf32(a, b)\nexport fn pow(a: float64, b: float64) = powf64(a, b)\n\nexport fn sqrt(n: float32) = sqrtf32(n)\nexport fn sqrt(n: float64) = sqrtf64(n)\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b)\nexport fn and(a: int16, b: int16) = andi16(a, b)\nexport fn and(a: int32, b: int32) = andi32(a, b)\nexport fn and(a: int64, b: int64) = andi64(a, b)\nexport fn and(a: bool, b: bool) = andbool(a, b)\n\nexport fn or(a: int8, b: int8) = ori8(a, b)\nexport fn or(a: int16, b: int16) = ori16(a, b)\nexport fn or(a: int32, b: int32) = ori32(a, b)\nexport fn or(a: int64, b: int64) = ori64(a, b)\nexport fn or(a: bool, b: bool) = orbool(a, b)\n\nexport fn xor(a: int8, b: int8) = xori8(a, b)\nexport fn xor(a: int16, b: int16) = xori16(a, b)\nexport fn xor(a: int32, b: int32) = xori32(a, b)\nexport fn xor(a: int64, b: int64) = xori64(a, b)\nexport fn xor(a: bool, b: bool) = xorbool(a, b)\n\nexport fn not(n: int8) = noti8(n)\nexport fn not(n: int16) = noti16(n)\nexport fn not(n: int32) = noti32(n)\nexport fn not(n: int64) = noti64(n)\nexport fn not(n: bool) = notbool(n)\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b)\nexport fn nand(a: int16, b: int16) = nandi16(a, b)\nexport fn nand(a: int32, b: int32) = nandi32(a, b)\nexport fn nand(a: int64, b: int64) = nandi64(a, b)\nexport fn nand(a: bool, b: bool) = nandboo(a, b)\n\nexport fn nor(a: int8, b: int8) = nori8(a, b)\nexport fn nor(a: int16, b: int16) = nori16(a, b)\nexport fn nor(a: int32, b: int32) = nori32(a, b)\nexport fn nor(a: int64, b: int64) = nori64(a, b)\nexport fn nor(a: bool, b: bool) = norbool(a, b)\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b)\nexport fn xnor(a: int16, b: int16) = xnori16(a, b)\nexport fn xnor(a: int32, b: int32) = xnori32(a, b)\nexport fn xnor(a: int64, b: int64) = xnori64(a, b)\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b)\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b)\nexport fn eq(a: int16, b: int16) = eqi16(a, b)\nexport fn eq(a: int32, b: int32) = eqi32(a, b)\nexport fn eq(a: int64, b: int64) = eqi64(a, b)\nexport fn eq(a: float32, b: float32) = eqf32(a, b)\nexport fn eq(a: float64, b: float64) = eqf64(a, b)\nexport fn eq(a: string, b: string) = eqstr(a, b)\nexport fn eq(a: bool, b: bool) = eqbool(a, b)\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b)\nexport fn neq(a: int16, b: int16) = neqi16(a, b)\nexport fn neq(a: int32, b: int32) = neqi32(a, b)\nexport fn neq(a: int64, b: int64) = neqi64(a, b)\nexport fn neq(a: float32, b: float32) = neqf32(a, b)\nexport fn neq(a: float64, b: float64) = neqf64(a, b)\nexport fn neq(a: string, b: string) = neqstr(a, b)\nexport fn neq(a: bool, b: bool) = neqbool(a, b)\n\nexport fn lt(a: int8, b: int8) = lti8(a, b)\nexport fn lt(a: int16, b: int16) = lti16(a, b)\nexport fn lt(a: int32, b: int32) = lti32(a, b)\nexport fn lt(a: int64, b: int64) = lti64(a, b)\nexport fn lt(a: float32, b: float32) = ltf32(a, b)\nexport fn lt(a: float64, b: float64) = ltf64(a, b)\nexport fn lt(a: string, b: string) = ltstr(a, b)\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b)\nexport fn lte(a: int16, b: int16) = ltei16(a, b)\nexport fn lte(a: int32, b: int32) = ltei32(a, b)\nexport fn lte(a: int64, b: int64) = ltei64(a, b)\nexport fn lte(a: float32, b: float32) = ltef32(a, b)\nexport fn lte(a: float64, b: float64) = ltef64(a, b)\nexport fn lte(a: string, b: string) = ltestr(a, b)\n\nexport fn gt(a: int8, b: int8) = gti8(a, b)\nexport fn gt(a: int16, b: int16) = gti16(a, b)\nexport fn gt(a: int32, b: int32) = gti32(a, b)\nexport fn gt(a: int64, b: int64) = gti64(a, b)\nexport fn gt(a: float32, b: float32) = gtf32(a, b)\nexport fn gt(a: float64, b: float64) = gtf64(a, b)\nexport fn gt(a: string, b: string) = gtstr(a, b)\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b)\nexport fn gte(a: int16, b: int16) = gtei16(a, b)\nexport fn gte(a: int32, b: int32) = gtei32(a, b)\nexport fn gte(a: int64, b: int64) = gtei64(a, b)\nexport fn gte(a: float32, b: float32) = gtef32(a, b)\nexport fn gte(a: float64, b: float64) = gtef64(a, b)\nexport fn gte(a: string, b: string) = gtestr(a, b)\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n))\nexport fn wait(n: int16) = waitop(i16i64(n))\nexport fn wait(n: int32) = waitop(i32i64(n))\nexport fn wait(n: int64) = waitop(n)\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b)\nexport fn split(str: string, spl: string): Array<string> = split(str, spl)\nexport fn repeat(s: string, n: int64) = repstr(s, n)\nexport fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t)\nexport fn length(s: string) = lenstr(s)\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b)\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n)\nexport fn index(arr: Array<any>, val: any) = indarr(arr, val)\nexport fn length(arr: Array<any>) = lenarr(arr)\nexport each // opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport map // opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport reduce // opcode with signature `fn reduce(arr: Array<any>, cb: function): any`\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): any`\nexport every // opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport some // opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\n\n// Map functions\nexport keyVal // opcode with signature `fn keyVal(map: Map<any, any>): Array<KeyVal<any, any>>`\nexport keys // opcode with signature `fn keys(map: Map<any, any>): Array<any>`\nexport values // opcode with signature `fn values(map: Map<any, any>): Array<any>`\n\n// Ternary functions\nexport pair // opcode with signature `fn pair(trueval: any, falseval: any): Array<any>`\nexport fn cond(c: bool, options: Array<any>): any = condarr(c, options)\nexport fn cond(c: bool, optional: function): void = condfn(c, optional)\n\n// Operator declarations\nexport infix commutative associative + 2 add\nexport infix associative + 2 concat\nexport infix - 2 sub\nexport prefix - 1 negate\nexport infix commutative associative * 3 mul\nexport infix * 3 repeat\nexport infix / 3 div\nexport infix / 3 split\nexport infix % 3 mod\nexport infix % 3 template\nexport infix ** 4 pow\nexport infix commutative associative & 3 and\nexport infix commutative associative && 3 and\nexport infix commutative associative | 2 or\nexport infix commutative associative || 2 or\nexport infix commutative associative ^ 2 xor\nexport prefix ! 4 not\nexport infix commutative associative !& 3 nand\nexport infix commutative associative !| 2 nor\nexport infix commutative associative !^ 2 xnor\nexport infix commutative associative == 1 eq\nexport infix commutative associative != 1 neq\nexport infix < 1 lt\nexport infix <= 1 lte\nexport infix > 1 gt\nexport infix >= 1 gte\nexport infix ~ 1 matches\nexport infix @ 1 index\nexport prefix # 4 length\nexport prefix ` 4 trim\nexport infix : 5 pair\nexport infix ? 0 cond\n\n"}
+
+},{}],3:[function(require,module,exports){
 // Generated from Amm.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
-
-
 var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
     "\u0002\u001e\u00d3\b\u0001\u0004\u0002\t\u0002\u0004\u0003\t\u0003\u0004",
     "\u0004\t\u0004\u0004\u0005\t\u0005\u0004\u0006\t\u0006\u0004\u0007\t",
@@ -145,27 +183,20 @@ var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
     "\u0003\u0002\u0002\u0002\u00d2\u00d0\u0003\u0002\u0002\u0002\u0013\u0002",
     "dn\u008e\u0093\u0098\u009d\u00a3\u00ab\u00af\u00b7\u00bc\u00c2\u00c4",
     "\u00c6\u00cb\u00d0\u0002"].join("");
-
-
 var atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
-
-var decisionsToDFA = atn.decisionToState.map( function(ds, index) { return new antlr4.dfa.DFA(ds, index); });
-
+var decisionsToDFA = atn.decisionToState.map(function (ds, index) { return new antlr4.dfa.DFA(ds, index); });
 function AmmLexer(input) {
-	antlr4.Lexer.call(this, input);
+    antlr4.Lexer.call(this, input);
     this._interp = new antlr4.atn.LexerATNSimulator(this, atn, decisionsToDFA, new antlr4.PredictionContextCache());
     return this;
 }
-
 AmmLexer.prototype = Object.create(antlr4.Lexer.prototype);
 AmmLexer.prototype.constructor = AmmLexer;
-
 Object.defineProperty(AmmLexer.prototype, "atn", {
-        get : function() {
-                return atn;
-        }
+    get: function () {
+        return atn;
+    }
 });
-
 AmmLexer.EOF = antlr4.Token.EOF;
 AmmLexer.TYPE = 1;
 AmmLexer.FN = 2;
@@ -195,334 +226,230 @@ AmmLexer.WS = 25;
 AmmLexer.STRINGCONSTANT = 26;
 AmmLexer.NUMBERCONSTANT = 27;
 AmmLexer.VARNAME = 28;
-
-AmmLexer.prototype.channelNames = [ "DEFAULT_TOKEN_CHANNEL", "HIDDEN" ];
-
-AmmLexer.prototype.modeNames = [ "DEFAULT_MODE" ];
-
-AmmLexer.prototype.literalNames = [ null, "'type'", "'fn'", "'event'", "'on'", 
-                                    "'const'", "'let'", "'emit'", null, 
-                                    "'new'", null, "'{'", "'}'", "'('", 
-                                    "')'", "'<'", "'>'", "'['", "']'", "'.'", 
-                                    "'='", "'|'", "'void'" ];
-
-AmmLexer.prototype.symbolicNames = [ null, "TYPE", "FN", "EVENT", "ON", 
-                                     "CONST", "LET", "EMIT", "BOOLCONSTANT", 
-                                     "NEW", "SEP", "OPENBODY", "CLOSEBODY", 
-                                     "OPENARGS", "CLOSEARGS", "OPENGENERIC", 
-                                     "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY", 
-                                     "METHODSEP", "EQUALS", "OR", "VOID", 
-                                     "TYPESEP", "NEWLINE", "WS", "STRINGCONSTANT", 
-                                     "NUMBERCONSTANT", "VARNAME" ];
-
-AmmLexer.prototype.ruleNames = [ "TYPE", "FN", "EVENT", "ON", "CONST", "LET", 
-                                 "EMIT", "BOOLCONSTANT", "NEW", "SEP", "OPENBODY", 
-                                 "CLOSEBODY", "OPENARGS", "CLOSEARGS", "OPENGENERIC", 
-                                 "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY", 
-                                 "METHODSEP", "EQUALS", "OR", "VOID", "TYPESEP", 
-                                 "NEWLINE", "WS", "STRINGCONSTANT", "NUMBERCONSTANT", 
-                                 "VARNAME" ];
-
+AmmLexer.prototype.channelNames = ["DEFAULT_TOKEN_CHANNEL", "HIDDEN"];
+AmmLexer.prototype.modeNames = ["DEFAULT_MODE"];
+AmmLexer.prototype.literalNames = [null, "'type'", "'fn'", "'event'", "'on'",
+    "'const'", "'let'", "'emit'", null,
+    "'new'", null, "'{'", "'}'", "'('",
+    "')'", "'<'", "'>'", "'['", "']'", "'.'",
+    "'='", "'|'", "'void'"];
+AmmLexer.prototype.symbolicNames = [null, "TYPE", "FN", "EVENT", "ON",
+    "CONST", "LET", "EMIT", "BOOLCONSTANT",
+    "NEW", "SEP", "OPENBODY", "CLOSEBODY",
+    "OPENARGS", "CLOSEARGS", "OPENGENERIC",
+    "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY",
+    "METHODSEP", "EQUALS", "OR", "VOID",
+    "TYPESEP", "NEWLINE", "WS", "STRINGCONSTANT",
+    "NUMBERCONSTANT", "VARNAME"];
+AmmLexer.prototype.ruleNames = ["TYPE", "FN", "EVENT", "ON", "CONST", "LET",
+    "EMIT", "BOOLCONSTANT", "NEW", "SEP", "OPENBODY",
+    "CLOSEBODY", "OPENARGS", "CLOSEARGS", "OPENGENERIC",
+    "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY",
+    "METHODSEP", "EQUALS", "OR", "VOID", "TYPESEP",
+    "NEWLINE", "WS", "STRINGCONSTANT", "NUMBERCONSTANT",
+    "VARNAME"];
 AmmLexer.prototype.grammarFileName = "Amm.g4";
-
-
-
 exports.AmmLexer = AmmLexer;
 
-
-},{"antlr4/index":76}],2:[function(require,module,exports){
+},{"antlr4/index":76}],4:[function(require,module,exports){
 // Generated from Amm.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
-
 // This class defines a complete listener for a parse tree produced by AmmParser.
 function AmmListener() {
-	antlr4.tree.ParseTreeListener.call(this);
-	return this;
+    antlr4.tree.ParseTreeListener.call(this);
+    return this;
 }
-
 AmmListener.prototype = Object.create(antlr4.tree.ParseTreeListener.prototype);
 AmmListener.prototype.constructor = AmmListener;
-
 // Enter a parse tree produced by AmmParser#module.
-AmmListener.prototype.enterModule = function(ctx) {
+AmmListener.prototype.enterModule = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#module.
-AmmListener.prototype.exitModule = function(ctx) {
+AmmListener.prototype.exitModule = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#blank.
-AmmListener.prototype.enterBlank = function(ctx) {
+AmmListener.prototype.enterBlank = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#blank.
-AmmListener.prototype.exitBlank = function(ctx) {
+AmmListener.prototype.exitBlank = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#types.
-AmmListener.prototype.enterTypes = function(ctx) {
+AmmListener.prototype.enterTypes = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#types.
-AmmListener.prototype.exitTypes = function(ctx) {
+AmmListener.prototype.exitTypes = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#othertype.
-AmmListener.prototype.enterOthertype = function(ctx) {
+AmmListener.prototype.enterOthertype = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#othertype.
-AmmListener.prototype.exitOthertype = function(ctx) {
+AmmListener.prototype.exitOthertype = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#typename.
-AmmListener.prototype.enterTypename = function(ctx) {
+AmmListener.prototype.enterTypename = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#typename.
-AmmListener.prototype.exitTypename = function(ctx) {
+AmmListener.prototype.exitTypename = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#typegenerics.
-AmmListener.prototype.enterTypegenerics = function(ctx) {
+AmmListener.prototype.enterTypegenerics = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#typegenerics.
-AmmListener.prototype.exitTypegenerics = function(ctx) {
+AmmListener.prototype.exitTypegenerics = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#fulltypename.
-AmmListener.prototype.enterFulltypename = function(ctx) {
+AmmListener.prototype.enterFulltypename = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#fulltypename.
-AmmListener.prototype.exitFulltypename = function(ctx) {
+AmmListener.prototype.exitFulltypename = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#typebody.
-AmmListener.prototype.enterTypebody = function(ctx) {
+AmmListener.prototype.enterTypebody = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#typebody.
-AmmListener.prototype.exitTypebody = function(ctx) {
+AmmListener.prototype.exitTypebody = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#typeline.
-AmmListener.prototype.enterTypeline = function(ctx) {
+AmmListener.prototype.enterTypeline = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#typeline.
-AmmListener.prototype.exitTypeline = function(ctx) {
+AmmListener.prototype.exitTypeline = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#functions.
-AmmListener.prototype.enterFunctions = function(ctx) {
+AmmListener.prototype.enterFunctions = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#functions.
-AmmListener.prototype.exitFunctions = function(ctx) {
+AmmListener.prototype.exitFunctions = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#functionbody.
-AmmListener.prototype.enterFunctionbody = function(ctx) {
+AmmListener.prototype.enterFunctionbody = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#functionbody.
-AmmListener.prototype.exitFunctionbody = function(ctx) {
+AmmListener.prototype.exitFunctionbody = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#statements.
-AmmListener.prototype.enterStatements = function(ctx) {
+AmmListener.prototype.enterStatements = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#statements.
-AmmListener.prototype.exitStatements = function(ctx) {
+AmmListener.prototype.exitStatements = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#declarations.
-AmmListener.prototype.enterDeclarations = function(ctx) {
+AmmListener.prototype.enterDeclarations = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#declarations.
-AmmListener.prototype.exitDeclarations = function(ctx) {
+AmmListener.prototype.exitDeclarations = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#decname.
-AmmListener.prototype.enterDecname = function(ctx) {
+AmmListener.prototype.enterDecname = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#decname.
-AmmListener.prototype.exitDecname = function(ctx) {
+AmmListener.prototype.exitDecname = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#constdeclaration.
-AmmListener.prototype.enterConstdeclaration = function(ctx) {
+AmmListener.prototype.enterConstdeclaration = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#constdeclaration.
-AmmListener.prototype.exitConstdeclaration = function(ctx) {
+AmmListener.prototype.exitConstdeclaration = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#letdeclaration.
-AmmListener.prototype.enterLetdeclaration = function(ctx) {
+AmmListener.prototype.enterLetdeclaration = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#letdeclaration.
-AmmListener.prototype.exitLetdeclaration = function(ctx) {
+AmmListener.prototype.exitLetdeclaration = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#assignments.
-AmmListener.prototype.enterAssignments = function(ctx) {
+AmmListener.prototype.enterAssignments = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#assignments.
-AmmListener.prototype.exitAssignments = function(ctx) {
+AmmListener.prototype.exitAssignments = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#assignables.
-AmmListener.prototype.enterAssignables = function(ctx) {
+AmmListener.prototype.enterAssignables = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#assignables.
-AmmListener.prototype.exitAssignables = function(ctx) {
+AmmListener.prototype.exitAssignables = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#objectliterals.
-AmmListener.prototype.enterObjectliterals = function(ctx) {
+AmmListener.prototype.enterObjectliterals = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#objectliterals.
-AmmListener.prototype.exitObjectliterals = function(ctx) {
+AmmListener.prototype.exitObjectliterals = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#arrayliteral.
-AmmListener.prototype.enterArrayliteral = function(ctx) {
+AmmListener.prototype.enterArrayliteral = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#arrayliteral.
-AmmListener.prototype.exitArrayliteral = function(ctx) {
+AmmListener.prototype.exitArrayliteral = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#typeliteral.
-AmmListener.prototype.enterTypeliteral = function(ctx) {
+AmmListener.prototype.enterTypeliteral = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#typeliteral.
-AmmListener.prototype.exitTypeliteral = function(ctx) {
+AmmListener.prototype.exitTypeliteral = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#mapliteral.
-AmmListener.prototype.enterMapliteral = function(ctx) {
+AmmListener.prototype.enterMapliteral = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#mapliteral.
-AmmListener.prototype.exitMapliteral = function(ctx) {
+AmmListener.prototype.exitMapliteral = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#mapline.
-AmmListener.prototype.enterMapline = function(ctx) {
+AmmListener.prototype.enterMapline = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#mapline.
-AmmListener.prototype.exitMapline = function(ctx) {
+AmmListener.prototype.exitMapline = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#assignablelist.
-AmmListener.prototype.enterAssignablelist = function(ctx) {
+AmmListener.prototype.enterAssignablelist = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#assignablelist.
-AmmListener.prototype.exitAssignablelist = function(ctx) {
+AmmListener.prototype.exitAssignablelist = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#calllist.
-AmmListener.prototype.enterCalllist = function(ctx) {
+AmmListener.prototype.enterCalllist = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#calllist.
-AmmListener.prototype.exitCalllist = function(ctx) {
+AmmListener.prototype.exitCalllist = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#calls.
-AmmListener.prototype.enterCalls = function(ctx) {
+AmmListener.prototype.enterCalls = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#calls.
-AmmListener.prototype.exitCalls = function(ctx) {
+AmmListener.prototype.exitCalls = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#emits.
-AmmListener.prototype.enterEmits = function(ctx) {
+AmmListener.prototype.enterEmits = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#emits.
-AmmListener.prototype.exitEmits = function(ctx) {
+AmmListener.prototype.exitEmits = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#constants.
-AmmListener.prototype.enterConstants = function(ctx) {
+AmmListener.prototype.enterConstants = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#constants.
-AmmListener.prototype.exitConstants = function(ctx) {
+AmmListener.prototype.exitConstants = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#events.
-AmmListener.prototype.enterEvents = function(ctx) {
+AmmListener.prototype.enterEvents = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#events.
-AmmListener.prototype.exitEvents = function(ctx) {
+AmmListener.prototype.exitEvents = function (ctx) {
 };
-
-
 // Enter a parse tree produced by AmmParser#handlers.
-AmmListener.prototype.enterHandlers = function(ctx) {
+AmmListener.prototype.enterHandlers = function (ctx) {
 };
-
 // Exit a parse tree produced by AmmParser#handlers.
-AmmListener.prototype.exitHandlers = function(ctx) {
+AmmListener.prototype.exitHandlers = function (ctx) {
 };
-
-
-
 exports.AmmListener = AmmListener;
-},{"antlr4/index":76}],3:[function(require,module,exports){
+
+},{"antlr4/index":76}],5:[function(require,module,exports){
 // Generated from Amm.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
 var AmmListener = require('./AmmListener').AmmListener;
 var grammarFileName = "Amm.g4";
-
 var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
     "\u0003\u001e\u0275\u0004\u0002\t\u0002\u0004\u0003\t\u0003\u0004\u0004",
     "\t\u0004\u0004\u0005\t\u0005\u0004\u0006\t\u0006\u0004\u0007\t\u0007",
@@ -972,52 +899,41 @@ var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
     "\u01b0\u01b7\u01bd\u01c3\u01ca\u01d3\u01da\u01de\u01e6\u01ed\u01f1\u01fa",
     "\u0201\u0209\u0211\u0217\u021d\u0223\u022b\u0231\u0237\u023e\u0243\u024b",
     "\u0252\u0256\u0260\u026a\u0270"].join("");
-
-
 var atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
-
-var decisionsToDFA = atn.decisionToState.map( function(ds, index) { return new antlr4.dfa.DFA(ds, index); });
-
+var decisionsToDFA = atn.decisionToState.map(function (ds, index) { return new antlr4.dfa.DFA(ds, index); });
 var sharedContextCache = new antlr4.PredictionContextCache();
-
-var literalNames = [ null, "'type'", "'fn'", "'event'", "'on'", "'const'", 
-                     "'let'", "'emit'", null, "'new'", null, "'{'", "'}'", 
-                     "'('", "')'", "'<'", "'>'", "'['", "']'", "'.'", "'='", 
-                     "'|'", "'void'" ];
-
-var symbolicNames = [ null, "TYPE", "FN", "EVENT", "ON", "CONST", "LET", 
-                      "EMIT", "BOOLCONSTANT", "NEW", "SEP", "OPENBODY", 
-                      "CLOSEBODY", "OPENARGS", "CLOSEARGS", "OPENGENERIC", 
-                      "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY", "METHODSEP", 
-                      "EQUALS", "OR", "VOID", "TYPESEP", "NEWLINE", "WS", 
-                      "STRINGCONSTANT", "NUMBERCONSTANT", "VARNAME" ];
-
-var ruleNames =  [ "module", "blank", "types", "othertype", "typename", 
-                   "typegenerics", "fulltypename", "typebody", "typeline", 
-                   "functions", "functionbody", "statements", "declarations", 
-                   "decname", "constdeclaration", "letdeclaration", "assignments", 
-                   "assignables", "objectliterals", "arrayliteral", "typeliteral", 
-                   "mapliteral", "mapline", "assignablelist", "calllist", 
-                   "calls", "emits", "constants", "events", "handlers" ];
-
-function AmmParser (input) {
-	antlr4.Parser.call(this, input);
+var literalNames = [null, "'type'", "'fn'", "'event'", "'on'", "'const'",
+    "'let'", "'emit'", null, "'new'", null, "'{'", "'}'",
+    "'('", "')'", "'<'", "'>'", "'['", "']'", "'.'", "'='",
+    "'|'", "'void'"];
+var symbolicNames = [null, "TYPE", "FN", "EVENT", "ON", "CONST", "LET",
+    "EMIT", "BOOLCONSTANT", "NEW", "SEP", "OPENBODY",
+    "CLOSEBODY", "OPENARGS", "CLOSEARGS", "OPENGENERIC",
+    "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY", "METHODSEP",
+    "EQUALS", "OR", "VOID", "TYPESEP", "NEWLINE", "WS",
+    "STRINGCONSTANT", "NUMBERCONSTANT", "VARNAME"];
+var ruleNames = ["module", "blank", "types", "othertype", "typename",
+    "typegenerics", "fulltypename", "typebody", "typeline",
+    "functions", "functionbody", "statements", "declarations",
+    "decname", "constdeclaration", "letdeclaration", "assignments",
+    "assignables", "objectliterals", "arrayliteral", "typeliteral",
+    "mapliteral", "mapline", "assignablelist", "calllist",
+    "calls", "emits", "constants", "events", "handlers"];
+function AmmParser(input) {
+    antlr4.Parser.call(this, input);
     this._interp = new antlr4.atn.ParserATNSimulator(this, atn, decisionsToDFA, sharedContextCache);
     this.ruleNames = ruleNames;
     this.literalNames = literalNames;
     this.symbolicNames = symbolicNames;
     return this;
 }
-
 AmmParser.prototype = Object.create(antlr4.Parser.prototype);
 AmmParser.prototype.constructor = AmmParser;
-
 Object.defineProperty(AmmParser.prototype, "atn", {
-	get : function() {
-		return atn;
-	}
+    get: function () {
+        return atn;
+    }
 });
-
 AmmParser.EOF = antlr4.Token.EOF;
 AmmParser.TYPE = 1;
 AmmParser.FN = 2;
@@ -1047,7 +963,6 @@ AmmParser.WS = 25;
 AmmParser.STRINGCONSTANT = 26;
 AmmParser.NUMBERCONSTANT = 27;
 AmmParser.VARNAME = 28;
-
 AmmParser.RULE_module = 0;
 AmmParser.RULE_blank = 1;
 AmmParser.RULE_types = 2;
@@ -1078,351 +993,327 @@ AmmParser.RULE_emits = 26;
 AmmParser.RULE_constants = 27;
 AmmParser.RULE_events = 28;
 AmmParser.RULE_handlers = 29;
-
 function ModuleContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_module;
     return this;
 }
-
 ModuleContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ModuleContext.prototype.constructor = ModuleContext;
-
-ModuleContext.prototype.blank = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-ModuleContext.prototype.types = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.types = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(TypesContext);
-    } else {
-        return this.getTypedRuleContext(TypesContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(TypesContext, i);
     }
 };
-
-ModuleContext.prototype.constdeclaration = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.constdeclaration = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(ConstdeclarationContext);
-    } else {
-        return this.getTypedRuleContext(ConstdeclarationContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(ConstdeclarationContext, i);
     }
 };
-
-ModuleContext.prototype.events = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.events = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(EventsContext);
-    } else {
-        return this.getTypedRuleContext(EventsContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(EventsContext, i);
     }
 };
-
-ModuleContext.prototype.handlers = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.handlers = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(HandlersContext);
-    } else {
-        return this.getTypedRuleContext(HandlersContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(HandlersContext, i);
     }
 };
-
-ModuleContext.prototype.EOF = function() {
+ModuleContext.prototype.EOF = function () {
     return this.getToken(AmmParser.EOF, 0);
 };
-
-ModuleContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+ModuleContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterModule(this);
-	}
+    }
 };
-
-ModuleContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+ModuleContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitModule(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.ModuleContext = ModuleContext;
-
-AmmParser.prototype.module = function() {
-
+AmmParser.prototype.module = function () {
     var localctx = new ModuleContext(this, this._ctx, this.state);
     this.enterRule(localctx, 0, AmmParser.RULE_module);
     var _la = 0; // Token type
     try {
         this.state = 110;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case AmmParser.TYPE:
-        case AmmParser.EVENT:
-        case AmmParser.ON:
-        case AmmParser.CONST:
-        case AmmParser.NEWLINE:
-        case AmmParser.WS:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 63;
-            this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,0,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
-                    this.state = 60;
-                    this.blank(); 
-                }
-                this.state = 65;
+        switch (this._input.LA(1)) {
+            case AmmParser.TYPE:
+            case AmmParser.EVENT:
+            case AmmParser.ON:
+            case AmmParser.CONST:
+            case AmmParser.NEWLINE:
+            case AmmParser.WS:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 63;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,0,this._ctx);
-            }
-
-            this.state = 74;
-            this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,3,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
-                    this.state = 72;
+                var _alt = this._interp.adaptivePredict(this._input, 0, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 60;
+                        this.blank();
+                    }
+                    this.state = 65;
                     this._errHandler.sync(this);
-                    switch(this._input.LA(1)) {
-                    case AmmParser.TYPE:
-                        this.state = 66;
-                        this.types();
-                        break;
-                    case AmmParser.NEWLINE:
-                    case AmmParser.WS:
-                        this.state = 68; 
-                        this._errHandler.sync(this);
-                        var _alt = 1;
-                        do {
-                        	switch (_alt) {
-                        	case 1:
-                        		this.state = 67;
-                        		this.blank();
-                        		break;
-                        	default:
-                        		throw new antlr4.error.NoViableAltException(this);
-                        	}
-                        	this.state = 70; 
-                        	this._errHandler.sync(this);
-                        	_alt = this._interp.adaptivePredict(this._input,1, this._ctx);
-                        } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-                        break;
-                    default:
-                        throw new antlr4.error.NoViableAltException(this);
-                    } 
+                    _alt = this._interp.adaptivePredict(this._input, 0, this._ctx);
                 }
-                this.state = 76;
+                this.state = 74;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,3,this._ctx);
-            }
-
-            this.state = 85;
-            this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,6,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
-                    this.state = 83;
+                var _alt = this._interp.adaptivePredict(this._input, 3, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 72;
+                        this._errHandler.sync(this);
+                        switch (this._input.LA(1)) {
+                            case AmmParser.TYPE:
+                                this.state = 66;
+                                this.types();
+                                break;
+                            case AmmParser.NEWLINE:
+                            case AmmParser.WS:
+                                this.state = 68;
+                                this._errHandler.sync(this);
+                                var _alt = 1;
+                                do {
+                                    switch (_alt) {
+                                        case 1:
+                                            this.state = 67;
+                                            this.blank();
+                                            break;
+                                        default:
+                                            throw new antlr4.error.NoViableAltException(this);
+                                    }
+                                    this.state = 70;
+                                    this._errHandler.sync(this);
+                                    _alt = this._interp.adaptivePredict(this._input, 1, this._ctx);
+                                } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+                                break;
+                            default:
+                                throw new antlr4.error.NoViableAltException(this);
+                        }
+                    }
+                    this.state = 76;
                     this._errHandler.sync(this);
-                    switch(this._input.LA(1)) {
-                    case AmmParser.CONST:
-                        this.state = 77;
-                        this.constdeclaration();
-                        break;
-                    case AmmParser.NEWLINE:
-                    case AmmParser.WS:
-                        this.state = 79; 
-                        this._errHandler.sync(this);
-                        var _alt = 1;
-                        do {
-                        	switch (_alt) {
-                        	case 1:
-                        		this.state = 78;
-                        		this.blank();
-                        		break;
-                        	default:
-                        		throw new antlr4.error.NoViableAltException(this);
-                        	}
-                        	this.state = 81; 
-                        	this._errHandler.sync(this);
-                        	_alt = this._interp.adaptivePredict(this._input,4, this._ctx);
-                        } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-                        break;
-                    default:
-                        throw new antlr4.error.NoViableAltException(this);
-                    } 
+                    _alt = this._interp.adaptivePredict(this._input, 3, this._ctx);
                 }
-                this.state = 87;
+                this.state = 85;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,6,this._ctx);
-            }
-
-            this.state = 96;
-            this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,9,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
-                    this.state = 94;
+                var _alt = this._interp.adaptivePredict(this._input, 6, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 83;
+                        this._errHandler.sync(this);
+                        switch (this._input.LA(1)) {
+                            case AmmParser.CONST:
+                                this.state = 77;
+                                this.constdeclaration();
+                                break;
+                            case AmmParser.NEWLINE:
+                            case AmmParser.WS:
+                                this.state = 79;
+                                this._errHandler.sync(this);
+                                var _alt = 1;
+                                do {
+                                    switch (_alt) {
+                                        case 1:
+                                            this.state = 78;
+                                            this.blank();
+                                            break;
+                                        default:
+                                            throw new antlr4.error.NoViableAltException(this);
+                                    }
+                                    this.state = 81;
+                                    this._errHandler.sync(this);
+                                    _alt = this._interp.adaptivePredict(this._input, 4, this._ctx);
+                                } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+                                break;
+                            default:
+                                throw new antlr4.error.NoViableAltException(this);
+                        }
+                    }
+                    this.state = 87;
                     this._errHandler.sync(this);
-                    switch(this._input.LA(1)) {
-                    case AmmParser.EVENT:
-                        this.state = 88;
-                        this.events();
-                        break;
-                    case AmmParser.NEWLINE:
-                    case AmmParser.WS:
-                        this.state = 90; 
-                        this._errHandler.sync(this);
-                        var _alt = 1;
-                        do {
-                        	switch (_alt) {
-                        	case 1:
-                        		this.state = 89;
-                        		this.blank();
-                        		break;
-                        	default:
-                        		throw new antlr4.error.NoViableAltException(this);
-                        	}
-                        	this.state = 92; 
-                        	this._errHandler.sync(this);
-                        	_alt = this._interp.adaptivePredict(this._input,7, this._ctx);
-                        } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-                        break;
-                    default:
-                        throw new antlr4.error.NoViableAltException(this);
-                    } 
+                    _alt = this._interp.adaptivePredict(this._input, 6, this._ctx);
                 }
-                this.state = 98;
+                this.state = 96;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,9,this._ctx);
-            }
-
-            this.state = 105; 
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            do {
+                var _alt = this._interp.adaptivePredict(this._input, 9, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 94;
+                        this._errHandler.sync(this);
+                        switch (this._input.LA(1)) {
+                            case AmmParser.EVENT:
+                                this.state = 88;
+                                this.events();
+                                break;
+                            case AmmParser.NEWLINE:
+                            case AmmParser.WS:
+                                this.state = 90;
+                                this._errHandler.sync(this);
+                                var _alt = 1;
+                                do {
+                                    switch (_alt) {
+                                        case 1:
+                                            this.state = 89;
+                                            this.blank();
+                                            break;
+                                        default:
+                                            throw new antlr4.error.NoViableAltException(this);
+                                    }
+                                    this.state = 92;
+                                    this._errHandler.sync(this);
+                                    _alt = this._interp.adaptivePredict(this._input, 7, this._ctx);
+                                } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+                                break;
+                            default:
+                                throw new antlr4.error.NoViableAltException(this);
+                        }
+                    }
+                    this.state = 98;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 9, this._ctx);
+                }
                 this.state = 105;
                 this._errHandler.sync(this);
-                switch(this._input.LA(1)) {
-                case AmmParser.ON:
-                    this.state = 99;
-                    this.handlers();
-                    break;
-                case AmmParser.NEWLINE:
-                case AmmParser.WS:
-                    this.state = 101; 
-                    this._errHandler.sync(this);
-                    var _alt = 1;
-                    do {
-                    	switch (_alt) {
-                    	case 1:
-                    		this.state = 100;
-                    		this.blank();
-                    		break;
-                    	default:
-                    		throw new antlr4.error.NoViableAltException(this);
-                    	}
-                    	this.state = 103; 
-                    	this._errHandler.sync(this);
-                    	_alt = this._interp.adaptivePredict(this._input,10, this._ctx);
-                    } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-                    break;
-                default:
-                    throw new antlr4.error.NoViableAltException(this);
-                }
-                this.state = 107; 
-                this._errHandler.sync(this);
                 _la = this._input.LA(1);
-            } while((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.ON) | (1 << AmmParser.NEWLINE) | (1 << AmmParser.WS))) !== 0));
-            break;
-        case AmmParser.EOF:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 109;
-            this.match(AmmParser.EOF);
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+                do {
+                    this.state = 105;
+                    this._errHandler.sync(this);
+                    switch (this._input.LA(1)) {
+                        case AmmParser.ON:
+                            this.state = 99;
+                            this.handlers();
+                            break;
+                        case AmmParser.NEWLINE:
+                        case AmmParser.WS:
+                            this.state = 101;
+                            this._errHandler.sync(this);
+                            var _alt = 1;
+                            do {
+                                switch (_alt) {
+                                    case 1:
+                                        this.state = 100;
+                                        this.blank();
+                                        break;
+                                    default:
+                                        throw new antlr4.error.NoViableAltException(this);
+                                }
+                                this.state = 103;
+                                this._errHandler.sync(this);
+                                _alt = this._interp.adaptivePredict(this._input, 10, this._ctx);
+                            } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+                            break;
+                        default:
+                            throw new antlr4.error.NoViableAltException(this);
+                    }
+                    this.state = 107;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                } while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.ON) | (1 << AmmParser.NEWLINE) | (1 << AmmParser.WS))) !== 0));
+                break;
+            case AmmParser.EOF:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 109;
+                this.match(AmmParser.EOF);
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function BlankContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_blank;
     return this;
 }
-
 BlankContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 BlankContext.prototype.constructor = BlankContext;
-
-BlankContext.prototype.WS = function() {
+BlankContext.prototype.WS = function () {
     return this.getToken(AmmParser.WS, 0);
 };
-
-BlankContext.prototype.NEWLINE = function() {
+BlankContext.prototype.NEWLINE = function () {
     return this.getToken(AmmParser.NEWLINE, 0);
 };
-
-BlankContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+BlankContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterBlank(this);
-	}
+    }
 };
-
-BlankContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+BlankContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitBlank(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.BlankContext = BlankContext;
-
-AmmParser.prototype.blank = function() {
-
+AmmParser.prototype.blank = function () {
     var localctx = new BlankContext(this, this._ctx, this.state);
     this.enterRule(localctx, 2, AmmParser.RULE_blank);
     var _la = 0; // Token type
@@ -1430,116 +1321,103 @@ AmmParser.prototype.blank = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 112;
         _la = this._input.LA(1);
-        if(!(_la===AmmParser.NEWLINE || _la===AmmParser.WS)) {
-        this._errHandler.recoverInline(this);
+        if (!(_la === AmmParser.NEWLINE || _la === AmmParser.WS)) {
+            this._errHandler.recoverInline(this);
         }
         else {
-        	this._errHandler.reportMatch(this);
+            this._errHandler.reportMatch(this);
             this.consume();
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function TypesContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_types;
     return this;
 }
-
 TypesContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypesContext.prototype.constructor = TypesContext;
-
-TypesContext.prototype.TYPE = function() {
+TypesContext.prototype.TYPE = function () {
     return this.getToken(AmmParser.TYPE, 0);
 };
-
-TypesContext.prototype.typename = function() {
-    return this.getTypedRuleContext(TypenameContext,0);
+TypesContext.prototype.typename = function () {
+    return this.getTypedRuleContext(TypenameContext, 0);
 };
-
-TypesContext.prototype.typebody = function() {
-    return this.getTypedRuleContext(TypebodyContext,0);
+TypesContext.prototype.typebody = function () {
+    return this.getTypedRuleContext(TypebodyContext, 0);
 };
-
-TypesContext.prototype.EQUALS = function() {
+TypesContext.prototype.EQUALS = function () {
     return this.getToken(AmmParser.EQUALS, 0);
 };
-
-TypesContext.prototype.othertype = function(i) {
-    if(i===undefined) {
+TypesContext.prototype.othertype = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(OthertypeContext);
-    } else {
-        return this.getTypedRuleContext(OthertypeContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(OthertypeContext, i);
     }
 };
-
-TypesContext.prototype.blank = function(i) {
-    if(i===undefined) {
+TypesContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-TypesContext.prototype.typegenerics = function() {
-    return this.getTypedRuleContext(TypegenericsContext,0);
+TypesContext.prototype.typegenerics = function () {
+    return this.getTypedRuleContext(TypegenericsContext, 0);
 };
-
-TypesContext.prototype.OR = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+TypesContext.prototype.OR = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(AmmParser.OR);
-    } else {
+    }
+    else {
         return this.getToken(AmmParser.OR, i);
     }
 };
-
-
-TypesContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+TypesContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterTypes(this);
-	}
+    }
 };
-
-TypesContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+TypesContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitTypes(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.TypesContext = TypesContext;
-
-AmmParser.prototype.types = function() {
-
+AmmParser.prototype.types = function () {
     var localctx = new TypesContext(this, this._ctx, this.state);
     this.enterRule(localctx, 4, AmmParser.RULE_types);
     var _la = 0; // Token type
@@ -1547,178 +1425,166 @@ AmmParser.prototype.types = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 114;
         this.match(AmmParser.TYPE);
-        this.state = 116; 
+        this.state = 116;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 115;
             this.blank();
-            this.state = 118; 
+            this.state = 118;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===AmmParser.NEWLINE || _la===AmmParser.WS);
+        } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
         this.state = 120;
         this.typename();
         this.state = 124;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,15,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 15, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 121;
-                this.blank(); 
+                this.blank();
             }
             this.state = 126;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,15,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 15, this._ctx);
         }
-
         this.state = 128;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(_la===AmmParser.OPENGENERIC) {
+        if (_la === AmmParser.OPENGENERIC) {
             this.state = 127;
             this.typegenerics();
         }
-
-        this.state = 131; 
+        this.state = 131;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 130;
             this.blank();
-            this.state = 133; 
+            this.state = 133;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===AmmParser.NEWLINE || _la===AmmParser.WS);
+        } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
         this.state = 163;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case AmmParser.OPENBODY:
-            this.state = 135;
-            this.typebody();
-            break;
-        case AmmParser.EQUALS:
-            this.state = 136;
-            this.match(AmmParser.EQUALS);
-            this.state = 140;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
-                this.state = 137;
-                this.blank();
-                this.state = 142;
+        switch (this._input.LA(1)) {
+            case AmmParser.OPENBODY:
+                this.state = 135;
+                this.typebody();
+                break;
+            case AmmParser.EQUALS:
+                this.state = 136;
+                this.match(AmmParser.EQUALS);
+                this.state = 140;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-            }
-            this.state = 143;
-            this.othertype();
-            this.state = 160;
-            this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,21,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
-                    this.state = 147;
+                while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
+                    this.state = 137;
+                    this.blank();
+                    this.state = 142;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
-                    while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
-                        this.state = 144;
-                        this.blank();
-                        this.state = 149;
-                        this._errHandler.sync(this);
-                        _la = this._input.LA(1);
-                    }
-                    this.state = 150;
-                    this.match(AmmParser.OR);
-                    this.state = 154;
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                    while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
-                        this.state = 151;
-                        this.blank();
-                        this.state = 156;
-                        this._errHandler.sync(this);
-                        _la = this._input.LA(1);
-                    }
-                    this.state = 157;
-                    this.othertype(); 
                 }
-                this.state = 162;
+                this.state = 143;
+                this.othertype();
+                this.state = 160;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,21,this._ctx);
-            }
-
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+                var _alt = this._interp.adaptivePredict(this._input, 21, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 147;
+                        this._errHandler.sync(this);
+                        _la = this._input.LA(1);
+                        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
+                            this.state = 144;
+                            this.blank();
+                            this.state = 149;
+                            this._errHandler.sync(this);
+                            _la = this._input.LA(1);
+                        }
+                        this.state = 150;
+                        this.match(AmmParser.OR);
+                        this.state = 154;
+                        this._errHandler.sync(this);
+                        _la = this._input.LA(1);
+                        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
+                            this.state = 151;
+                            this.blank();
+                            this.state = 156;
+                            this._errHandler.sync(this);
+                            _la = this._input.LA(1);
+                        }
+                        this.state = 157;
+                        this.othertype();
+                    }
+                    this.state = 162;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 21, this._ctx);
+                }
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function OthertypeContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_othertype;
     return this;
 }
-
 OthertypeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 OthertypeContext.prototype.constructor = OthertypeContext;
-
-OthertypeContext.prototype.typename = function() {
-    return this.getTypedRuleContext(TypenameContext,0);
+OthertypeContext.prototype.typename = function () {
+    return this.getTypedRuleContext(TypenameContext, 0);
 };
-
-OthertypeContext.prototype.blank = function(i) {
-    if(i===undefined) {
+OthertypeContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-OthertypeContext.prototype.typegenerics = function() {
-    return this.getTypedRuleContext(TypegenericsContext,0);
+OthertypeContext.prototype.typegenerics = function () {
+    return this.getTypedRuleContext(TypegenericsContext, 0);
 };
-
-OthertypeContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+OthertypeContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterOthertype(this);
-	}
+    }
 };
-
-OthertypeContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+OthertypeContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitOthertype(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.OthertypeContext = OthertypeContext;
-
-AmmParser.prototype.othertype = function() {
-
+AmmParser.prototype.othertype = function () {
     var localctx = new OthertypeContext(this, this._ctx, this.state);
     this.enterRule(localctx, 6, AmmParser.RULE_othertype);
     var _la = 0; // Token type
@@ -1728,175 +1594,155 @@ AmmParser.prototype.othertype = function() {
         this.typename();
         this.state = 169;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,23,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 23, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 166;
-                this.blank(); 
+                this.blank();
             }
             this.state = 171;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,23,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 23, this._ctx);
         }
-
         this.state = 173;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(_la===AmmParser.OPENGENERIC) {
+        if (_la === AmmParser.OPENGENERIC) {
             this.state = 172;
             this.typegenerics();
         }
-
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function TypenameContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_typename;
     return this;
 }
-
 TypenameContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypenameContext.prototype.constructor = TypenameContext;
-
-TypenameContext.prototype.VARNAME = function() {
+TypenameContext.prototype.VARNAME = function () {
     return this.getToken(AmmParser.VARNAME, 0);
 };
-
-TypenameContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+TypenameContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterTypename(this);
-	}
+    }
 };
-
-TypenameContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+TypenameContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitTypename(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.TypenameContext = TypenameContext;
-
-AmmParser.prototype.typename = function() {
-
+AmmParser.prototype.typename = function () {
     var localctx = new TypenameContext(this, this._ctx, this.state);
     this.enterRule(localctx, 8, AmmParser.RULE_typename);
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 175;
         this.match(AmmParser.VARNAME);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function TypegenericsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_typegenerics;
     return this;
 }
-
 TypegenericsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypegenericsContext.prototype.constructor = TypegenericsContext;
-
-TypegenericsContext.prototype.OPENGENERIC = function() {
+TypegenericsContext.prototype.OPENGENERIC = function () {
     return this.getToken(AmmParser.OPENGENERIC, 0);
 };
-
-TypegenericsContext.prototype.fulltypename = function(i) {
-    if(i===undefined) {
+TypegenericsContext.prototype.fulltypename = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(FulltypenameContext);
-    } else {
-        return this.getTypedRuleContext(FulltypenameContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(FulltypenameContext, i);
     }
 };
-
-TypegenericsContext.prototype.CLOSEGENERIC = function() {
+TypegenericsContext.prototype.CLOSEGENERIC = function () {
     return this.getToken(AmmParser.CLOSEGENERIC, 0);
 };
-
-TypegenericsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+TypegenericsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-TypegenericsContext.prototype.SEP = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+TypegenericsContext.prototype.SEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(AmmParser.SEP);
-    } else {
+    }
+    else {
         return this.getToken(AmmParser.SEP, i);
     }
 };
-
-
-TypegenericsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+TypegenericsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterTypegenerics(this);
-	}
+    }
 };
-
-TypegenericsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+TypegenericsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitTypegenerics(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.TypegenericsContext = TypegenericsContext;
-
-AmmParser.prototype.typegenerics = function() {
-
+AmmParser.prototype.typegenerics = function () {
     var localctx = new TypegenericsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 10, AmmParser.RULE_typegenerics);
     var _la = 0; // Token type
@@ -1907,7 +1753,7 @@ AmmParser.prototype.typegenerics = function() {
         this.state = 181;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 178;
             this.blank();
             this.state = 183;
@@ -1919,7 +1765,7 @@ AmmParser.prototype.typegenerics = function() {
         this.state = 188;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 185;
             this.blank();
             this.state = 190;
@@ -1929,13 +1775,13 @@ AmmParser.prototype.typegenerics = function() {
         this.state = 207;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.SEP) {
+        while (_la === AmmParser.SEP) {
             this.state = 191;
             this.match(AmmParser.SEP);
             this.state = 195;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+            while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
                 this.state = 192;
                 this.blank();
                 this.state = 197;
@@ -1947,7 +1793,7 @@ AmmParser.prototype.typegenerics = function() {
             this.state = 202;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+            while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
                 this.state = 199;
                 this.blank();
                 this.state = 204;
@@ -1960,210 +1806,188 @@ AmmParser.prototype.typegenerics = function() {
         }
         this.state = 210;
         this.match(AmmParser.CLOSEGENERIC);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function FulltypenameContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_fulltypename;
     return this;
 }
-
 FulltypenameContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 FulltypenameContext.prototype.constructor = FulltypenameContext;
-
-FulltypenameContext.prototype.typename = function() {
-    return this.getTypedRuleContext(TypenameContext,0);
+FulltypenameContext.prototype.typename = function () {
+    return this.getTypedRuleContext(TypenameContext, 0);
 };
-
-FulltypenameContext.prototype.blank = function(i) {
-    if(i===undefined) {
+FulltypenameContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-FulltypenameContext.prototype.typegenerics = function() {
-    return this.getTypedRuleContext(TypegenericsContext,0);
+FulltypenameContext.prototype.typegenerics = function () {
+    return this.getTypedRuleContext(TypegenericsContext, 0);
 };
-
-FulltypenameContext.prototype.VOID = function() {
+FulltypenameContext.prototype.VOID = function () {
     return this.getToken(AmmParser.VOID, 0);
 };
-
-FulltypenameContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+FulltypenameContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterFulltypename(this);
-	}
+    }
 };
-
-FulltypenameContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+FulltypenameContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitFulltypename(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.FulltypenameContext = FulltypenameContext;
-
-AmmParser.prototype.fulltypename = function() {
-
+AmmParser.prototype.fulltypename = function () {
     var localctx = new FulltypenameContext(this, this._ctx, this.state);
     this.enterRule(localctx, 12, AmmParser.RULE_fulltypename);
     var _la = 0; // Token type
     try {
         this.state = 223;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case AmmParser.VARNAME:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 212;
-            this.typename();
-            this.state = 216;
-            this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,30,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
-                    this.state = 213;
-                    this.blank(); 
-                }
-                this.state = 218;
+        switch (this._input.LA(1)) {
+            case AmmParser.VARNAME:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 212;
+                this.typename();
+                this.state = 216;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,30,this._ctx);
-            }
-
-            this.state = 220;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            if(_la===AmmParser.OPENGENERIC) {
-                this.state = 219;
-                this.typegenerics();
-            }
-
-            break;
-        case AmmParser.VOID:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 222;
-            this.match(AmmParser.VOID);
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+                var _alt = this._interp.adaptivePredict(this._input, 30, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 213;
+                        this.blank();
+                    }
+                    this.state = 218;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 30, this._ctx);
+                }
+                this.state = 220;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+                if (_la === AmmParser.OPENGENERIC) {
+                    this.state = 219;
+                    this.typegenerics();
+                }
+                break;
+            case AmmParser.VOID:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 222;
+                this.match(AmmParser.VOID);
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function TypebodyContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_typebody;
     return this;
 }
-
 TypebodyContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypebodyContext.prototype.constructor = TypebodyContext;
-
-TypebodyContext.prototype.OPENBODY = function() {
+TypebodyContext.prototype.OPENBODY = function () {
     return this.getToken(AmmParser.OPENBODY, 0);
 };
-
-TypebodyContext.prototype.CLOSEBODY = function() {
+TypebodyContext.prototype.CLOSEBODY = function () {
     return this.getToken(AmmParser.CLOSEBODY, 0);
 };
-
-TypebodyContext.prototype.blank = function(i) {
-    if(i===undefined) {
+TypebodyContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-TypebodyContext.prototype.typeline = function(i) {
-    if(i===undefined) {
+TypebodyContext.prototype.typeline = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(TypelineContext);
-    } else {
-        return this.getTypedRuleContext(TypelineContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(TypelineContext, i);
     }
 };
-
-TypebodyContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+TypebodyContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(AmmParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(AmmParser.WS, i);
     }
 };
-
-
-TypebodyContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+TypebodyContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterTypebody(this);
-	}
+    }
 };
-
-TypebodyContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+TypebodyContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitTypebody(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.TypebodyContext = TypebodyContext;
-
-AmmParser.prototype.typebody = function() {
-
+AmmParser.prototype.typebody = function () {
     var localctx = new TypebodyContext(this, this._ctx, this.state);
     this.enterRule(localctx, 14, AmmParser.RULE_typebody);
     var _la = 0; // Token type
@@ -2173,126 +1997,113 @@ AmmParser.prototype.typebody = function() {
         this.match(AmmParser.OPENBODY);
         this.state = 229;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,33,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 33, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 226;
-                this.blank(); 
+                this.blank();
             }
             this.state = 231;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,33,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 33, this._ctx);
         }
-
-        this.state = 239; 
+        this.state = 239;
         this._errHandler.sync(this);
         var _alt = 1;
         do {
-        	switch (_alt) {
-        	case 1:
-        		this.state = 235;
-        		this._errHandler.sync(this);
-        		_la = this._input.LA(1);
-        		while(_la===AmmParser.WS) {
-        		    this.state = 232;
-        		    this.match(AmmParser.WS);
-        		    this.state = 237;
-        		    this._errHandler.sync(this);
-        		    _la = this._input.LA(1);
-        		}
-        		this.state = 238;
-        		this.typeline();
-        		break;
-        	default:
-        		throw new antlr4.error.NoViableAltException(this);
-        	}
-        	this.state = 241; 
-        	this._errHandler.sync(this);
-        	_alt = this._interp.adaptivePredict(this._input,35, this._ctx);
-        } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
+            switch (_alt) {
+                case 1:
+                    this.state = 235;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                    while (_la === AmmParser.WS) {
+                        this.state = 232;
+                        this.match(AmmParser.WS);
+                        this.state = 237;
+                        this._errHandler.sync(this);
+                        _la = this._input.LA(1);
+                    }
+                    this.state = 238;
+                    this.typeline();
+                    break;
+                default:
+                    throw new antlr4.error.NoViableAltException(this);
+            }
+            this.state = 241;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 35, this._ctx);
+        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
         this.state = 244;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        if (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 243;
             this.blank();
         }
-
         this.state = 246;
         this.match(AmmParser.CLOSEBODY);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function TypelineContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_typeline;
     return this;
 }
-
 TypelineContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypelineContext.prototype.constructor = TypelineContext;
-
-TypelineContext.prototype.VARNAME = function() {
+TypelineContext.prototype.VARNAME = function () {
     return this.getToken(AmmParser.VARNAME, 0);
 };
-
-TypelineContext.prototype.TYPESEP = function() {
+TypelineContext.prototype.TYPESEP = function () {
     return this.getToken(AmmParser.TYPESEP, 0);
 };
-
-TypelineContext.prototype.typename = function() {
-    return this.getTypedRuleContext(TypenameContext,0);
+TypelineContext.prototype.typename = function () {
+    return this.getTypedRuleContext(TypenameContext, 0);
 };
-
-TypelineContext.prototype.NEWLINE = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+TypelineContext.prototype.NEWLINE = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(AmmParser.NEWLINE);
-    } else {
+    }
+    else {
         return this.getToken(AmmParser.NEWLINE, i);
     }
 };
-
-
-TypelineContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+TypelineContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterTypeline(this);
-	}
+    }
 };
-
-TypelineContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+TypelineContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitTypeline(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.TypelineContext = TypelineContext;
-
-AmmParser.prototype.typeline = function() {
-
+AmmParser.prototype.typeline = function () {
     var localctx = new TypelineContext(this, this._ctx, this.state);
     this.enterRule(localctx, 16, AmmParser.RULE_typeline);
     try {
@@ -2305,117 +2116,101 @@ AmmParser.prototype.typeline = function() {
         this.typename();
         this.state = 254;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,37,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 37, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 251;
-                this.match(AmmParser.NEWLINE); 
+                this.match(AmmParser.NEWLINE);
             }
             this.state = 256;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,37,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 37, this._ctx);
         }
-
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function FunctionsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_functions;
     return this;
 }
-
 FunctionsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 FunctionsContext.prototype.constructor = FunctionsContext;
-
-FunctionsContext.prototype.FN = function() {
+FunctionsContext.prototype.FN = function () {
     return this.getToken(AmmParser.FN, 0);
 };
-
-FunctionsContext.prototype.OPENARGS = function() {
+FunctionsContext.prototype.OPENARGS = function () {
     return this.getToken(AmmParser.OPENARGS, 0);
 };
-
-FunctionsContext.prototype.CLOSEARGS = function() {
+FunctionsContext.prototype.CLOSEARGS = function () {
     return this.getToken(AmmParser.CLOSEARGS, 0);
 };
-
-FunctionsContext.prototype.TYPESEP = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+FunctionsContext.prototype.TYPESEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(AmmParser.TYPESEP);
-    } else {
+    }
+    else {
         return this.getToken(AmmParser.TYPESEP, i);
     }
 };
-
-
-FunctionsContext.prototype.VOID = function() {
+FunctionsContext.prototype.VOID = function () {
     return this.getToken(AmmParser.VOID, 0);
 };
-
-FunctionsContext.prototype.functionbody = function() {
-    return this.getTypedRuleContext(FunctionbodyContext,0);
+FunctionsContext.prototype.functionbody = function () {
+    return this.getTypedRuleContext(FunctionbodyContext, 0);
 };
-
-FunctionsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+FunctionsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-FunctionsContext.prototype.VARNAME = function() {
+FunctionsContext.prototype.VARNAME = function () {
     return this.getToken(AmmParser.VARNAME, 0);
 };
-
-FunctionsContext.prototype.fulltypename = function() {
-    return this.getTypedRuleContext(FulltypenameContext,0);
+FunctionsContext.prototype.fulltypename = function () {
+    return this.getTypedRuleContext(FulltypenameContext, 0);
 };
-
-FunctionsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+FunctionsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterFunctions(this);
-	}
+    }
 };
-
-FunctionsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+FunctionsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitFunctions(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.FunctionsContext = FunctionsContext;
-
-AmmParser.prototype.functions = function() {
-
+AmmParser.prototype.functions = function () {
     var localctx = new FunctionsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 18, AmmParser.RULE_functions);
     var _la = 0; // Token type
@@ -2423,22 +2218,22 @@ AmmParser.prototype.functions = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 257;
         this.match(AmmParser.FN);
-        this.state = 259; 
+        this.state = 259;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 258;
             this.blank();
-            this.state = 261; 
+            this.state = 261;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===AmmParser.NEWLINE || _la===AmmParser.WS);
+        } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
         this.state = 263;
         this.match(AmmParser.OPENARGS);
         this.state = 267;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(_la===AmmParser.VARNAME) {
+        if (_la === AmmParser.VARNAME) {
             this.state = 264;
             this.match(AmmParser.VARNAME);
             this.state = 265;
@@ -2446,13 +2241,12 @@ AmmParser.prototype.functions = function() {
             this.state = 266;
             this.fulltypename();
         }
-
         this.state = 269;
         this.match(AmmParser.CLOSEARGS);
         this.state = 273;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 270;
             this.blank();
             this.state = 275;
@@ -2464,7 +2258,7 @@ AmmParser.prototype.functions = function() {
         this.state = 280;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 277;
             this.blank();
             this.state = 282;
@@ -2476,7 +2270,7 @@ AmmParser.prototype.functions = function() {
         this.state = 287;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 284;
             this.blank();
             this.state = 289;
@@ -2485,85 +2279,76 @@ AmmParser.prototype.functions = function() {
         }
         this.state = 290;
         this.functionbody();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function FunctionbodyContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_functionbody;
     return this;
 }
-
 FunctionbodyContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 FunctionbodyContext.prototype.constructor = FunctionbodyContext;
-
-FunctionbodyContext.prototype.OPENBODY = function() {
+FunctionbodyContext.prototype.OPENBODY = function () {
     return this.getToken(AmmParser.OPENBODY, 0);
 };
-
-FunctionbodyContext.prototype.CLOSEBODY = function() {
+FunctionbodyContext.prototype.CLOSEBODY = function () {
     return this.getToken(AmmParser.CLOSEBODY, 0);
 };
-
-FunctionbodyContext.prototype.blank = function(i) {
-    if(i===undefined) {
+FunctionbodyContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-FunctionbodyContext.prototype.statements = function(i) {
-    if(i===undefined) {
+FunctionbodyContext.prototype.statements = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(StatementsContext);
-    } else {
-        return this.getTypedRuleContext(StatementsContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(StatementsContext, i);
     }
 };
-
-FunctionbodyContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+FunctionbodyContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterFunctionbody(this);
-	}
+    }
 };
-
-FunctionbodyContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+FunctionbodyContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitFunctionbody(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.FunctionbodyContext = FunctionbodyContext;
-
-AmmParser.prototype.functionbody = function() {
-
+AmmParser.prototype.functionbody = function () {
     var localctx = new FunctionbodyContext(this, this._ctx, this.state);
     this.enterRule(localctx, 20, AmmParser.RULE_functionbody);
     var _la = 0; // Token type
@@ -2574,27 +2359,27 @@ AmmParser.prototype.functionbody = function() {
         this.state = 296;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 293;
             this.blank();
             this.state = 298;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 300; 
+        this.state = 300;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 299;
             this.statements();
-            this.state = 302; 
+            this.state = 302;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.CONST) | (1 << AmmParser.LET) | (1 << AmmParser.EMIT) | (1 << AmmParser.VARNAME))) !== 0));
+        } while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.CONST) | (1 << AmmParser.LET) | (1 << AmmParser.EMIT) | (1 << AmmParser.VARNAME))) !== 0));
         this.state = 307;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 304;
             this.blank();
             this.state = 309;
@@ -2603,345 +2388,300 @@ AmmParser.prototype.functionbody = function() {
         }
         this.state = 310;
         this.match(AmmParser.CLOSEBODY);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function StatementsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_statements;
     return this;
 }
-
 StatementsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 StatementsContext.prototype.constructor = StatementsContext;
-
-StatementsContext.prototype.declarations = function() {
-    return this.getTypedRuleContext(DeclarationsContext,0);
+StatementsContext.prototype.declarations = function () {
+    return this.getTypedRuleContext(DeclarationsContext, 0);
 };
-
-StatementsContext.prototype.assignments = function() {
-    return this.getTypedRuleContext(AssignmentsContext,0);
+StatementsContext.prototype.assignments = function () {
+    return this.getTypedRuleContext(AssignmentsContext, 0);
 };
-
-StatementsContext.prototype.calls = function() {
-    return this.getTypedRuleContext(CallsContext,0);
+StatementsContext.prototype.calls = function () {
+    return this.getTypedRuleContext(CallsContext, 0);
 };
-
-StatementsContext.prototype.emits = function() {
-    return this.getTypedRuleContext(EmitsContext,0);
+StatementsContext.prototype.emits = function () {
+    return this.getTypedRuleContext(EmitsContext, 0);
 };
-
-StatementsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+StatementsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-StatementsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+StatementsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterStatements(this);
-	}
+    }
 };
-
-StatementsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+StatementsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitStatements(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.StatementsContext = StatementsContext;
-
-AmmParser.prototype.statements = function() {
-
+AmmParser.prototype.statements = function () {
     var localctx = new StatementsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 22, AmmParser.RULE_statements);
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 316;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,46,this._ctx);
-        switch(la_) {
-        case 1:
-            this.state = 312;
-            this.declarations();
-            break;
-
-        case 2:
-            this.state = 313;
-            this.assignments();
-            break;
-
-        case 3:
-            this.state = 314;
-            this.calls();
-            break;
-
-        case 4:
-            this.state = 315;
-            this.emits();
-            break;
-
+        var la_ = this._interp.adaptivePredict(this._input, 46, this._ctx);
+        switch (la_) {
+            case 1:
+                this.state = 312;
+                this.declarations();
+                break;
+            case 2:
+                this.state = 313;
+                this.assignments();
+                break;
+            case 3:
+                this.state = 314;
+                this.calls();
+                break;
+            case 4:
+                this.state = 315;
+                this.emits();
+                break;
         }
-        this.state = 319; 
+        this.state = 319;
         this._errHandler.sync(this);
         var _alt = 1;
         do {
-        	switch (_alt) {
-        	case 1:
-        		this.state = 318;
-        		this.blank();
-        		break;
-        	default:
-        		throw new antlr4.error.NoViableAltException(this);
-        	}
-        	this.state = 321; 
-        	this._errHandler.sync(this);
-        	_alt = this._interp.adaptivePredict(this._input,47, this._ctx);
-        } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+            switch (_alt) {
+                case 1:
+                    this.state = 318;
+                    this.blank();
+                    break;
+                default:
+                    throw new antlr4.error.NoViableAltException(this);
+            }
+            this.state = 321;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 47, this._ctx);
+        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function DeclarationsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_declarations;
     return this;
 }
-
 DeclarationsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 DeclarationsContext.prototype.constructor = DeclarationsContext;
-
-DeclarationsContext.prototype.constdeclaration = function() {
-    return this.getTypedRuleContext(ConstdeclarationContext,0);
+DeclarationsContext.prototype.constdeclaration = function () {
+    return this.getTypedRuleContext(ConstdeclarationContext, 0);
 };
-
-DeclarationsContext.prototype.letdeclaration = function() {
-    return this.getTypedRuleContext(LetdeclarationContext,0);
+DeclarationsContext.prototype.letdeclaration = function () {
+    return this.getTypedRuleContext(LetdeclarationContext, 0);
 };
-
-DeclarationsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+DeclarationsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterDeclarations(this);
-	}
+    }
 };
-
-DeclarationsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+DeclarationsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitDeclarations(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.DeclarationsContext = DeclarationsContext;
-
-AmmParser.prototype.declarations = function() {
-
+AmmParser.prototype.declarations = function () {
     var localctx = new DeclarationsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 24, AmmParser.RULE_declarations);
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 325;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case AmmParser.CONST:
-            this.state = 323;
-            this.constdeclaration();
-            break;
-        case AmmParser.LET:
-            this.state = 324;
-            this.letdeclaration();
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+        switch (this._input.LA(1)) {
+            case AmmParser.CONST:
+                this.state = 323;
+                this.constdeclaration();
+                break;
+            case AmmParser.LET:
+                this.state = 324;
+                this.letdeclaration();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function DecnameContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_decname;
     return this;
 }
-
 DecnameContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 DecnameContext.prototype.constructor = DecnameContext;
-
-DecnameContext.prototype.VARNAME = function() {
+DecnameContext.prototype.VARNAME = function () {
     return this.getToken(AmmParser.VARNAME, 0);
 };
-
-DecnameContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+DecnameContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterDecname(this);
-	}
+    }
 };
-
-DecnameContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+DecnameContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitDecname(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.DecnameContext = DecnameContext;
-
-AmmParser.prototype.decname = function() {
-
+AmmParser.prototype.decname = function () {
     var localctx = new DecnameContext(this, this._ctx, this.state);
     this.enterRule(localctx, 26, AmmParser.RULE_decname);
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 327;
         this.match(AmmParser.VARNAME);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ConstdeclarationContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_constdeclaration;
     return this;
 }
-
 ConstdeclarationContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ConstdeclarationContext.prototype.constructor = ConstdeclarationContext;
-
-ConstdeclarationContext.prototype.CONST = function() {
+ConstdeclarationContext.prototype.CONST = function () {
     return this.getToken(AmmParser.CONST, 0);
 };
-
-ConstdeclarationContext.prototype.decname = function() {
-    return this.getTypedRuleContext(DecnameContext,0);
+ConstdeclarationContext.prototype.decname = function () {
+    return this.getTypedRuleContext(DecnameContext, 0);
 };
-
-ConstdeclarationContext.prototype.TYPESEP = function() {
+ConstdeclarationContext.prototype.TYPESEP = function () {
     return this.getToken(AmmParser.TYPESEP, 0);
 };
-
-ConstdeclarationContext.prototype.fulltypename = function() {
-    return this.getTypedRuleContext(FulltypenameContext,0);
+ConstdeclarationContext.prototype.fulltypename = function () {
+    return this.getTypedRuleContext(FulltypenameContext, 0);
 };
-
-ConstdeclarationContext.prototype.EQUALS = function() {
+ConstdeclarationContext.prototype.EQUALS = function () {
     return this.getToken(AmmParser.EQUALS, 0);
 };
-
-ConstdeclarationContext.prototype.assignables = function() {
-    return this.getTypedRuleContext(AssignablesContext,0);
+ConstdeclarationContext.prototype.assignables = function () {
+    return this.getTypedRuleContext(AssignablesContext, 0);
 };
-
-ConstdeclarationContext.prototype.blank = function(i) {
-    if(i===undefined) {
+ConstdeclarationContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-ConstdeclarationContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+ConstdeclarationContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterConstdeclaration(this);
-	}
+    }
 };
-
-ConstdeclarationContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+ConstdeclarationContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitConstdeclaration(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.ConstdeclarationContext = ConstdeclarationContext;
-
-AmmParser.prototype.constdeclaration = function() {
-
+AmmParser.prototype.constdeclaration = function () {
     var localctx = new ConstdeclarationContext(this, this._ctx, this.state);
     this.enterRule(localctx, 28, AmmParser.RULE_constdeclaration);
     var _la = 0; // Token type
@@ -2952,7 +2692,7 @@ AmmParser.prototype.constdeclaration = function() {
         this.state = 333;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 330;
             this.blank();
             this.state = 335;
@@ -2964,7 +2704,7 @@ AmmParser.prototype.constdeclaration = function() {
         this.state = 340;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 337;
             this.blank();
             this.state = 342;
@@ -2976,7 +2716,7 @@ AmmParser.prototype.constdeclaration = function() {
         this.state = 347;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 344;
             this.blank();
             this.state = 349;
@@ -2988,7 +2728,7 @@ AmmParser.prototype.constdeclaration = function() {
         this.state = 354;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 351;
             this.blank();
             this.state = 356;
@@ -3000,7 +2740,7 @@ AmmParser.prototype.constdeclaration = function() {
         this.state = 361;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 358;
             this.blank();
             this.state = 363;
@@ -3009,90 +2749,77 @@ AmmParser.prototype.constdeclaration = function() {
         }
         this.state = 364;
         this.assignables();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function LetdeclarationContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_letdeclaration;
     return this;
 }
-
 LetdeclarationContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 LetdeclarationContext.prototype.constructor = LetdeclarationContext;
-
-LetdeclarationContext.prototype.LET = function() {
+LetdeclarationContext.prototype.LET = function () {
     return this.getToken(AmmParser.LET, 0);
 };
-
-LetdeclarationContext.prototype.decname = function() {
-    return this.getTypedRuleContext(DecnameContext,0);
+LetdeclarationContext.prototype.decname = function () {
+    return this.getTypedRuleContext(DecnameContext, 0);
 };
-
-LetdeclarationContext.prototype.TYPESEP = function() {
+LetdeclarationContext.prototype.TYPESEP = function () {
     return this.getToken(AmmParser.TYPESEP, 0);
 };
-
-LetdeclarationContext.prototype.fulltypename = function() {
-    return this.getTypedRuleContext(FulltypenameContext,0);
+LetdeclarationContext.prototype.fulltypename = function () {
+    return this.getTypedRuleContext(FulltypenameContext, 0);
 };
-
-LetdeclarationContext.prototype.EQUALS = function() {
+LetdeclarationContext.prototype.EQUALS = function () {
     return this.getToken(AmmParser.EQUALS, 0);
 };
-
-LetdeclarationContext.prototype.assignables = function() {
-    return this.getTypedRuleContext(AssignablesContext,0);
+LetdeclarationContext.prototype.assignables = function () {
+    return this.getTypedRuleContext(AssignablesContext, 0);
 };
-
-LetdeclarationContext.prototype.blank = function(i) {
-    if(i===undefined) {
+LetdeclarationContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-LetdeclarationContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+LetdeclarationContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterLetdeclaration(this);
-	}
+    }
 };
-
-LetdeclarationContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+LetdeclarationContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitLetdeclaration(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.LetdeclarationContext = LetdeclarationContext;
-
-AmmParser.prototype.letdeclaration = function() {
-
+AmmParser.prototype.letdeclaration = function () {
     var localctx = new LetdeclarationContext(this, this._ctx, this.state);
     this.enterRule(localctx, 30, AmmParser.RULE_letdeclaration);
     var _la = 0; // Token type
@@ -3103,7 +2830,7 @@ AmmParser.prototype.letdeclaration = function() {
         this.state = 370;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 367;
             this.blank();
             this.state = 372;
@@ -3115,7 +2842,7 @@ AmmParser.prototype.letdeclaration = function() {
         this.state = 377;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 374;
             this.blank();
             this.state = 379;
@@ -3127,7 +2854,7 @@ AmmParser.prototype.letdeclaration = function() {
         this.state = 384;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 381;
             this.blank();
             this.state = 386;
@@ -3139,7 +2866,7 @@ AmmParser.prototype.letdeclaration = function() {
         this.state = 391;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 388;
             this.blank();
             this.state = 393;
@@ -3151,7 +2878,7 @@ AmmParser.prototype.letdeclaration = function() {
         this.state = 398;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 395;
             this.blank();
             this.state = 400;
@@ -3160,78 +2887,68 @@ AmmParser.prototype.letdeclaration = function() {
         }
         this.state = 401;
         this.assignables();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function AssignmentsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_assignments;
     return this;
 }
-
 AssignmentsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 AssignmentsContext.prototype.constructor = AssignmentsContext;
-
-AssignmentsContext.prototype.decname = function() {
-    return this.getTypedRuleContext(DecnameContext,0);
+AssignmentsContext.prototype.decname = function () {
+    return this.getTypedRuleContext(DecnameContext, 0);
 };
-
-AssignmentsContext.prototype.EQUALS = function() {
+AssignmentsContext.prototype.EQUALS = function () {
     return this.getToken(AmmParser.EQUALS, 0);
 };
-
-AssignmentsContext.prototype.assignables = function() {
-    return this.getTypedRuleContext(AssignablesContext,0);
+AssignmentsContext.prototype.assignables = function () {
+    return this.getTypedRuleContext(AssignablesContext, 0);
 };
-
-AssignmentsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+AssignmentsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-AssignmentsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+AssignmentsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterAssignments(this);
-	}
+    }
 };
-
-AssignmentsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+AssignmentsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitAssignments(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.AssignmentsContext = AssignmentsContext;
-
-AmmParser.prototype.assignments = function() {
-
+AmmParser.prototype.assignments = function () {
     var localctx = new AssignmentsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 32, AmmParser.RULE_assignments);
     var _la = 0; // Token type
@@ -3242,7 +2959,7 @@ AmmParser.prototype.assignments = function() {
         this.state = 407;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 404;
             this.blank();
             this.state = 409;
@@ -3254,7 +2971,7 @@ AmmParser.prototype.assignments = function() {
         this.state = 414;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 411;
             this.blank();
             this.state = 416;
@@ -3263,194 +2980,164 @@ AmmParser.prototype.assignments = function() {
         }
         this.state = 417;
         this.assignables();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function AssignablesContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_assignables;
     return this;
 }
-
 AssignablesContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 AssignablesContext.prototype.constructor = AssignablesContext;
-
-AssignablesContext.prototype.functions = function() {
-    return this.getTypedRuleContext(FunctionsContext,0);
+AssignablesContext.prototype.functions = function () {
+    return this.getTypedRuleContext(FunctionsContext, 0);
 };
-
-AssignablesContext.prototype.calls = function() {
-    return this.getTypedRuleContext(CallsContext,0);
+AssignablesContext.prototype.calls = function () {
+    return this.getTypedRuleContext(CallsContext, 0);
 };
-
-AssignablesContext.prototype.constants = function() {
-    return this.getTypedRuleContext(ConstantsContext,0);
+AssignablesContext.prototype.constants = function () {
+    return this.getTypedRuleContext(ConstantsContext, 0);
 };
-
-AssignablesContext.prototype.objectliterals = function() {
-    return this.getTypedRuleContext(ObjectliteralsContext,0);
+AssignablesContext.prototype.objectliterals = function () {
+    return this.getTypedRuleContext(ObjectliteralsContext, 0);
 };
-
-AssignablesContext.prototype.VARNAME = function() {
+AssignablesContext.prototype.VARNAME = function () {
     return this.getToken(AmmParser.VARNAME, 0);
 };
-
-AssignablesContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+AssignablesContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterAssignables(this);
-	}
+    }
 };
-
-AssignablesContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+AssignablesContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitAssignables(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.AssignablesContext = AssignablesContext;
-
-AmmParser.prototype.assignables = function() {
-
+AmmParser.prototype.assignables = function () {
     var localctx = new AssignablesContext(this, this._ctx, this.state);
     this.enterRule(localctx, 34, AmmParser.RULE_assignables);
     try {
         this.state = 424;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,61,this._ctx);
-        switch(la_) {
-        case 1:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 419;
-            this.functions();
-            break;
-
-        case 2:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 420;
-            this.calls();
-            break;
-
-        case 3:
-            this.enterOuterAlt(localctx, 3);
-            this.state = 421;
-            this.constants();
-            break;
-
-        case 4:
-            this.enterOuterAlt(localctx, 4);
-            this.state = 422;
-            this.objectliterals();
-            break;
-
-        case 5:
-            this.enterOuterAlt(localctx, 5);
-            this.state = 423;
-            this.match(AmmParser.VARNAME);
-            break;
-
+        var la_ = this._interp.adaptivePredict(this._input, 61, this._ctx);
+        switch (la_) {
+            case 1:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 419;
+                this.functions();
+                break;
+            case 2:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 420;
+                this.calls();
+                break;
+            case 3:
+                this.enterOuterAlt(localctx, 3);
+                this.state = 421;
+                this.constants();
+                break;
+            case 4:
+                this.enterOuterAlt(localctx, 4);
+                this.state = 422;
+                this.objectliterals();
+                break;
+            case 5:
+                this.enterOuterAlt(localctx, 5);
+                this.state = 423;
+                this.match(AmmParser.VARNAME);
+                break;
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ObjectliteralsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_objectliterals;
     return this;
 }
-
 ObjectliteralsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ObjectliteralsContext.prototype.constructor = ObjectliteralsContext;
-
-ObjectliteralsContext.prototype.NEW = function() {
+ObjectliteralsContext.prototype.NEW = function () {
     return this.getToken(AmmParser.NEW, 0);
 };
-
-ObjectliteralsContext.prototype.othertype = function() {
-    return this.getTypedRuleContext(OthertypeContext,0);
+ObjectliteralsContext.prototype.othertype = function () {
+    return this.getTypedRuleContext(OthertypeContext, 0);
 };
-
-ObjectliteralsContext.prototype.arrayliteral = function() {
-    return this.getTypedRuleContext(ArrayliteralContext,0);
+ObjectliteralsContext.prototype.arrayliteral = function () {
+    return this.getTypedRuleContext(ArrayliteralContext, 0);
 };
-
-ObjectliteralsContext.prototype.typeliteral = function() {
-    return this.getTypedRuleContext(TypeliteralContext,0);
+ObjectliteralsContext.prototype.typeliteral = function () {
+    return this.getTypedRuleContext(TypeliteralContext, 0);
 };
-
-ObjectliteralsContext.prototype.mapliteral = function() {
-    return this.getTypedRuleContext(MapliteralContext,0);
+ObjectliteralsContext.prototype.mapliteral = function () {
+    return this.getTypedRuleContext(MapliteralContext, 0);
 };
-
-ObjectliteralsContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+ObjectliteralsContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(AmmParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(AmmParser.WS, i);
     }
 };
-
-
-ObjectliteralsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+ObjectliteralsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterObjectliterals(this);
-	}
+    }
 };
-
-ObjectliteralsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+ObjectliteralsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitObjectliterals(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.ObjectliteralsContext = ObjectliteralsContext;
-
-AmmParser.prototype.objectliterals = function() {
-
+AmmParser.prototype.objectliterals = function () {
     var localctx = new ObjectliteralsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 36, AmmParser.RULE_objectliterals);
     var _la = 0; // Token type
@@ -3461,7 +3148,7 @@ AmmParser.prototype.objectliterals = function() {
         this.state = 430;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.WS) {
+        while (_la === AmmParser.WS) {
             this.state = 427;
             this.match(AmmParser.WS);
             this.state = 432;
@@ -3473,7 +3160,7 @@ AmmParser.prototype.objectliterals = function() {
         this.state = 437;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.WS) {
+        while (_la === AmmParser.WS) {
             this.state = 434;
             this.match(AmmParser.WS);
             this.state = 439;
@@ -3482,96 +3169,83 @@ AmmParser.prototype.objectliterals = function() {
         }
         this.state = 443;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,64,this._ctx);
-        switch(la_) {
-        case 1:
-            this.state = 440;
-            this.arrayliteral();
-            break;
-
-        case 2:
-            this.state = 441;
-            this.typeliteral();
-            break;
-
-        case 3:
-            this.state = 442;
-            this.mapliteral();
-            break;
-
+        var la_ = this._interp.adaptivePredict(this._input, 64, this._ctx);
+        switch (la_) {
+            case 1:
+                this.state = 440;
+                this.arrayliteral();
+                break;
+            case 2:
+                this.state = 441;
+                this.typeliteral();
+                break;
+            case 3:
+                this.state = 442;
+                this.mapliteral();
+                break;
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ArrayliteralContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_arrayliteral;
     return this;
 }
-
 ArrayliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ArrayliteralContext.prototype.constructor = ArrayliteralContext;
-
-ArrayliteralContext.prototype.OPENARRAY = function() {
+ArrayliteralContext.prototype.OPENARRAY = function () {
     return this.getToken(AmmParser.OPENARRAY, 0);
 };
-
-ArrayliteralContext.prototype.assignablelist = function() {
-    return this.getTypedRuleContext(AssignablelistContext,0);
+ArrayliteralContext.prototype.assignablelist = function () {
+    return this.getTypedRuleContext(AssignablelistContext, 0);
 };
-
-ArrayliteralContext.prototype.CLOSEARRAY = function() {
+ArrayliteralContext.prototype.CLOSEARRAY = function () {
     return this.getToken(AmmParser.CLOSEARRAY, 0);
 };
-
-ArrayliteralContext.prototype.blank = function(i) {
-    if(i===undefined) {
+ArrayliteralContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-ArrayliteralContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+ArrayliteralContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterArrayliteral(this);
-	}
+    }
 };
-
-ArrayliteralContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+ArrayliteralContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitArrayliteral(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.ArrayliteralContext = ArrayliteralContext;
-
-AmmParser.prototype.arrayliteral = function() {
-
+AmmParser.prototype.arrayliteral = function () {
     var localctx = new ArrayliteralContext(this, this._ctx, this.state);
     this.enterRule(localctx, 38, AmmParser.RULE_arrayliteral);
     var _la = 0; // Token type
@@ -3581,23 +3255,22 @@ AmmParser.prototype.arrayliteral = function() {
         this.match(AmmParser.OPENARRAY);
         this.state = 449;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,65,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 65, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 446;
-                this.blank(); 
+                this.blank();
             }
             this.state = 451;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,65,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 65, this._ctx);
         }
-
         this.state = 452;
         this.assignablelist();
         this.state = 456;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 453;
             this.blank();
             this.state = 458;
@@ -3606,85 +3279,76 @@ AmmParser.prototype.arrayliteral = function() {
         }
         this.state = 459;
         this.match(AmmParser.CLOSEARRAY);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function TypeliteralContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_typeliteral;
     return this;
 }
-
 TypeliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypeliteralContext.prototype.constructor = TypeliteralContext;
-
-TypeliteralContext.prototype.OPENBODY = function() {
+TypeliteralContext.prototype.OPENBODY = function () {
     return this.getToken(AmmParser.OPENBODY, 0);
 };
-
-TypeliteralContext.prototype.CLOSEBODY = function() {
+TypeliteralContext.prototype.CLOSEBODY = function () {
     return this.getToken(AmmParser.CLOSEBODY, 0);
 };
-
-TypeliteralContext.prototype.blank = function(i) {
-    if(i===undefined) {
+TypeliteralContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-TypeliteralContext.prototype.assignments = function(i) {
-    if(i===undefined) {
+TypeliteralContext.prototype.assignments = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(AssignmentsContext);
-    } else {
-        return this.getTypedRuleContext(AssignmentsContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(AssignmentsContext, i);
     }
 };
-
-TypeliteralContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+TypeliteralContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterTypeliteral(this);
-	}
+    }
 };
-
-TypeliteralContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+TypeliteralContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitTypeliteral(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.TypeliteralContext = TypeliteralContext;
-
-AmmParser.prototype.typeliteral = function() {
-
+AmmParser.prototype.typeliteral = function () {
     var localctx = new TypeliteralContext(this, this._ctx, this.state);
     this.enterRule(localctx, 40, AmmParser.RULE_typeliteral);
     var _la = 0; // Token type
@@ -3695,114 +3359,105 @@ AmmParser.prototype.typeliteral = function() {
         this.state = 465;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 462;
             this.blank();
             this.state = 467;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 474; 
+        this.state = 474;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 468;
             this.assignments();
-            this.state = 470; 
+            this.state = 470;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             do {
                 this.state = 469;
                 this.blank();
-                this.state = 472; 
+                this.state = 472;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-            } while(_la===AmmParser.NEWLINE || _la===AmmParser.WS);
-            this.state = 476; 
+            } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
+            this.state = 476;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===AmmParser.VARNAME);
+        } while (_la === AmmParser.VARNAME);
         this.state = 478;
         this.match(AmmParser.CLOSEBODY);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function MapliteralContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_mapliteral;
     return this;
 }
-
 MapliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 MapliteralContext.prototype.constructor = MapliteralContext;
-
-MapliteralContext.prototype.OPENBODY = function() {
+MapliteralContext.prototype.OPENBODY = function () {
     return this.getToken(AmmParser.OPENBODY, 0);
 };
-
-MapliteralContext.prototype.CLOSEBODY = function() {
+MapliteralContext.prototype.CLOSEBODY = function () {
     return this.getToken(AmmParser.CLOSEBODY, 0);
 };
-
-MapliteralContext.prototype.blank = function(i) {
-    if(i===undefined) {
+MapliteralContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-MapliteralContext.prototype.mapline = function(i) {
-    if(i===undefined) {
+MapliteralContext.prototype.mapline = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(MaplineContext);
-    } else {
-        return this.getTypedRuleContext(MaplineContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(MaplineContext, i);
     }
 };
-
-MapliteralContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+MapliteralContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterMapliteral(this);
-	}
+    }
 };
-
-MapliteralContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+MapliteralContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitMapliteral(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.MapliteralContext = MapliteralContext;
-
-AmmParser.prototype.mapliteral = function() {
-
+AmmParser.prototype.mapliteral = function () {
     var localctx = new MapliteralContext(this, this._ctx, this.state);
     this.enterRule(localctx, 42, AmmParser.RULE_mapliteral);
     var _la = 0; // Token type
@@ -3813,7 +3468,7 @@ AmmParser.prototype.mapliteral = function() {
         this.state = 484;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 481;
             this.blank();
             this.state = 486;
@@ -3823,101 +3478,92 @@ AmmParser.prototype.mapliteral = function() {
         this.state = 495;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.FN) | (1 << AmmParser.BOOLCONSTANT) | (1 << AmmParser.NEW) | (1 << AmmParser.STRINGCONSTANT) | (1 << AmmParser.NUMBERCONSTANT) | (1 << AmmParser.VARNAME))) !== 0)) {
+        while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.FN) | (1 << AmmParser.BOOLCONSTANT) | (1 << AmmParser.NEW) | (1 << AmmParser.STRINGCONSTANT) | (1 << AmmParser.NUMBERCONSTANT) | (1 << AmmParser.VARNAME))) !== 0)) {
             this.state = 487;
             this.mapline();
-            this.state = 489; 
+            this.state = 489;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             do {
                 this.state = 488;
                 this.blank();
-                this.state = 491; 
+                this.state = 491;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-            } while(_la===AmmParser.NEWLINE || _la===AmmParser.WS);
+            } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
             this.state = 497;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
         this.state = 498;
         this.match(AmmParser.CLOSEBODY);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function MaplineContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_mapline;
     return this;
 }
-
 MaplineContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 MaplineContext.prototype.constructor = MaplineContext;
-
-MaplineContext.prototype.assignables = function(i) {
-    if(i===undefined) {
+MaplineContext.prototype.assignables = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(AssignablesContext);
-    } else {
-        return this.getTypedRuleContext(AssignablesContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(AssignablesContext, i);
     }
 };
-
-MaplineContext.prototype.TYPESEP = function() {
+MaplineContext.prototype.TYPESEP = function () {
     return this.getToken(AmmParser.TYPESEP, 0);
 };
-
-MaplineContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+MaplineContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(AmmParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(AmmParser.WS, i);
     }
 };
-
-
-MaplineContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+MaplineContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterMapline(this);
-	}
+    }
 };
-
-MaplineContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+MaplineContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitMapline(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.MaplineContext = MaplineContext;
-
-AmmParser.prototype.mapline = function() {
-
+AmmParser.prototype.mapline = function () {
     var localctx = new MaplineContext(this, this._ctx, this.state);
     this.enterRule(localctx, 44, AmmParser.RULE_mapline);
     var _la = 0; // Token type
@@ -3928,7 +3574,7 @@ AmmParser.prototype.mapline = function() {
         this.state = 504;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.WS) {
+        while (_la === AmmParser.WS) {
             this.state = 501;
             this.match(AmmParser.WS);
             this.state = 506;
@@ -3940,7 +3586,7 @@ AmmParser.prototype.mapline = function() {
         this.state = 511;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.WS) {
+        while (_la === AmmParser.WS) {
             this.state = 508;
             this.match(AmmParser.WS);
             this.state = 513;
@@ -3949,89 +3595,81 @@ AmmParser.prototype.mapline = function() {
         }
         this.state = 514;
         this.assignables();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function AssignablelistContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_assignablelist;
     return this;
 }
-
 AssignablelistContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 AssignablelistContext.prototype.constructor = AssignablelistContext;
-
-AssignablelistContext.prototype.assignables = function(i) {
-    if(i===undefined) {
+AssignablelistContext.prototype.assignables = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(AssignablesContext);
-    } else {
-        return this.getTypedRuleContext(AssignablesContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(AssignablesContext, i);
     }
 };
-
-AssignablelistContext.prototype.blank = function(i) {
-    if(i===undefined) {
+AssignablelistContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-AssignablelistContext.prototype.SEP = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+AssignablelistContext.prototype.SEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(AmmParser.SEP);
-    } else {
+    }
+    else {
         return this.getToken(AmmParser.SEP, i);
     }
 };
-
-
-AssignablelistContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+AssignablelistContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterAssignablelist(this);
-	}
+    }
 };
-
-AssignablelistContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+AssignablelistContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitAssignablelist(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.AssignablelistContext = AssignablelistContext;
-
-AmmParser.prototype.assignablelist = function() {
-
+AmmParser.prototype.assignablelist = function () {
     var localctx = new AssignablelistContext(this, this._ctx, this.state);
     this.enterRule(localctx, 46, AmmParser.RULE_assignablelist);
     var _la = 0; // Token type
@@ -4040,7 +3678,7 @@ AmmParser.prototype.assignablelist = function() {
         this.state = 519;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 516;
             this.blank();
             this.state = 521;
@@ -4052,13 +3690,13 @@ AmmParser.prototype.assignablelist = function() {
         this.state = 533;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.SEP) {
+        while (_la === AmmParser.SEP) {
             this.state = 523;
             this.match(AmmParser.SEP);
             this.state = 527;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+            while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
                 this.state = 524;
                 this.blank();
                 this.state = 529;
@@ -4073,101 +3711,91 @@ AmmParser.prototype.assignablelist = function() {
         }
         this.state = 539;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,78,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 78, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 536;
-                this.blank(); 
+                this.blank();
             }
             this.state = 541;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,78,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 78, this._ctx);
         }
-
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function CalllistContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_calllist;
     return this;
 }
-
 CalllistContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 CalllistContext.prototype.constructor = CalllistContext;
-
-CalllistContext.prototype.VARNAME = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+CalllistContext.prototype.VARNAME = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(AmmParser.VARNAME);
-    } else {
+    }
+    else {
         return this.getToken(AmmParser.VARNAME, i);
     }
 };
-
-
-CalllistContext.prototype.blank = function(i) {
-    if(i===undefined) {
+CalllistContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-CalllistContext.prototype.SEP = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+CalllistContext.prototype.SEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(AmmParser.SEP);
-    } else {
+    }
+    else {
         return this.getToken(AmmParser.SEP, i);
     }
 };
-
-
-CalllistContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+CalllistContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterCalllist(this);
-	}
+    }
 };
-
-CalllistContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+CalllistContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitCalllist(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.CalllistContext = CalllistContext;
-
-AmmParser.prototype.calllist = function() {
-
+AmmParser.prototype.calllist = function () {
     var localctx = new CalllistContext(this, this._ctx, this.state);
     this.enterRule(localctx, 48, AmmParser.RULE_calllist);
     var _la = 0; // Token type
@@ -4176,7 +3804,7 @@ AmmParser.prototype.calllist = function() {
         this.state = 545;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 542;
             this.blank();
             this.state = 547;
@@ -4188,13 +3816,13 @@ AmmParser.prototype.calllist = function() {
         this.state = 559;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.SEP) {
+        while (_la === AmmParser.SEP) {
             this.state = 549;
             this.match(AmmParser.SEP);
             this.state = 553;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+            while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
                 this.state = 550;
                 this.blank();
                 this.state = 555;
@@ -4210,90 +3838,78 @@ AmmParser.prototype.calllist = function() {
         this.state = 565;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 562;
             this.blank();
             this.state = 567;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function CallsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_calls;
     return this;
 }
-
 CallsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 CallsContext.prototype.constructor = CallsContext;
-
-CallsContext.prototype.VARNAME = function() {
+CallsContext.prototype.VARNAME = function () {
     return this.getToken(AmmParser.VARNAME, 0);
 };
-
-CallsContext.prototype.OPENARGS = function() {
+CallsContext.prototype.OPENARGS = function () {
     return this.getToken(AmmParser.OPENARGS, 0);
 };
-
-CallsContext.prototype.CLOSEARGS = function() {
+CallsContext.prototype.CLOSEARGS = function () {
     return this.getToken(AmmParser.CLOSEARGS, 0);
 };
-
-CallsContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+CallsContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(AmmParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(AmmParser.WS, i);
     }
 };
-
-
-CallsContext.prototype.calllist = function() {
-    return this.getTypedRuleContext(CalllistContext,0);
+CallsContext.prototype.calllist = function () {
+    return this.getTypedRuleContext(CalllistContext, 0);
 };
-
-CallsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+CallsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterCalls(this);
-	}
+    }
 };
-
-CallsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+CallsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitCalls(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.CallsContext = CallsContext;
-
-AmmParser.prototype.calls = function() {
-
+AmmParser.prototype.calls = function () {
     var localctx = new CallsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 50, AmmParser.RULE_calls);
     var _la = 0; // Token type
@@ -4304,7 +3920,7 @@ AmmParser.prototype.calls = function() {
         this.state = 572;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.WS) {
+        while (_la === AmmParser.WS) {
             this.state = 569;
             this.match(AmmParser.WS);
             this.state = 574;
@@ -4316,89 +3932,79 @@ AmmParser.prototype.calls = function() {
         this.state = 577;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.NEWLINE) | (1 << AmmParser.WS) | (1 << AmmParser.VARNAME))) !== 0)) {
+        if ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.NEWLINE) | (1 << AmmParser.WS) | (1 << AmmParser.VARNAME))) !== 0)) {
             this.state = 576;
             this.calllist();
         }
-
         this.state = 579;
         this.match(AmmParser.CLOSEARGS);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function EmitsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_emits;
     return this;
 }
-
 EmitsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 EmitsContext.prototype.constructor = EmitsContext;
-
-EmitsContext.prototype.EMIT = function() {
+EmitsContext.prototype.EMIT = function () {
     return this.getToken(AmmParser.EMIT, 0);
 };
-
-EmitsContext.prototype.VARNAME = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+EmitsContext.prototype.VARNAME = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(AmmParser.VARNAME);
-    } else {
+    }
+    else {
         return this.getToken(AmmParser.VARNAME, i);
     }
 };
-
-
-EmitsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+EmitsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-EmitsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+EmitsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterEmits(this);
-	}
+    }
 };
-
-EmitsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+EmitsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitEmits(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.EmitsContext = EmitsContext;
-
-AmmParser.prototype.emits = function() {
-
+AmmParser.prototype.emits = function () {
     var localctx = new EmitsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 52, AmmParser.RULE_emits);
     var _la = 0; // Token type
@@ -4409,7 +4015,7 @@ AmmParser.prototype.emits = function() {
         this.state = 585;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 582;
             this.blank();
             this.state = 587;
@@ -4420,12 +4026,12 @@ AmmParser.prototype.emits = function() {
         this.match(AmmParser.VARNAME);
         this.state = 596;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,87,this._ctx);
-        if(la_===1) {
+        var la_ = this._interp.adaptivePredict(this._input, 87, this._ctx);
+        if (la_ === 1) {
             this.state = 592;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+            while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
                 this.state = 589;
                 this.blank();
                 this.state = 594;
@@ -4434,69 +4040,58 @@ AmmParser.prototype.emits = function() {
             }
             this.state = 595;
             this.match(AmmParser.VARNAME);
-
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ConstantsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_constants;
     return this;
 }
-
 ConstantsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ConstantsContext.prototype.constructor = ConstantsContext;
-
-ConstantsContext.prototype.NUMBERCONSTANT = function() {
+ConstantsContext.prototype.NUMBERCONSTANT = function () {
     return this.getToken(AmmParser.NUMBERCONSTANT, 0);
 };
-
-ConstantsContext.prototype.STRINGCONSTANT = function() {
+ConstantsContext.prototype.STRINGCONSTANT = function () {
     return this.getToken(AmmParser.STRINGCONSTANT, 0);
 };
-
-ConstantsContext.prototype.BOOLCONSTANT = function() {
+ConstantsContext.prototype.BOOLCONSTANT = function () {
     return this.getToken(AmmParser.BOOLCONSTANT, 0);
 };
-
-ConstantsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+ConstantsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterConstants(this);
-	}
+    }
 };
-
-ConstantsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+ConstantsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitConstants(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.ConstantsContext = ConstantsContext;
-
-AmmParser.prototype.constants = function() {
-
+AmmParser.prototype.constants = function () {
     var localctx = new ConstantsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 54, AmmParser.RULE_constants);
     var _la = 0; // Token type
@@ -4504,89 +4099,78 @@ AmmParser.prototype.constants = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 598;
         _la = this._input.LA(1);
-        if(!((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.BOOLCONSTANT) | (1 << AmmParser.STRINGCONSTANT) | (1 << AmmParser.NUMBERCONSTANT))) !== 0))) {
-        this._errHandler.recoverInline(this);
+        if (!((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.BOOLCONSTANT) | (1 << AmmParser.STRINGCONSTANT) | (1 << AmmParser.NUMBERCONSTANT))) !== 0))) {
+            this._errHandler.recoverInline(this);
         }
         else {
-        	this._errHandler.reportMatch(this);
+            this._errHandler.reportMatch(this);
             this.consume();
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function EventsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_events;
     return this;
 }
-
 EventsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 EventsContext.prototype.constructor = EventsContext;
-
-EventsContext.prototype.EVENT = function() {
+EventsContext.prototype.EVENT = function () {
     return this.getToken(AmmParser.EVENT, 0);
 };
-
-EventsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+EventsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-EventsContext.prototype.VARNAME = function() {
+EventsContext.prototype.VARNAME = function () {
     return this.getToken(AmmParser.VARNAME, 0);
 };
-
-EventsContext.prototype.TYPESEP = function() {
+EventsContext.prototype.TYPESEP = function () {
     return this.getToken(AmmParser.TYPESEP, 0);
 };
-
-EventsContext.prototype.typename = function() {
-    return this.getTypedRuleContext(TypenameContext,0);
+EventsContext.prototype.typename = function () {
+    return this.getTypedRuleContext(TypenameContext, 0);
 };
-
-EventsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+EventsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterEvents(this);
-	}
+    }
 };
-
-EventsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+EventsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitEvents(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.EventsContext = EventsContext;
-
-AmmParser.prototype.events = function() {
-
+AmmParser.prototype.events = function () {
     var localctx = new EventsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 56, AmmParser.RULE_events);
     var _la = 0; // Token type
@@ -4601,7 +4185,7 @@ AmmParser.prototype.events = function() {
         this.state = 606;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===AmmParser.NEWLINE || _la===AmmParser.WS) {
+        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
             this.state = 603;
             this.blank();
             this.state = 608;
@@ -4612,78 +4196,68 @@ AmmParser.prototype.events = function() {
         this.match(AmmParser.TYPESEP);
         this.state = 610;
         this.typename();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function HandlersContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = AmmParser.RULE_handlers;
     return this;
 }
-
 HandlersContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 HandlersContext.prototype.constructor = HandlersContext;
-
-HandlersContext.prototype.ON = function() {
+HandlersContext.prototype.ON = function () {
     return this.getToken(AmmParser.ON, 0);
 };
-
-HandlersContext.prototype.VARNAME = function() {
+HandlersContext.prototype.VARNAME = function () {
     return this.getToken(AmmParser.VARNAME, 0);
 };
-
-HandlersContext.prototype.functions = function() {
-    return this.getTypedRuleContext(FunctionsContext,0);
+HandlersContext.prototype.functions = function () {
+    return this.getTypedRuleContext(FunctionsContext, 0);
 };
-
-HandlersContext.prototype.blank = function(i) {
-    if(i===undefined) {
+HandlersContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-HandlersContext.prototype.enterRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+HandlersContext.prototype.enterRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.enterHandlers(this);
-	}
+    }
 };
-
-HandlersContext.prototype.exitRule = function(listener) {
-    if(listener instanceof AmmListener ) {
+HandlersContext.prototype.exitRule = function (listener) {
+    if (listener instanceof AmmListener) {
         listener.exitHandlers(this);
-	}
+    }
 };
-
-
-
-
 AmmParser.HandlersContext = HandlersContext;
-
-AmmParser.prototype.handlers = function() {
-
+AmmParser.prototype.handlers = function () {
     var localctx = new HandlersContext(this, this._ctx, this.state);
     this.enterRule(localctx, 58, AmmParser.RULE_handlers);
     var _la = 0; // Token type
@@ -4691,201 +4265,159 @@ AmmParser.prototype.handlers = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 612;
         this.match(AmmParser.ON);
-        this.state = 614; 
+        this.state = 614;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 613;
             this.blank();
-            this.state = 616; 
+            this.state = 616;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===AmmParser.NEWLINE || _la===AmmParser.WS);
+        } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
         this.state = 618;
         this.match(AmmParser.VARNAME);
-        this.state = 620; 
+        this.state = 620;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 619;
             this.blank();
-            this.state = 622; 
+            this.state = 622;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===AmmParser.NEWLINE || _la===AmmParser.WS);
+        } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
         this.state = 624;
         this.functions();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
-
 exports.AmmParser = AmmParser;
 
-},{"./AmmListener":2,"antlr4/index":76}],4:[function(require,module,exports){
-const fs = require('fs')
-
-const { InputStream, CommonTokenStream, } = require('antlr4')
-
-const { AmmLexer, AmmParser, } = require('./')
-
+},{"./AmmListener":4,"antlr4/index":76}],6:[function(require,module,exports){
+const fs = require('fs');
+const { InputStream, CommonTokenStream, } = require('antlr4');
+const { AmmLexer, AmmParser, } = require('./');
 const Ast = {
-  fromString: (str) => {
-    const inputStream = new InputStream(str)
-    const langLexer = new AmmLexer(inputStream)
-    const commonTokenStream = new CommonTokenStream(langLexer)
-    const langParser = new AmmParser(commonTokenStream)
+    fromString: (str) => {
+        const inputStream = new InputStream(str);
+        const langLexer = new AmmLexer(inputStream);
+        const commonTokenStream = new CommonTokenStream(langLexer);
+        const langParser = new AmmParser(commonTokenStream);
+        return langParser.module();
+    },
+    fromFile: (filename) => {
+        return Ast.fromString(fs.readFileSync(filename, { encoding: 'utf8', }));
+    },
+};
+module.exports = Ast;
 
-    return langParser.module()
-  },
-
-  fromFile: (filename) => {
-    return Ast.fromString(fs.readFileSync(filename, { encoding: 'utf8', }))
-  },
-}
-
-module.exports = Ast
-
-},{"./":5,"antlr4":76,"fs":82}],5:[function(require,module,exports){
+},{"./":7,"antlr4":76,"fs":82}],7:[function(require,module,exports){
 module.exports = {
-  AmmLexer: require('./AmmLexer').AmmLexer,
-  AmmParser: require('./AmmParser').AmmParser,
-}
+    AmmLexer: require('./AmmLexer').AmmLexer,
+    AmmParser: require('./AmmParser').AmmParser,
+};
 
-},{"./AmmLexer":1,"./AmmParser":3}],6:[function(require,module,exports){
-const Ast = require('../amm/Ast')
-
+},{"./AmmLexer":3,"./AmmParser":5}],8:[function(require,module,exports){
+const Ast = require('../amm/Ast');
+const AsyncOpcodes = require('alan-js-runtime').asyncopcodes;
 const callToJsText = (call) => {
-  const args = call.calllist() ? call.calllist().VARNAME().map(v => v.getText()).join(', ') : ""
-  return `r.${call.VARNAME().getText()}(${args})`
-}
-
+    const args = call.calllist() ? call.calllist().VARNAME().map(v => v.getText()).join(', ') : "";
+    const opcode = call.VARNAME().getText();
+    return AsyncOpcodes.includes(opcode) ? `await r.${opcode}(${args})` : `r.${opcode}(${args})`;
+};
 const functionbodyToJsText = (fnbody, indent) => {
-  let outText = ""
-  for (const statement of fnbody.statements()) {
-    outText += indent + "  " // For legibility of the output
-    if (statement.declarations()) {
-      if (statement.declarations().constdeclaration()) {
-        const dec = statement.declarations().constdeclaration()
-        outText += `const ${dec.decname().getText()} = ${assignableToJsText(dec.assignables(), indent)}\n`
-      } else if (statement.declarations().letdeclaration()) {
-        const dec = statement.declarations().letdeclaration()
-        outText += `let ${dec.decname().getText()} = ${assignableToJsText(dec.assignables(), indent)}\n`
-      }
-    } else if (statement.assignments()) {
-      const assign = statement.assignments()
-      outText += `${assign.decname().getText()} = ${assignableToJsText(assign.assignables(), indent)}\n`
-    } else if (statement.calls()) {
-      outText += `${callToJsText(statement.calls())}\n`
-    } else if (statement.emits()) {
-      const emit = statement.emits()
-      const name = emit.VARNAME(0).getText()
-      const arg = emit.VARNAME(1) ? emit.VARNAME(1).getText() : 'undefined'
-      outText += `r.emit('${name}', ${arg})\n`
+    let outText = "";
+    for (const statement of fnbody.statements()) {
+        outText += indent + "  "; // For legibility of the output
+        if (statement.declarations()) {
+            if (statement.declarations().constdeclaration()) {
+                const dec = statement.declarations().constdeclaration();
+                outText += `const ${dec.decname().getText()} = ${assignableToJsText(dec.assignables(), indent)}\n`;
+            }
+            else if (statement.declarations().letdeclaration()) {
+                const dec = statement.declarations().letdeclaration();
+                outText += `let ${dec.decname().getText()} = ${assignableToJsText(dec.assignables(), indent)}\n`;
+            }
+        }
+        else if (statement.assignments()) {
+            const assign = statement.assignments();
+            outText += `${assign.decname().getText()} = ${assignableToJsText(assign.assignables(), indent)}\n`;
+        }
+        else if (statement.calls()) {
+            outText += `${callToJsText(statement.calls())}\n`;
+        }
+        else if (statement.emits()) {
+            const emit = statement.emits();
+            const name = emit.VARNAME(0).getText();
+            const arg = emit.VARNAME(1) ? emit.VARNAME(1).getText() : 'undefined';
+            outText += `r.emit('${name}', ${arg})\n`;
+        }
     }
-  }
-  return outText
-}
-
+    return outText;
+};
 const assignableToJsText = (assignable, indent) => {
-  let outText = ""
-  if (assignable.functions()) {
-    const fn = assignable.functions()
-    outText += '() => {\n' // All assignable functions/closures take no arguments
-    outText += functionbodyToJsText(assignable.functions().functionbody(), indent + "  ")
-    outText += indent + '  }' // End this closure
-  } else if (assignable.calls()) {
-    outText += callToJsText(assignable.calls())
-  } else if (assignable.VARNAME()) {
-    outText += assignable.VARNAME().getText()
-  } else if (assignable.constants()) {
-    outText += assignable.constants().getText()
-  } else if (assignable.objectliterals()) {
-    // TODO: Actually do this right once we figure out what we even want to do with object literals
-    throw new Error('Object literals not yet implemented!')
-  }
-  return outText
-}
-
+    let outText = "";
+    if (assignable.functions()) {
+        const fn = assignable.functions();
+        outText += '() => {\n'; // All assignable functions/closures take no arguments
+        outText += functionbodyToJsText(assignable.functions().functionbody(), indent + "  ");
+        outText += indent + '  }'; // End this closure
+    }
+    else if (assignable.calls()) {
+        outText += callToJsText(assignable.calls());
+    }
+    else if (assignable.VARNAME()) {
+        outText += assignable.VARNAME().getText();
+    }
+    else if (assignable.constants()) {
+        outText += assignable.constants().getText();
+    }
+    else if (assignable.objectliterals()) {
+        // TODO: Actually do this right once we figure out what we even want to do with object literals
+        throw new Error('Object literals not yet implemented!');
+    }
+    return outText;
+};
 const ammToJsText = (amm) => {
-  let outFile = "const r = require('alan-js-runtime')\n"
-  // Where we're going we don't need types, so skipping that entire section
-  // First convert all of the global constants to javascript
-  for (const globalConst of amm.constdeclaration()) {
-    outFile +=
-      `const ${globalConst.decname().getText()} = ${assignableToJsText(globalConst.assignables(), '')}\n`
-  }
-  // We can also skip the event declarations because they are lazily bound by EventEmitter
-  // Now we convert the handlers to Javascript. This is the vast majority of the work
-  for (const handler of amm.handlers()) {
-    const eventVarName = handler.functions().VARNAME() ? handler.functions().VARNAME().getText() : ""
-    outFile += `r.on('${handler.VARNAME().getText()}', (${eventVarName}) => {\n`
-    outFile += functionbodyToJsText(handler.functions().functionbody(), '')
-    outFile += '})\n' // End this handler
-  }
-  outFile += "r.emit('_start', undefined)\n" // Let's get it started in here
-  return outFile
-}
+    let outFile = "const r = require('alan-js-runtime')\n";
+    // Where we're going we don't need types, so skipping that entire section
+    // First convert all of the global constants to javascript
+    for (const globalConst of amm.constdeclaration()) {
+        outFile +=
+            `const ${globalConst.decname().getText()} = ${assignableToJsText(globalConst.assignables(), '')}\n`;
+    }
+    // We can also skip the event declarations because they are lazily bound by EventEmitter
+    // Now we convert the handlers to Javascript. This is the vast majority of the work
+    for (const handler of amm.handlers()) {
+        const eventVarName = handler.functions().VARNAME() ? handler.functions().VARNAME().getText() : "";
+        outFile += `r.on('${handler.VARNAME().getText()}', async (${eventVarName}) => {\n`;
+        outFile += functionbodyToJsText(handler.functions().functionbody(), '');
+        outFile += '})\n'; // End this handler
+    }
+    outFile += "r.emit('_start', undefined)\n"; // Let's get it started in here
+    return outFile;
+};
+module.exports = (filename) => ammToJsText(Ast.fromFile(filename));
+module.exports.ammTextToJs = (str) => ammToJsText(Ast.fromString(str));
 
-module.exports = (filename) => ammToJsText(Ast.fromFile(filename))
-module.exports.ammTextToJs = (str) => ammToJsText(Ast.fromString(str))
-
-},{"../amm/Ast":4}],7:[function(require,module,exports){
-const stdlibs = require('./stdlibs.json')
-
-const Ast = require('../lntoamm/Ast')
-const Module = require('../lntoamm/Module')
-const Scope = require('../lntoamm/Scope')
-const opcodeScope = require('../lntoamm/opcodes').exportScope
-
-module.exports = {
-  loadStdModules: (modules) => {
-    const stdAsts = Object.keys(stdlibs).map(n => ({
-      name: n,
-      ast: Ast.fromString(stdlibs[n]),
-    }))
-    // Load the rootScope first, all the others depend on it
-    let rootModule
-    stdAsts.forEach((moduleAst) => {
-      if (moduleAst.name == 'root.ln') {
-        rootModule = Module.populateModule('<root>', moduleAst.ast, opcodeScope)
-        Module.getAllModules()['<root>'] = rootModule
-      }
-    })
-    // Now load the remainig modules based on the root scope
-    stdAsts.forEach((moduleAst) => {
-      if (moduleAst.name != 'root.ln') {
-        moduleAst.name = '@std/' + moduleAst.name.replace(/.ln$/, '')
-        const stdModule = Module.populateModule(
-          moduleAst.name,
-          moduleAst.ast,
-          rootModule.exportScope
-        )
-        Module.getAllModules()[moduleAst.name] = stdModule
-      }
-    })
-  },
-}
-
-},{"../lntoamm/Ast":13,"../lntoamm/Module":25,"../lntoamm/Scope":27,"../lntoamm/opcodes":33,"./stdlibs.json":8}],8:[function(require,module,exports){
-module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out)\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\"\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status)\n\n","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Special _ variable\nexport const _: void\n\n// Default Interfaces\nexport interface any {}\nexport interface Stringifiable {\n  toString(Stringifiable): string\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n)\nexport fn toFloat64(n: int16) = i16f64(n)\nexport fn toFloat64(n: int32) = i32f64(n)\nexport fn toFloat64(n: int64) = i64f64(n)\nexport fn toFloat64(n: float32) = f32f64(n)\nexport fn toFloat64(n: float64) = n\nexport fn toFloat64(n: string) = strf64(n)\nexport fn toFloat64(n: bool) = boolf64(n)\n\nexport fn toFloat32(n: int8) = i8f32(n)\nexport fn toFloat32(n: int16) = i16f32(n)\nexport fn toFloat32(n: int32) = i32f32(n)\nexport fn toFloat32(n: int64) = i64f32(n)\nexport fn toFloat32(n: float32) = n\nexport fn toFloat32(n: float64) = f64f32(n)\nexport fn toFloat32(n: string) = strf32(n)\nexport fn toFloat32(n: bool) = boolf32(n)\n\nexport fn toInt64(n: int8) = i8i64(n)\nexport fn toInt64(n: int16) = i16i64(n)\nexport fn toInt64(n: int32) = i32i64(n)\nexport fn toInt64(n: int64) = n\nexport fn toInt64(n: float32) = f32i64(n)\nexport fn toInt64(n: float64) = f64i64(n)\nexport fn toInt64(n: string) = stri64(n)\nexport fn toInt64(n: bool) = booli64(n)\n\nexport fn toInt32(n: int8) = i8i32(n)\nexport fn toInt32(n: int16) = i16i32(n)\nexport fn toInt32(n: int32) = n\nexport fn toInt32(n: int64) = i64i32(n)\nexport fn toInt32(n: float32) = f32i32(n)\nexport fn toInt32(n: float64) = f64i32(n)\nexport fn toInt32(n: string) = stri32(n)\nexport fn toInt32(n: bool) = booli32(n)\n\nexport fn toInt16(n: int8) = i8i16(n)\nexport fn toInt16(n: int16) = n\nexport fn toInt16(n: int32) = i32i16(n)\nexport fn toInt16(n: int64) = i64i16(n)\nexport fn toInt16(n: float32) = f32i16(n)\nexport fn toInt16(n: float64) = f64i16(n)\nexport fn toInt16(n: string) = stri16(n)\nexport fn toInt16(n: bool) = booli16(n)\n\nexport fn toInt8(n: int8) = n\nexport fn toInt8(n: int16) = i16i8(n)\nexport fn toInt8(n: int32) = i32i8(n)\nexport fn toInt8(n: int64) = i64i8(n)\nexport fn toInt8(n: float32) = f32i8(n)\nexport fn toInt8(n: float64) = f64i8(n)\nexport fn toInt8(n: string) = stri8(n)\nexport fn toInt8(n: bool) = booli8(n)\n\nexport fn toBool(n: int8) = i8bool(n)\nexport fn toBool(n: int16) = i16bool(n)\nexport fn toBool(n: int32) = i32bool(n)\nexport fn toBool(n: int64) = i64bool(n)\nexport fn toBool(n: float32) = f32bool(n)\nexport fn toBool(n: float64) = f64bool(n)\nexport fn toBool(n: string) = strbool(n)\nexport fn toBool(n: bool) = n\n\nexport fn toString(n: int8) = i8str(n)\nexport fn toString(n: int16) = i16str(n)\nexport fn toString(n: int32) = i32str(n)\nexport fn toString(n: int64) = i64str(n)\nexport fn toString(n: float32) = f32str(n)\nexport fn toString(n: float64) = f64str(n)\nexport fn toString(n: string) = n\nexport fn toString(n: bool) = boolstr(n)\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b)\nexport fn add(a: int16, b: int16) = addi16(a, b)\nexport fn add(a: int32, b: int32) = addi32(a, b)\nexport fn add(a: int64, b: int64) = addi64(a, b)\nexport fn add(a: float32, b: float32) = addf32(a, b)\nexport fn add(a: float64, b: float64) = addf64(a, b)\n\nexport fn sub(a: int8, b: int8) = subi8(a, b)\nexport fn sub(a: int16, b: int16) = subi16(a, b)\nexport fn sub(a: int32, b: int32) = subi32(a, b)\nexport fn sub(a: int64, b: int64) = subi64(a, b)\nexport fn sub(a: float32, b: float32) = subf32(a, b)\nexport fn sub(a: float64, b: float64) = subf64(a, b)\n\nexport fn negate(n: int8) = negi8(n)\nexport fn negate(n: int16) = negi16(n)\nexport fn negate(n: int32) = negi32(n)\nexport fn negate(n: int64) = negi64(n)\nexport fn negate(n: float32) = negf32(n)\nexport fn negate(n: float64) = negf64(n)\n\nexport fn mul(a: int8, b: int8) = muli8(a, b)\nexport fn mul(a: int16, b: int16) = muli16(a, b)\nexport fn mul(a: int32, b: int32) = muli32(a, b)\nexport fn mul(a: int64, b: int64) = muli64(a, b)\nexport fn mul(a: float32, b: float32) = mulf32(a, b)\nexport fn mul(a: float64, b: float64) = mulf64(a, b)\n\nexport fn div(a: int8, b: int8) = divi8(a, b)\nexport fn div(a: int16, b: int16) = divi16(a, b)\nexport fn div(a: int32, b: int32) = divi32(a, b)\nexport fn div(a: int64, b: int64) = divi64(a, b)\nexport fn div(a: float32, b: float32) = divf32(a, b)\nexport fn div(a: float64, b: float64) = divf64(a, b)\n\nexport fn mod(a: int8, b: int8) = modi8(a, b)\nexport fn mod(a: int16, b: int16) = modi16(a, b)\nexport fn mod(a: int32, b: int32) = modi32(a, b)\nexport fn mod(a: int64, b: int64) = modi64(a, b)\n\nexport fn pow(a: int8, b: int8) = powi8(a, b)\nexport fn pow(a: int16, b: int16) = powi16(a, b)\nexport fn pow(a: int32, b: int32) = powi32(a, b)\nexport fn pow(a: int64, b: int64) = powi64(a, b)\nexport fn pow(a: float32, b: float32) = powf32(a, b)\nexport fn pow(a: float64, b: float64) = powf64(a, b)\n\nexport fn sqrt(n: float32) = sqrtf32(n)\nexport fn sqrt(n: float64) = sqrtf64(n)\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b)\nexport fn and(a: int16, b: int16) = andi16(a, b)\nexport fn and(a: int32, b: int32) = andi32(a, b)\nexport fn and(a: int64, b: int64) = andi64(a, b)\nexport fn and(a: bool, b: bool) = andbool(a, b)\n\nexport fn or(a: int8, b: int8) = ori8(a, b)\nexport fn or(a: int16, b: int16) = ori16(a, b)\nexport fn or(a: int32, b: int32) = ori32(a, b)\nexport fn or(a: int64, b: int64) = ori64(a, b)\nexport fn or(a: bool, b: bool) = orbool(a, b)\n\nexport fn xor(a: int8, b: int8) = xori8(a, b)\nexport fn xor(a: int16, b: int16) = xori16(a, b)\nexport fn xor(a: int32, b: int32) = xori32(a, b)\nexport fn xor(a: int64, b: int64) = xori64(a, b)\nexport fn xor(a: bool, b: bool) = xorbool(a, b)\n\nexport fn not(n: int8) = noti8(n)\nexport fn not(n: int16) = noti16(n)\nexport fn not(n: int32) = noti32(n)\nexport fn not(n: int64) = noti64(n)\nexport fn not(n: bool) = notbool(n)\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b)\nexport fn nand(a: int16, b: int16) = nandi16(a, b)\nexport fn nand(a: int32, b: int32) = nandi32(a, b)\nexport fn nand(a: int64, b: int64) = nandi64(a, b)\nexport fn nand(a: bool, b: bool) = nandboo(a, b)\n\nexport fn nor(a: int8, b: int8) = nori8(a, b)\nexport fn nor(a: int16, b: int16) = nori16(a, b)\nexport fn nor(a: int32, b: int32) = nori32(a, b)\nexport fn nor(a: int64, b: int64) = nori64(a, b)\nexport fn nor(a: bool, b: bool) = norbool(a, b)\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b)\nexport fn xnor(a: int16, b: int16) = xnori16(a, b)\nexport fn xnor(a: int32, b: int32) = xnori32(a, b)\nexport fn xnor(a: int64, b: int64) = xnori64(a, b)\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b)\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b)\nexport fn eq(a: int16, b: int16) = eqi16(a, b)\nexport fn eq(a: int32, b: int32) = eqi32(a, b)\nexport fn eq(a: int64, b: int64) = eqi64(a, b)\nexport fn eq(a: float32, b: float32) = eqf32(a, b)\nexport fn eq(a: float64, b: float64) = eqf64(a, b)\nexport fn eq(a: string, b: string) = eqstr(a, b)\nexport fn eq(a: bool, b: bool) = eqbool(a, b)\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b)\nexport fn neq(a: int16, b: int16) = neqi16(a, b)\nexport fn neq(a: int32, b: int32) = neqi32(a, b)\nexport fn neq(a: int64, b: int64) = neqi64(a, b)\nexport fn neq(a: float32, b: float32) = neqf32(a, b)\nexport fn neq(a: float64, b: float64) = neqf64(a, b)\nexport fn neq(a: string, b: string) = neqstr(a, b)\nexport fn neq(a: bool, b: bool) = neqbool(a, b)\n\nexport fn lt(a: int8, b: int8) = lti8(a, b)\nexport fn lt(a: int16, b: int16) = lti16(a, b)\nexport fn lt(a: int32, b: int32) = lti32(a, b)\nexport fn lt(a: int64, b: int64) = lti64(a, b)\nexport fn lt(a: float32, b: float32) = ltf32(a, b)\nexport fn lt(a: float64, b: float64) = ltf64(a, b)\nexport fn lt(a: string, b: string) = ltstr(a, b)\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b)\nexport fn lte(a: int16, b: int16) = ltei16(a, b)\nexport fn lte(a: int32, b: int32) = ltei32(a, b)\nexport fn lte(a: int64, b: int64) = ltei64(a, b)\nexport fn lte(a: float32, b: float32) = ltef32(a, b)\nexport fn lte(a: float64, b: float64) = ltef64(a, b)\nexport fn lte(a: string, b: string) = ltestr(a, b)\n\nexport fn gt(a: int8, b: int8) = gti8(a, b)\nexport fn gt(a: int16, b: int16) = gti16(a, b)\nexport fn gt(a: int32, b: int32) = gti32(a, b)\nexport fn gt(a: int64, b: int64) = gti64(a, b)\nexport fn gt(a: float32, b: float32) = gtf32(a, b)\nexport fn gt(a: float64, b: float64) = gtf64(a, b)\nexport fn gt(a: string, b: string) = gtstr(a, b)\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b)\nexport fn gte(a: int16, b: int16) = gtei16(a, b)\nexport fn gte(a: int32, b: int32) = gtei32(a, b)\nexport fn gte(a: int64, b: int64) = gtei64(a, b)\nexport fn gte(a: float32, b: float32) = gtef32(a, b)\nexport fn gte(a: float64, b: float64) = gtef64(a, b)\nexport fn gte(a: string, b: string) = gtestr(a, b)\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b)\nexport fn split(str: string, spl: string): Array<string> = split(str, spl)\nexport fn repeat(s: string, n: int64) = repstr(s, n)\nexport fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t)\nexport fn length(s: string) = lenstr(s)\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b)\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n)\nexport fn index(arr: Array<any>, val: any) = indarr(arr, val)\nexport fn length(arr: Array<any>) = lenarr(arr)\nexport each // opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport map // opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport reduce // opcode with signature `fn reduce(arr: Array<any>, cb: function): any`\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): any`\nexport every // opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport some // opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\n\n// Map functions\nexport keyVal // opcode with signature `fn keyVal(map: Map<any, any>): Array<KeyVal<any, any>>`\nexport keys // opcode with signature `fn keys(map: Map<any, any>): Array<any>`\nexport values // opcode with signature `fn values(map: Map<any, any>): Array<any>`\n\n// Ternary functions\nexport pair // opcode with signature `fn pair(trueval: any, falseval: any): Array<any>`\nexport fn cond(c: bool, options: Array<any>): any = condarr(c, options)\nexport fn cond(c: bool, optional: function): void = condfn(c, optional)\n\n// Operator declarations\nexport infix commutative associative + 2 add\nexport infix associative + 2 concat\nexport infix - 2 sub\nexport prefix - 1 negate\nexport infix commutative associative * 3 mul\nexport infix * 3 repeat\nexport infix / 3 div\nexport infix / 3 split\nexport infix % 3 mod\nexport infix % 3 template\nexport infix ** 4 pow\nexport infix commutative associative & 3 and\nexport infix commutative associative && 3 and\nexport infix commutative associative | 2 or\nexport infix commutative associative || 2 or\nexport infix commutative associative ^ 2 xor\nexport prefix ! 4 not\nexport infix commutative associative !& 3 nand\nexport infix commutative associative !| 2 nor\nexport infix commutative associative !^ 2 xnor\nexport infix commutative associative == 1 eq\nexport infix commutative associative != 1 neq\nexport infix < 1 lt\nexport infix <= 1 lte\nexport infix > 1 gt\nexport infix >= 1 gte\nexport infix ~ 1 matches\nexport infix @ 1 index\nexport prefix # 4 length\nexport prefix ` 4 trim\nexport infix : 5 pair\nexport infix ? 0 cond\n\n"}
-
-},{}],9:[function(require,module,exports){
+},{"../amm/Ast":6,"alan-js-runtime":"alan-js-runtime"}],9:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
-
-
 var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
     "\u00020\u0172\b\u0001\u0004\u0002\t\u0002\u0004\u0003\t\u0003\u0004",
     "\u0004\t\u0004\u0004\u0005\t\u0005\u0004\u0006\t\u0006\u0004\u0007\t",
@@ -5125,27 +4657,20 @@ var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
     "\u0002\u0002\u0002\u0171\u016f\u0003\u0002\u0002\u0002\u0017\u0002\u00a5",
     "\u00e6\u010e\u0113\u0118\u011d\u0122\u012a\u0134\u0136\u0142\u014a\u014e",
     "\u0156\u015b\u0161\u0163\u0165\u016a\u016f\u0003\b\u0002\u0002"].join("");
-
-
 var atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
-
-var decisionsToDFA = atn.decisionToState.map( function(ds, index) { return new antlr4.dfa.DFA(ds, index); });
-
+var decisionsToDFA = atn.decisionToState.map(function (ds, index) { return new antlr4.dfa.DFA(ds, index); });
 function LnLexer(input) {
-	antlr4.Lexer.call(this, input);
+    antlr4.Lexer.call(this, input);
     this._interp = new antlr4.atn.LexerATNSimulator(this, atn, decisionsToDFA, new antlr4.PredictionContextCache());
     return this;
 }
-
 LnLexer.prototype = Object.create(antlr4.Lexer.prototype);
 LnLexer.prototype.constructor = LnLexer;
-
 Object.defineProperty(LnLexer.prototype, "atn", {
-        get : function() {
-                return atn;
-        }
+    get: function () {
+        return atn;
+    }
 });
-
 LnLexer.EOF = antlr4.Token.EOF;
 LnLexer.IMPORT = 1;
 LnLexer.FROM = 2;
@@ -5193,663 +4718,454 @@ LnLexer.MULTILINECOMMENT = 43;
 LnLexer.STRINGCONSTANT = 44;
 LnLexer.NUMBERCONSTANT = 45;
 LnLexer.VARNAME = 46;
-
-LnLexer.prototype.channelNames = [ "DEFAULT_TOKEN_CHANNEL", "HIDDEN" ];
-
-LnLexer.prototype.modeNames = [ "DEFAULT_MODE" ];
-
-LnLexer.prototype.literalNames = [ null, "'import'", "'from'", "'type'", 
-                                   "'fn'", "'event'", "'on'", "'export'", 
-                                   "'const'", "'let'", "'return'", "'emit'", 
-                                   "'as'", null, "'prefix'", "'infix'", 
-                                   "'commutative'", "'associative'", "'if'", 
-                                   "'else'", "'new'", "'interface'", null, 
-                                   "'{'", "'}'", "'('", "')'", "'<'", "'>'", 
-                                   "'['", "']'", "'.'", "'='", "'@'", "'./'", 
-                                   "'../'", "'/'", "'|'" ];
-
-LnLexer.prototype.symbolicNames = [ null, "IMPORT", "FROM", "TYPE", "FN", 
-                                    "EVENT", "ON", "EXPORT", "CONST", "LET", 
-                                    "RETURN", "EMIT", "AS", "BOOLCONSTANT", 
-                                    "PREFIX", "INFIX", "COMMUTATIVE", "ASSOCIATIVE", 
-                                    "IF", "ELSE", "NEW", "INTERFACE", "SEP", 
-                                    "OPENBODY", "CLOSEBODY", "OPENARGS", 
-                                    "CLOSEARGS", "OPENGENERIC", "CLOSEGENERIC", 
-                                    "OPENARRAY", "CLOSEARRAY", "METHODSEP", 
-                                    "EQUALS", "GLOBAL", "CURDIR", "PARDIR", 
-                                    "DIRSEP", "OR", "GENERALOPERATORS", 
-                                    "TYPESEP", "NEWLINE", "WS", "SINGLELINECOMMENT", 
-                                    "MULTILINECOMMENT", "STRINGCONSTANT", 
-                                    "NUMBERCONSTANT", "VARNAME" ];
-
-LnLexer.prototype.ruleNames = [ "IMPORT", "FROM", "TYPE", "FN", "EVENT", 
-                                "ON", "EXPORT", "CONST", "LET", "RETURN", 
-                                "EMIT", "AS", "BOOLCONSTANT", "PREFIX", 
-                                "INFIX", "COMMUTATIVE", "ASSOCIATIVE", "IF", 
-                                "ELSE", "NEW", "INTERFACE", "SEP", "OPENBODY", 
-                                "CLOSEBODY", "OPENARGS", "CLOSEARGS", "OPENGENERIC", 
-                                "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY", 
-                                "METHODSEP", "EQUALS", "GLOBAL", "CURDIR", 
-                                "PARDIR", "DIRSEP", "OR", "GENERALOPERATORS", 
-                                "TYPESEP", "NEWLINE", "WS", "SINGLELINECOMMENT", 
-                                "MULTILINECOMMENT", "STRINGCONSTANT", "NUMBERCONSTANT", 
-                                "VARNAME" ];
-
+LnLexer.prototype.channelNames = ["DEFAULT_TOKEN_CHANNEL", "HIDDEN"];
+LnLexer.prototype.modeNames = ["DEFAULT_MODE"];
+LnLexer.prototype.literalNames = [null, "'import'", "'from'", "'type'",
+    "'fn'", "'event'", "'on'", "'export'",
+    "'const'", "'let'", "'return'", "'emit'",
+    "'as'", null, "'prefix'", "'infix'",
+    "'commutative'", "'associative'", "'if'",
+    "'else'", "'new'", "'interface'", null,
+    "'{'", "'}'", "'('", "')'", "'<'", "'>'",
+    "'['", "']'", "'.'", "'='", "'@'", "'./'",
+    "'../'", "'/'", "'|'"];
+LnLexer.prototype.symbolicNames = [null, "IMPORT", "FROM", "TYPE", "FN",
+    "EVENT", "ON", "EXPORT", "CONST", "LET",
+    "RETURN", "EMIT", "AS", "BOOLCONSTANT",
+    "PREFIX", "INFIX", "COMMUTATIVE", "ASSOCIATIVE",
+    "IF", "ELSE", "NEW", "INTERFACE", "SEP",
+    "OPENBODY", "CLOSEBODY", "OPENARGS",
+    "CLOSEARGS", "OPENGENERIC", "CLOSEGENERIC",
+    "OPENARRAY", "CLOSEARRAY", "METHODSEP",
+    "EQUALS", "GLOBAL", "CURDIR", "PARDIR",
+    "DIRSEP", "OR", "GENERALOPERATORS",
+    "TYPESEP", "NEWLINE", "WS", "SINGLELINECOMMENT",
+    "MULTILINECOMMENT", "STRINGCONSTANT",
+    "NUMBERCONSTANT", "VARNAME"];
+LnLexer.prototype.ruleNames = ["IMPORT", "FROM", "TYPE", "FN", "EVENT",
+    "ON", "EXPORT", "CONST", "LET", "RETURN",
+    "EMIT", "AS", "BOOLCONSTANT", "PREFIX",
+    "INFIX", "COMMUTATIVE", "ASSOCIATIVE", "IF",
+    "ELSE", "NEW", "INTERFACE", "SEP", "OPENBODY",
+    "CLOSEBODY", "OPENARGS", "CLOSEARGS", "OPENGENERIC",
+    "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY",
+    "METHODSEP", "EQUALS", "GLOBAL", "CURDIR",
+    "PARDIR", "DIRSEP", "OR", "GENERALOPERATORS",
+    "TYPESEP", "NEWLINE", "WS", "SINGLELINECOMMENT",
+    "MULTILINECOMMENT", "STRINGCONSTANT", "NUMBERCONSTANT",
+    "VARNAME"];
 LnLexer.prototype.grammarFileName = "Ln.g4";
-
-
-
 exports.LnLexer = LnLexer;
-
 
 },{"antlr4/index":76}],10:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
-
 // This class defines a complete listener for a parse tree produced by LnParser.
 function LnListener() {
-	antlr4.tree.ParseTreeListener.call(this);
-	return this;
+    antlr4.tree.ParseTreeListener.call(this);
+    return this;
 }
-
 LnListener.prototype = Object.create(antlr4.tree.ParseTreeListener.prototype);
 LnListener.prototype.constructor = LnListener;
-
 // Enter a parse tree produced by LnParser#module.
-LnListener.prototype.enterModule = function(ctx) {
+LnListener.prototype.enterModule = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#module.
-LnListener.prototype.exitModule = function(ctx) {
+LnListener.prototype.exitModule = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#blank.
-LnListener.prototype.enterBlank = function(ctx) {
+LnListener.prototype.enterBlank = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#blank.
-LnListener.prototype.exitBlank = function(ctx) {
+LnListener.prototype.exitBlank = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#imports.
-LnListener.prototype.enterImports = function(ctx) {
+LnListener.prototype.enterImports = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#imports.
-LnListener.prototype.exitImports = function(ctx) {
+LnListener.prototype.exitImports = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#standardImport.
-LnListener.prototype.enterStandardImport = function(ctx) {
+LnListener.prototype.enterStandardImport = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#standardImport.
-LnListener.prototype.exitStandardImport = function(ctx) {
+LnListener.prototype.exitStandardImport = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#fromImport.
-LnListener.prototype.enterFromImport = function(ctx) {
+LnListener.prototype.enterFromImport = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#fromImport.
-LnListener.prototype.exitFromImport = function(ctx) {
+LnListener.prototype.exitFromImport = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#dependency.
-LnListener.prototype.enterDependency = function(ctx) {
+LnListener.prototype.enterDependency = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#dependency.
-LnListener.prototype.exitDependency = function(ctx) {
+LnListener.prototype.exitDependency = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#localdependency.
-LnListener.prototype.enterLocaldependency = function(ctx) {
+LnListener.prototype.enterLocaldependency = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#localdependency.
-LnListener.prototype.exitLocaldependency = function(ctx) {
+LnListener.prototype.exitLocaldependency = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#globaldependency.
-LnListener.prototype.enterGlobaldependency = function(ctx) {
+LnListener.prototype.enterGlobaldependency = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#globaldependency.
-LnListener.prototype.exitGlobaldependency = function(ctx) {
+LnListener.prototype.exitGlobaldependency = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#types.
-LnListener.prototype.enterTypes = function(ctx) {
+LnListener.prototype.enterTypes = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#types.
-LnListener.prototype.exitTypes = function(ctx) {
+LnListener.prototype.exitTypes = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#othertype.
-LnListener.prototype.enterOthertype = function(ctx) {
+LnListener.prototype.enterOthertype = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#othertype.
-LnListener.prototype.exitOthertype = function(ctx) {
+LnListener.prototype.exitOthertype = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#typename.
-LnListener.prototype.enterTypename = function(ctx) {
+LnListener.prototype.enterTypename = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#typename.
-LnListener.prototype.exitTypename = function(ctx) {
+LnListener.prototype.exitTypename = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#typegenerics.
-LnListener.prototype.enterTypegenerics = function(ctx) {
+LnListener.prototype.enterTypegenerics = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#typegenerics.
-LnListener.prototype.exitTypegenerics = function(ctx) {
+LnListener.prototype.exitTypegenerics = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#fulltypename.
-LnListener.prototype.enterFulltypename = function(ctx) {
+LnListener.prototype.enterFulltypename = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#fulltypename.
-LnListener.prototype.exitFulltypename = function(ctx) {
+LnListener.prototype.exitFulltypename = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#typebody.
-LnListener.prototype.enterTypebody = function(ctx) {
+LnListener.prototype.enterTypebody = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#typebody.
-LnListener.prototype.exitTypebody = function(ctx) {
+LnListener.prototype.exitTypebody = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#typeline.
-LnListener.prototype.enterTypeline = function(ctx) {
+LnListener.prototype.enterTypeline = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#typeline.
-LnListener.prototype.exitTypeline = function(ctx) {
+LnListener.prototype.exitTypeline = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#functions.
-LnListener.prototype.enterFunctions = function(ctx) {
+LnListener.prototype.enterFunctions = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#functions.
-LnListener.prototype.exitFunctions = function(ctx) {
+LnListener.prototype.exitFunctions = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#fullfunctionbody.
-LnListener.prototype.enterFullfunctionbody = function(ctx) {
+LnListener.prototype.enterFullfunctionbody = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#fullfunctionbody.
-LnListener.prototype.exitFullfunctionbody = function(ctx) {
+LnListener.prototype.exitFullfunctionbody = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#functionbody.
-LnListener.prototype.enterFunctionbody = function(ctx) {
+LnListener.prototype.enterFunctionbody = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#functionbody.
-LnListener.prototype.exitFunctionbody = function(ctx) {
+LnListener.prototype.exitFunctionbody = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#statements.
-LnListener.prototype.enterStatements = function(ctx) {
+LnListener.prototype.enterStatements = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#statements.
-LnListener.prototype.exitStatements = function(ctx) {
+LnListener.prototype.exitStatements = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#declarations.
-LnListener.prototype.enterDeclarations = function(ctx) {
+LnListener.prototype.enterDeclarations = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#declarations.
-LnListener.prototype.exitDeclarations = function(ctx) {
+LnListener.prototype.exitDeclarations = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#constdeclaration.
-LnListener.prototype.enterConstdeclaration = function(ctx) {
+LnListener.prototype.enterConstdeclaration = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#constdeclaration.
-LnListener.prototype.exitConstdeclaration = function(ctx) {
+LnListener.prototype.exitConstdeclaration = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#letdeclaration.
-LnListener.prototype.enterLetdeclaration = function(ctx) {
+LnListener.prototype.enterLetdeclaration = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#letdeclaration.
-LnListener.prototype.exitLetdeclaration = function(ctx) {
+LnListener.prototype.exitLetdeclaration = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#assignments.
-LnListener.prototype.enterAssignments = function(ctx) {
+LnListener.prototype.enterAssignments = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#assignments.
-LnListener.prototype.exitAssignments = function(ctx) {
+LnListener.prototype.exitAssignments = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#assignables.
-LnListener.prototype.enterAssignables = function(ctx) {
+LnListener.prototype.enterAssignables = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#assignables.
-LnListener.prototype.exitAssignables = function(ctx) {
+LnListener.prototype.exitAssignables = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#basicassignables.
-LnListener.prototype.enterBasicassignables = function(ctx) {
+LnListener.prototype.enterBasicassignables = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#basicassignables.
-LnListener.prototype.exitBasicassignables = function(ctx) {
+LnListener.prototype.exitBasicassignables = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#operatororassignable.
-LnListener.prototype.enterOperatororassignable = function(ctx) {
+LnListener.prototype.enterOperatororassignable = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#operatororassignable.
-LnListener.prototype.exitOperatororassignable = function(ctx) {
+LnListener.prototype.exitOperatororassignable = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#withoperators.
-LnListener.prototype.enterWithoperators = function(ctx) {
+LnListener.prototype.enterWithoperators = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#withoperators.
-LnListener.prototype.exitWithoperators = function(ctx) {
+LnListener.prototype.exitWithoperators = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#groups.
-LnListener.prototype.enterGroups = function(ctx) {
+LnListener.prototype.enterGroups = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#groups.
-LnListener.prototype.exitGroups = function(ctx) {
+LnListener.prototype.exitGroups = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#typeofn.
-LnListener.prototype.enterTypeofn = function(ctx) {
+LnListener.prototype.enterTypeofn = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#typeofn.
-LnListener.prototype.exitTypeofn = function(ctx) {
+LnListener.prototype.exitTypeofn = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#objectliterals.
-LnListener.prototype.enterObjectliterals = function(ctx) {
+LnListener.prototype.enterObjectliterals = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#objectliterals.
-LnListener.prototype.exitObjectliterals = function(ctx) {
+LnListener.prototype.exitObjectliterals = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#arrayliteral.
-LnListener.prototype.enterArrayliteral = function(ctx) {
+LnListener.prototype.enterArrayliteral = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#arrayliteral.
-LnListener.prototype.exitArrayliteral = function(ctx) {
+LnListener.prototype.exitArrayliteral = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#typeliteral.
-LnListener.prototype.enterTypeliteral = function(ctx) {
+LnListener.prototype.enterTypeliteral = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#typeliteral.
-LnListener.prototype.exitTypeliteral = function(ctx) {
+LnListener.prototype.exitTypeliteral = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#mapliteral.
-LnListener.prototype.enterMapliteral = function(ctx) {
+LnListener.prototype.enterMapliteral = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#mapliteral.
-LnListener.prototype.exitMapliteral = function(ctx) {
+LnListener.prototype.exitMapliteral = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#mapline.
-LnListener.prototype.enterMapline = function(ctx) {
+LnListener.prototype.enterMapline = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#mapline.
-LnListener.prototype.exitMapline = function(ctx) {
+LnListener.prototype.exitMapline = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#assignablelist.
-LnListener.prototype.enterAssignablelist = function(ctx) {
+LnListener.prototype.enterAssignablelist = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#assignablelist.
-LnListener.prototype.exitAssignablelist = function(ctx) {
+LnListener.prototype.exitAssignablelist = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#fncall.
-LnListener.prototype.enterFncall = function(ctx) {
+LnListener.prototype.enterFncall = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#fncall.
-LnListener.prototype.exitFncall = function(ctx) {
+LnListener.prototype.exitFncall = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#calls.
-LnListener.prototype.enterCalls = function(ctx) {
+LnListener.prototype.enterCalls = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#calls.
-LnListener.prototype.exitCalls = function(ctx) {
+LnListener.prototype.exitCalls = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#exits.
-LnListener.prototype.enterExits = function(ctx) {
+LnListener.prototype.enterExits = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#exits.
-LnListener.prototype.exitExits = function(ctx) {
+LnListener.prototype.exitExits = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#emits.
-LnListener.prototype.enterEmits = function(ctx) {
+LnListener.prototype.enterEmits = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#emits.
-LnListener.prototype.exitEmits = function(ctx) {
+LnListener.prototype.exitEmits = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#conditionals.
-LnListener.prototype.enterConditionals = function(ctx) {
+LnListener.prototype.enterConditionals = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#conditionals.
-LnListener.prototype.exitConditionals = function(ctx) {
+LnListener.prototype.exitConditionals = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#blocklikes.
-LnListener.prototype.enterBlocklikes = function(ctx) {
+LnListener.prototype.enterBlocklikes = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#blocklikes.
-LnListener.prototype.exitBlocklikes = function(ctx) {
+LnListener.prototype.exitBlocklikes = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#constants.
-LnListener.prototype.enterConstants = function(ctx) {
+LnListener.prototype.enterConstants = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#constants.
-LnListener.prototype.exitConstants = function(ctx) {
+LnListener.prototype.exitConstants = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#operators.
-LnListener.prototype.enterOperators = function(ctx) {
+LnListener.prototype.enterOperators = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#operators.
-LnListener.prototype.exitOperators = function(ctx) {
+LnListener.prototype.exitOperators = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#operatormapping.
-LnListener.prototype.enterOperatormapping = function(ctx) {
+LnListener.prototype.enterOperatormapping = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#operatormapping.
-LnListener.prototype.exitOperatormapping = function(ctx) {
+LnListener.prototype.exitOperatormapping = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#infix.
-LnListener.prototype.enterInfix = function(ctx) {
+LnListener.prototype.enterInfix = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#infix.
-LnListener.prototype.exitInfix = function(ctx) {
+LnListener.prototype.exitInfix = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#events.
-LnListener.prototype.enterEvents = function(ctx) {
+LnListener.prototype.enterEvents = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#events.
-LnListener.prototype.exitEvents = function(ctx) {
+LnListener.prototype.exitEvents = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#handlers.
-LnListener.prototype.enterHandlers = function(ctx) {
+LnListener.prototype.enterHandlers = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#handlers.
-LnListener.prototype.exitHandlers = function(ctx) {
+LnListener.prototype.exitHandlers = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#eventref.
-LnListener.prototype.enterEventref = function(ctx) {
+LnListener.prototype.enterEventref = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#eventref.
-LnListener.prototype.exitEventref = function(ctx) {
+LnListener.prototype.exitEventref = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#interfaces.
-LnListener.prototype.enterInterfaces = function(ctx) {
+LnListener.prototype.enterInterfaces = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#interfaces.
-LnListener.prototype.exitInterfaces = function(ctx) {
+LnListener.prototype.exitInterfaces = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#interfaceline.
-LnListener.prototype.enterInterfaceline = function(ctx) {
+LnListener.prototype.enterInterfaceline = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#interfaceline.
-LnListener.prototype.exitInterfaceline = function(ctx) {
+LnListener.prototype.exitInterfaceline = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#functiontypeline.
-LnListener.prototype.enterFunctiontypeline = function(ctx) {
+LnListener.prototype.enterFunctiontypeline = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#functiontypeline.
-LnListener.prototype.exitFunctiontypeline = function(ctx) {
+LnListener.prototype.exitFunctiontypeline = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#functiontype.
-LnListener.prototype.enterFunctiontype = function(ctx) {
+LnListener.prototype.enterFunctiontype = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#functiontype.
-LnListener.prototype.exitFunctiontype = function(ctx) {
+LnListener.prototype.exitFunctiontype = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#operatortypeline.
-LnListener.prototype.enterOperatortypeline = function(ctx) {
+LnListener.prototype.enterOperatortypeline = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#operatortypeline.
-LnListener.prototype.exitOperatortypeline = function(ctx) {
+LnListener.prototype.exitOperatortypeline = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#leftarg.
-LnListener.prototype.enterLeftarg = function(ctx) {
+LnListener.prototype.enterLeftarg = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#leftarg.
-LnListener.prototype.exitLeftarg = function(ctx) {
+LnListener.prototype.exitLeftarg = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#rightarg.
-LnListener.prototype.enterRightarg = function(ctx) {
+LnListener.prototype.enterRightarg = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#rightarg.
-LnListener.prototype.exitRightarg = function(ctx) {
+LnListener.prototype.exitRightarg = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#propertytypeline.
-LnListener.prototype.enterPropertytypeline = function(ctx) {
+LnListener.prototype.enterPropertytypeline = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#propertytypeline.
-LnListener.prototype.exitPropertytypeline = function(ctx) {
+LnListener.prototype.exitPropertytypeline = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#argtype.
-LnListener.prototype.enterArgtype = function(ctx) {
+LnListener.prototype.enterArgtype = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#argtype.
-LnListener.prototype.exitArgtype = function(ctx) {
+LnListener.prototype.exitArgtype = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#arglist.
-LnListener.prototype.enterArglist = function(ctx) {
+LnListener.prototype.enterArglist = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#arglist.
-LnListener.prototype.exitArglist = function(ctx) {
+LnListener.prototype.exitArglist = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#exports.
-LnListener.prototype.enterExports = function(ctx) {
+LnListener.prototype.enterExports = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#exports.
-LnListener.prototype.exitExports = function(ctx) {
+LnListener.prototype.exitExports = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#varlist.
-LnListener.prototype.enterVarlist = function(ctx) {
+LnListener.prototype.enterVarlist = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#varlist.
-LnListener.prototype.exitVarlist = function(ctx) {
+LnListener.prototype.exitVarlist = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#renameablevar.
-LnListener.prototype.enterRenameablevar = function(ctx) {
+LnListener.prototype.enterRenameablevar = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#renameablevar.
-LnListener.prototype.exitRenameablevar = function(ctx) {
+LnListener.prototype.exitRenameablevar = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#varop.
-LnListener.prototype.enterVarop = function(ctx) {
+LnListener.prototype.enterVarop = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#varop.
-LnListener.prototype.exitVarop = function(ctx) {
+LnListener.prototype.exitVarop = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#varn.
-LnListener.prototype.enterVarn = function(ctx) {
+LnListener.prototype.enterVarn = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#varn.
-LnListener.prototype.exitVarn = function(ctx) {
+LnListener.prototype.exitVarn = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#varsegment.
-LnListener.prototype.enterVarsegment = function(ctx) {
+LnListener.prototype.enterVarsegment = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#varsegment.
-LnListener.prototype.exitVarsegment = function(ctx) {
+LnListener.prototype.exitVarsegment = function (ctx) {
 };
-
-
 // Enter a parse tree produced by LnParser#arrayaccess.
-LnListener.prototype.enterArrayaccess = function(ctx) {
+LnListener.prototype.enterArrayaccess = function (ctx) {
 };
-
 // Exit a parse tree produced by LnParser#arrayaccess.
-LnListener.prototype.exitArrayaccess = function(ctx) {
+LnListener.prototype.exitArrayaccess = function (ctx) {
 };
-
-
-
 exports.LnListener = LnListener;
+
 },{"antlr4/index":76}],11:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
 var LnListener = require('./LnListener').LnListener;
 var grammarFileName = "Ln.g4";
-
 var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
     "\u00030\u0498\u0004\u0002\t\u0002\u0004\u0003\t\u0003\u0004\u0004\t",
     "\u0004\u0004\u0005\t\u0005\u0004\u0006\t\u0006\u0004\u0007\t\u0007\u0004",
@@ -6666,67 +5982,56 @@ var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
     "\u03e5\u03ea\u03f2\u03fb\u03fd\u0403\u0405\u040b\u040e\u0414\u041b\u0422",
     "\u042f\u0436\u043f\u0446\u044c\u0458\u045f\u0468\u046f\u0477\u047b\u0480",
     "\u0485\u048b\u0492"].join("");
-
-
 var atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
-
-var decisionsToDFA = atn.decisionToState.map( function(ds, index) { return new antlr4.dfa.DFA(ds, index); });
-
+var decisionsToDFA = atn.decisionToState.map(function (ds, index) { return new antlr4.dfa.DFA(ds, index); });
 var sharedContextCache = new antlr4.PredictionContextCache();
-
-var literalNames = [ null, "'import'", "'from'", "'type'", "'fn'", "'event'", 
-                     "'on'", "'export'", "'const'", "'let'", "'return'", 
-                     "'emit'", "'as'", null, "'prefix'", "'infix'", "'commutative'", 
-                     "'associative'", "'if'", "'else'", "'new'", "'interface'", 
-                     null, "'{'", "'}'", "'('", "')'", "'<'", "'>'", "'['", 
-                     "']'", "'.'", "'='", "'@'", "'./'", "'../'", "'/'", 
-                     "'|'" ];
-
-var symbolicNames = [ null, "IMPORT", "FROM", "TYPE", "FN", "EVENT", "ON", 
-                      "EXPORT", "CONST", "LET", "RETURN", "EMIT", "AS", 
-                      "BOOLCONSTANT", "PREFIX", "INFIX", "COMMUTATIVE", 
-                      "ASSOCIATIVE", "IF", "ELSE", "NEW", "INTERFACE", "SEP", 
-                      "OPENBODY", "CLOSEBODY", "OPENARGS", "CLOSEARGS", 
-                      "OPENGENERIC", "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY", 
-                      "METHODSEP", "EQUALS", "GLOBAL", "CURDIR", "PARDIR", 
-                      "DIRSEP", "OR", "GENERALOPERATORS", "TYPESEP", "NEWLINE", 
-                      "WS", "SINGLELINECOMMENT", "MULTILINECOMMENT", "STRINGCONSTANT", 
-                      "NUMBERCONSTANT", "VARNAME" ];
-
-var ruleNames =  [ "module", "blank", "imports", "standardImport", "fromImport", 
-                   "dependency", "localdependency", "globaldependency", 
-                   "types", "othertype", "typename", "typegenerics", "fulltypename", 
-                   "typebody", "typeline", "functions", "fullfunctionbody", 
-                   "functionbody", "statements", "declarations", "constdeclaration", 
-                   "letdeclaration", "assignments", "assignables", "basicassignables", 
-                   "operatororassignable", "withoperators", "groups", "typeofn", 
-                   "objectliterals", "arrayliteral", "typeliteral", "mapliteral", 
-                   "mapline", "assignablelist", "fncall", "calls", "exits", 
-                   "emits", "conditionals", "blocklikes", "constants", "operators", 
-                   "operatormapping", "infix", "events", "handlers", "eventref", 
-                   "interfaces", "interfaceline", "functiontypeline", "functiontype", 
-                   "operatortypeline", "leftarg", "rightarg", "propertytypeline", 
-                   "argtype", "arglist", "exports", "varlist", "renameablevar", 
-                   "varop", "varn", "varsegment", "arrayaccess" ];
-
-function LnParser (input) {
-	antlr4.Parser.call(this, input);
+var literalNames = [null, "'import'", "'from'", "'type'", "'fn'", "'event'",
+    "'on'", "'export'", "'const'", "'let'", "'return'",
+    "'emit'", "'as'", null, "'prefix'", "'infix'", "'commutative'",
+    "'associative'", "'if'", "'else'", "'new'", "'interface'",
+    null, "'{'", "'}'", "'('", "')'", "'<'", "'>'", "'['",
+    "']'", "'.'", "'='", "'@'", "'./'", "'../'", "'/'",
+    "'|'"];
+var symbolicNames = [null, "IMPORT", "FROM", "TYPE", "FN", "EVENT", "ON",
+    "EXPORT", "CONST", "LET", "RETURN", "EMIT", "AS",
+    "BOOLCONSTANT", "PREFIX", "INFIX", "COMMUTATIVE",
+    "ASSOCIATIVE", "IF", "ELSE", "NEW", "INTERFACE", "SEP",
+    "OPENBODY", "CLOSEBODY", "OPENARGS", "CLOSEARGS",
+    "OPENGENERIC", "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY",
+    "METHODSEP", "EQUALS", "GLOBAL", "CURDIR", "PARDIR",
+    "DIRSEP", "OR", "GENERALOPERATORS", "TYPESEP", "NEWLINE",
+    "WS", "SINGLELINECOMMENT", "MULTILINECOMMENT", "STRINGCONSTANT",
+    "NUMBERCONSTANT", "VARNAME"];
+var ruleNames = ["module", "blank", "imports", "standardImport", "fromImport",
+    "dependency", "localdependency", "globaldependency",
+    "types", "othertype", "typename", "typegenerics", "fulltypename",
+    "typebody", "typeline", "functions", "fullfunctionbody",
+    "functionbody", "statements", "declarations", "constdeclaration",
+    "letdeclaration", "assignments", "assignables", "basicassignables",
+    "operatororassignable", "withoperators", "groups", "typeofn",
+    "objectliterals", "arrayliteral", "typeliteral", "mapliteral",
+    "mapline", "assignablelist", "fncall", "calls", "exits",
+    "emits", "conditionals", "blocklikes", "constants", "operators",
+    "operatormapping", "infix", "events", "handlers", "eventref",
+    "interfaces", "interfaceline", "functiontypeline", "functiontype",
+    "operatortypeline", "leftarg", "rightarg", "propertytypeline",
+    "argtype", "arglist", "exports", "varlist", "renameablevar",
+    "varop", "varn", "varsegment", "arrayaccess"];
+function LnParser(input) {
+    antlr4.Parser.call(this, input);
     this._interp = new antlr4.atn.ParserATNSimulator(this, atn, decisionsToDFA, sharedContextCache);
     this.ruleNames = ruleNames;
     this.literalNames = literalNames;
     this.symbolicNames = symbolicNames;
     return this;
 }
-
 LnParser.prototype = Object.create(antlr4.Parser.prototype);
 LnParser.prototype.constructor = LnParser;
-
 Object.defineProperty(LnParser.prototype, "atn", {
-	get : function() {
-		return atn;
-	}
+    get: function () {
+        return atn;
+    }
 });
-
 LnParser.EOF = antlr4.Token.EOF;
 LnParser.IMPORT = 1;
 LnParser.FROM = 2;
@@ -6774,7 +6079,6 @@ LnParser.MULTILINECOMMENT = 43;
 LnParser.STRINGCONSTANT = 44;
 LnParser.NUMBERCONSTANT = 45;
 LnParser.VARNAME = 46;
-
 LnParser.RULE_module = 0;
 LnParser.RULE_blank = 1;
 LnParser.RULE_imports = 2;
@@ -6840,332 +6144,311 @@ LnParser.RULE_varop = 61;
 LnParser.RULE_varn = 62;
 LnParser.RULE_varsegment = 63;
 LnParser.RULE_arrayaccess = 64;
-
 function ModuleContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_module;
     return this;
 }
-
 ModuleContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ModuleContext.prototype.constructor = ModuleContext;
-
-ModuleContext.prototype.blank = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-ModuleContext.prototype.imports = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.imports = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(ImportsContext);
-    } else {
-        return this.getTypedRuleContext(ImportsContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(ImportsContext, i);
     }
 };
-
-ModuleContext.prototype.types = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.types = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(TypesContext);
-    } else {
-        return this.getTypedRuleContext(TypesContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(TypesContext, i);
     }
 };
-
-ModuleContext.prototype.constdeclaration = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.constdeclaration = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(ConstdeclarationContext);
-    } else {
-        return this.getTypedRuleContext(ConstdeclarationContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(ConstdeclarationContext, i);
     }
 };
-
-ModuleContext.prototype.functions = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.functions = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(FunctionsContext);
-    } else {
-        return this.getTypedRuleContext(FunctionsContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(FunctionsContext, i);
     }
 };
-
-ModuleContext.prototype.operatormapping = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.operatormapping = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(OperatormappingContext);
-    } else {
-        return this.getTypedRuleContext(OperatormappingContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(OperatormappingContext, i);
     }
 };
-
-ModuleContext.prototype.events = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.events = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(EventsContext);
-    } else {
-        return this.getTypedRuleContext(EventsContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(EventsContext, i);
     }
 };
-
-ModuleContext.prototype.handlers = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.handlers = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(HandlersContext);
-    } else {
-        return this.getTypedRuleContext(HandlersContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(HandlersContext, i);
     }
 };
-
-ModuleContext.prototype.interfaces = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.interfaces = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(InterfacesContext);
-    } else {
-        return this.getTypedRuleContext(InterfacesContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(InterfacesContext, i);
     }
 };
-
-ModuleContext.prototype.exports = function(i) {
-    if(i===undefined) {
+ModuleContext.prototype.exports = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(ExportsContext);
-    } else {
-        return this.getTypedRuleContext(ExportsContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(ExportsContext, i);
     }
 };
-
-ModuleContext.prototype.EOF = function() {
+ModuleContext.prototype.EOF = function () {
     return this.getToken(LnParser.EOF, 0);
 };
-
-ModuleContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ModuleContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterModule(this);
-	}
+    }
 };
-
-ModuleContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ModuleContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitModule(this);
-	}
+    }
 };
-
-
-
-
 LnParser.ModuleContext = ModuleContext;
-
-LnParser.prototype.module = function() {
-
+LnParser.prototype.module = function () {
     var localctx = new ModuleContext(this, this._ctx, this.state);
     this.enterRule(localctx, 0, LnParser.RULE_module);
     var _la = 0; // Token type
     try {
         this.state = 160;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.IMPORT:
-        case LnParser.FROM:
-        case LnParser.TYPE:
-        case LnParser.FN:
-        case LnParser.EVENT:
-        case LnParser.ON:
-        case LnParser.EXPORT:
-        case LnParser.CONST:
-        case LnParser.PREFIX:
-        case LnParser.INFIX:
-        case LnParser.INTERFACE:
-        case LnParser.NEWLINE:
-        case LnParser.WS:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 133;
-            this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,0,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
-                    this.state = 130;
-                    this.blank(); 
-                }
-                this.state = 135;
+        switch (this._input.LA(1)) {
+            case LnParser.IMPORT:
+            case LnParser.FROM:
+            case LnParser.TYPE:
+            case LnParser.FN:
+            case LnParser.EVENT:
+            case LnParser.ON:
+            case LnParser.EXPORT:
+            case LnParser.CONST:
+            case LnParser.PREFIX:
+            case LnParser.INFIX:
+            case LnParser.INTERFACE:
+            case LnParser.NEWLINE:
+            case LnParser.WS:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 133;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,0,this._ctx);
-            }
-
-            this.state = 139;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            while(_la===LnParser.IMPORT || _la===LnParser.FROM) {
-                this.state = 136;
-                this.imports();
-                this.state = 141;
+                var _alt = this._interp.adaptivePredict(this._input, 0, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 130;
+                        this.blank();
+                    }
+                    this.state = 135;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 0, this._ctx);
+                }
+                this.state = 139;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-            }
-            this.state = 155; 
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            do {
+                while (_la === LnParser.IMPORT || _la === LnParser.FROM) {
+                    this.state = 136;
+                    this.imports();
+                    this.state = 141;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                }
                 this.state = 155;
                 this._errHandler.sync(this);
-                switch(this._input.LA(1)) {
-                case LnParser.TYPE:
-                    this.state = 142;
-                    this.types();
-                    break;
-                case LnParser.CONST:
-                    this.state = 143;
-                    this.constdeclaration();
-                    break;
-                case LnParser.FN:
-                    this.state = 144;
-                    this.functions();
-                    break;
-                case LnParser.PREFIX:
-                case LnParser.INFIX:
-                    this.state = 145;
-                    this.operatormapping();
-                    break;
-                case LnParser.EVENT:
-                    this.state = 146;
-                    this.events();
-                    break;
-                case LnParser.ON:
-                    this.state = 147;
-                    this.handlers();
-                    break;
-                case LnParser.INTERFACE:
-                    this.state = 148;
-                    this.interfaces();
-                    break;
-                case LnParser.EXPORT:
-                    this.state = 149;
-                    this.exports();
-                    break;
-                case LnParser.NEWLINE:
-                case LnParser.WS:
-                    this.state = 151; 
-                    this._errHandler.sync(this);
-                    var _alt = 1;
-                    do {
-                    	switch (_alt) {
-                    	case 1:
-                    		this.state = 150;
-                    		this.blank();
-                    		break;
-                    	default:
-                    		throw new antlr4.error.NoViableAltException(this);
-                    	}
-                    	this.state = 153; 
-                    	this._errHandler.sync(this);
-                    	_alt = this._interp.adaptivePredict(this._input,2, this._ctx);
-                    } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-                    break;
-                default:
-                    throw new antlr4.error.NoViableAltException(this);
-                }
-                this.state = 157; 
-                this._errHandler.sync(this);
                 _la = this._input.LA(1);
-            } while((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.TYPE) | (1 << LnParser.FN) | (1 << LnParser.EVENT) | (1 << LnParser.ON) | (1 << LnParser.EXPORT) | (1 << LnParser.CONST) | (1 << LnParser.PREFIX) | (1 << LnParser.INFIX) | (1 << LnParser.INTERFACE))) !== 0) || _la===LnParser.NEWLINE || _la===LnParser.WS);
-            break;
-        case LnParser.EOF:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 159;
-            this.match(LnParser.EOF);
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+                do {
+                    this.state = 155;
+                    this._errHandler.sync(this);
+                    switch (this._input.LA(1)) {
+                        case LnParser.TYPE:
+                            this.state = 142;
+                            this.types();
+                            break;
+                        case LnParser.CONST:
+                            this.state = 143;
+                            this.constdeclaration();
+                            break;
+                        case LnParser.FN:
+                            this.state = 144;
+                            this.functions();
+                            break;
+                        case LnParser.PREFIX:
+                        case LnParser.INFIX:
+                            this.state = 145;
+                            this.operatormapping();
+                            break;
+                        case LnParser.EVENT:
+                            this.state = 146;
+                            this.events();
+                            break;
+                        case LnParser.ON:
+                            this.state = 147;
+                            this.handlers();
+                            break;
+                        case LnParser.INTERFACE:
+                            this.state = 148;
+                            this.interfaces();
+                            break;
+                        case LnParser.EXPORT:
+                            this.state = 149;
+                            this.exports();
+                            break;
+                        case LnParser.NEWLINE:
+                        case LnParser.WS:
+                            this.state = 151;
+                            this._errHandler.sync(this);
+                            var _alt = 1;
+                            do {
+                                switch (_alt) {
+                                    case 1:
+                                        this.state = 150;
+                                        this.blank();
+                                        break;
+                                    default:
+                                        throw new antlr4.error.NoViableAltException(this);
+                                }
+                                this.state = 153;
+                                this._errHandler.sync(this);
+                                _alt = this._interp.adaptivePredict(this._input, 2, this._ctx);
+                            } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+                            break;
+                        default:
+                            throw new antlr4.error.NoViableAltException(this);
+                    }
+                    this.state = 157;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                } while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.TYPE) | (1 << LnParser.FN) | (1 << LnParser.EVENT) | (1 << LnParser.ON) | (1 << LnParser.EXPORT) | (1 << LnParser.CONST) | (1 << LnParser.PREFIX) | (1 << LnParser.INFIX) | (1 << LnParser.INTERFACE))) !== 0) || _la === LnParser.NEWLINE || _la === LnParser.WS);
+                break;
+            case LnParser.EOF:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 159;
+                this.match(LnParser.EOF);
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function BlankContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_blank;
     return this;
 }
-
 BlankContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 BlankContext.prototype.constructor = BlankContext;
-
-BlankContext.prototype.WS = function() {
+BlankContext.prototype.WS = function () {
     return this.getToken(LnParser.WS, 0);
 };
-
-BlankContext.prototype.NEWLINE = function() {
+BlankContext.prototype.NEWLINE = function () {
     return this.getToken(LnParser.NEWLINE, 0);
 };
-
-BlankContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+BlankContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterBlank(this);
-	}
+    }
 };
-
-BlankContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+BlankContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitBlank(this);
-	}
+    }
 };
-
-
-
-
 LnParser.BlankContext = BlankContext;
-
-LnParser.prototype.blank = function() {
-
+LnParser.prototype.blank = function () {
     var localctx = new BlankContext(this, this._ctx, this.state);
     this.enterRule(localctx, 2, LnParser.RULE_blank);
     var _la = 0; // Token type
@@ -7173,177 +6456,155 @@ LnParser.prototype.blank = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 162;
         _la = this._input.LA(1);
-        if(!(_la===LnParser.NEWLINE || _la===LnParser.WS)) {
-        this._errHandler.recoverInline(this);
+        if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
+            this._errHandler.recoverInline(this);
         }
         else {
-        	this._errHandler.reportMatch(this);
+            this._errHandler.reportMatch(this);
             this.consume();
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ImportsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_imports;
     return this;
 }
-
 ImportsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ImportsContext.prototype.constructor = ImportsContext;
-
-ImportsContext.prototype.standardImport = function() {
-    return this.getTypedRuleContext(StandardImportContext,0);
+ImportsContext.prototype.standardImport = function () {
+    return this.getTypedRuleContext(StandardImportContext, 0);
 };
-
-ImportsContext.prototype.fromImport = function() {
-    return this.getTypedRuleContext(FromImportContext,0);
+ImportsContext.prototype.fromImport = function () {
+    return this.getTypedRuleContext(FromImportContext, 0);
 };
-
-ImportsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ImportsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterImports(this);
-	}
+    }
 };
-
-ImportsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ImportsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitImports(this);
-	}
+    }
 };
-
-
-
-
 LnParser.ImportsContext = ImportsContext;
-
-LnParser.prototype.imports = function() {
-
+LnParser.prototype.imports = function () {
     var localctx = new ImportsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 4, LnParser.RULE_imports);
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 166;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.IMPORT:
-            this.state = 164;
-            this.standardImport();
-            break;
-        case LnParser.FROM:
-            this.state = 165;
-            this.fromImport();
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+        switch (this._input.LA(1)) {
+            case LnParser.IMPORT:
+                this.state = 164;
+                this.standardImport();
+                break;
+            case LnParser.FROM:
+                this.state = 165;
+                this.fromImport();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function StandardImportContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_standardImport;
     return this;
 }
-
 StandardImportContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 StandardImportContext.prototype.constructor = StandardImportContext;
-
-StandardImportContext.prototype.IMPORT = function() {
+StandardImportContext.prototype.IMPORT = function () {
     return this.getToken(LnParser.IMPORT, 0);
 };
-
-StandardImportContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+StandardImportContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-StandardImportContext.prototype.dependency = function() {
-    return this.getTypedRuleContext(DependencyContext,0);
+StandardImportContext.prototype.dependency = function () {
+    return this.getTypedRuleContext(DependencyContext, 0);
 };
-
-StandardImportContext.prototype.AS = function() {
+StandardImportContext.prototype.AS = function () {
     return this.getToken(LnParser.AS, 0);
 };
-
-StandardImportContext.prototype.VARNAME = function() {
+StandardImportContext.prototype.VARNAME = function () {
     return this.getToken(LnParser.VARNAME, 0);
 };
-
-StandardImportContext.prototype.NEWLINE = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+StandardImportContext.prototype.NEWLINE = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.NEWLINE);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.NEWLINE, i);
     }
 };
-
-
-StandardImportContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+StandardImportContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterStandardImport(this);
-	}
+    }
 };
-
-StandardImportContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+StandardImportContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitStandardImport(this);
-	}
+    }
 };
-
-
-
-
 LnParser.StandardImportContext = StandardImportContext;
-
-LnParser.prototype.standardImport = function() {
-
+LnParser.prototype.standardImport = function () {
     var localctx = new StandardImportContext(this, this._ctx, this.state);
     this.enterRule(localctx, 6, LnParser.RULE_standardImport);
     var _la = 0; // Token type
@@ -7358,7 +6619,7 @@ LnParser.prototype.standardImport = function() {
         this.state = 175;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(_la===LnParser.WS) {
+        if (_la === LnParser.WS) {
             this.state = 171;
             this.match(LnParser.WS);
             this.state = 172;
@@ -7368,112 +6629,98 @@ LnParser.prototype.standardImport = function() {
             this.state = 174;
             this.match(LnParser.VARNAME);
         }
-
-        this.state = 178; 
+        this.state = 178;
         this._errHandler.sync(this);
         var _alt = 1;
         do {
-        	switch (_alt) {
-        	case 1:
-        		this.state = 177;
-        		this.match(LnParser.NEWLINE);
-        		break;
-        	default:
-        		throw new antlr4.error.NoViableAltException(this);
-        	}
-        	this.state = 180; 
-        	this._errHandler.sync(this);
-        	_alt = this._interp.adaptivePredict(this._input,8, this._ctx);
-        } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+            switch (_alt) {
+                case 1:
+                    this.state = 177;
+                    this.match(LnParser.NEWLINE);
+                    break;
+                default:
+                    throw new antlr4.error.NoViableAltException(this);
+            }
+            this.state = 180;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 8, this._ctx);
+        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function FromImportContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_fromImport;
     return this;
 }
-
 FromImportContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 FromImportContext.prototype.constructor = FromImportContext;
-
-FromImportContext.prototype.FROM = function() {
+FromImportContext.prototype.FROM = function () {
     return this.getToken(LnParser.FROM, 0);
 };
-
-FromImportContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+FromImportContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-FromImportContext.prototype.dependency = function() {
-    return this.getTypedRuleContext(DependencyContext,0);
+FromImportContext.prototype.dependency = function () {
+    return this.getTypedRuleContext(DependencyContext, 0);
 };
-
-FromImportContext.prototype.IMPORT = function() {
+FromImportContext.prototype.IMPORT = function () {
     return this.getToken(LnParser.IMPORT, 0);
 };
-
-FromImportContext.prototype.varlist = function() {
-    return this.getTypedRuleContext(VarlistContext,0);
+FromImportContext.prototype.varlist = function () {
+    return this.getTypedRuleContext(VarlistContext, 0);
 };
-
-FromImportContext.prototype.NEWLINE = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+FromImportContext.prototype.NEWLINE = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.NEWLINE);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.NEWLINE, i);
     }
 };
-
-
-FromImportContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FromImportContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterFromImport(this);
-	}
+    }
 };
-
-FromImportContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FromImportContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitFromImport(this);
-	}
+    }
 };
-
-
-
-
 LnParser.FromImportContext = FromImportContext;
-
-LnParser.prototype.fromImport = function() {
-
+LnParser.prototype.fromImport = function () {
     var localctx = new FromImportContext(this, this._ctx, this.state);
     this.enterRule(localctx, 8, LnParser.RULE_fromImport);
     try {
@@ -7492,311 +6739,281 @@ LnParser.prototype.fromImport = function() {
         this.match(LnParser.WS);
         this.state = 188;
         this.varlist();
-        this.state = 190; 
+        this.state = 190;
         this._errHandler.sync(this);
         var _alt = 1;
         do {
-        	switch (_alt) {
-        	case 1:
-        		this.state = 189;
-        		this.match(LnParser.NEWLINE);
-        		break;
-        	default:
-        		throw new antlr4.error.NoViableAltException(this);
-        	}
-        	this.state = 192; 
-        	this._errHandler.sync(this);
-        	_alt = this._interp.adaptivePredict(this._input,9, this._ctx);
-        } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+            switch (_alt) {
+                case 1:
+                    this.state = 189;
+                    this.match(LnParser.NEWLINE);
+                    break;
+                default:
+                    throw new antlr4.error.NoViableAltException(this);
+            }
+            this.state = 192;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 9, this._ctx);
+        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function DependencyContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_dependency;
     return this;
 }
-
 DependencyContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 DependencyContext.prototype.constructor = DependencyContext;
-
-DependencyContext.prototype.localdependency = function() {
-    return this.getTypedRuleContext(LocaldependencyContext,0);
+DependencyContext.prototype.localdependency = function () {
+    return this.getTypedRuleContext(LocaldependencyContext, 0);
 };
-
-DependencyContext.prototype.globaldependency = function() {
-    return this.getTypedRuleContext(GlobaldependencyContext,0);
+DependencyContext.prototype.globaldependency = function () {
+    return this.getTypedRuleContext(GlobaldependencyContext, 0);
 };
-
-DependencyContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+DependencyContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterDependency(this);
-	}
+    }
 };
-
-DependencyContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+DependencyContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitDependency(this);
-	}
+    }
 };
-
-
-
-
 LnParser.DependencyContext = DependencyContext;
-
-LnParser.prototype.dependency = function() {
-
+LnParser.prototype.dependency = function () {
     var localctx = new DependencyContext(this, this._ctx, this.state);
     this.enterRule(localctx, 10, LnParser.RULE_dependency);
     try {
         this.state = 196;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.CURDIR:
-        case LnParser.PARDIR:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 194;
-            this.localdependency();
-            break;
-        case LnParser.GLOBAL:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 195;
-            this.globaldependency();
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+        switch (this._input.LA(1)) {
+            case LnParser.CURDIR:
+            case LnParser.PARDIR:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 194;
+                this.localdependency();
+                break;
+            case LnParser.GLOBAL:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 195;
+                this.globaldependency();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function LocaldependencyContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_localdependency;
     return this;
 }
-
 LocaldependencyContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 LocaldependencyContext.prototype.constructor = LocaldependencyContext;
-
-LocaldependencyContext.prototype.CURDIR = function() {
+LocaldependencyContext.prototype.CURDIR = function () {
     return this.getToken(LnParser.CURDIR, 0);
 };
-
-LocaldependencyContext.prototype.VARNAME = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+LocaldependencyContext.prototype.VARNAME = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.VARNAME);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.VARNAME, i);
     }
 };
-
-
-LocaldependencyContext.prototype.DIRSEP = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+LocaldependencyContext.prototype.DIRSEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.DIRSEP);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.DIRSEP, i);
     }
 };
-
-
-LocaldependencyContext.prototype.PARDIR = function() {
+LocaldependencyContext.prototype.PARDIR = function () {
     return this.getToken(LnParser.PARDIR, 0);
 };
-
-LocaldependencyContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+LocaldependencyContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterLocaldependency(this);
-	}
+    }
 };
-
-LocaldependencyContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+LocaldependencyContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitLocaldependency(this);
-	}
+    }
 };
-
-
-
-
 LnParser.LocaldependencyContext = LocaldependencyContext;
-
-LnParser.prototype.localdependency = function() {
-
+LnParser.prototype.localdependency = function () {
     var localctx = new LocaldependencyContext(this, this._ctx, this.state);
     this.enterRule(localctx, 12, LnParser.RULE_localdependency);
     var _la = 0; // Token type
     try {
         this.state = 210;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.CURDIR:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 198;
-            this.match(LnParser.CURDIR);
-            this.state = 200; 
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            do {
-                this.state = 199;
-                _la = this._input.LA(1);
-                if(!(_la===LnParser.DIRSEP || _la===LnParser.VARNAME)) {
-                this._errHandler.recoverInline(this);
-                }
-                else {
-                	this._errHandler.reportMatch(this);
-                    this.consume();
-                }
-                this.state = 202; 
+        switch (this._input.LA(1)) {
+            case LnParser.CURDIR:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 198;
+                this.match(LnParser.CURDIR);
+                this.state = 200;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-            } while(_la===LnParser.DIRSEP || _la===LnParser.VARNAME);
-            break;
-        case LnParser.PARDIR:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 204;
-            this.match(LnParser.PARDIR);
-            this.state = 206; 
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            do {
-                this.state = 205;
-                _la = this._input.LA(1);
-                if(!(_la===LnParser.DIRSEP || _la===LnParser.VARNAME)) {
-                this._errHandler.recoverInline(this);
-                }
-                else {
-                	this._errHandler.reportMatch(this);
-                    this.consume();
-                }
-                this.state = 208; 
+                do {
+                    this.state = 199;
+                    _la = this._input.LA(1);
+                    if (!(_la === LnParser.DIRSEP || _la === LnParser.VARNAME)) {
+                        this._errHandler.recoverInline(this);
+                    }
+                    else {
+                        this._errHandler.reportMatch(this);
+                        this.consume();
+                    }
+                    this.state = 202;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                } while (_la === LnParser.DIRSEP || _la === LnParser.VARNAME);
+                break;
+            case LnParser.PARDIR:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 204;
+                this.match(LnParser.PARDIR);
+                this.state = 206;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-            } while(_la===LnParser.DIRSEP || _la===LnParser.VARNAME);
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+                do {
+                    this.state = 205;
+                    _la = this._input.LA(1);
+                    if (!(_la === LnParser.DIRSEP || _la === LnParser.VARNAME)) {
+                        this._errHandler.recoverInline(this);
+                    }
+                    else {
+                        this._errHandler.reportMatch(this);
+                        this.consume();
+                    }
+                    this.state = 208;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                } while (_la === LnParser.DIRSEP || _la === LnParser.VARNAME);
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function GlobaldependencyContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_globaldependency;
     return this;
 }
-
 GlobaldependencyContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 GlobaldependencyContext.prototype.constructor = GlobaldependencyContext;
-
-GlobaldependencyContext.prototype.GLOBAL = function() {
+GlobaldependencyContext.prototype.GLOBAL = function () {
     return this.getToken(LnParser.GLOBAL, 0);
 };
-
-GlobaldependencyContext.prototype.VARNAME = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+GlobaldependencyContext.prototype.VARNAME = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.VARNAME);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.VARNAME, i);
     }
 };
-
-
-GlobaldependencyContext.prototype.DIRSEP = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+GlobaldependencyContext.prototype.DIRSEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.DIRSEP);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.DIRSEP, i);
     }
 };
-
-
-GlobaldependencyContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+GlobaldependencyContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterGlobaldependency(this);
-	}
+    }
 };
-
-GlobaldependencyContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+GlobaldependencyContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitGlobaldependency(this);
-	}
+    }
 };
-
-
-
-
 LnParser.GlobaldependencyContext = GlobaldependencyContext;
-
-LnParser.prototype.globaldependency = function() {
-
+LnParser.prototype.globaldependency = function () {
     var localctx = new GlobaldependencyContext(this, this._ctx, this.state);
     this.enterRule(localctx, 14, LnParser.RULE_globaldependency);
     var _la = 0; // Token type
@@ -7804,126 +7021,113 @@ LnParser.prototype.globaldependency = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 212;
         this.match(LnParser.GLOBAL);
-        this.state = 214; 
+        this.state = 214;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 213;
             _la = this._input.LA(1);
-            if(!(_la===LnParser.DIRSEP || _la===LnParser.VARNAME)) {
-            this._errHandler.recoverInline(this);
+            if (!(_la === LnParser.DIRSEP || _la === LnParser.VARNAME)) {
+                this._errHandler.recoverInline(this);
             }
             else {
-            	this._errHandler.reportMatch(this);
+                this._errHandler.reportMatch(this);
                 this.consume();
             }
-            this.state = 216; 
+            this.state = 216;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===LnParser.DIRSEP || _la===LnParser.VARNAME);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+        } while (_la === LnParser.DIRSEP || _la === LnParser.VARNAME);
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function TypesContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_types;
     return this;
 }
-
 TypesContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypesContext.prototype.constructor = TypesContext;
-
-TypesContext.prototype.TYPE = function() {
+TypesContext.prototype.TYPE = function () {
     return this.getToken(LnParser.TYPE, 0);
 };
-
-TypesContext.prototype.typename = function() {
-    return this.getTypedRuleContext(TypenameContext,0);
+TypesContext.prototype.typename = function () {
+    return this.getTypedRuleContext(TypenameContext, 0);
 };
-
-TypesContext.prototype.typebody = function() {
-    return this.getTypedRuleContext(TypebodyContext,0);
+TypesContext.prototype.typebody = function () {
+    return this.getTypedRuleContext(TypebodyContext, 0);
 };
-
-TypesContext.prototype.EQUALS = function() {
+TypesContext.prototype.EQUALS = function () {
     return this.getToken(LnParser.EQUALS, 0);
 };
-
-TypesContext.prototype.othertype = function(i) {
-    if(i===undefined) {
+TypesContext.prototype.othertype = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(OthertypeContext);
-    } else {
-        return this.getTypedRuleContext(OthertypeContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(OthertypeContext, i);
     }
 };
-
-TypesContext.prototype.blank = function(i) {
-    if(i===undefined) {
+TypesContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-TypesContext.prototype.typegenerics = function() {
-    return this.getTypedRuleContext(TypegenericsContext,0);
+TypesContext.prototype.typegenerics = function () {
+    return this.getTypedRuleContext(TypegenericsContext, 0);
 };
-
-TypesContext.prototype.OR = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+TypesContext.prototype.OR = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.OR);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.OR, i);
     }
 };
-
-
-TypesContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypesContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterTypes(this);
-	}
+    }
 };
-
-TypesContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypesContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitTypes(this);
-	}
+    }
 };
-
-
-
-
 LnParser.TypesContext = TypesContext;
-
-LnParser.prototype.types = function() {
-
+LnParser.prototype.types = function () {
     var localctx = new TypesContext(this, this._ctx, this.state);
     this.enterRule(localctx, 16, LnParser.RULE_types);
     var _la = 0; // Token type
@@ -7931,178 +7135,166 @@ LnParser.prototype.types = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 218;
         this.match(LnParser.TYPE);
-        this.state = 220; 
+        this.state = 220;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 219;
             this.blank();
-            this.state = 222; 
+            this.state = 222;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===LnParser.NEWLINE || _la===LnParser.WS);
+        } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
         this.state = 224;
         this.typename();
         this.state = 228;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,16,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 16, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 225;
-                this.blank(); 
+                this.blank();
             }
             this.state = 230;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,16,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 16, this._ctx);
         }
-
         this.state = 232;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(_la===LnParser.OPENGENERIC) {
+        if (_la === LnParser.OPENGENERIC) {
             this.state = 231;
             this.typegenerics();
         }
-
-        this.state = 235; 
+        this.state = 235;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 234;
             this.blank();
-            this.state = 237; 
+            this.state = 237;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===LnParser.NEWLINE || _la===LnParser.WS);
+        } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
         this.state = 267;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.OPENBODY:
-            this.state = 239;
-            this.typebody();
-            break;
-        case LnParser.EQUALS:
-            this.state = 240;
-            this.match(LnParser.EQUALS);
-            this.state = 244;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
-                this.state = 241;
-                this.blank();
-                this.state = 246;
+        switch (this._input.LA(1)) {
+            case LnParser.OPENBODY:
+                this.state = 239;
+                this.typebody();
+                break;
+            case LnParser.EQUALS:
+                this.state = 240;
+                this.match(LnParser.EQUALS);
+                this.state = 244;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-            }
-            this.state = 247;
-            this.othertype();
-            this.state = 264;
-            this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,22,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
-                    this.state = 251;
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                    this.state = 241;
+                    this.blank();
+                    this.state = 246;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
-                    while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
-                        this.state = 248;
-                        this.blank();
-                        this.state = 253;
-                        this._errHandler.sync(this);
-                        _la = this._input.LA(1);
-                    }
-                    this.state = 254;
-                    this.match(LnParser.OR);
-                    this.state = 258;
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                    while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
-                        this.state = 255;
-                        this.blank();
-                        this.state = 260;
-                        this._errHandler.sync(this);
-                        _la = this._input.LA(1);
-                    }
-                    this.state = 261;
-                    this.othertype(); 
                 }
-                this.state = 266;
+                this.state = 247;
+                this.othertype();
+                this.state = 264;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,22,this._ctx);
-            }
-
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+                var _alt = this._interp.adaptivePredict(this._input, 22, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 251;
+                        this._errHandler.sync(this);
+                        _la = this._input.LA(1);
+                        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                            this.state = 248;
+                            this.blank();
+                            this.state = 253;
+                            this._errHandler.sync(this);
+                            _la = this._input.LA(1);
+                        }
+                        this.state = 254;
+                        this.match(LnParser.OR);
+                        this.state = 258;
+                        this._errHandler.sync(this);
+                        _la = this._input.LA(1);
+                        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                            this.state = 255;
+                            this.blank();
+                            this.state = 260;
+                            this._errHandler.sync(this);
+                            _la = this._input.LA(1);
+                        }
+                        this.state = 261;
+                        this.othertype();
+                    }
+                    this.state = 266;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 22, this._ctx);
+                }
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function OthertypeContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_othertype;
     return this;
 }
-
 OthertypeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 OthertypeContext.prototype.constructor = OthertypeContext;
-
-OthertypeContext.prototype.typename = function() {
-    return this.getTypedRuleContext(TypenameContext,0);
+OthertypeContext.prototype.typename = function () {
+    return this.getTypedRuleContext(TypenameContext, 0);
 };
-
-OthertypeContext.prototype.blank = function(i) {
-    if(i===undefined) {
+OthertypeContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-OthertypeContext.prototype.typegenerics = function() {
-    return this.getTypedRuleContext(TypegenericsContext,0);
+OthertypeContext.prototype.typegenerics = function () {
+    return this.getTypedRuleContext(TypegenericsContext, 0);
 };
-
-OthertypeContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+OthertypeContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterOthertype(this);
-	}
+    }
 };
-
-OthertypeContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+OthertypeContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitOthertype(this);
-	}
+    }
 };
-
-
-
-
 LnParser.OthertypeContext = OthertypeContext;
-
-LnParser.prototype.othertype = function() {
-
+LnParser.prototype.othertype = function () {
     var localctx = new OthertypeContext(this, this._ctx, this.state);
     this.enterRule(localctx, 18, LnParser.RULE_othertype);
     var _la = 0; // Token type
@@ -8112,175 +7304,155 @@ LnParser.prototype.othertype = function() {
         this.typename();
         this.state = 273;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,24,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 24, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 270;
-                this.blank(); 
+                this.blank();
             }
             this.state = 275;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,24,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 24, this._ctx);
         }
-
         this.state = 277;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(_la===LnParser.OPENGENERIC) {
+        if (_la === LnParser.OPENGENERIC) {
             this.state = 276;
             this.typegenerics();
         }
-
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function TypenameContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_typename;
     return this;
 }
-
 TypenameContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypenameContext.prototype.constructor = TypenameContext;
-
-TypenameContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+TypenameContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-TypenameContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypenameContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterTypename(this);
-	}
+    }
 };
-
-TypenameContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypenameContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitTypename(this);
-	}
+    }
 };
-
-
-
-
 LnParser.TypenameContext = TypenameContext;
-
-LnParser.prototype.typename = function() {
-
+LnParser.prototype.typename = function () {
     var localctx = new TypenameContext(this, this._ctx, this.state);
     this.enterRule(localctx, 20, LnParser.RULE_typename);
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 279;
         this.varn();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function TypegenericsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_typegenerics;
     return this;
 }
-
 TypegenericsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypegenericsContext.prototype.constructor = TypegenericsContext;
-
-TypegenericsContext.prototype.OPENGENERIC = function() {
+TypegenericsContext.prototype.OPENGENERIC = function () {
     return this.getToken(LnParser.OPENGENERIC, 0);
 };
-
-TypegenericsContext.prototype.fulltypename = function(i) {
-    if(i===undefined) {
+TypegenericsContext.prototype.fulltypename = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(FulltypenameContext);
-    } else {
-        return this.getTypedRuleContext(FulltypenameContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(FulltypenameContext, i);
     }
 };
-
-TypegenericsContext.prototype.CLOSEGENERIC = function() {
+TypegenericsContext.prototype.CLOSEGENERIC = function () {
     return this.getToken(LnParser.CLOSEGENERIC, 0);
 };
-
-TypegenericsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+TypegenericsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-TypegenericsContext.prototype.SEP = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+TypegenericsContext.prototype.SEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.SEP);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.SEP, i);
     }
 };
-
-
-TypegenericsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypegenericsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterTypegenerics(this);
-	}
+    }
 };
-
-TypegenericsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypegenericsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitTypegenerics(this);
-	}
+    }
 };
-
-
-
-
 LnParser.TypegenericsContext = TypegenericsContext;
-
-LnParser.prototype.typegenerics = function() {
-
+LnParser.prototype.typegenerics = function () {
     var localctx = new TypegenericsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 22, LnParser.RULE_typegenerics);
     var _la = 0; // Token type
@@ -8291,7 +7463,7 @@ LnParser.prototype.typegenerics = function() {
         this.state = 285;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 282;
             this.blank();
             this.state = 287;
@@ -8303,7 +7475,7 @@ LnParser.prototype.typegenerics = function() {
         this.state = 292;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 289;
             this.blank();
             this.state = 294;
@@ -8313,13 +7485,13 @@ LnParser.prototype.typegenerics = function() {
         this.state = 311;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.SEP) {
+        while (_la === LnParser.SEP) {
             this.state = 295;
             this.match(LnParser.SEP);
             this.state = 299;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
                 this.state = 296;
                 this.blank();
                 this.state = 301;
@@ -8331,7 +7503,7 @@ LnParser.prototype.typegenerics = function() {
             this.state = 306;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
                 this.state = 303;
                 this.blank();
                 this.state = 308;
@@ -8344,74 +7516,65 @@ LnParser.prototype.typegenerics = function() {
         }
         this.state = 314;
         this.match(LnParser.CLOSEGENERIC);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function FulltypenameContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_fulltypename;
     return this;
 }
-
 FulltypenameContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 FulltypenameContext.prototype.constructor = FulltypenameContext;
-
-FulltypenameContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+FulltypenameContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-FulltypenameContext.prototype.blank = function(i) {
-    if(i===undefined) {
+FulltypenameContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-FulltypenameContext.prototype.typegenerics = function() {
-    return this.getTypedRuleContext(TypegenericsContext,0);
+FulltypenameContext.prototype.typegenerics = function () {
+    return this.getTypedRuleContext(TypegenericsContext, 0);
 };
-
-FulltypenameContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FulltypenameContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterFulltypename(this);
-	}
+    }
 };
-
-FulltypenameContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FulltypenameContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitFulltypename(this);
-	}
+    }
 };
-
-
-
-
 LnParser.FulltypenameContext = FulltypenameContext;
-
-LnParser.prototype.fulltypename = function() {
-
+LnParser.prototype.fulltypename = function () {
     var localctx = new FulltypenameContext(this, this._ctx, this.state);
     this.enterRule(localctx, 24, LnParser.RULE_fulltypename);
     var _la = 0; // Token type
@@ -8421,116 +7584,104 @@ LnParser.prototype.fulltypename = function() {
         this.varn();
         this.state = 320;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,31,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 31, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 317;
-                this.blank(); 
+                this.blank();
             }
             this.state = 322;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,31,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 31, this._ctx);
         }
-
         this.state = 324;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(_la===LnParser.OPENGENERIC) {
+        if (_la === LnParser.OPENGENERIC) {
             this.state = 323;
             this.typegenerics();
         }
-
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function TypebodyContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_typebody;
     return this;
 }
-
 TypebodyContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypebodyContext.prototype.constructor = TypebodyContext;
-
-TypebodyContext.prototype.OPENBODY = function() {
+TypebodyContext.prototype.OPENBODY = function () {
     return this.getToken(LnParser.OPENBODY, 0);
 };
-
-TypebodyContext.prototype.CLOSEBODY = function() {
+TypebodyContext.prototype.CLOSEBODY = function () {
     return this.getToken(LnParser.CLOSEBODY, 0);
 };
-
-TypebodyContext.prototype.blank = function(i) {
-    if(i===undefined) {
+TypebodyContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-TypebodyContext.prototype.typeline = function(i) {
-    if(i===undefined) {
+TypebodyContext.prototype.typeline = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(TypelineContext);
-    } else {
-        return this.getTypedRuleContext(TypelineContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(TypelineContext, i);
     }
 };
-
-TypebodyContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+TypebodyContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-TypebodyContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypebodyContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterTypebody(this);
-	}
+    }
 };
-
-TypebodyContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypebodyContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitTypebody(this);
-	}
+    }
 };
-
-
-
-
 LnParser.TypebodyContext = TypebodyContext;
-
-LnParser.prototype.typebody = function() {
-
+LnParser.prototype.typebody = function () {
     var localctx = new TypebodyContext(this, this._ctx, this.state);
     this.enterRule(localctx, 26, LnParser.RULE_typebody);
     var _la = 0; // Token type
@@ -8540,126 +7691,113 @@ LnParser.prototype.typebody = function() {
         this.match(LnParser.OPENBODY);
         this.state = 330;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,33,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 33, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 327;
-                this.blank(); 
+                this.blank();
             }
             this.state = 332;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,33,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 33, this._ctx);
         }
-
-        this.state = 340; 
+        this.state = 340;
         this._errHandler.sync(this);
         var _alt = 1;
         do {
-        	switch (_alt) {
-        	case 1:
-        		this.state = 336;
-        		this._errHandler.sync(this);
-        		_la = this._input.LA(1);
-        		while(_la===LnParser.WS) {
-        		    this.state = 333;
-        		    this.match(LnParser.WS);
-        		    this.state = 338;
-        		    this._errHandler.sync(this);
-        		    _la = this._input.LA(1);
-        		}
-        		this.state = 339;
-        		this.typeline();
-        		break;
-        	default:
-        		throw new antlr4.error.NoViableAltException(this);
-        	}
-        	this.state = 342; 
-        	this._errHandler.sync(this);
-        	_alt = this._interp.adaptivePredict(this._input,35, this._ctx);
-        } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
+            switch (_alt) {
+                case 1:
+                    this.state = 336;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                    while (_la === LnParser.WS) {
+                        this.state = 333;
+                        this.match(LnParser.WS);
+                        this.state = 338;
+                        this._errHandler.sync(this);
+                        _la = this._input.LA(1);
+                    }
+                    this.state = 339;
+                    this.typeline();
+                    break;
+                default:
+                    throw new antlr4.error.NoViableAltException(this);
+            }
+            this.state = 342;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 35, this._ctx);
+        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
         this.state = 345;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 344;
             this.blank();
         }
-
         this.state = 347;
         this.match(LnParser.CLOSEBODY);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function TypelineContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_typeline;
     return this;
 }
-
 TypelineContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypelineContext.prototype.constructor = TypelineContext;
-
-TypelineContext.prototype.VARNAME = function() {
+TypelineContext.prototype.VARNAME = function () {
     return this.getToken(LnParser.VARNAME, 0);
 };
-
-TypelineContext.prototype.TYPESEP = function() {
+TypelineContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-
-TypelineContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+TypelineContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-TypelineContext.prototype.NEWLINE = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+TypelineContext.prototype.NEWLINE = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.NEWLINE);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.NEWLINE, i);
     }
 };
-
-
-TypelineContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypelineContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterTypeline(this);
-	}
+    }
 };
-
-TypelineContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypelineContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitTypeline(this);
-	}
+    }
 };
-
-
-
-
 LnParser.TypelineContext = TypelineContext;
-
-LnParser.prototype.typeline = function() {
-
+LnParser.prototype.typeline = function () {
     var localctx = new TypelineContext(this, this._ctx, this.state);
     this.enterRule(localctx, 28, LnParser.RULE_typeline);
     try {
@@ -8672,109 +7810,93 @@ LnParser.prototype.typeline = function() {
         this.varn();
         this.state = 355;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,37,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 37, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 352;
-                this.match(LnParser.NEWLINE); 
+                this.match(LnParser.NEWLINE);
             }
             this.state = 357;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,37,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 37, this._ctx);
         }
-
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function FunctionsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_functions;
     return this;
 }
-
 FunctionsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 FunctionsContext.prototype.constructor = FunctionsContext;
-
-FunctionsContext.prototype.FN = function() {
+FunctionsContext.prototype.FN = function () {
     return this.getToken(LnParser.FN, 0);
 };
-
-FunctionsContext.prototype.fullfunctionbody = function() {
-    return this.getTypedRuleContext(FullfunctionbodyContext,0);
+FunctionsContext.prototype.fullfunctionbody = function () {
+    return this.getTypedRuleContext(FullfunctionbodyContext, 0);
 };
-
-FunctionsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+FunctionsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-FunctionsContext.prototype.OPENARGS = function() {
+FunctionsContext.prototype.OPENARGS = function () {
     return this.getToken(LnParser.OPENARGS, 0);
 };
-
-FunctionsContext.prototype.CLOSEARGS = function() {
+FunctionsContext.prototype.CLOSEARGS = function () {
     return this.getToken(LnParser.CLOSEARGS, 0);
 };
-
-FunctionsContext.prototype.VARNAME = function() {
+FunctionsContext.prototype.VARNAME = function () {
     return this.getToken(LnParser.VARNAME, 0);
 };
-
-FunctionsContext.prototype.arglist = function() {
-    return this.getTypedRuleContext(ArglistContext,0);
+FunctionsContext.prototype.arglist = function () {
+    return this.getTypedRuleContext(ArglistContext, 0);
 };
-
-FunctionsContext.prototype.TYPESEP = function() {
+FunctionsContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-
-FunctionsContext.prototype.argtype = function() {
-    return this.getTypedRuleContext(ArgtypeContext,0);
+FunctionsContext.prototype.argtype = function () {
+    return this.getTypedRuleContext(ArgtypeContext, 0);
 };
-
-FunctionsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FunctionsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterFunctions(this);
-	}
+    }
 };
-
-FunctionsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FunctionsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitFunctions(this);
-	}
+    }
 };
-
-
-
-
 LnParser.FunctionsContext = FunctionsContext;
-
-LnParser.prototype.functions = function() {
-
+LnParser.prototype.functions = function () {
     var localctx = new FunctionsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 30, LnParser.RULE_functions);
     var _la = 0; // Token type
@@ -8782,30 +7904,30 @@ LnParser.prototype.functions = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 358;
         this.match(LnParser.FN);
-        this.state = 360; 
+        this.state = 360;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 359;
             this.blank();
-            this.state = 362; 
+            this.state = 362;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===LnParser.NEWLINE || _la===LnParser.WS);
+        } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
         this.state = 394;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(_la===LnParser.OPENARGS || _la===LnParser.VARNAME) {
+        if (_la === LnParser.OPENARGS || _la === LnParser.VARNAME) {
             this.state = 371;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            if(_la===LnParser.VARNAME) {
+            if (_la === LnParser.VARNAME) {
                 this.state = 364;
                 this.match(LnParser.VARNAME);
                 this.state = 368;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-                while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
                     this.state = 365;
                     this.blank();
                     this.state = 370;
@@ -8813,23 +7935,21 @@ LnParser.prototype.functions = function() {
                     _la = this._input.LA(1);
                 }
             }
-
             this.state = 373;
             this.match(LnParser.OPENARGS);
             this.state = 375;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            if(_la===LnParser.VARNAME) {
+            if (_la === LnParser.VARNAME) {
                 this.state = 374;
                 this.arglist();
             }
-
             this.state = 377;
             this.match(LnParser.CLOSEARGS);
             this.state = 381;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
                 this.state = 378;
                 this.blank();
                 this.state = 383;
@@ -8839,7 +7959,7 @@ LnParser.prototype.functions = function() {
             this.state = 392;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            if(_la===LnParser.TYPESEP) {
+            if (_la === LnParser.TYPESEP) {
                 this.state = 384;
                 this.match(LnParser.TYPESEP);
                 this.state = 385;
@@ -8847,7 +7967,7 @@ LnParser.prototype.functions = function() {
                 this.state = 389;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-                while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
                     this.state = 386;
                     this.blank();
                     this.state = 391;
@@ -8855,196 +7975,174 @@ LnParser.prototype.functions = function() {
                     _la = this._input.LA(1);
                 }
             }
-
         }
-
         this.state = 396;
         this.fullfunctionbody();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function FullfunctionbodyContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_fullfunctionbody;
     return this;
 }
-
 FullfunctionbodyContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 FullfunctionbodyContext.prototype.constructor = FullfunctionbodyContext;
-
-FullfunctionbodyContext.prototype.functionbody = function() {
-    return this.getTypedRuleContext(FunctionbodyContext,0);
+FullfunctionbodyContext.prototype.functionbody = function () {
+    return this.getTypedRuleContext(FunctionbodyContext, 0);
 };
-
-FullfunctionbodyContext.prototype.EQUALS = function() {
+FullfunctionbodyContext.prototype.EQUALS = function () {
     return this.getToken(LnParser.EQUALS, 0);
 };
-
-FullfunctionbodyContext.prototype.assignables = function() {
-    return this.getTypedRuleContext(AssignablesContext,0);
+FullfunctionbodyContext.prototype.assignables = function () {
+    return this.getTypedRuleContext(AssignablesContext, 0);
 };
-
-FullfunctionbodyContext.prototype.blank = function(i) {
-    if(i===undefined) {
+FullfunctionbodyContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-FullfunctionbodyContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FullfunctionbodyContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterFullfunctionbody(this);
-	}
+    }
 };
-
-FullfunctionbodyContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FullfunctionbodyContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitFullfunctionbody(this);
-	}
+    }
 };
-
-
-
-
 LnParser.FullfunctionbodyContext = FullfunctionbodyContext;
-
-LnParser.prototype.fullfunctionbody = function() {
-
+LnParser.prototype.fullfunctionbody = function () {
     var localctx = new FullfunctionbodyContext(this, this._ctx, this.state);
     this.enterRule(localctx, 32, LnParser.RULE_fullfunctionbody);
     try {
         this.state = 407;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.OPENBODY:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 398;
-            this.functionbody();
-            break;
-        case LnParser.EQUALS:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 399;
-            this.match(LnParser.EQUALS);
-            this.state = 403;
-            this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,46,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
-                    this.state = 400;
-                    this.blank(); 
-                }
-                this.state = 405;
+        switch (this._input.LA(1)) {
+            case LnParser.OPENBODY:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 398;
+                this.functionbody();
+                break;
+            case LnParser.EQUALS:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 399;
+                this.match(LnParser.EQUALS);
+                this.state = 403;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,46,this._ctx);
-            }
-
-            this.state = 406;
-            this.assignables();
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+                var _alt = this._interp.adaptivePredict(this._input, 46, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 400;
+                        this.blank();
+                    }
+                    this.state = 405;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 46, this._ctx);
+                }
+                this.state = 406;
+                this.assignables();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function FunctionbodyContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_functionbody;
     return this;
 }
-
 FunctionbodyContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 FunctionbodyContext.prototype.constructor = FunctionbodyContext;
-
-FunctionbodyContext.prototype.OPENBODY = function() {
+FunctionbodyContext.prototype.OPENBODY = function () {
     return this.getToken(LnParser.OPENBODY, 0);
 };
-
-FunctionbodyContext.prototype.CLOSEBODY = function() {
+FunctionbodyContext.prototype.CLOSEBODY = function () {
     return this.getToken(LnParser.CLOSEBODY, 0);
 };
-
-FunctionbodyContext.prototype.blank = function(i) {
-    if(i===undefined) {
+FunctionbodyContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-FunctionbodyContext.prototype.statements = function(i) {
-    if(i===undefined) {
+FunctionbodyContext.prototype.statements = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(StatementsContext);
-    } else {
-        return this.getTypedRuleContext(StatementsContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(StatementsContext, i);
     }
 };
-
-FunctionbodyContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FunctionbodyContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterFunctionbody(this);
-	}
+    }
 };
-
-FunctionbodyContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FunctionbodyContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitFunctionbody(this);
-	}
+    }
 };
-
-
-
-
 LnParser.FunctionbodyContext = FunctionbodyContext;
-
-LnParser.prototype.functionbody = function() {
-
+LnParser.prototype.functionbody = function () {
     var localctx = new FunctionbodyContext(this, this._ctx, this.state);
     this.enterRule(localctx, 34, LnParser.RULE_functionbody);
     var _la = 0; // Token type
@@ -9055,27 +8153,27 @@ LnParser.prototype.functionbody = function() {
         this.state = 413;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 410;
             this.blank();
             this.state = 415;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 417; 
+        this.state = 417;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 416;
             this.statements();
-            this.state = 419; 
+            this.state = 419;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.CONST) | (1 << LnParser.LET) | (1 << LnParser.RETURN) | (1 << LnParser.EMIT) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.IF) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 44)) & ~0x1f) == 0 && ((1 << (_la - 44)) & ((1 << (LnParser.STRINGCONSTANT - 44)) | (1 << (LnParser.NUMBERCONSTANT - 44)) | (1 << (LnParser.VARNAME - 44)))) !== 0));
+        } while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.CONST) | (1 << LnParser.LET) | (1 << LnParser.RETURN) | (1 << LnParser.EMIT) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.IF) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 44)) & ~0x1f) == 0 && ((1 << (_la - 44)) & ((1 << (LnParser.STRINGCONSTANT - 44)) | (1 << (LnParser.NUMBERCONSTANT - 44)) | (1 << (LnParser.VARNAME - 44)))) !== 0));
         this.state = 424;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 421;
             this.blank();
             this.state = 426;
@@ -9084,296 +8182,257 @@ LnParser.prototype.functionbody = function() {
         }
         this.state = 427;
         this.match(LnParser.CLOSEBODY);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function StatementsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_statements;
     return this;
 }
-
 StatementsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 StatementsContext.prototype.constructor = StatementsContext;
-
-StatementsContext.prototype.declarations = function() {
-    return this.getTypedRuleContext(DeclarationsContext,0);
+StatementsContext.prototype.declarations = function () {
+    return this.getTypedRuleContext(DeclarationsContext, 0);
 };
-
-StatementsContext.prototype.assignments = function() {
-    return this.getTypedRuleContext(AssignmentsContext,0);
+StatementsContext.prototype.assignments = function () {
+    return this.getTypedRuleContext(AssignmentsContext, 0);
 };
-
-StatementsContext.prototype.calls = function() {
-    return this.getTypedRuleContext(CallsContext,0);
+StatementsContext.prototype.calls = function () {
+    return this.getTypedRuleContext(CallsContext, 0);
 };
-
-StatementsContext.prototype.exits = function() {
-    return this.getTypedRuleContext(ExitsContext,0);
+StatementsContext.prototype.exits = function () {
+    return this.getTypedRuleContext(ExitsContext, 0);
 };
-
-StatementsContext.prototype.emits = function() {
-    return this.getTypedRuleContext(EmitsContext,0);
+StatementsContext.prototype.emits = function () {
+    return this.getTypedRuleContext(EmitsContext, 0);
 };
-
-StatementsContext.prototype.conditionals = function() {
-    return this.getTypedRuleContext(ConditionalsContext,0);
+StatementsContext.prototype.conditionals = function () {
+    return this.getTypedRuleContext(ConditionalsContext, 0);
 };
-
-StatementsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+StatementsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-StatementsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+StatementsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterStatements(this);
-	}
+    }
 };
-
-StatementsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+StatementsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitStatements(this);
-	}
+    }
 };
-
-
-
-
 LnParser.StatementsContext = StatementsContext;
-
-LnParser.prototype.statements = function() {
-
+LnParser.prototype.statements = function () {
     var localctx = new StatementsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 36, LnParser.RULE_statements);
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 435;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,51,this._ctx);
-        switch(la_) {
-        case 1:
-            this.state = 429;
-            this.declarations();
-            break;
-
-        case 2:
-            this.state = 430;
-            this.assignments();
-            break;
-
-        case 3:
-            this.state = 431;
-            this.calls();
-            break;
-
-        case 4:
-            this.state = 432;
-            this.exits();
-            break;
-
-        case 5:
-            this.state = 433;
-            this.emits();
-            break;
-
-        case 6:
-            this.state = 434;
-            this.conditionals();
-            break;
-
+        var la_ = this._interp.adaptivePredict(this._input, 51, this._ctx);
+        switch (la_) {
+            case 1:
+                this.state = 429;
+                this.declarations();
+                break;
+            case 2:
+                this.state = 430;
+                this.assignments();
+                break;
+            case 3:
+                this.state = 431;
+                this.calls();
+                break;
+            case 4:
+                this.state = 432;
+                this.exits();
+                break;
+            case 5:
+                this.state = 433;
+                this.emits();
+                break;
+            case 6:
+                this.state = 434;
+                this.conditionals();
+                break;
         }
-        this.state = 438; 
+        this.state = 438;
         this._errHandler.sync(this);
         var _alt = 1;
         do {
-        	switch (_alt) {
-        	case 1:
-        		this.state = 437;
-        		this.blank();
-        		break;
-        	default:
-        		throw new antlr4.error.NoViableAltException(this);
-        	}
-        	this.state = 440; 
-        	this._errHandler.sync(this);
-        	_alt = this._interp.adaptivePredict(this._input,52, this._ctx);
-        } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+            switch (_alt) {
+                case 1:
+                    this.state = 437;
+                    this.blank();
+                    break;
+                default:
+                    throw new antlr4.error.NoViableAltException(this);
+            }
+            this.state = 440;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 52, this._ctx);
+        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function DeclarationsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_declarations;
     return this;
 }
-
 DeclarationsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 DeclarationsContext.prototype.constructor = DeclarationsContext;
-
-DeclarationsContext.prototype.constdeclaration = function() {
-    return this.getTypedRuleContext(ConstdeclarationContext,0);
+DeclarationsContext.prototype.constdeclaration = function () {
+    return this.getTypedRuleContext(ConstdeclarationContext, 0);
 };
-
-DeclarationsContext.prototype.letdeclaration = function() {
-    return this.getTypedRuleContext(LetdeclarationContext,0);
+DeclarationsContext.prototype.letdeclaration = function () {
+    return this.getTypedRuleContext(LetdeclarationContext, 0);
 };
-
-DeclarationsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+DeclarationsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterDeclarations(this);
-	}
+    }
 };
-
-DeclarationsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+DeclarationsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitDeclarations(this);
-	}
+    }
 };
-
-
-
-
 LnParser.DeclarationsContext = DeclarationsContext;
-
-LnParser.prototype.declarations = function() {
-
+LnParser.prototype.declarations = function () {
     var localctx = new DeclarationsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 38, LnParser.RULE_declarations);
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 444;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.CONST:
-            this.state = 442;
-            this.constdeclaration();
-            break;
-        case LnParser.LET:
-            this.state = 443;
-            this.letdeclaration();
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+        switch (this._input.LA(1)) {
+            case LnParser.CONST:
+                this.state = 442;
+                this.constdeclaration();
+                break;
+            case LnParser.LET:
+                this.state = 443;
+                this.letdeclaration();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ConstdeclarationContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_constdeclaration;
     return this;
 }
-
 ConstdeclarationContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ConstdeclarationContext.prototype.constructor = ConstdeclarationContext;
-
-ConstdeclarationContext.prototype.CONST = function() {
+ConstdeclarationContext.prototype.CONST = function () {
     return this.getToken(LnParser.CONST, 0);
 };
-
-ConstdeclarationContext.prototype.assignments = function() {
-    return this.getTypedRuleContext(AssignmentsContext,0);
+ConstdeclarationContext.prototype.assignments = function () {
+    return this.getTypedRuleContext(AssignmentsContext, 0);
 };
-
-ConstdeclarationContext.prototype.blank = function(i) {
-    if(i===undefined) {
+ConstdeclarationContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-ConstdeclarationContext.prototype.VARNAME = function() {
+ConstdeclarationContext.prototype.VARNAME = function () {
     return this.getToken(LnParser.VARNAME, 0);
 };
-
-ConstdeclarationContext.prototype.TYPESEP = function() {
+ConstdeclarationContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-
-ConstdeclarationContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ConstdeclarationContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterConstdeclaration(this);
-	}
+    }
 };
-
-ConstdeclarationContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ConstdeclarationContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitConstdeclaration(this);
-	}
+    }
 };
-
-
-
-
 LnParser.ConstdeclarationContext = ConstdeclarationContext;
-
-LnParser.prototype.constdeclaration = function() {
-
+LnParser.prototype.constdeclaration = function () {
     var localctx = new ConstdeclarationContext(this, this._ctx, this.state);
     this.enterRule(localctx, 40, LnParser.RULE_constdeclaration);
     var _la = 0; // Token type
@@ -9383,27 +8442,26 @@ LnParser.prototype.constdeclaration = function() {
         this.match(LnParser.CONST);
         this.state = 450;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,54,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 54, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 447;
-                this.blank(); 
+                this.blank();
             }
             this.state = 452;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,54,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 54, this._ctx);
         }
-
         this.state = 461;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,56,this._ctx);
-        if(la_===1) {
+        var la_ = this._interp.adaptivePredict(this._input, 56, this._ctx);
+        if (la_ === 1) {
             this.state = 453;
             this.match(LnParser.VARNAME);
             this.state = 457;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
                 this.state = 454;
                 this.blank();
                 this.state = 459;
@@ -9412,12 +8470,11 @@ LnParser.prototype.constdeclaration = function() {
             }
             this.state = 460;
             this.match(LnParser.TYPESEP);
-
         }
         this.state = 466;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 463;
             this.blank();
             this.state = 468;
@@ -9426,82 +8483,71 @@ LnParser.prototype.constdeclaration = function() {
         }
         this.state = 469;
         this.assignments();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function LetdeclarationContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_letdeclaration;
     return this;
 }
-
 LetdeclarationContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 LetdeclarationContext.prototype.constructor = LetdeclarationContext;
-
-LetdeclarationContext.prototype.LET = function() {
+LetdeclarationContext.prototype.LET = function () {
     return this.getToken(LnParser.LET, 0);
 };
-
-LetdeclarationContext.prototype.assignments = function() {
-    return this.getTypedRuleContext(AssignmentsContext,0);
+LetdeclarationContext.prototype.assignments = function () {
+    return this.getTypedRuleContext(AssignmentsContext, 0);
 };
-
-LetdeclarationContext.prototype.blank = function(i) {
-    if(i===undefined) {
+LetdeclarationContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-LetdeclarationContext.prototype.VARNAME = function() {
+LetdeclarationContext.prototype.VARNAME = function () {
     return this.getToken(LnParser.VARNAME, 0);
 };
-
-LetdeclarationContext.prototype.TYPESEP = function() {
+LetdeclarationContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-
-LetdeclarationContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+LetdeclarationContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterLetdeclaration(this);
-	}
+    }
 };
-
-LetdeclarationContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+LetdeclarationContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitLetdeclaration(this);
-	}
+    }
 };
-
-
-
-
 LnParser.LetdeclarationContext = LetdeclarationContext;
-
-LnParser.prototype.letdeclaration = function() {
-
+LnParser.prototype.letdeclaration = function () {
     var localctx = new LetdeclarationContext(this, this._ctx, this.state);
     this.enterRule(localctx, 42, LnParser.RULE_letdeclaration);
     var _la = 0; // Token type
@@ -9511,27 +8557,26 @@ LnParser.prototype.letdeclaration = function() {
         this.match(LnParser.LET);
         this.state = 475;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,58,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 58, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 472;
-                this.blank(); 
+                this.blank();
             }
             this.state = 477;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,58,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 58, this._ctx);
         }
-
         this.state = 486;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,60,this._ctx);
-        if(la_===1) {
+        var la_ = this._interp.adaptivePredict(this._input, 60, this._ctx);
+        if (la_ === 1) {
             this.state = 478;
             this.match(LnParser.VARNAME);
             this.state = 482;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
                 this.state = 479;
                 this.blank();
                 this.state = 484;
@@ -9540,12 +8585,11 @@ LnParser.prototype.letdeclaration = function() {
             }
             this.state = 485;
             this.match(LnParser.TYPESEP);
-
         }
         this.state = 491;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 488;
             this.blank();
             this.state = 493;
@@ -9554,82 +8598,71 @@ LnParser.prototype.letdeclaration = function() {
         }
         this.state = 494;
         this.assignments();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function AssignmentsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_assignments;
     return this;
 }
-
 AssignmentsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 AssignmentsContext.prototype.constructor = AssignmentsContext;
-
-AssignmentsContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+AssignmentsContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-AssignmentsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+AssignmentsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-AssignmentsContext.prototype.EQUALS = function() {
+AssignmentsContext.prototype.EQUALS = function () {
     return this.getToken(LnParser.EQUALS, 0);
 };
-
-AssignmentsContext.prototype.assignables = function() {
-    return this.getTypedRuleContext(AssignablesContext,0);
+AssignmentsContext.prototype.assignables = function () {
+    return this.getTypedRuleContext(AssignablesContext, 0);
 };
-
-AssignmentsContext.prototype.typegenerics = function() {
-    return this.getTypedRuleContext(TypegenericsContext,0);
+AssignmentsContext.prototype.typegenerics = function () {
+    return this.getTypedRuleContext(TypegenericsContext, 0);
 };
-
-AssignmentsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+AssignmentsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterAssignments(this);
-	}
+    }
 };
-
-AssignmentsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+AssignmentsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitAssignments(this);
-	}
+    }
 };
-
-
-
-
 LnParser.AssignmentsContext = AssignmentsContext;
-
-LnParser.prototype.assignments = function() {
-
+LnParser.prototype.assignments = function () {
     var localctx = new AssignmentsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 44, LnParser.RULE_assignments);
     var _la = 0; // Token type
@@ -9639,545 +8672,478 @@ LnParser.prototype.assignments = function() {
         this.varn();
         this.state = 500;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,62,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 62, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 497;
-                this.blank(); 
+                this.blank();
             }
             this.state = 502;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,62,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 62, this._ctx);
         }
-
         this.state = 523;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,67,this._ctx);
-        switch(la_) {
-        case 1:
-            this.state = 504;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            if(_la===LnParser.OPENGENERIC) {
-                this.state = 503;
-                this.typegenerics();
-            }
-
-            this.state = 509;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
-                this.state = 506;
-                this.blank();
-                this.state = 511;
+        var la_ = this._interp.adaptivePredict(this._input, 67, this._ctx);
+        switch (la_) {
+            case 1:
+                this.state = 504;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-            }
-            this.state = 512;
-            this.match(LnParser.EQUALS);
-            this.state = 516;
-            this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,65,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
-                    this.state = 513;
-                    this.blank(); 
+                if (_la === LnParser.OPENGENERIC) {
+                    this.state = 503;
+                    this.typegenerics();
                 }
-                this.state = 518;
+                this.state = 509;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,65,this._ctx);
-            }
-
-            this.state = 519;
-            this.assignables();
-            break;
-
-        case 2:
-            this.state = 521;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            if(_la===LnParser.OPENGENERIC) {
-                this.state = 520;
-                this.typegenerics();
-            }
-
-            break;
-
+                _la = this._input.LA(1);
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                    this.state = 506;
+                    this.blank();
+                    this.state = 511;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                }
+                this.state = 512;
+                this.match(LnParser.EQUALS);
+                this.state = 516;
+                this._errHandler.sync(this);
+                var _alt = this._interp.adaptivePredict(this._input, 65, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 513;
+                        this.blank();
+                    }
+                    this.state = 518;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 65, this._ctx);
+                }
+                this.state = 519;
+                this.assignables();
+                break;
+            case 2:
+                this.state = 521;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+                if (_la === LnParser.OPENGENERIC) {
+                    this.state = 520;
+                    this.typegenerics();
+                }
+                break;
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function AssignablesContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_assignables;
     return this;
 }
-
 AssignablesContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 AssignablesContext.prototype.constructor = AssignablesContext;
-
-AssignablesContext.prototype.basicassignables = function() {
-    return this.getTypedRuleContext(BasicassignablesContext,0);
+AssignablesContext.prototype.basicassignables = function () {
+    return this.getTypedRuleContext(BasicassignablesContext, 0);
 };
-
-AssignablesContext.prototype.withoperators = function() {
-    return this.getTypedRuleContext(WithoperatorsContext,0);
+AssignablesContext.prototype.withoperators = function () {
+    return this.getTypedRuleContext(WithoperatorsContext, 0);
 };
-
-AssignablesContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+AssignablesContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterAssignables(this);
-	}
+    }
 };
-
-AssignablesContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+AssignablesContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitAssignables(this);
-	}
+    }
 };
-
-
-
-
 LnParser.AssignablesContext = AssignablesContext;
-
-LnParser.prototype.assignables = function() {
-
+LnParser.prototype.assignables = function () {
     var localctx = new AssignablesContext(this, this._ctx, this.state);
     this.enterRule(localctx, 46, LnParser.RULE_assignables);
     try {
         this.state = 527;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,68,this._ctx);
-        switch(la_) {
-        case 1:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 525;
-            this.basicassignables();
-            break;
-
-        case 2:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 526;
-            this.withoperators();
-            break;
-
+        var la_ = this._interp.adaptivePredict(this._input, 68, this._ctx);
+        switch (la_) {
+            case 1:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 525;
+                this.basicassignables();
+                break;
+            case 2:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 526;
+                this.withoperators();
+                break;
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function BasicassignablesContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_basicassignables;
     return this;
 }
-
 BasicassignablesContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 BasicassignablesContext.prototype.constructor = BasicassignablesContext;
-
-BasicassignablesContext.prototype.functions = function() {
-    return this.getTypedRuleContext(FunctionsContext,0);
+BasicassignablesContext.prototype.functions = function () {
+    return this.getTypedRuleContext(FunctionsContext, 0);
 };
-
-BasicassignablesContext.prototype.calls = function() {
-    return this.getTypedRuleContext(CallsContext,0);
+BasicassignablesContext.prototype.calls = function () {
+    return this.getTypedRuleContext(CallsContext, 0);
 };
-
-BasicassignablesContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+BasicassignablesContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-BasicassignablesContext.prototype.constants = function() {
-    return this.getTypedRuleContext(ConstantsContext,0);
+BasicassignablesContext.prototype.constants = function () {
+    return this.getTypedRuleContext(ConstantsContext, 0);
 };
-
-BasicassignablesContext.prototype.groups = function() {
-    return this.getTypedRuleContext(GroupsContext,0);
+BasicassignablesContext.prototype.groups = function () {
+    return this.getTypedRuleContext(GroupsContext, 0);
 };
-
-BasicassignablesContext.prototype.typeofn = function() {
-    return this.getTypedRuleContext(TypeofnContext,0);
+BasicassignablesContext.prototype.typeofn = function () {
+    return this.getTypedRuleContext(TypeofnContext, 0);
 };
-
-BasicassignablesContext.prototype.objectliterals = function() {
-    return this.getTypedRuleContext(ObjectliteralsContext,0);
+BasicassignablesContext.prototype.objectliterals = function () {
+    return this.getTypedRuleContext(ObjectliteralsContext, 0);
 };
-
-BasicassignablesContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+BasicassignablesContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterBasicassignables(this);
-	}
+    }
 };
-
-BasicassignablesContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+BasicassignablesContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitBasicassignables(this);
-	}
+    }
 };
-
-
-
-
 LnParser.BasicassignablesContext = BasicassignablesContext;
-
-LnParser.prototype.basicassignables = function() {
-
+LnParser.prototype.basicassignables = function () {
     var localctx = new BasicassignablesContext(this, this._ctx, this.state);
     this.enterRule(localctx, 48, LnParser.RULE_basicassignables);
     try {
         this.state = 536;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,69,this._ctx);
-        switch(la_) {
-        case 1:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 529;
-            this.functions();
-            break;
-
-        case 2:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 530;
-            this.calls();
-            break;
-
-        case 3:
-            this.enterOuterAlt(localctx, 3);
-            this.state = 531;
-            this.varn();
-            break;
-
-        case 4:
-            this.enterOuterAlt(localctx, 4);
-            this.state = 532;
-            this.constants();
-            break;
-
-        case 5:
-            this.enterOuterAlt(localctx, 5);
-            this.state = 533;
-            this.groups();
-            break;
-
-        case 6:
-            this.enterOuterAlt(localctx, 6);
-            this.state = 534;
-            this.typeofn();
-            break;
-
-        case 7:
-            this.enterOuterAlt(localctx, 7);
-            this.state = 535;
-            this.objectliterals();
-            break;
-
+        var la_ = this._interp.adaptivePredict(this._input, 69, this._ctx);
+        switch (la_) {
+            case 1:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 529;
+                this.functions();
+                break;
+            case 2:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 530;
+                this.calls();
+                break;
+            case 3:
+                this.enterOuterAlt(localctx, 3);
+                this.state = 531;
+                this.varn();
+                break;
+            case 4:
+                this.enterOuterAlt(localctx, 4);
+                this.state = 532;
+                this.constants();
+                break;
+            case 5:
+                this.enterOuterAlt(localctx, 5);
+                this.state = 533;
+                this.groups();
+                break;
+            case 6:
+                this.enterOuterAlt(localctx, 6);
+                this.state = 534;
+                this.typeofn();
+                break;
+            case 7:
+                this.enterOuterAlt(localctx, 7);
+                this.state = 535;
+                this.objectliterals();
+                break;
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function OperatororassignableContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_operatororassignable;
     return this;
 }
-
 OperatororassignableContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 OperatororassignableContext.prototype.constructor = OperatororassignableContext;
-
-OperatororassignableContext.prototype.operators = function() {
-    return this.getTypedRuleContext(OperatorsContext,0);
+OperatororassignableContext.prototype.operators = function () {
+    return this.getTypedRuleContext(OperatorsContext, 0);
 };
-
-OperatororassignableContext.prototype.basicassignables = function() {
-    return this.getTypedRuleContext(BasicassignablesContext,0);
+OperatororassignableContext.prototype.basicassignables = function () {
+    return this.getTypedRuleContext(BasicassignablesContext, 0);
 };
-
-OperatororassignableContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+OperatororassignableContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterOperatororassignable(this);
-	}
+    }
 };
-
-OperatororassignableContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+OperatororassignableContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitOperatororassignable(this);
-	}
+    }
 };
-
-
-
-
 LnParser.OperatororassignableContext = OperatororassignableContext;
-
-LnParser.prototype.operatororassignable = function() {
-
+LnParser.prototype.operatororassignable = function () {
     var localctx = new OperatororassignableContext(this, this._ctx, this.state);
     this.enterRule(localctx, 50, LnParser.RULE_operatororassignable);
     try {
         this.state = 540;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.OPENGENERIC:
-        case LnParser.CLOSEGENERIC:
-        case LnParser.GLOBAL:
-        case LnParser.DIRSEP:
-        case LnParser.OR:
-        case LnParser.GENERALOPERATORS:
-        case LnParser.TYPESEP:
-        case LnParser.WS:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 538;
-            this.operators();
-            break;
-        case LnParser.TYPE:
-        case LnParser.FN:
-        case LnParser.BOOLCONSTANT:
-        case LnParser.NEW:
-        case LnParser.OPENARGS:
-        case LnParser.OPENARRAY:
-        case LnParser.METHODSEP:
-        case LnParser.STRINGCONSTANT:
-        case LnParser.NUMBERCONSTANT:
-        case LnParser.VARNAME:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 539;
-            this.basicassignables();
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+        switch (this._input.LA(1)) {
+            case LnParser.OPENGENERIC:
+            case LnParser.CLOSEGENERIC:
+            case LnParser.GLOBAL:
+            case LnParser.DIRSEP:
+            case LnParser.OR:
+            case LnParser.GENERALOPERATORS:
+            case LnParser.TYPESEP:
+            case LnParser.WS:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 538;
+                this.operators();
+                break;
+            case LnParser.TYPE:
+            case LnParser.FN:
+            case LnParser.BOOLCONSTANT:
+            case LnParser.NEW:
+            case LnParser.OPENARGS:
+            case LnParser.OPENARRAY:
+            case LnParser.METHODSEP:
+            case LnParser.STRINGCONSTANT:
+            case LnParser.NUMBERCONSTANT:
+            case LnParser.VARNAME:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 539;
+                this.basicassignables();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function WithoperatorsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_withoperators;
     return this;
 }
-
 WithoperatorsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 WithoperatorsContext.prototype.constructor = WithoperatorsContext;
-
-WithoperatorsContext.prototype.operatororassignable = function(i) {
-    if(i===undefined) {
+WithoperatorsContext.prototype.operatororassignable = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(OperatororassignableContext);
-    } else {
-        return this.getTypedRuleContext(OperatororassignableContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(OperatororassignableContext, i);
     }
 };
-
-WithoperatorsContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+WithoperatorsContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-WithoperatorsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+WithoperatorsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterWithoperators(this);
-	}
+    }
 };
-
-WithoperatorsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+WithoperatorsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitWithoperators(this);
-	}
+    }
 };
-
-
-
-
 LnParser.WithoperatorsContext = WithoperatorsContext;
-
-LnParser.prototype.withoperators = function() {
-
+LnParser.prototype.withoperators = function () {
     var localctx = new WithoperatorsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 52, LnParser.RULE_withoperators);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 549; 
+        this.state = 549;
         this._errHandler.sync(this);
         var _alt = 1;
         do {
-        	switch (_alt) {
-        	case 1:
-        		this.state = 542;
-        		this.operatororassignable();
-        		this.state = 546;
-        		this._errHandler.sync(this);
-        		var _alt = this._interp.adaptivePredict(this._input,71,this._ctx)
-        		while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-        		    if(_alt===1) {
-        		        this.state = 543;
-        		        this.match(LnParser.WS); 
-        		    }
-        		    this.state = 548;
-        		    this._errHandler.sync(this);
-        		    _alt = this._interp.adaptivePredict(this._input,71,this._ctx);
-        		}
-
-        		break;
-        	default:
-        		throw new antlr4.error.NoViableAltException(this);
-        	}
-        	this.state = 551; 
-        	this._errHandler.sync(this);
-        	_alt = this._interp.adaptivePredict(this._input,72, this._ctx);
-        } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+            switch (_alt) {
+                case 1:
+                    this.state = 542;
+                    this.operatororassignable();
+                    this.state = 546;
+                    this._errHandler.sync(this);
+                    var _alt = this._interp.adaptivePredict(this._input, 71, this._ctx);
+                    while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                        if (_alt === 1) {
+                            this.state = 543;
+                            this.match(LnParser.WS);
+                        }
+                        this.state = 548;
+                        this._errHandler.sync(this);
+                        _alt = this._interp.adaptivePredict(this._input, 71, this._ctx);
+                    }
+                    break;
+                default:
+                    throw new antlr4.error.NoViableAltException(this);
+            }
+            this.state = 551;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 72, this._ctx);
+        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function GroupsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_groups;
     return this;
 }
-
 GroupsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 GroupsContext.prototype.constructor = GroupsContext;
-
-GroupsContext.prototype.OPENARGS = function() {
+GroupsContext.prototype.OPENARGS = function () {
     return this.getToken(LnParser.OPENARGS, 0);
 };
-
-GroupsContext.prototype.withoperators = function() {
-    return this.getTypedRuleContext(WithoperatorsContext,0);
+GroupsContext.prototype.withoperators = function () {
+    return this.getTypedRuleContext(WithoperatorsContext, 0);
 };
-
-GroupsContext.prototype.CLOSEARGS = function() {
+GroupsContext.prototype.CLOSEARGS = function () {
     return this.getToken(LnParser.CLOSEARGS, 0);
 };
-
-GroupsContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+GroupsContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-GroupsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+GroupsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterGroups(this);
-	}
+    }
 };
-
-GroupsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+GroupsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitGroups(this);
-	}
+    }
 };
-
-
-
-
 LnParser.GroupsContext = GroupsContext;
-
-LnParser.prototype.groups = function() {
-
+LnParser.prototype.groups = function () {
     var localctx = new GroupsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 54, LnParser.RULE_groups);
     var _la = 0; // Token type
@@ -10187,23 +9153,22 @@ LnParser.prototype.groups = function() {
         this.match(LnParser.OPENARGS);
         this.state = 557;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,73,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 73, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 554;
-                this.match(LnParser.WS); 
+                this.match(LnParser.WS);
             }
             this.state = 559;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,73,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 73, this._ctx);
         }
-
         this.state = 560;
         this.withoperators();
         this.state = 564;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.WS) {
+        while (_la === LnParser.WS) {
             this.state = 561;
             this.match(LnParser.WS);
             this.state = 566;
@@ -10212,75 +9177,65 @@ LnParser.prototype.groups = function() {
         }
         this.state = 567;
         this.match(LnParser.CLOSEARGS);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function TypeofnContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_typeofn;
     return this;
 }
-
 TypeofnContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypeofnContext.prototype.constructor = TypeofnContext;
-
-TypeofnContext.prototype.TYPE = function() {
+TypeofnContext.prototype.TYPE = function () {
     return this.getToken(LnParser.TYPE, 0);
 };
-
-TypeofnContext.prototype.basicassignables = function() {
-    return this.getTypedRuleContext(BasicassignablesContext,0);
+TypeofnContext.prototype.basicassignables = function () {
+    return this.getTypedRuleContext(BasicassignablesContext, 0);
 };
-
-TypeofnContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+TypeofnContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-TypeofnContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypeofnContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterTypeofn(this);
-	}
+    }
 };
-
-TypeofnContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypeofnContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitTypeofn(this);
-	}
+    }
 };
-
-
-
-
 LnParser.TypeofnContext = TypeofnContext;
-
-LnParser.prototype.typeofn = function() {
-
+LnParser.prototype.typeofn = function () {
     var localctx = new TypeofnContext(this, this._ctx, this.state);
     this.enterRule(localctx, 56, LnParser.RULE_typeofn);
     var _la = 0; // Token type
@@ -10291,7 +9246,7 @@ LnParser.prototype.typeofn = function() {
         this.state = 573;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.WS) {
+        while (_la === LnParser.WS) {
             this.state = 570;
             this.match(LnParser.WS);
             this.state = 575;
@@ -10300,87 +9255,74 @@ LnParser.prototype.typeofn = function() {
         }
         this.state = 576;
         this.basicassignables();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ObjectliteralsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_objectliterals;
     return this;
 }
-
 ObjectliteralsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ObjectliteralsContext.prototype.constructor = ObjectliteralsContext;
-
-ObjectliteralsContext.prototype.NEW = function() {
+ObjectliteralsContext.prototype.NEW = function () {
     return this.getToken(LnParser.NEW, 0);
 };
-
-ObjectliteralsContext.prototype.othertype = function() {
-    return this.getTypedRuleContext(OthertypeContext,0);
+ObjectliteralsContext.prototype.othertype = function () {
+    return this.getTypedRuleContext(OthertypeContext, 0);
 };
-
-ObjectliteralsContext.prototype.arrayliteral = function() {
-    return this.getTypedRuleContext(ArrayliteralContext,0);
+ObjectliteralsContext.prototype.arrayliteral = function () {
+    return this.getTypedRuleContext(ArrayliteralContext, 0);
 };
-
-ObjectliteralsContext.prototype.typeliteral = function() {
-    return this.getTypedRuleContext(TypeliteralContext,0);
+ObjectliteralsContext.prototype.typeliteral = function () {
+    return this.getTypedRuleContext(TypeliteralContext, 0);
 };
-
-ObjectliteralsContext.prototype.mapliteral = function() {
-    return this.getTypedRuleContext(MapliteralContext,0);
+ObjectliteralsContext.prototype.mapliteral = function () {
+    return this.getTypedRuleContext(MapliteralContext, 0);
 };
-
-ObjectliteralsContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+ObjectliteralsContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-ObjectliteralsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ObjectliteralsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterObjectliterals(this);
-	}
+    }
 };
-
-ObjectliteralsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ObjectliteralsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitObjectliterals(this);
-	}
+    }
 };
-
-
-
-
 LnParser.ObjectliteralsContext = ObjectliteralsContext;
-
-LnParser.prototype.objectliterals = function() {
-
+LnParser.prototype.objectliterals = function () {
     var localctx = new ObjectliteralsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 58, LnParser.RULE_objectliterals);
     var _la = 0; // Token type
@@ -10391,7 +9333,7 @@ LnParser.prototype.objectliterals = function() {
         this.state = 582;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.WS) {
+        while (_la === LnParser.WS) {
             this.state = 579;
             this.match(LnParser.WS);
             this.state = 584;
@@ -10403,7 +9345,7 @@ LnParser.prototype.objectliterals = function() {
         this.state = 589;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.WS) {
+        while (_la === LnParser.WS) {
             this.state = 586;
             this.match(LnParser.WS);
             this.state = 591;
@@ -10412,96 +9354,83 @@ LnParser.prototype.objectliterals = function() {
         }
         this.state = 595;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,78,this._ctx);
-        switch(la_) {
-        case 1:
-            this.state = 592;
-            this.arrayliteral();
-            break;
-
-        case 2:
-            this.state = 593;
-            this.typeliteral();
-            break;
-
-        case 3:
-            this.state = 594;
-            this.mapliteral();
-            break;
-
+        var la_ = this._interp.adaptivePredict(this._input, 78, this._ctx);
+        switch (la_) {
+            case 1:
+                this.state = 592;
+                this.arrayliteral();
+                break;
+            case 2:
+                this.state = 593;
+                this.typeliteral();
+                break;
+            case 3:
+                this.state = 594;
+                this.mapliteral();
+                break;
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ArrayliteralContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_arrayliteral;
     return this;
 }
-
 ArrayliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ArrayliteralContext.prototype.constructor = ArrayliteralContext;
-
-ArrayliteralContext.prototype.OPENARRAY = function() {
+ArrayliteralContext.prototype.OPENARRAY = function () {
     return this.getToken(LnParser.OPENARRAY, 0);
 };
-
-ArrayliteralContext.prototype.assignablelist = function() {
-    return this.getTypedRuleContext(AssignablelistContext,0);
+ArrayliteralContext.prototype.assignablelist = function () {
+    return this.getTypedRuleContext(AssignablelistContext, 0);
 };
-
-ArrayliteralContext.prototype.CLOSEARRAY = function() {
+ArrayliteralContext.prototype.CLOSEARRAY = function () {
     return this.getToken(LnParser.CLOSEARRAY, 0);
 };
-
-ArrayliteralContext.prototype.blank = function(i) {
-    if(i===undefined) {
+ArrayliteralContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-ArrayliteralContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ArrayliteralContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterArrayliteral(this);
-	}
+    }
 };
-
-ArrayliteralContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ArrayliteralContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitArrayliteral(this);
-	}
+    }
 };
-
-
-
-
 LnParser.ArrayliteralContext = ArrayliteralContext;
-
-LnParser.prototype.arrayliteral = function() {
-
+LnParser.prototype.arrayliteral = function () {
     var localctx = new ArrayliteralContext(this, this._ctx, this.state);
     this.enterRule(localctx, 60, LnParser.RULE_arrayliteral);
     var _la = 0; // Token type
@@ -10511,23 +9440,22 @@ LnParser.prototype.arrayliteral = function() {
         this.match(LnParser.OPENARRAY);
         this.state = 601;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,79,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 79, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 598;
-                this.blank(); 
+                this.blank();
             }
             this.state = 603;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,79,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 79, this._ctx);
         }
-
         this.state = 604;
         this.assignablelist();
         this.state = 608;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 605;
             this.blank();
             this.state = 610;
@@ -10536,85 +9464,76 @@ LnParser.prototype.arrayliteral = function() {
         }
         this.state = 611;
         this.match(LnParser.CLOSEARRAY);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function TypeliteralContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_typeliteral;
     return this;
 }
-
 TypeliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypeliteralContext.prototype.constructor = TypeliteralContext;
-
-TypeliteralContext.prototype.OPENBODY = function() {
+TypeliteralContext.prototype.OPENBODY = function () {
     return this.getToken(LnParser.OPENBODY, 0);
 };
-
-TypeliteralContext.prototype.CLOSEBODY = function() {
+TypeliteralContext.prototype.CLOSEBODY = function () {
     return this.getToken(LnParser.CLOSEBODY, 0);
 };
-
-TypeliteralContext.prototype.blank = function(i) {
-    if(i===undefined) {
+TypeliteralContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-TypeliteralContext.prototype.assignments = function(i) {
-    if(i===undefined) {
+TypeliteralContext.prototype.assignments = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(AssignmentsContext);
-    } else {
-        return this.getTypedRuleContext(AssignmentsContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(AssignmentsContext, i);
     }
 };
-
-TypeliteralContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypeliteralContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterTypeliteral(this);
-	}
+    }
 };
-
-TypeliteralContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+TypeliteralContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitTypeliteral(this);
-	}
+    }
 };
-
-
-
-
 LnParser.TypeliteralContext = TypeliteralContext;
-
-LnParser.prototype.typeliteral = function() {
-
+LnParser.prototype.typeliteral = function () {
     var localctx = new TypeliteralContext(this, this._ctx, this.state);
     this.enterRule(localctx, 62, LnParser.RULE_typeliteral);
     var _la = 0; // Token type
@@ -10625,114 +9544,105 @@ LnParser.prototype.typeliteral = function() {
         this.state = 617;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 614;
             this.blank();
             this.state = 619;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 626; 
+        this.state = 626;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 620;
             this.assignments();
-            this.state = 622; 
+            this.state = 622;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             do {
                 this.state = 621;
                 this.blank();
-                this.state = 624; 
+                this.state = 624;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-            } while(_la===LnParser.NEWLINE || _la===LnParser.WS);
-            this.state = 628; 
+            } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
+            this.state = 628;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(((((_la - 29)) & ~0x1f) == 0 && ((1 << (_la - 29)) & ((1 << (LnParser.OPENARRAY - 29)) | (1 << (LnParser.METHODSEP - 29)) | (1 << (LnParser.VARNAME - 29)))) !== 0));
+        } while (((((_la - 29)) & ~0x1f) == 0 && ((1 << (_la - 29)) & ((1 << (LnParser.OPENARRAY - 29)) | (1 << (LnParser.METHODSEP - 29)) | (1 << (LnParser.VARNAME - 29)))) !== 0));
         this.state = 630;
         this.match(LnParser.CLOSEBODY);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function MapliteralContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_mapliteral;
     return this;
 }
-
 MapliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 MapliteralContext.prototype.constructor = MapliteralContext;
-
-MapliteralContext.prototype.OPENBODY = function() {
+MapliteralContext.prototype.OPENBODY = function () {
     return this.getToken(LnParser.OPENBODY, 0);
 };
-
-MapliteralContext.prototype.CLOSEBODY = function() {
+MapliteralContext.prototype.CLOSEBODY = function () {
     return this.getToken(LnParser.CLOSEBODY, 0);
 };
-
-MapliteralContext.prototype.blank = function(i) {
-    if(i===undefined) {
+MapliteralContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-MapliteralContext.prototype.mapline = function(i) {
-    if(i===undefined) {
+MapliteralContext.prototype.mapline = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(MaplineContext);
-    } else {
-        return this.getTypedRuleContext(MaplineContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(MaplineContext, i);
     }
 };
-
-MapliteralContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+MapliteralContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterMapliteral(this);
-	}
+    }
 };
-
-MapliteralContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+MapliteralContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitMapliteral(this);
-	}
+    }
 };
-
-
-
-
 LnParser.MapliteralContext = MapliteralContext;
-
-LnParser.prototype.mapliteral = function() {
-
+LnParser.prototype.mapliteral = function () {
     var localctx = new MapliteralContext(this, this._ctx, this.state);
     this.enterRule(localctx, 64, LnParser.RULE_mapliteral);
     var _la = 0; // Token type
@@ -10742,121 +9652,111 @@ LnParser.prototype.mapliteral = function() {
         this.match(LnParser.OPENBODY);
         this.state = 636;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,84,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 84, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 633;
-                this.blank(); 
+                this.blank();
             }
             this.state = 638;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,84,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 84, this._ctx);
         }
-
         this.state = 647;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.TYPE) | (1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 33)) & ~0x1f) == 0 && ((1 << (_la - 33)) & ((1 << (LnParser.GLOBAL - 33)) | (1 << (LnParser.DIRSEP - 33)) | (1 << (LnParser.OR - 33)) | (1 << (LnParser.GENERALOPERATORS - 33)) | (1 << (LnParser.TYPESEP - 33)) | (1 << (LnParser.WS - 33)) | (1 << (LnParser.STRINGCONSTANT - 33)) | (1 << (LnParser.NUMBERCONSTANT - 33)) | (1 << (LnParser.VARNAME - 33)))) !== 0)) {
+        while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.TYPE) | (1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 33)) & ~0x1f) == 0 && ((1 << (_la - 33)) & ((1 << (LnParser.GLOBAL - 33)) | (1 << (LnParser.DIRSEP - 33)) | (1 << (LnParser.OR - 33)) | (1 << (LnParser.GENERALOPERATORS - 33)) | (1 << (LnParser.TYPESEP - 33)) | (1 << (LnParser.WS - 33)) | (1 << (LnParser.STRINGCONSTANT - 33)) | (1 << (LnParser.NUMBERCONSTANT - 33)) | (1 << (LnParser.VARNAME - 33)))) !== 0)) {
             this.state = 639;
             this.mapline();
-            this.state = 641; 
+            this.state = 641;
             this._errHandler.sync(this);
             var _alt = 1;
             do {
-            	switch (_alt) {
-            	case 1:
-            		this.state = 640;
-            		this.blank();
-            		break;
-            	default:
-            		throw new antlr4.error.NoViableAltException(this);
-            	}
-            	this.state = 643; 
-            	this._errHandler.sync(this);
-            	_alt = this._interp.adaptivePredict(this._input,85, this._ctx);
-            } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
+                switch (_alt) {
+                    case 1:
+                        this.state = 640;
+                        this.blank();
+                        break;
+                    default:
+                        throw new antlr4.error.NoViableAltException(this);
+                }
+                this.state = 643;
+                this._errHandler.sync(this);
+                _alt = this._interp.adaptivePredict(this._input, 85, this._ctx);
+            } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
             this.state = 649;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
         this.state = 650;
         this.match(LnParser.CLOSEBODY);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function MaplineContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_mapline;
     return this;
 }
-
 MaplineContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 MaplineContext.prototype.constructor = MaplineContext;
-
-MaplineContext.prototype.assignables = function(i) {
-    if(i===undefined) {
+MaplineContext.prototype.assignables = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(AssignablesContext);
-    } else {
-        return this.getTypedRuleContext(AssignablesContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(AssignablesContext, i);
     }
 };
-
-MaplineContext.prototype.TYPESEP = function() {
+MaplineContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-
-MaplineContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+MaplineContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-MaplineContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+MaplineContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterMapline(this);
-	}
+    }
 };
-
-MaplineContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+MaplineContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitMapline(this);
-	}
+    }
 };
-
-
-
-
 LnParser.MaplineContext = MaplineContext;
-
-LnParser.prototype.mapline = function() {
-
+LnParser.prototype.mapline = function () {
     var localctx = new MaplineContext(this, this._ctx, this.state);
     this.enterRule(localctx, 66, LnParser.RULE_mapline);
     var _la = 0; // Token type
@@ -10867,7 +9767,7 @@ LnParser.prototype.mapline = function() {
         this.state = 656;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.WS) {
+        while (_la === LnParser.WS) {
             this.state = 653;
             this.match(LnParser.WS);
             this.state = 658;
@@ -10878,102 +9778,93 @@ LnParser.prototype.mapline = function() {
         this.match(LnParser.TYPESEP);
         this.state = 663;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,88,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 88, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 660;
-                this.match(LnParser.WS); 
+                this.match(LnParser.WS);
             }
             this.state = 665;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,88,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 88, this._ctx);
         }
-
         this.state = 666;
         this.assignables();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function AssignablelistContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_assignablelist;
     return this;
 }
-
 AssignablelistContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 AssignablelistContext.prototype.constructor = AssignablelistContext;
-
-AssignablelistContext.prototype.assignables = function(i) {
-    if(i===undefined) {
+AssignablelistContext.prototype.assignables = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(AssignablesContext);
-    } else {
-        return this.getTypedRuleContext(AssignablesContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(AssignablesContext, i);
     }
 };
-
-AssignablelistContext.prototype.blank = function(i) {
-    if(i===undefined) {
+AssignablelistContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-AssignablelistContext.prototype.SEP = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+AssignablelistContext.prototype.SEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.SEP);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.SEP, i);
     }
 };
-
-
-AssignablelistContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+AssignablelistContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterAssignablelist(this);
-	}
+    }
 };
-
-AssignablelistContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+AssignablelistContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitAssignablelist(this);
-	}
+    }
 };
-
-
-
-
 LnParser.AssignablelistContext = AssignablelistContext;
-
-LnParser.prototype.assignablelist = function() {
-
+LnParser.prototype.assignablelist = function () {
     var localctx = new AssignablelistContext(this, this._ctx, this.state);
     this.enterRule(localctx, 68, LnParser.RULE_assignablelist);
     var _la = 0; // Token type
@@ -10981,38 +9872,36 @@ LnParser.prototype.assignablelist = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 671;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,89,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 89, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 668;
-                this.blank(); 
+                this.blank();
             }
             this.state = 673;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,89,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 89, this._ctx);
         }
-
         this.state = 674;
         this.assignables();
         this.state = 685;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.SEP) {
+        while (_la === LnParser.SEP) {
             this.state = 675;
             this.match(LnParser.SEP);
             this.state = 679;
             this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,90,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
+            var _alt = this._interp.adaptivePredict(this._input, 90, this._ctx);
+            while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                if (_alt === 1) {
                     this.state = 676;
-                    this.blank(); 
+                    this.blank();
                 }
                 this.state = 681;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,90,this._ctx);
+                _alt = this._interp.adaptivePredict(this._input, 90, this._ctx);
             }
-
             this.state = 682;
             this.assignables();
             this.state = 687;
@@ -11021,78 +9910,67 @@ LnParser.prototype.assignablelist = function() {
         }
         this.state = 691;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,92,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 92, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 688;
-                this.blank(); 
+                this.blank();
             }
             this.state = 693;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,92,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 92, this._ctx);
         }
-
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function FncallContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_fncall;
     return this;
 }
-
 FncallContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 FncallContext.prototype.constructor = FncallContext;
-
-FncallContext.prototype.OPENARGS = function() {
+FncallContext.prototype.OPENARGS = function () {
     return this.getToken(LnParser.OPENARGS, 0);
 };
-
-FncallContext.prototype.CLOSEARGS = function() {
+FncallContext.prototype.CLOSEARGS = function () {
     return this.getToken(LnParser.CLOSEARGS, 0);
 };
-
-FncallContext.prototype.assignablelist = function() {
-    return this.getTypedRuleContext(AssignablelistContext,0);
+FncallContext.prototype.assignablelist = function () {
+    return this.getTypedRuleContext(AssignablelistContext, 0);
 };
-
-FncallContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FncallContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterFncall(this);
-	}
+    }
 };
-
-FncallContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FncallContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitFncall(this);
-	}
+    }
 };
-
-
-
-
 LnParser.FncallContext = FncallContext;
-
-LnParser.prototype.fncall = function() {
-
+LnParser.prototype.fncall = function () {
     var localctx = new FncallContext(this, this._ctx, this.state);
     this.enterRule(localctx, 70, LnParser.RULE_fncall);
     var _la = 0; // Token type
@@ -11103,304 +9981,280 @@ LnParser.prototype.fncall = function() {
         this.state = 696;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.TYPE) | (1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 33)) & ~0x1f) == 0 && ((1 << (_la - 33)) & ((1 << (LnParser.GLOBAL - 33)) | (1 << (LnParser.DIRSEP - 33)) | (1 << (LnParser.OR - 33)) | (1 << (LnParser.GENERALOPERATORS - 33)) | (1 << (LnParser.TYPESEP - 33)) | (1 << (LnParser.NEWLINE - 33)) | (1 << (LnParser.WS - 33)) | (1 << (LnParser.STRINGCONSTANT - 33)) | (1 << (LnParser.NUMBERCONSTANT - 33)) | (1 << (LnParser.VARNAME - 33)))) !== 0)) {
+        if ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.TYPE) | (1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 33)) & ~0x1f) == 0 && ((1 << (_la - 33)) & ((1 << (LnParser.GLOBAL - 33)) | (1 << (LnParser.DIRSEP - 33)) | (1 << (LnParser.OR - 33)) | (1 << (LnParser.GENERALOPERATORS - 33)) | (1 << (LnParser.TYPESEP - 33)) | (1 << (LnParser.NEWLINE - 33)) | (1 << (LnParser.WS - 33)) | (1 << (LnParser.STRINGCONSTANT - 33)) | (1 << (LnParser.NUMBERCONSTANT - 33)) | (1 << (LnParser.VARNAME - 33)))) !== 0)) {
             this.state = 695;
             this.assignablelist();
         }
-
         this.state = 698;
         this.match(LnParser.CLOSEARGS);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function CallsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_calls;
     return this;
 }
-
 CallsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 CallsContext.prototype.constructor = CallsContext;
-
-CallsContext.prototype.varn = function(i) {
-    if(i===undefined) {
+CallsContext.prototype.varn = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(VarnContext);
-    } else {
-        return this.getTypedRuleContext(VarnContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(VarnContext, i);
     }
 };
-
-CallsContext.prototype.fncall = function(i) {
-    if(i===undefined) {
+CallsContext.prototype.fncall = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(FncallContext);
-    } else {
-        return this.getTypedRuleContext(FncallContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(FncallContext, i);
     }
 };
-
-CallsContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+CallsContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-CallsContext.prototype.METHODSEP = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+CallsContext.prototype.METHODSEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.METHODSEP);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.METHODSEP, i);
     }
 };
-
-
-CallsContext.prototype.constants = function() {
-    return this.getTypedRuleContext(ConstantsContext,0);
+CallsContext.prototype.constants = function () {
+    return this.getTypedRuleContext(ConstantsContext, 0);
 };
-
-CallsContext.prototype.OPENARGS = function() {
+CallsContext.prototype.OPENARGS = function () {
     return this.getToken(LnParser.OPENARGS, 0);
 };
-
-CallsContext.prototype.assignables = function() {
-    return this.getTypedRuleContext(AssignablesContext,0);
+CallsContext.prototype.assignables = function () {
+    return this.getTypedRuleContext(AssignablesContext, 0);
 };
-
-CallsContext.prototype.CLOSEARGS = function() {
+CallsContext.prototype.CLOSEARGS = function () {
     return this.getToken(LnParser.CLOSEARGS, 0);
 };
-
-CallsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+CallsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterCalls(this);
-	}
+    }
 };
-
-CallsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+CallsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitCalls(this);
-	}
+    }
 };
-
-
-
-
 LnParser.CallsContext = CallsContext;
-
-LnParser.prototype.calls = function() {
-
+LnParser.prototype.calls = function () {
     var localctx = new CallsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 72, LnParser.RULE_calls);
     var _la = 0; // Token type
     try {
         this.state = 744;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.OPENARRAY:
-        case LnParser.METHODSEP:
-        case LnParser.VARNAME:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 700;
-            this.varn();
-            this.state = 704;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            while(_la===LnParser.WS) {
-                this.state = 701;
-                this.match(LnParser.WS);
-                this.state = 706;
+        switch (this._input.LA(1)) {
+            case LnParser.OPENARRAY:
+            case LnParser.METHODSEP:
+            case LnParser.VARNAME:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 700;
+                this.varn();
+                this.state = 704;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-            }
-            this.state = 707;
-            this.fncall();
-            this.state = 720;
-            this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,96,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
-                    this.state = 708;
-                    this.match(LnParser.METHODSEP);
-                    this.state = 709;
-                    this.varn();
-                    this.state = 713;
+                while (_la === LnParser.WS) {
+                    this.state = 701;
+                    this.match(LnParser.WS);
+                    this.state = 706;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
-                    while(_la===LnParser.WS) {
-                        this.state = 710;
-                        this.match(LnParser.WS);
-                        this.state = 715;
+                }
+                this.state = 707;
+                this.fncall();
+                this.state = 720;
+                this._errHandler.sync(this);
+                var _alt = this._interp.adaptivePredict(this._input, 96, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 708;
+                        this.match(LnParser.METHODSEP);
+                        this.state = 709;
+                        this.varn();
+                        this.state = 713;
                         this._errHandler.sync(this);
                         _la = this._input.LA(1);
+                        while (_la === LnParser.WS) {
+                            this.state = 710;
+                            this.match(LnParser.WS);
+                            this.state = 715;
+                            this._errHandler.sync(this);
+                            _la = this._input.LA(1);
+                        }
+                        this.state = 716;
+                        this.fncall();
                     }
-                    this.state = 716;
-                    this.fncall(); 
+                    this.state = 722;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 96, this._ctx);
                 }
-                this.state = 722;
-                this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,96,this._ctx);
-            }
-
-            break;
-        case LnParser.BOOLCONSTANT:
-        case LnParser.OPENARGS:
-        case LnParser.STRINGCONSTANT:
-        case LnParser.NUMBERCONSTANT:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 728;
-            this._errHandler.sync(this);
-            switch(this._input.LA(1)) {
+                break;
             case LnParser.BOOLCONSTANT:
+            case LnParser.OPENARGS:
             case LnParser.STRINGCONSTANT:
             case LnParser.NUMBERCONSTANT:
-                this.state = 723;
-                this.constants();
-                break;
-            case LnParser.OPENARGS:
-                this.state = 724;
-                this.match(LnParser.OPENARGS);
-                this.state = 725;
-                this.assignables();
-                this.state = 726;
-                this.match(LnParser.CLOSEARGS);
+                this.enterOuterAlt(localctx, 2);
+                this.state = 728;
+                this._errHandler.sync(this);
+                switch (this._input.LA(1)) {
+                    case LnParser.BOOLCONSTANT:
+                    case LnParser.STRINGCONSTANT:
+                    case LnParser.NUMBERCONSTANT:
+                        this.state = 723;
+                        this.constants();
+                        break;
+                    case LnParser.OPENARGS:
+                        this.state = 724;
+                        this.match(LnParser.OPENARGS);
+                        this.state = 725;
+                        this.assignables();
+                        this.state = 726;
+                        this.match(LnParser.CLOSEARGS);
+                        break;
+                    default:
+                        throw new antlr4.error.NoViableAltException(this);
+                }
+                this.state = 740;
+                this._errHandler.sync(this);
+                var _alt = 1;
+                do {
+                    switch (_alt) {
+                        case 1:
+                            this.state = 730;
+                            this.match(LnParser.METHODSEP);
+                            this.state = 731;
+                            this.varn();
+                            this.state = 735;
+                            this._errHandler.sync(this);
+                            _la = this._input.LA(1);
+                            while (_la === LnParser.WS) {
+                                this.state = 732;
+                                this.match(LnParser.WS);
+                                this.state = 737;
+                                this._errHandler.sync(this);
+                                _la = this._input.LA(1);
+                            }
+                            this.state = 738;
+                            this.fncall();
+                            break;
+                        default:
+                            throw new antlr4.error.NoViableAltException(this);
+                    }
+                    this.state = 742;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 99, this._ctx);
+                } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
                 break;
             default:
                 throw new antlr4.error.NoViableAltException(this);
-            }
-            this.state = 740; 
-            this._errHandler.sync(this);
-            var _alt = 1;
-            do {
-            	switch (_alt) {
-            	case 1:
-            		this.state = 730;
-            		this.match(LnParser.METHODSEP);
-            		this.state = 731;
-            		this.varn();
-            		this.state = 735;
-            		this._errHandler.sync(this);
-            		_la = this._input.LA(1);
-            		while(_la===LnParser.WS) {
-            		    this.state = 732;
-            		    this.match(LnParser.WS);
-            		    this.state = 737;
-            		    this._errHandler.sync(this);
-            		    _la = this._input.LA(1);
-            		}
-            		this.state = 738;
-            		this.fncall();
-            		break;
-            	default:
-            		throw new antlr4.error.NoViableAltException(this);
-            	}
-            	this.state = 742; 
-            	this._errHandler.sync(this);
-            	_alt = this._interp.adaptivePredict(this._input,99, this._ctx);
-            } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ExitsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_exits;
     return this;
 }
-
 ExitsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ExitsContext.prototype.constructor = ExitsContext;
-
-ExitsContext.prototype.RETURN = function() {
+ExitsContext.prototype.RETURN = function () {
     return this.getToken(LnParser.RETURN, 0);
 };
-
-ExitsContext.prototype.assignables = function() {
-    return this.getTypedRuleContext(AssignablesContext,0);
+ExitsContext.prototype.assignables = function () {
+    return this.getTypedRuleContext(AssignablesContext, 0);
 };
-
-ExitsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+ExitsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-ExitsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ExitsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterExits(this);
-	}
+    }
 };
-
-ExitsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ExitsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitExits(this);
-	}
+    }
 };
-
-
-
-
 LnParser.ExitsContext = ExitsContext;
-
-LnParser.prototype.exits = function() {
-
+LnParser.prototype.exits = function () {
     var localctx = new ExitsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 74, LnParser.RULE_exits);
     try {
@@ -11409,97 +10263,85 @@ LnParser.prototype.exits = function() {
         this.match(LnParser.RETURN);
         this.state = 754;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,102,this._ctx);
-        if(la_===1) {
+        var la_ = this._interp.adaptivePredict(this._input, 102, this._ctx);
+        if (la_ === 1) {
             this.state = 750;
             this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,101,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
+            var _alt = this._interp.adaptivePredict(this._input, 101, this._ctx);
+            while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                if (_alt === 1) {
                     this.state = 747;
-                    this.blank(); 
+                    this.blank();
                 }
                 this.state = 752;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,101,this._ctx);
+                _alt = this._interp.adaptivePredict(this._input, 101, this._ctx);
             }
-
             this.state = 753;
             this.assignables();
-
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function EmitsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_emits;
     return this;
 }
-
 EmitsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 EmitsContext.prototype.constructor = EmitsContext;
-
-EmitsContext.prototype.EMIT = function() {
+EmitsContext.prototype.EMIT = function () {
     return this.getToken(LnParser.EMIT, 0);
 };
-
-EmitsContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+EmitsContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-EmitsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+EmitsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-EmitsContext.prototype.assignables = function() {
-    return this.getTypedRuleContext(AssignablesContext,0);
+EmitsContext.prototype.assignables = function () {
+    return this.getTypedRuleContext(AssignablesContext, 0);
 };
-
-EmitsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+EmitsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterEmits(this);
-	}
+    }
 };
-
-EmitsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+EmitsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitEmits(this);
-	}
+    }
 };
-
-
-
-
 LnParser.EmitsContext = EmitsContext;
-
-LnParser.prototype.emits = function() {
-
+LnParser.prototype.emits = function () {
     var localctx = new EmitsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 76, LnParser.RULE_emits);
     var _la = 0; // Token type
@@ -11510,7 +10352,7 @@ LnParser.prototype.emits = function() {
         this.state = 760;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 757;
             this.blank();
             this.state = 762;
@@ -11521,112 +10363,99 @@ LnParser.prototype.emits = function() {
         this.varn();
         this.state = 771;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,105,this._ctx);
-        if(la_===1) {
+        var la_ = this._interp.adaptivePredict(this._input, 105, this._ctx);
+        if (la_ === 1) {
             this.state = 767;
             this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,104,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
+            var _alt = this._interp.adaptivePredict(this._input, 104, this._ctx);
+            while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                if (_alt === 1) {
                     this.state = 764;
-                    this.blank(); 
+                    this.blank();
                 }
                 this.state = 769;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,104,this._ctx);
+                _alt = this._interp.adaptivePredict(this._input, 104, this._ctx);
             }
-
             this.state = 770;
             this.assignables();
-
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ConditionalsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_conditionals;
     return this;
 }
-
 ConditionalsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ConditionalsContext.prototype.constructor = ConditionalsContext;
-
-ConditionalsContext.prototype.IF = function() {
+ConditionalsContext.prototype.IF = function () {
     return this.getToken(LnParser.IF, 0);
 };
-
-ConditionalsContext.prototype.withoperators = function() {
-    return this.getTypedRuleContext(WithoperatorsContext,0);
+ConditionalsContext.prototype.withoperators = function () {
+    return this.getTypedRuleContext(WithoperatorsContext, 0);
 };
-
-ConditionalsContext.prototype.blocklikes = function(i) {
-    if(i===undefined) {
+ConditionalsContext.prototype.blocklikes = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlocklikesContext);
-    } else {
-        return this.getTypedRuleContext(BlocklikesContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlocklikesContext, i);
     }
 };
-
-ConditionalsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+ConditionalsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-ConditionalsContext.prototype.ELSE = function() {
+ConditionalsContext.prototype.ELSE = function () {
     return this.getToken(LnParser.ELSE, 0);
 };
-
-ConditionalsContext.prototype.conditionals = function() {
-    return this.getTypedRuleContext(ConditionalsContext,0);
+ConditionalsContext.prototype.conditionals = function () {
+    return this.getTypedRuleContext(ConditionalsContext, 0);
 };
-
-ConditionalsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ConditionalsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterConditionals(this);
-	}
+    }
 };
-
-ConditionalsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ConditionalsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitConditionals(this);
-	}
+    }
 };
-
-
-
-
 LnParser.ConditionalsContext = ConditionalsContext;
-
-LnParser.prototype.conditionals = function() {
-
+LnParser.prototype.conditionals = function () {
     var localctx = new ConditionalsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 78, LnParser.RULE_conditionals);
     var _la = 0; // Token type
@@ -11636,23 +10465,22 @@ LnParser.prototype.conditionals = function() {
         this.match(LnParser.IF);
         this.state = 777;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,106,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 106, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 774;
-                this.blank(); 
+                this.blank();
             }
             this.state = 779;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,106,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 106, this._ctx);
         }
-
         this.state = 780;
         this.withoperators();
         this.state = 784;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 781;
             this.blank();
             this.state = 786;
@@ -11663,12 +10491,12 @@ LnParser.prototype.conditionals = function() {
         this.blocklikes();
         this.state = 805;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,111,this._ctx);
-        if(la_===1) {
+        var la_ = this._interp.adaptivePredict(this._input, 111, this._ctx);
+        if (la_ === 1) {
             this.state = 791;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
                 this.state = 788;
                 this.blank();
                 this.state = 793;
@@ -11680,7 +10508,7 @@ LnParser.prototype.conditionals = function() {
             this.state = 798;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
                 this.state = 795;
                 this.blank();
                 this.state = 800;
@@ -11689,172 +10517,151 @@ LnParser.prototype.conditionals = function() {
             }
             this.state = 803;
             this._errHandler.sync(this);
-            switch(this._input.LA(1)) {
-            case LnParser.IF:
-                this.state = 801;
-                this.conditionals();
-                break;
-            case LnParser.FN:
-            case LnParser.OPENBODY:
-            case LnParser.OPENARRAY:
-            case LnParser.METHODSEP:
-            case LnParser.VARNAME:
-                this.state = 802;
-                this.blocklikes();
-                break;
-            default:
-                throw new antlr4.error.NoViableAltException(this);
+            switch (this._input.LA(1)) {
+                case LnParser.IF:
+                    this.state = 801;
+                    this.conditionals();
+                    break;
+                case LnParser.FN:
+                case LnParser.OPENBODY:
+                case LnParser.OPENARRAY:
+                case LnParser.METHODSEP:
+                case LnParser.VARNAME:
+                    this.state = 802;
+                    this.blocklikes();
+                    break;
+                default:
+                    throw new antlr4.error.NoViableAltException(this);
             }
-
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function BlocklikesContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_blocklikes;
     return this;
 }
-
 BlocklikesContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 BlocklikesContext.prototype.constructor = BlocklikesContext;
-
-BlocklikesContext.prototype.functions = function() {
-    return this.getTypedRuleContext(FunctionsContext,0);
+BlocklikesContext.prototype.functions = function () {
+    return this.getTypedRuleContext(FunctionsContext, 0);
 };
-
-BlocklikesContext.prototype.functionbody = function() {
-    return this.getTypedRuleContext(FunctionbodyContext,0);
+BlocklikesContext.prototype.functionbody = function () {
+    return this.getTypedRuleContext(FunctionbodyContext, 0);
 };
-
-BlocklikesContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+BlocklikesContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-BlocklikesContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+BlocklikesContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterBlocklikes(this);
-	}
+    }
 };
-
-BlocklikesContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+BlocklikesContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitBlocklikes(this);
-	}
+    }
 };
-
-
-
-
 LnParser.BlocklikesContext = BlocklikesContext;
-
-LnParser.prototype.blocklikes = function() {
-
+LnParser.prototype.blocklikes = function () {
     var localctx = new BlocklikesContext(this, this._ctx, this.state);
     this.enterRule(localctx, 80, LnParser.RULE_blocklikes);
     try {
         this.state = 810;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.FN:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 807;
-            this.functions();
-            break;
-        case LnParser.OPENBODY:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 808;
-            this.functionbody();
-            break;
-        case LnParser.OPENARRAY:
-        case LnParser.METHODSEP:
-        case LnParser.VARNAME:
-            this.enterOuterAlt(localctx, 3);
-            this.state = 809;
-            this.varn();
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+        switch (this._input.LA(1)) {
+            case LnParser.FN:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 807;
+                this.functions();
+                break;
+            case LnParser.OPENBODY:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 808;
+                this.functionbody();
+                break;
+            case LnParser.OPENARRAY:
+            case LnParser.METHODSEP:
+            case LnParser.VARNAME:
+                this.enterOuterAlt(localctx, 3);
+                this.state = 809;
+                this.varn();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ConstantsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_constants;
     return this;
 }
-
 ConstantsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ConstantsContext.prototype.constructor = ConstantsContext;
-
-ConstantsContext.prototype.NUMBERCONSTANT = function() {
+ConstantsContext.prototype.NUMBERCONSTANT = function () {
     return this.getToken(LnParser.NUMBERCONSTANT, 0);
 };
-
-ConstantsContext.prototype.STRINGCONSTANT = function() {
+ConstantsContext.prototype.STRINGCONSTANT = function () {
     return this.getToken(LnParser.STRINGCONSTANT, 0);
 };
-
-ConstantsContext.prototype.BOOLCONSTANT = function() {
+ConstantsContext.prototype.BOOLCONSTANT = function () {
     return this.getToken(LnParser.BOOLCONSTANT, 0);
 };
-
-ConstantsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ConstantsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterConstants(this);
-	}
+    }
 };
-
-ConstantsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ConstantsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitConstants(this);
-	}
+    }
 };
-
-
-
-
 LnParser.ConstantsContext = ConstantsContext;
-
-LnParser.prototype.constants = function() {
-
+LnParser.prototype.constants = function () {
     var localctx = new ConstantsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 82, LnParser.RULE_constants);
     var _la = 0; // Token type
@@ -11862,130 +10669,114 @@ LnParser.prototype.constants = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 812;
         _la = this._input.LA(1);
-        if(!(_la===LnParser.BOOLCONSTANT || _la===LnParser.STRINGCONSTANT || _la===LnParser.NUMBERCONSTANT)) {
-        this._errHandler.recoverInline(this);
+        if (!(_la === LnParser.BOOLCONSTANT || _la === LnParser.STRINGCONSTANT || _la === LnParser.NUMBERCONSTANT)) {
+            this._errHandler.recoverInline(this);
         }
         else {
-        	this._errHandler.reportMatch(this);
+            this._errHandler.reportMatch(this);
             this.consume();
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function OperatorsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_operators;
     return this;
 }
-
 OperatorsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 OperatorsContext.prototype.constructor = OperatorsContext;
-
-OperatorsContext.prototype.GENERALOPERATORS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+OperatorsContext.prototype.GENERALOPERATORS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.GENERALOPERATORS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.GENERALOPERATORS, i);
     }
 };
-
-
-OperatorsContext.prototype.TYPESEP = function() {
+OperatorsContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-
-OperatorsContext.prototype.OPENGENERIC = function() {
+OperatorsContext.prototype.OPENGENERIC = function () {
     return this.getToken(LnParser.OPENGENERIC, 0);
 };
-
-OperatorsContext.prototype.OR = function() {
+OperatorsContext.prototype.OR = function () {
     return this.getToken(LnParser.OR, 0);
 };
-
-OperatorsContext.prototype.GLOBAL = function() {
+OperatorsContext.prototype.GLOBAL = function () {
     return this.getToken(LnParser.GLOBAL, 0);
 };
-
-OperatorsContext.prototype.DIRSEP = function() {
+OperatorsContext.prototype.DIRSEP = function () {
     return this.getToken(LnParser.DIRSEP, 0);
 };
-
-OperatorsContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+OperatorsContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-OperatorsContext.prototype.CLOSEGENERIC = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+OperatorsContext.prototype.CLOSEGENERIC = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.CLOSEGENERIC);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.CLOSEGENERIC, i);
     }
 };
-
-
-OperatorsContext.prototype.EQUALS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+OperatorsContext.prototype.EQUALS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.EQUALS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.EQUALS, i);
     }
 };
-
-
-OperatorsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+OperatorsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterOperators(this);
-	}
+    }
 };
-
-OperatorsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+OperatorsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitOperators(this);
-	}
+    }
 };
-
-
-
-
 LnParser.OperatorsContext = OperatorsContext;
-
-LnParser.prototype.operators = function() {
-
+LnParser.prototype.operators = function () {
     var localctx = new OperatorsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 84, LnParser.RULE_operators);
     var _la = 0; // Token type
@@ -11994,7 +10785,7 @@ LnParser.prototype.operators = function() {
         this.state = 817;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.WS) {
+        while (_la === LnParser.WS) {
             this.state = 814;
             this.match(LnParser.WS);
             this.state = 819;
@@ -12003,180 +10794,165 @@ LnParser.prototype.operators = function() {
         }
         this.state = 849;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.GENERALOPERATORS:
-            this.state = 820;
-            this.match(LnParser.GENERALOPERATORS);
-            break;
-        case LnParser.TYPESEP:
-            this.state = 821;
-            this.match(LnParser.TYPESEP);
-            break;
-        case LnParser.OPENGENERIC:
-            this.state = 822;
-            this.match(LnParser.OPENGENERIC);
-            break;
-        case LnParser.OR:
-            this.state = 823;
-            this.match(LnParser.OR);
-            break;
-        case LnParser.CLOSEGENERIC:
-            this.state = 825; 
-            this._errHandler.sync(this);
-            var _alt = 1;
-            do {
-            	switch (_alt) {
-            	case 1:
-            		this.state = 824;
-            		this.match(LnParser.CLOSEGENERIC);
-            		break;
-            	default:
-            		throw new antlr4.error.NoViableAltException(this);
-            	}
-            	this.state = 827; 
-            	this._errHandler.sync(this);
-            	_alt = this._interp.adaptivePredict(this._input,114, this._ctx);
-            } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-            this.state = 845;
-            this._errHandler.sync(this);
-            var la_ = this._interp.adaptivePredict(this._input,118,this._ctx);
-            if(la_===1) {
-                this.state = 830; 
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-                do {
-                    this.state = 829;
-                    this.match(LnParser.EQUALS);
-                    this.state = 832; 
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                } while(_la===LnParser.EQUALS);
-                this.state = 837;
-                this._errHandler.sync(this);
-                var _alt = this._interp.adaptivePredict(this._input,116,this._ctx)
-                while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                    if(_alt===1) {
-                        this.state = 834;
-                        this.match(LnParser.GENERALOPERATORS); 
-                    }
-                    this.state = 839;
-                    this._errHandler.sync(this);
-                    _alt = this._interp.adaptivePredict(this._input,116,this._ctx);
-                }
-
-
-            } else if(la_===2) {
-                this.state = 841; 
+        switch (this._input.LA(1)) {
+            case LnParser.GENERALOPERATORS:
+                this.state = 820;
+                this.match(LnParser.GENERALOPERATORS);
+                break;
+            case LnParser.TYPESEP:
+                this.state = 821;
+                this.match(LnParser.TYPESEP);
+                break;
+            case LnParser.OPENGENERIC:
+                this.state = 822;
+                this.match(LnParser.OPENGENERIC);
+                break;
+            case LnParser.OR:
+                this.state = 823;
+                this.match(LnParser.OR);
+                break;
+            case LnParser.CLOSEGENERIC:
+                this.state = 825;
                 this._errHandler.sync(this);
                 var _alt = 1;
                 do {
-                	switch (_alt) {
-                	case 1:
-                		this.state = 840;
-                		this.match(LnParser.GENERALOPERATORS);
-                		break;
-                	default:
-                		throw new antlr4.error.NoViableAltException(this);
-                	}
-                	this.state = 843; 
-                	this._errHandler.sync(this);
-                	_alt = this._interp.adaptivePredict(this._input,117, this._ctx);
-                } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-
-            }
-            break;
-        case LnParser.GLOBAL:
-            this.state = 847;
-            this.match(LnParser.GLOBAL);
-            break;
-        case LnParser.DIRSEP:
-            this.state = 848;
-            this.match(LnParser.DIRSEP);
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+                    switch (_alt) {
+                        case 1:
+                            this.state = 824;
+                            this.match(LnParser.CLOSEGENERIC);
+                            break;
+                        default:
+                            throw new antlr4.error.NoViableAltException(this);
+                    }
+                    this.state = 827;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 114, this._ctx);
+                } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+                this.state = 845;
+                this._errHandler.sync(this);
+                var la_ = this._interp.adaptivePredict(this._input, 118, this._ctx);
+                if (la_ === 1) {
+                    this.state = 830;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                    do {
+                        this.state = 829;
+                        this.match(LnParser.EQUALS);
+                        this.state = 832;
+                        this._errHandler.sync(this);
+                        _la = this._input.LA(1);
+                    } while (_la === LnParser.EQUALS);
+                    this.state = 837;
+                    this._errHandler.sync(this);
+                    var _alt = this._interp.adaptivePredict(this._input, 116, this._ctx);
+                    while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                        if (_alt === 1) {
+                            this.state = 834;
+                            this.match(LnParser.GENERALOPERATORS);
+                        }
+                        this.state = 839;
+                        this._errHandler.sync(this);
+                        _alt = this._interp.adaptivePredict(this._input, 116, this._ctx);
+                    }
+                }
+                else if (la_ === 2) {
+                    this.state = 841;
+                    this._errHandler.sync(this);
+                    var _alt = 1;
+                    do {
+                        switch (_alt) {
+                            case 1:
+                                this.state = 840;
+                                this.match(LnParser.GENERALOPERATORS);
+                                break;
+                            default:
+                                throw new antlr4.error.NoViableAltException(this);
+                        }
+                        this.state = 843;
+                        this._errHandler.sync(this);
+                        _alt = this._interp.adaptivePredict(this._input, 117, this._ctx);
+                    } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+                }
+                break;
+            case LnParser.GLOBAL:
+                this.state = 847;
+                this.match(LnParser.GLOBAL);
+                break;
+            case LnParser.DIRSEP:
+                this.state = 848;
+                this.match(LnParser.DIRSEP);
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function OperatormappingContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_operatormapping;
     return this;
 }
-
 OperatormappingContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 OperatormappingContext.prototype.constructor = OperatormappingContext;
-
-OperatormappingContext.prototype.operators = function() {
-    return this.getTypedRuleContext(OperatorsContext,0);
+OperatormappingContext.prototype.operators = function () {
+    return this.getTypedRuleContext(OperatorsContext, 0);
 };
-
-OperatormappingContext.prototype.NUMBERCONSTANT = function() {
+OperatormappingContext.prototype.NUMBERCONSTANT = function () {
     return this.getToken(LnParser.NUMBERCONSTANT, 0);
 };
-
-OperatormappingContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+OperatormappingContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-OperatormappingContext.prototype.PREFIX = function() {
+OperatormappingContext.prototype.PREFIX = function () {
     return this.getToken(LnParser.PREFIX, 0);
 };
-
-OperatormappingContext.prototype.infix = function() {
-    return this.getTypedRuleContext(InfixContext,0);
+OperatormappingContext.prototype.infix = function () {
+    return this.getTypedRuleContext(InfixContext, 0);
 };
-
-OperatormappingContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+OperatormappingContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-OperatormappingContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+OperatormappingContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterOperatormapping(this);
-	}
+    }
 };
-
-OperatormappingContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+OperatormappingContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitOperatormapping(this);
-	}
+    }
 };
-
-
-
-
 LnParser.OperatormappingContext = OperatormappingContext;
-
-LnParser.prototype.operatormapping = function() {
-
+LnParser.prototype.operatormapping = function () {
     var localctx = new OperatormappingContext(this, this._ctx, this.state);
     this.enterRule(localctx, 86, LnParser.RULE_operatormapping);
     var _la = 0; // Token type
@@ -12184,24 +10960,24 @@ LnParser.prototype.operatormapping = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 853;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.PREFIX:
-            this.state = 851;
-            this.match(LnParser.PREFIX);
-            break;
-        case LnParser.INFIX:
-            this.state = 852;
-            this.infix();
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+        switch (this._input.LA(1)) {
+            case LnParser.PREFIX:
+                this.state = 851;
+                this.match(LnParser.PREFIX);
+                break;
+            case LnParser.INFIX:
+                this.state = 852;
+                this.infix();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
         this.state = 855;
         this.operators();
         this.state = 859;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.WS) {
+        while (_la === LnParser.WS) {
             this.state = 856;
             this.match(LnParser.WS);
             this.state = 861;
@@ -12210,91 +10986,80 @@ LnParser.prototype.operatormapping = function() {
         }
         this.state = 862;
         this.match(LnParser.NUMBERCONSTANT);
-        this.state = 864; 
+        this.state = 864;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 863;
             this.match(LnParser.WS);
-            this.state = 866; 
+            this.state = 866;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===LnParser.WS);
+        } while (_la === LnParser.WS);
         this.state = 868;
         this.varn();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function InfixContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_infix;
     return this;
 }
-
 InfixContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 InfixContext.prototype.constructor = InfixContext;
-
-InfixContext.prototype.INFIX = function() {
+InfixContext.prototype.INFIX = function () {
     return this.getToken(LnParser.INFIX, 0);
 };
-
-InfixContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+InfixContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-InfixContext.prototype.COMMUTATIVE = function() {
+InfixContext.prototype.COMMUTATIVE = function () {
     return this.getToken(LnParser.COMMUTATIVE, 0);
 };
-
-InfixContext.prototype.ASSOCIATIVE = function() {
+InfixContext.prototype.ASSOCIATIVE = function () {
     return this.getToken(LnParser.ASSOCIATIVE, 0);
 };
-
-InfixContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+InfixContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterInfix(this);
-	}
+    }
 };
-
-InfixContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+InfixContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitInfix(this);
-	}
+    }
 };
-
-
-
-
 LnParser.InfixContext = InfixContext;
-
-LnParser.prototype.infix = function() {
-
+LnParser.prototype.infix = function () {
     var localctx = new InfixContext(this, this._ctx, this.state);
     this.enterRule(localctx, 88, LnParser.RULE_infix);
     var _la = 0; // Token type
@@ -12304,122 +11069,107 @@ LnParser.prototype.infix = function() {
         this.match(LnParser.INFIX);
         this.state = 874;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,123,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 123, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 871;
-                this.match(LnParser.WS); 
+                this.match(LnParser.WS);
             }
             this.state = 876;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,123,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 123, this._ctx);
         }
-
         this.state = 878;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(_la===LnParser.COMMUTATIVE) {
+        if (_la === LnParser.COMMUTATIVE) {
             this.state = 877;
             this.match(LnParser.COMMUTATIVE);
         }
-
         this.state = 883;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,125,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 125, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 880;
-                this.match(LnParser.WS); 
+                this.match(LnParser.WS);
             }
             this.state = 885;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,125,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 125, this._ctx);
         }
-
         this.state = 887;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(_la===LnParser.ASSOCIATIVE) {
+        if (_la === LnParser.ASSOCIATIVE) {
             this.state = 886;
             this.match(LnParser.ASSOCIATIVE);
         }
-
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function EventsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_events;
     return this;
 }
-
 EventsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 EventsContext.prototype.constructor = EventsContext;
-
-EventsContext.prototype.EVENT = function() {
+EventsContext.prototype.EVENT = function () {
     return this.getToken(LnParser.EVENT, 0);
 };
-
-EventsContext.prototype.blank = function(i) {
-    if(i===undefined) {
+EventsContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-EventsContext.prototype.VARNAME = function() {
+EventsContext.prototype.VARNAME = function () {
     return this.getToken(LnParser.VARNAME, 0);
 };
-
-EventsContext.prototype.TYPESEP = function() {
+EventsContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-
-EventsContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+EventsContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-EventsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+EventsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterEvents(this);
-	}
+    }
 };
-
-EventsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+EventsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitEvents(this);
-	}
+    }
 };
-
-
-
-
 LnParser.EventsContext = EventsContext;
-
-LnParser.prototype.events = function() {
-
+LnParser.prototype.events = function () {
     var localctx = new EventsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 90, LnParser.RULE_events);
     var _la = 0; // Token type
@@ -12434,7 +11184,7 @@ LnParser.prototype.events = function() {
         this.state = 895;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 892;
             this.blank();
             this.state = 897;
@@ -12445,86 +11195,74 @@ LnParser.prototype.events = function() {
         this.match(LnParser.TYPESEP);
         this.state = 899;
         this.varn();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function HandlersContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_handlers;
     return this;
 }
-
 HandlersContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 HandlersContext.prototype.constructor = HandlersContext;
-
-HandlersContext.prototype.ON = function() {
+HandlersContext.prototype.ON = function () {
     return this.getToken(LnParser.ON, 0);
 };
-
-HandlersContext.prototype.eventref = function() {
-    return this.getTypedRuleContext(EventrefContext,0);
+HandlersContext.prototype.eventref = function () {
+    return this.getTypedRuleContext(EventrefContext, 0);
 };
-
-HandlersContext.prototype.functions = function() {
-    return this.getTypedRuleContext(FunctionsContext,0);
+HandlersContext.prototype.functions = function () {
+    return this.getTypedRuleContext(FunctionsContext, 0);
 };
-
-HandlersContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+HandlersContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-HandlersContext.prototype.functionbody = function() {
-    return this.getTypedRuleContext(FunctionbodyContext,0);
+HandlersContext.prototype.functionbody = function () {
+    return this.getTypedRuleContext(FunctionbodyContext, 0);
 };
-
-HandlersContext.prototype.blank = function(i) {
-    if(i===undefined) {
+HandlersContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-HandlersContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+HandlersContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterHandlers(this);
-	}
+    }
 };
-
-HandlersContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+HandlersContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitHandlers(this);
-	}
+    }
 };
-
-
-
-
 LnParser.HandlersContext = HandlersContext;
-
-LnParser.prototype.handlers = function() {
-
+LnParser.prototype.handlers = function () {
     var localctx = new HandlersContext(this, this._ctx, this.state);
     this.enterRule(localctx, 92, LnParser.RULE_handlers);
     var _la = 0; // Token type
@@ -12532,224 +11270,201 @@ LnParser.prototype.handlers = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 901;
         this.match(LnParser.ON);
-        this.state = 903; 
+        this.state = 903;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 902;
             this.blank();
-            this.state = 905; 
+            this.state = 905;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===LnParser.NEWLINE || _la===LnParser.WS);
+        } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
         this.state = 907;
         this.eventref();
-        this.state = 909; 
+        this.state = 909;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 908;
             this.blank();
-            this.state = 911; 
+            this.state = 911;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===LnParser.NEWLINE || _la===LnParser.WS);
+        } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
         this.state = 916;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.FN:
-            this.state = 913;
-            this.functions();
-            break;
-        case LnParser.OPENARRAY:
-        case LnParser.METHODSEP:
-        case LnParser.VARNAME:
-            this.state = 914;
-            this.varn();
-            break;
-        case LnParser.OPENBODY:
-            this.state = 915;
-            this.functionbody();
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+        switch (this._input.LA(1)) {
+            case LnParser.FN:
+                this.state = 913;
+                this.functions();
+                break;
+            case LnParser.OPENARRAY:
+            case LnParser.METHODSEP:
+            case LnParser.VARNAME:
+                this.state = 914;
+                this.varn();
+                break;
+            case LnParser.OPENBODY:
+                this.state = 915;
+                this.functionbody();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function EventrefContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_eventref;
     return this;
 }
-
 EventrefContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 EventrefContext.prototype.constructor = EventrefContext;
-
-EventrefContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+EventrefContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-EventrefContext.prototype.calls = function() {
-    return this.getTypedRuleContext(CallsContext,0);
+EventrefContext.prototype.calls = function () {
+    return this.getTypedRuleContext(CallsContext, 0);
 };
-
-EventrefContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+EventrefContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterEventref(this);
-	}
+    }
 };
-
-EventrefContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+EventrefContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitEventref(this);
-	}
+    }
 };
-
-
-
-
 LnParser.EventrefContext = EventrefContext;
-
-LnParser.prototype.eventref = function() {
-
+LnParser.prototype.eventref = function () {
     var localctx = new EventrefContext(this, this._ctx, this.state);
     this.enterRule(localctx, 94, LnParser.RULE_eventref);
     try {
         this.state = 920;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,131,this._ctx);
-        switch(la_) {
-        case 1:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 918;
-            this.varn();
-            break;
-
-        case 2:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 919;
-            this.calls();
-            break;
-
+        var la_ = this._interp.adaptivePredict(this._input, 131, this._ctx);
+        switch (la_) {
+            case 1:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 918;
+                this.varn();
+                break;
+            case 2:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 919;
+                this.calls();
+                break;
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function InterfacesContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_interfaces;
     return this;
 }
-
 InterfacesContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 InterfacesContext.prototype.constructor = InterfacesContext;
-
-InterfacesContext.prototype.INTERFACE = function() {
+InterfacesContext.prototype.INTERFACE = function () {
     return this.getToken(LnParser.INTERFACE, 0);
 };
-
-InterfacesContext.prototype.VARNAME = function() {
+InterfacesContext.prototype.VARNAME = function () {
     return this.getToken(LnParser.VARNAME, 0);
 };
-
-InterfacesContext.prototype.OPENBODY = function() {
+InterfacesContext.prototype.OPENBODY = function () {
     return this.getToken(LnParser.OPENBODY, 0);
 };
-
-InterfacesContext.prototype.CLOSEBODY = function() {
+InterfacesContext.prototype.CLOSEBODY = function () {
     return this.getToken(LnParser.CLOSEBODY, 0);
 };
-
-InterfacesContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+InterfacesContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-InterfacesContext.prototype.blank = function(i) {
-    if(i===undefined) {
+InterfacesContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-InterfacesContext.prototype.interfaceline = function(i) {
-    if(i===undefined) {
+InterfacesContext.prototype.interfaceline = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(InterfacelineContext);
-    } else {
-        return this.getTypedRuleContext(InterfacelineContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(InterfacelineContext, i);
     }
 };
-
-InterfacesContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+InterfacesContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterInterfaces(this);
-	}
+    }
 };
-
-InterfacesContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+InterfacesContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitInterfaces(this);
-	}
+    }
 };
-
-
-
-
 LnParser.InterfacesContext = InterfacesContext;
-
-LnParser.prototype.interfaces = function() {
-
+LnParser.prototype.interfaces = function () {
     var localctx = new InterfacesContext(this, this._ctx, this.state);
     this.enterRule(localctx, 96, LnParser.RULE_interfaces);
     var _la = 0; // Token type
@@ -12760,7 +11475,7 @@ LnParser.prototype.interfaces = function() {
         this.state = 926;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.WS) {
+        while (_la === LnParser.WS) {
             this.state = 923;
             this.match(LnParser.WS);
             this.state = 928;
@@ -12772,7 +11487,7 @@ LnParser.prototype.interfaces = function() {
         this.state = 933;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.WS) {
+        while (_la === LnParser.WS) {
             this.state = 930;
             this.match(LnParser.WS);
             this.state = 935;
@@ -12783,205 +11498,180 @@ LnParser.prototype.interfaces = function() {
         this.match(LnParser.OPENBODY);
         this.state = 940;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,134,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 134, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 937;
-                this.blank(); 
+                this.blank();
             }
             this.state = 942;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,134,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 134, this._ctx);
         }
-
         this.state = 951;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.FN) | (1 << LnParser.COMMUTATIVE) | (1 << LnParser.ASSOCIATIVE) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 33)) & ~0x1f) == 0 && ((1 << (_la - 33)) & ((1 << (LnParser.GLOBAL - 33)) | (1 << (LnParser.DIRSEP - 33)) | (1 << (LnParser.OR - 33)) | (1 << (LnParser.GENERALOPERATORS - 33)) | (1 << (LnParser.TYPESEP - 33)) | (1 << (LnParser.WS - 33)) | (1 << (LnParser.VARNAME - 33)))) !== 0)) {
+        while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.FN) | (1 << LnParser.COMMUTATIVE) | (1 << LnParser.ASSOCIATIVE) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 33)) & ~0x1f) == 0 && ((1 << (_la - 33)) & ((1 << (LnParser.GLOBAL - 33)) | (1 << (LnParser.DIRSEP - 33)) | (1 << (LnParser.OR - 33)) | (1 << (LnParser.GENERALOPERATORS - 33)) | (1 << (LnParser.TYPESEP - 33)) | (1 << (LnParser.WS - 33)) | (1 << (LnParser.VARNAME - 33)))) !== 0)) {
             this.state = 943;
             this.interfaceline();
-            this.state = 945; 
+            this.state = 945;
             this._errHandler.sync(this);
             var _alt = 1;
             do {
-            	switch (_alt) {
-            	case 1:
-            		this.state = 944;
-            		this.blank();
-            		break;
-            	default:
-            		throw new antlr4.error.NoViableAltException(this);
-            	}
-            	this.state = 947; 
-            	this._errHandler.sync(this);
-            	_alt = this._interp.adaptivePredict(this._input,135, this._ctx);
-            } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
+                switch (_alt) {
+                    case 1:
+                        this.state = 944;
+                        this.blank();
+                        break;
+                    default:
+                        throw new antlr4.error.NoViableAltException(this);
+                }
+                this.state = 947;
+                this._errHandler.sync(this);
+                _alt = this._interp.adaptivePredict(this._input, 135, this._ctx);
+            } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
             this.state = 953;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
         this.state = 954;
         this.match(LnParser.CLOSEBODY);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function InterfacelineContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_interfaceline;
     return this;
 }
-
 InterfacelineContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 InterfacelineContext.prototype.constructor = InterfacelineContext;
-
-InterfacelineContext.prototype.functiontypeline = function() {
-    return this.getTypedRuleContext(FunctiontypelineContext,0);
+InterfacelineContext.prototype.functiontypeline = function () {
+    return this.getTypedRuleContext(FunctiontypelineContext, 0);
 };
-
-InterfacelineContext.prototype.operatortypeline = function() {
-    return this.getTypedRuleContext(OperatortypelineContext,0);
+InterfacelineContext.prototype.operatortypeline = function () {
+    return this.getTypedRuleContext(OperatortypelineContext, 0);
 };
-
-InterfacelineContext.prototype.propertytypeline = function() {
-    return this.getTypedRuleContext(PropertytypelineContext,0);
+InterfacelineContext.prototype.propertytypeline = function () {
+    return this.getTypedRuleContext(PropertytypelineContext, 0);
 };
-
-InterfacelineContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+InterfacelineContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterInterfaceline(this);
-	}
+    }
 };
-
-InterfacelineContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+InterfacelineContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitInterfaceline(this);
-	}
+    }
 };
-
-
-
-
 LnParser.InterfacelineContext = InterfacelineContext;
-
-LnParser.prototype.interfaceline = function() {
-
+LnParser.prototype.interfaceline = function () {
     var localctx = new InterfacelineContext(this, this._ctx, this.state);
     this.enterRule(localctx, 98, LnParser.RULE_interfaceline);
     try {
         this.state = 959;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input,137,this._ctx);
-        switch(la_) {
-        case 1:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 956;
-            this.functiontypeline();
-            break;
-
-        case 2:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 957;
-            this.operatortypeline();
-            break;
-
-        case 3:
-            this.enterOuterAlt(localctx, 3);
-            this.state = 958;
-            this.propertytypeline();
-            break;
-
+        var la_ = this._interp.adaptivePredict(this._input, 137, this._ctx);
+        switch (la_) {
+            case 1:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 956;
+                this.functiontypeline();
+                break;
+            case 2:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 957;
+                this.operatortypeline();
+                break;
+            case 3:
+                this.enterOuterAlt(localctx, 3);
+                this.state = 958;
+                this.propertytypeline();
+                break;
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function FunctiontypelineContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_functiontypeline;
     return this;
 }
-
 FunctiontypelineContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 FunctiontypelineContext.prototype.constructor = FunctiontypelineContext;
-
-FunctiontypelineContext.prototype.functiontype = function() {
-    return this.getTypedRuleContext(FunctiontypeContext,0);
+FunctiontypelineContext.prototype.functiontype = function () {
+    return this.getTypedRuleContext(FunctiontypeContext, 0);
 };
-
-FunctiontypelineContext.prototype.VARNAME = function() {
+FunctiontypelineContext.prototype.VARNAME = function () {
     return this.getToken(LnParser.VARNAME, 0);
 };
-
-FunctiontypelineContext.prototype.FN = function() {
+FunctiontypelineContext.prototype.FN = function () {
     return this.getToken(LnParser.FN, 0);
 };
-
-FunctiontypelineContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+FunctiontypelineContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-FunctiontypelineContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FunctiontypelineContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterFunctiontypeline(this);
-	}
+    }
 };
-
-FunctiontypelineContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FunctiontypelineContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitFunctiontypeline(this);
-	}
+    }
 };
-
-
-
-
 LnParser.FunctiontypelineContext = FunctiontypelineContext;
-
-LnParser.prototype.functiontypeline = function() {
-
+LnParser.prototype.functiontypeline = function () {
     var localctx = new FunctiontypelineContext(this, this._ctx, this.state);
     this.enterRule(localctx, 100, LnParser.RULE_functiontypeline);
     var _la = 0; // Token type
@@ -12989,17 +11679,17 @@ LnParser.prototype.functiontypeline = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 961;
         _la = this._input.LA(1);
-        if(!(_la===LnParser.FN || _la===LnParser.VARNAME)) {
-        this._errHandler.recoverInline(this);
+        if (!(_la === LnParser.FN || _la === LnParser.VARNAME)) {
+            this._errHandler.recoverInline(this);
         }
         else {
-        	this._errHandler.reportMatch(this);
+            this._errHandler.reportMatch(this);
             this.consume();
         }
         this.state = 965;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.WS) {
+        while (_la === LnParser.WS) {
             this.state = 962;
             this.match(LnParser.WS);
             this.state = 967;
@@ -13008,101 +11698,90 @@ LnParser.prototype.functiontypeline = function() {
         }
         this.state = 968;
         this.functiontype();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function FunctiontypeContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_functiontype;
     return this;
 }
-
 FunctiontypeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 FunctiontypeContext.prototype.constructor = FunctiontypeContext;
-
-FunctiontypeContext.prototype.OPENARGS = function() {
+FunctiontypeContext.prototype.OPENARGS = function () {
     return this.getToken(LnParser.OPENARGS, 0);
 };
-
-FunctiontypeContext.prototype.varn = function(i) {
-    if(i===undefined) {
+FunctiontypeContext.prototype.varn = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(VarnContext);
-    } else {
-        return this.getTypedRuleContext(VarnContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(VarnContext, i);
     }
 };
-
-FunctiontypeContext.prototype.CLOSEARGS = function() {
+FunctiontypeContext.prototype.CLOSEARGS = function () {
     return this.getToken(LnParser.CLOSEARGS, 0);
 };
-
-FunctiontypeContext.prototype.TYPESEP = function() {
+FunctiontypeContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-
-FunctiontypeContext.prototype.blank = function(i) {
-    if(i===undefined) {
+FunctiontypeContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-FunctiontypeContext.prototype.SEP = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+FunctiontypeContext.prototype.SEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.SEP);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.SEP, i);
     }
 };
-
-
-FunctiontypeContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FunctiontypeContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterFunctiontype(this);
-	}
+    }
 };
-
-FunctiontypeContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+FunctiontypeContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitFunctiontype(this);
-	}
+    }
 };
-
-
-
-
 LnParser.FunctiontypeContext = FunctiontypeContext;
-
-LnParser.prototype.functiontype = function() {
-
+LnParser.prototype.functiontype = function () {
     var localctx = new FunctiontypeContext(this, this._ctx, this.state);
     this.enterRule(localctx, 102, LnParser.RULE_functiontype);
     var _la = 0; // Token type
@@ -13113,7 +11792,7 @@ LnParser.prototype.functiontype = function() {
         this.state = 974;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 971;
             this.blank();
             this.state = 976;
@@ -13125,7 +11804,7 @@ LnParser.prototype.functiontype = function() {
         this.state = 981;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 978;
             this.blank();
             this.state = 983;
@@ -13135,13 +11814,13 @@ LnParser.prototype.functiontype = function() {
         this.state = 1000;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.SEP) {
+        while (_la === LnParser.SEP) {
             this.state = 984;
             this.match(LnParser.SEP);
             this.state = 988;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
                 this.state = 985;
                 this.blank();
                 this.state = 990;
@@ -13153,7 +11832,7 @@ LnParser.prototype.functiontype = function() {
             this.state = 995;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
                 this.state = 992;
                 this.blank();
                 this.state = 997;
@@ -13171,7 +11850,7 @@ LnParser.prototype.functiontype = function() {
         this.state = 1008;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 1005;
             this.blank();
             this.state = 1010;
@@ -13180,94 +11859,80 @@ LnParser.prototype.functiontype = function() {
         }
         this.state = 1011;
         this.varn();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function OperatortypelineContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_operatortypeline;
     return this;
 }
-
 OperatortypelineContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 OperatortypelineContext.prototype.constructor = OperatortypelineContext;
-
-OperatortypelineContext.prototype.operators = function() {
-    return this.getTypedRuleContext(OperatorsContext,0);
+OperatortypelineContext.prototype.operators = function () {
+    return this.getTypedRuleContext(OperatorsContext, 0);
 };
-
-OperatortypelineContext.prototype.rightarg = function() {
-    return this.getTypedRuleContext(RightargContext,0);
+OperatortypelineContext.prototype.rightarg = function () {
+    return this.getTypedRuleContext(RightargContext, 0);
 };
-
-OperatortypelineContext.prototype.TYPESEP = function() {
+OperatortypelineContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-
-OperatortypelineContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+OperatortypelineContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-OperatortypelineContext.prototype.leftarg = function() {
-    return this.getTypedRuleContext(LeftargContext,0);
+OperatortypelineContext.prototype.leftarg = function () {
+    return this.getTypedRuleContext(LeftargContext, 0);
 };
-
-OperatortypelineContext.prototype.blank = function(i) {
-    if(i===undefined) {
+OperatortypelineContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-OperatortypelineContext.prototype.COMMUTATIVE = function() {
+OperatortypelineContext.prototype.COMMUTATIVE = function () {
     return this.getToken(LnParser.COMMUTATIVE, 0);
 };
-
-OperatortypelineContext.prototype.ASSOCIATIVE = function() {
+OperatortypelineContext.prototype.ASSOCIATIVE = function () {
     return this.getToken(LnParser.ASSOCIATIVE, 0);
 };
-
-OperatortypelineContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+OperatortypelineContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterOperatortypeline(this);
-	}
+    }
 };
-
-OperatortypelineContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+OperatortypelineContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitOperatortypeline(this);
-	}
+    }
 };
-
-
-
-
 LnParser.OperatortypelineContext = OperatortypelineContext;
-
-LnParser.prototype.operatortypeline = function() {
-
+LnParser.prototype.operatortypeline = function () {
     var localctx = new OperatortypelineContext(this, this._ctx, this.state);
     this.enterRule(localctx, 104, LnParser.RULE_operatortypeline);
     var _la = 0; // Token type
@@ -13276,66 +11941,62 @@ LnParser.prototype.operatortypeline = function() {
         this.state = 1036;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(((((_la - 16)) & ~0x1f) == 0 && ((1 << (_la - 16)) & ((1 << (LnParser.COMMUTATIVE - 16)) | (1 << (LnParser.ASSOCIATIVE - 16)) | (1 << (LnParser.OPENARRAY - 16)) | (1 << (LnParser.METHODSEP - 16)) | (1 << (LnParser.VARNAME - 16)))) !== 0)) {
+        if (((((_la - 16)) & ~0x1f) == 0 && ((1 << (_la - 16)) & ((1 << (LnParser.COMMUTATIVE - 16)) | (1 << (LnParser.ASSOCIATIVE - 16)) | (1 << (LnParser.OPENARRAY - 16)) | (1 << (LnParser.METHODSEP - 16)) | (1 << (LnParser.VARNAME - 16)))) !== 0)) {
             this.state = 1019;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            if(_la===LnParser.COMMUTATIVE) {
+            if (_la === LnParser.COMMUTATIVE) {
                 this.state = 1013;
                 this.match(LnParser.COMMUTATIVE);
-                this.state = 1015; 
+                this.state = 1015;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 do {
                     this.state = 1014;
                     this.blank();
-                    this.state = 1017; 
+                    this.state = 1017;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
-                } while(_la===LnParser.NEWLINE || _la===LnParser.WS);
+                } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
             }
-
             this.state = 1027;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            if(_la===LnParser.ASSOCIATIVE) {
+            if (_la === LnParser.ASSOCIATIVE) {
                 this.state = 1021;
                 this.match(LnParser.ASSOCIATIVE);
-                this.state = 1023; 
+                this.state = 1023;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 do {
                     this.state = 1022;
                     this.blank();
-                    this.state = 1025; 
+                    this.state = 1025;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
-                } while(_la===LnParser.NEWLINE || _la===LnParser.WS);
+                } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
             }
-
             this.state = 1029;
             this.leftarg();
             this.state = 1033;
             this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input,149,this._ctx)
-            while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                if(_alt===1) {
+            var _alt = this._interp.adaptivePredict(this._input, 149, this._ctx);
+            while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                if (_alt === 1) {
                     this.state = 1030;
-                    this.blank(); 
+                    this.blank();
                 }
                 this.state = 1035;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input,149,this._ctx);
+                _alt = this._interp.adaptivePredict(this._input, 149, this._ctx);
             }
-
         }
-
         this.state = 1038;
         this.operators();
         this.state = 1042;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 1039;
             this.blank();
             this.state = 1044;
@@ -13347,7 +12008,7 @@ LnParser.prototype.operatortypeline = function() {
         this.state = 1049;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 1046;
             this.blank();
             this.state = 1051;
@@ -13359,7 +12020,7 @@ LnParser.prototype.operatortypeline = function() {
         this.state = 1056;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
             this.state = 1053;
             this.blank();
             this.state = 1058;
@@ -13368,197 +12029,170 @@ LnParser.prototype.operatortypeline = function() {
         }
         this.state = 1059;
         this.varn();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function LeftargContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_leftarg;
     return this;
 }
-
 LeftargContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 LeftargContext.prototype.constructor = LeftargContext;
-
-LeftargContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+LeftargContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-LeftargContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+LeftargContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterLeftarg(this);
-	}
+    }
 };
-
-LeftargContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+LeftargContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitLeftarg(this);
-	}
+    }
 };
-
-
-
-
 LnParser.LeftargContext = LeftargContext;
-
-LnParser.prototype.leftarg = function() {
-
+LnParser.prototype.leftarg = function () {
     var localctx = new LeftargContext(this, this._ctx, this.state);
     this.enterRule(localctx, 106, LnParser.RULE_leftarg);
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 1061;
         this.varn();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function RightargContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_rightarg;
     return this;
 }
-
 RightargContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 RightargContext.prototype.constructor = RightargContext;
-
-RightargContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+RightargContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-RightargContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+RightargContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterRightarg(this);
-	}
+    }
 };
-
-RightargContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+RightargContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitRightarg(this);
-	}
+    }
 };
-
-
-
-
 LnParser.RightargContext = RightargContext;
-
-LnParser.prototype.rightarg = function() {
-
+LnParser.prototype.rightarg = function () {
     var localctx = new RightargContext(this, this._ctx, this.state);
     this.enterRule(localctx, 108, LnParser.RULE_rightarg);
     try {
         this.enterOuterAlt(localctx, 1);
         this.state = 1063;
         this.varn();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function PropertytypelineContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_propertytypeline;
     return this;
 }
-
 PropertytypelineContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 PropertytypelineContext.prototype.constructor = PropertytypelineContext;
-
-PropertytypelineContext.prototype.VARNAME = function() {
+PropertytypelineContext.prototype.VARNAME = function () {
     return this.getToken(LnParser.VARNAME, 0);
 };
-
-PropertytypelineContext.prototype.TYPESEP = function() {
+PropertytypelineContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-
-PropertytypelineContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+PropertytypelineContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-PropertytypelineContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+PropertytypelineContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-PropertytypelineContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+PropertytypelineContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterPropertytypeline(this);
-	}
+    }
 };
-
-PropertytypelineContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+PropertytypelineContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitPropertytypeline(this);
-	}
+    }
 };
-
-
-
-
 LnParser.PropertytypelineContext = PropertytypelineContext;
-
-LnParser.prototype.propertytypeline = function() {
-
+LnParser.prototype.propertytypeline = function () {
     var localctx = new PropertytypelineContext(this, this._ctx, this.state);
     this.enterRule(localctx, 110, LnParser.RULE_propertytypeline);
     var _la = 0; // Token type
@@ -13569,7 +12203,7 @@ LnParser.prototype.propertytypeline = function() {
         this.state = 1069;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.WS) {
+        while (_la === LnParser.WS) {
             this.state = 1066;
             this.match(LnParser.WS);
             this.state = 1071;
@@ -13581,7 +12215,7 @@ LnParser.prototype.propertytypeline = function() {
         this.state = 1076;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.WS) {
+        while (_la === LnParser.WS) {
             this.state = 1073;
             this.match(LnParser.WS);
             this.state = 1078;
@@ -13590,89 +12224,81 @@ LnParser.prototype.propertytypeline = function() {
         }
         this.state = 1079;
         this.varn();
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ArgtypeContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_argtype;
     return this;
 }
-
 ArgtypeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ArgtypeContext.prototype.constructor = ArgtypeContext;
-
-ArgtypeContext.prototype.othertype = function(i) {
-    if(i===undefined) {
+ArgtypeContext.prototype.othertype = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(OthertypeContext);
-    } else {
-        return this.getTypedRuleContext(OthertypeContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(OthertypeContext, i);
     }
 };
-
-ArgtypeContext.prototype.OR = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+ArgtypeContext.prototype.OR = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.OR);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.OR, i);
     }
 };
-
-
-ArgtypeContext.prototype.blank = function(i) {
-    if(i===undefined) {
+ArgtypeContext.prototype.blank = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(BlankContext);
-    } else {
-        return this.getTypedRuleContext(BlankContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
-
-ArgtypeContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ArgtypeContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterArgtype(this);
-	}
+    }
 };
-
-ArgtypeContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ArgtypeContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitArgtype(this);
-	}
+    }
 };
-
-
-
-
 LnParser.ArgtypeContext = ArgtypeContext;
-
-LnParser.prototype.argtype = function() {
-
+LnParser.prototype.argtype = function () {
     var localctx = new ArgtypeContext(this, this._ctx, this.state);
     this.enterRule(localctx, 112, LnParser.RULE_argtype);
     var _la = 0; // Token type
@@ -13682,13 +12308,13 @@ LnParser.prototype.argtype = function() {
         this.othertype();
         this.state = 1098;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,158,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 158, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 1085;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-                while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
                     this.state = 1082;
                     this.blank();
                     this.state = 1087;
@@ -13700,7 +12326,7 @@ LnParser.prototype.argtype = function() {
                 this.state = 1092;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
-                while(_la===LnParser.NEWLINE || _la===LnParser.WS) {
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
                     this.state = 1089;
                     this.blank();
                     this.state = 1094;
@@ -13708,109 +12334,98 @@ LnParser.prototype.argtype = function() {
                     _la = this._input.LA(1);
                 }
                 this.state = 1095;
-                this.othertype(); 
+                this.othertype();
             }
             this.state = 1100;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,158,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 158, this._ctx);
         }
-
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ArglistContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_arglist;
     return this;
 }
-
 ArglistContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ArglistContext.prototype.constructor = ArglistContext;
-
-ArglistContext.prototype.VARNAME = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+ArglistContext.prototype.VARNAME = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.VARNAME);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.VARNAME, i);
     }
 };
-
-
-ArglistContext.prototype.TYPESEP = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+ArglistContext.prototype.TYPESEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.TYPESEP);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.TYPESEP, i);
     }
 };
-
-
-ArglistContext.prototype.argtype = function(i) {
-    if(i===undefined) {
+ArglistContext.prototype.argtype = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(ArgtypeContext);
-    } else {
-        return this.getTypedRuleContext(ArgtypeContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(ArgtypeContext, i);
     }
 };
-
-ArglistContext.prototype.SEP = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+ArglistContext.prototype.SEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.SEP);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.SEP, i);
     }
 };
-
-
-ArglistContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ArglistContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterArglist(this);
-	}
+    }
 };
-
-ArglistContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ArglistContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitArglist(this);
-	}
+    }
 };
-
-
-
-
 LnParser.ArglistContext = ArglistContext;
-
-LnParser.prototype.arglist = function() {
-
+LnParser.prototype.arglist = function () {
     var localctx = new ArglistContext(this, this._ctx, this.state);
     this.enterRule(localctx, 114, LnParser.RULE_arglist);
     var _la = 0; // Token type
@@ -13825,7 +12440,7 @@ LnParser.prototype.arglist = function() {
         this.state = 1110;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.SEP) {
+        while (_la === LnParser.SEP) {
             this.state = 1104;
             this.match(LnParser.SEP);
             this.state = 1105;
@@ -13838,111 +12453,94 @@ LnParser.prototype.arglist = function() {
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ExportsContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_exports;
     return this;
 }
-
 ExportsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ExportsContext.prototype.constructor = ExportsContext;
-
-ExportsContext.prototype.EXPORT = function() {
+ExportsContext.prototype.EXPORT = function () {
     return this.getToken(LnParser.EXPORT, 0);
 };
-
-ExportsContext.prototype.varn = function() {
-    return this.getTypedRuleContext(VarnContext,0);
+ExportsContext.prototype.varn = function () {
+    return this.getTypedRuleContext(VarnContext, 0);
 };
-
-ExportsContext.prototype.types = function() {
-    return this.getTypedRuleContext(TypesContext,0);
+ExportsContext.prototype.types = function () {
+    return this.getTypedRuleContext(TypesContext, 0);
 };
-
-ExportsContext.prototype.constdeclaration = function() {
-    return this.getTypedRuleContext(ConstdeclarationContext,0);
+ExportsContext.prototype.constdeclaration = function () {
+    return this.getTypedRuleContext(ConstdeclarationContext, 0);
 };
-
-ExportsContext.prototype.functions = function() {
-    return this.getTypedRuleContext(FunctionsContext,0);
+ExportsContext.prototype.functions = function () {
+    return this.getTypedRuleContext(FunctionsContext, 0);
 };
-
-ExportsContext.prototype.operatormapping = function() {
-    return this.getTypedRuleContext(OperatormappingContext,0);
+ExportsContext.prototype.operatormapping = function () {
+    return this.getTypedRuleContext(OperatormappingContext, 0);
 };
-
-ExportsContext.prototype.events = function() {
-    return this.getTypedRuleContext(EventsContext,0);
+ExportsContext.prototype.events = function () {
+    return this.getTypedRuleContext(EventsContext, 0);
 };
-
-ExportsContext.prototype.interfaces = function() {
-    return this.getTypedRuleContext(InterfacesContext,0);
+ExportsContext.prototype.interfaces = function () {
+    return this.getTypedRuleContext(InterfacesContext, 0);
 };
-
-ExportsContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+ExportsContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-ExportsContext.prototype.NEWLINE = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+ExportsContext.prototype.NEWLINE = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.NEWLINE);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.NEWLINE, i);
     }
 };
-
-
-ExportsContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ExportsContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterExports(this);
-	}
+    }
 };
-
-ExportsContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ExportsContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitExports(this);
-	}
+    }
 };
-
-
-
-
 LnParser.ExportsContext = ExportsContext;
-
-LnParser.prototype.exports = function() {
-
+LnParser.prototype.exports = function () {
     var localctx = new ExportsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 116, LnParser.RULE_exports);
     var _la = 0; // Token type
@@ -13950,132 +12548,124 @@ LnParser.prototype.exports = function() {
         this.enterOuterAlt(localctx, 1);
         this.state = 1113;
         this.match(LnParser.EXPORT);
-        this.state = 1115; 
+        this.state = 1115;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
             this.state = 1114;
             _la = this._input.LA(1);
-            if(!(_la===LnParser.NEWLINE || _la===LnParser.WS)) {
-            this._errHandler.recoverInline(this);
+            if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
+                this._errHandler.recoverInline(this);
             }
             else {
-            	this._errHandler.reportMatch(this);
+                this._errHandler.reportMatch(this);
                 this.consume();
             }
-            this.state = 1117; 
+            this.state = 1117;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-        } while(_la===LnParser.NEWLINE || _la===LnParser.WS);
+        } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
         this.state = 1126;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.OPENARRAY:
-        case LnParser.METHODSEP:
-        case LnParser.VARNAME:
-            this.state = 1119;
-            this.varn();
-            break;
-        case LnParser.TYPE:
-            this.state = 1120;
-            this.types();
-            break;
-        case LnParser.CONST:
-            this.state = 1121;
-            this.constdeclaration();
-            break;
-        case LnParser.FN:
-            this.state = 1122;
-            this.functions();
-            break;
-        case LnParser.PREFIX:
-        case LnParser.INFIX:
-            this.state = 1123;
-            this.operatormapping();
-            break;
-        case LnParser.EVENT:
-            this.state = 1124;
-            this.events();
-            break;
-        case LnParser.INTERFACE:
-            this.state = 1125;
-            this.interfaces();
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+        switch (this._input.LA(1)) {
+            case LnParser.OPENARRAY:
+            case LnParser.METHODSEP:
+            case LnParser.VARNAME:
+                this.state = 1119;
+                this.varn();
+                break;
+            case LnParser.TYPE:
+                this.state = 1120;
+                this.types();
+                break;
+            case LnParser.CONST:
+                this.state = 1121;
+                this.constdeclaration();
+                break;
+            case LnParser.FN:
+                this.state = 1122;
+                this.functions();
+                break;
+            case LnParser.PREFIX:
+            case LnParser.INFIX:
+                this.state = 1123;
+                this.operatormapping();
+                break;
+            case LnParser.EVENT:
+                this.state = 1124;
+                this.events();
+                break;
+            case LnParser.INTERFACE:
+                this.state = 1125;
+                this.interfaces();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function VarlistContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_varlist;
     return this;
 }
-
 VarlistContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 VarlistContext.prototype.constructor = VarlistContext;
-
-VarlistContext.prototype.renameablevar = function(i) {
-    if(i===undefined) {
+VarlistContext.prototype.renameablevar = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(RenameablevarContext);
-    } else {
-        return this.getTypedRuleContext(RenameablevarContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(RenameablevarContext, i);
     }
 };
-
-VarlistContext.prototype.SEP = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+VarlistContext.prototype.SEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.SEP);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.SEP, i);
     }
 };
-
-
-VarlistContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+VarlistContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterVarlist(this);
-	}
+    }
 };
-
-VarlistContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+VarlistContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitVarlist(this);
-	}
+    }
 };
-
-
-
-
 LnParser.VarlistContext = VarlistContext;
-
-LnParser.prototype.varlist = function() {
-
+LnParser.prototype.varlist = function () {
     var localctx = new VarlistContext(this, this._ctx, this.state);
     this.enterRule(localctx, 118, LnParser.RULE_varlist);
     var _la = 0; // Token type
@@ -14086,7 +12676,7 @@ LnParser.prototype.varlist = function() {
         this.state = 1133;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.SEP) {
+        while (_la === LnParser.SEP) {
             this.state = 1129;
             this.match(LnParser.SEP);
             this.state = 1130;
@@ -14095,82 +12685,73 @@ LnParser.prototype.varlist = function() {
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function RenameablevarContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_renameablevar;
     return this;
 }
-
 RenameablevarContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 RenameablevarContext.prototype.constructor = RenameablevarContext;
-
-RenameablevarContext.prototype.varop = function(i) {
-    if(i===undefined) {
+RenameablevarContext.prototype.varop = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(VaropContext);
-    } else {
-        return this.getTypedRuleContext(VaropContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(VaropContext, i);
     }
 };
-
-RenameablevarContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+RenameablevarContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-RenameablevarContext.prototype.AS = function() {
+RenameablevarContext.prototype.AS = function () {
     return this.getToken(LnParser.AS, 0);
 };
-
-RenameablevarContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+RenameablevarContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterRenameablevar(this);
-	}
+    }
 };
-
-RenameablevarContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+RenameablevarContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitRenameablevar(this);
-	}
+    }
 };
-
-
-
-
 LnParser.RenameablevarContext = RenameablevarContext;
-
-LnParser.prototype.renameablevar = function() {
-
+LnParser.prototype.renameablevar = function () {
     var localctx = new RenameablevarContext(this, this._ctx, this.state);
     this.enterRule(localctx, 120, LnParser.RULE_renameablevar);
     var _la = 0; // Token type
@@ -14181,7 +12762,7 @@ LnParser.prototype.renameablevar = function() {
         this.state = 1141;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if(_la===LnParser.WS) {
+        if (_la === LnParser.WS) {
             this.state = 1137;
             this.match(LnParser.WS);
             this.state = 1138;
@@ -14191,328 +12772,290 @@ LnParser.prototype.renameablevar = function() {
             this.state = 1140;
             this.varop();
         }
-
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function VaropContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_varop;
     return this;
 }
-
 VaropContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 VaropContext.prototype.constructor = VaropContext;
-
-VaropContext.prototype.VARNAME = function() {
+VaropContext.prototype.VARNAME = function () {
     return this.getToken(LnParser.VARNAME, 0);
 };
-
-VaropContext.prototype.operators = function() {
-    return this.getTypedRuleContext(OperatorsContext,0);
+VaropContext.prototype.operators = function () {
+    return this.getTypedRuleContext(OperatorsContext, 0);
 };
-
-VaropContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+VaropContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterVarop(this);
-	}
+    }
 };
-
-VaropContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+VaropContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitVarop(this);
-	}
+    }
 };
-
-
-
-
 LnParser.VaropContext = VaropContext;
-
-LnParser.prototype.varop = function() {
-
+LnParser.prototype.varop = function () {
     var localctx = new VaropContext(this, this._ctx, this.state);
     this.enterRule(localctx, 122, LnParser.RULE_varop);
     try {
         this.state = 1145;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.VARNAME:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 1143;
-            this.match(LnParser.VARNAME);
-            break;
-        case LnParser.OPENGENERIC:
-        case LnParser.CLOSEGENERIC:
-        case LnParser.GLOBAL:
-        case LnParser.DIRSEP:
-        case LnParser.OR:
-        case LnParser.GENERALOPERATORS:
-        case LnParser.TYPESEP:
-        case LnParser.WS:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 1144;
-            this.operators();
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+        switch (this._input.LA(1)) {
+            case LnParser.VARNAME:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 1143;
+                this.match(LnParser.VARNAME);
+                break;
+            case LnParser.OPENGENERIC:
+            case LnParser.CLOSEGENERIC:
+            case LnParser.GLOBAL:
+            case LnParser.DIRSEP:
+            case LnParser.OR:
+            case LnParser.GENERALOPERATORS:
+            case LnParser.TYPESEP:
+            case LnParser.WS:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 1144;
+                this.operators();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function VarnContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_varn;
     return this;
 }
-
 VarnContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 VarnContext.prototype.constructor = VarnContext;
-
-VarnContext.prototype.varsegment = function(i) {
-    if(i===undefined) {
+VarnContext.prototype.varsegment = function (i) {
+    if (i === undefined) {
         i = null;
     }
-    if(i===null) {
+    if (i === null) {
         return this.getTypedRuleContexts(VarsegmentContext);
-    } else {
-        return this.getTypedRuleContext(VarsegmentContext,i);
+    }
+    else {
+        return this.getTypedRuleContext(VarsegmentContext, i);
     }
 };
-
-VarnContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+VarnContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterVarn(this);
-	}
+    }
 };
-
-VarnContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+VarnContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitVarn(this);
-	}
+    }
 };
-
-
-
-
 LnParser.VarnContext = VarnContext;
-
-LnParser.prototype.varn = function() {
-
+LnParser.prototype.varn = function () {
     var localctx = new VarnContext(this, this._ctx, this.state);
     this.enterRule(localctx, 124, LnParser.RULE_varn);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1148; 
+        this.state = 1148;
         this._errHandler.sync(this);
         var _alt = 1;
         do {
-        	switch (_alt) {
-        	case 1:
-        		this.state = 1147;
-        		this.varsegment();
-        		break;
-        	default:
-        		throw new antlr4.error.NoViableAltException(this);
-        	}
-        	this.state = 1150; 
-        	this._errHandler.sync(this);
-        	_alt = this._interp.adaptivePredict(this._input,165, this._ctx);
-        } while ( _alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER );
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+            switch (_alt) {
+                case 1:
+                    this.state = 1147;
+                    this.varsegment();
+                    break;
+                default:
+                    throw new antlr4.error.NoViableAltException(this);
+            }
+            this.state = 1150;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 165, this._ctx);
+        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function VarsegmentContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_varsegment;
     return this;
 }
-
 VarsegmentContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 VarsegmentContext.prototype.constructor = VarsegmentContext;
-
-VarsegmentContext.prototype.VARNAME = function() {
+VarsegmentContext.prototype.VARNAME = function () {
     return this.getToken(LnParser.VARNAME, 0);
 };
-
-VarsegmentContext.prototype.METHODSEP = function() {
+VarsegmentContext.prototype.METHODSEP = function () {
     return this.getToken(LnParser.METHODSEP, 0);
 };
-
-VarsegmentContext.prototype.arrayaccess = function() {
-    return this.getTypedRuleContext(ArrayaccessContext,0);
+VarsegmentContext.prototype.arrayaccess = function () {
+    return this.getTypedRuleContext(ArrayaccessContext, 0);
 };
-
-VarsegmentContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+VarsegmentContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterVarsegment(this);
-	}
+    }
 };
-
-VarsegmentContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+VarsegmentContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitVarsegment(this);
-	}
+    }
 };
-
-
-
-
 LnParser.VarsegmentContext = VarsegmentContext;
-
-LnParser.prototype.varsegment = function() {
-
+LnParser.prototype.varsegment = function () {
     var localctx = new VarsegmentContext(this, this._ctx, this.state);
     this.enterRule(localctx, 126, LnParser.RULE_varsegment);
     try {
         this.state = 1155;
         this._errHandler.sync(this);
-        switch(this._input.LA(1)) {
-        case LnParser.VARNAME:
-            this.enterOuterAlt(localctx, 1);
-            this.state = 1152;
-            this.match(LnParser.VARNAME);
-            break;
-        case LnParser.METHODSEP:
-            this.enterOuterAlt(localctx, 2);
-            this.state = 1153;
-            this.match(LnParser.METHODSEP);
-            break;
-        case LnParser.OPENARRAY:
-            this.enterOuterAlt(localctx, 3);
-            this.state = 1154;
-            this.arrayaccess();
-            break;
-        default:
-            throw new antlr4.error.NoViableAltException(this);
+        switch (this._input.LA(1)) {
+            case LnParser.VARNAME:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 1152;
+                this.match(LnParser.VARNAME);
+                break;
+            case LnParser.METHODSEP:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 1153;
+                this.match(LnParser.METHODSEP);
+                break;
+            case LnParser.OPENARRAY:
+                this.enterOuterAlt(localctx, 3);
+                this.state = 1154;
+                this.arrayaccess();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
         }
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
 function ArrayaccessContext(parser, parent, invokingState) {
-	if(parent===undefined) {
-	    parent = null;
-	}
-	if(invokingState===undefined || invokingState===null) {
-		invokingState = -1;
-	}
-	antlr4.ParserRuleContext.call(this, parent, invokingState);
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
     this.ruleIndex = LnParser.RULE_arrayaccess;
     return this;
 }
-
 ArrayaccessContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 ArrayaccessContext.prototype.constructor = ArrayaccessContext;
-
-ArrayaccessContext.prototype.OPENARRAY = function() {
+ArrayaccessContext.prototype.OPENARRAY = function () {
     return this.getToken(LnParser.OPENARRAY, 0);
 };
-
-ArrayaccessContext.prototype.assignables = function() {
-    return this.getTypedRuleContext(AssignablesContext,0);
+ArrayaccessContext.prototype.assignables = function () {
+    return this.getTypedRuleContext(AssignablesContext, 0);
 };
-
-ArrayaccessContext.prototype.CLOSEARRAY = function() {
+ArrayaccessContext.prototype.CLOSEARRAY = function () {
     return this.getToken(LnParser.CLOSEARRAY, 0);
 };
-
-ArrayaccessContext.prototype.WS = function(i) {
-	if(i===undefined) {
-		i = null;
-	}
-    if(i===null) {
+ArrayaccessContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
         return this.getTokens(LnParser.WS);
-    } else {
+    }
+    else {
         return this.getToken(LnParser.WS, i);
     }
 };
-
-
-ArrayaccessContext.prototype.enterRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ArrayaccessContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.enterArrayaccess(this);
-	}
+    }
 };
-
-ArrayaccessContext.prototype.exitRule = function(listener) {
-    if(listener instanceof LnListener ) {
+ArrayaccessContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
         listener.exitArrayaccess(this);
-	}
+    }
 };
-
-
-
-
 LnParser.ArrayaccessContext = ArrayaccessContext;
-
-LnParser.prototype.arrayaccess = function() {
-
+LnParser.prototype.arrayaccess = function () {
     var localctx = new ArrayaccessContext(this, this._ctx, this.state);
     this.enterRule(localctx, 128, LnParser.RULE_arrayaccess);
     var _la = 0; // Token type
@@ -14522,23 +13065,22 @@ LnParser.prototype.arrayaccess = function() {
         this.match(LnParser.OPENARRAY);
         this.state = 1161;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input,167,this._ctx)
-        while(_alt!=2 && _alt!=antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if(_alt===1) {
+        var _alt = this._interp.adaptivePredict(this._input, 167, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
                 this.state = 1158;
-                this.match(LnParser.WS); 
+                this.match(LnParser.WS);
             }
             this.state = 1163;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input,167,this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 167, this._ctx);
         }
-
         this.state = 1164;
         this.assignables();
         this.state = 1168;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        while(_la===LnParser.WS) {
+        while (_la === LnParser.WS) {
             this.state = 1165;
             this.match(LnParser.WS);
             this.state = 1170;
@@ -14547,3955 +13089,3605 @@ LnParser.prototype.arrayaccess = function() {
         }
         this.state = 1171;
         this.match(LnParser.CLOSEARRAY);
-    } catch (re) {
-    	if(re instanceof antlr4.error.RecognitionException) {
-	        localctx.exception = re;
-	        this._errHandler.reportError(this, re);
-	        this._errHandler.recover(this, re);
-	    } else {
-	    	throw re;
-	    }
-    } finally {
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
         this.exitRule();
     }
     return localctx;
 };
-
-
 exports.LnParser = LnParser;
 
 },{"./LnListener":10,"antlr4/index":76}],12:[function(require,module,exports){
 module.exports = {
-  LnLexer: require('./LnLexer').LnLexer,
-  LnParser: require('./LnParser').LnParser,
-}
+    LnLexer: require('./LnLexer').LnLexer,
+    LnParser: require('./LnParser').LnParser,
+};
 
 },{"./LnLexer":9,"./LnParser":11}],13:[function(require,module,exports){
 (function (process){
-const fs = require('fs')
-const path = require('path')
-
-const { InputStream, CommonTokenStream, } = require('antlr4')
-
-const { LnLexer, LnParser } = require('../ln')
-
+const fs = require('fs');
+const path = require('path');
+const { InputStream, CommonTokenStream, } = require('antlr4');
+const { LnLexer, LnParser } = require('../ln');
 const resolve = (path) => {
-  try {
-    return fs.realpathSync(path)
-  } catch (e) {
-    return null
-  }
-}
-
-const Ast = {
-  fromString: (str) => {
-    const inputStream = new InputStream(str)
-    const langLexer = new LnLexer(inputStream)
-    const commonTokenStream = new CommonTokenStream(langLexer)
-    const langParser = new LnParser(commonTokenStream)
-
-    return langParser.module()
-  },
-
-  fromFile: (filename) => {
-    return Ast.fromString(fs.readFileSync(filename, { encoding: 'utf8', }))
-  },
-
-  resolveDependency: (modulePath, dependency) => {
-    let importPath = null;
-    // If the dependency is a local dependency, there's little logic in determining
-    // what is being imported. It's either the relative path to a file with the language
-    // extension, or the relative path to a directory containing an "index.ln" file
-    if (dependency.localdependency() != null) {
-      const dirPath = resolve(path.join(
-        path.dirname(modulePath),
-        dependency.localdependency().getText().toString(),
-        "index.ln",
-      ))
-      const filePath = resolve(path.join(
-        path.dirname(modulePath),
-        dependency.localdependency().getText().toString() + ".ln"
-      ))
-      // It's possible for both to exist. Prefer the directory-based one, but warn the user
-      if (typeof dirPath === "string" && typeof filePath === "string") {
-        System.err.println(dirPath + " and " + filePath + " both exist. Using " + dirPath)
-      }
-      if (typeof filePath === "string") {
-        importPath = filePath
-      }
-      if (typeof dirPath === "string") {
-        importPath = dirPath
-      }
-      if (importPath === null) {
-        // Should I do anything else here?
-        console.error(
-          "The dependency " +
-          dependency.localdependency().getText().toString() +
-          " could not be found.")
-        process.exit(-2)
-      }
+    try {
+        return fs.realpathSync(path);
     }
-    // If the dependency is a global dependency, there's a more complicated resolution to find it.
-    // This is inspired by the Ruby and Node resolution mechanisms, but with some changes that
-    // should hopefully make some improvements so dependency-injection is effectively first-class
-    // and micro-libraries are discouraged (the latter will require a multi-pronged effort)
-    //
-    // Essentially, there are two recursively-found directories that global modules can be found,
-    // the `modules` directory and the `dependencies` directory (TBD: are these the final names?)
-    // The `modules` directory is recursively checked first (with a special check to make sure it
-    // ignores self-resolutions) and the first one found in that check, if any, is used. If not,
-    // there's a special check if the dependency is an `@std/...` dependency, and if so to return
-    // that string as-is so the built-in dependency is used. Next the same recursive check is
-    // performed on the `dependencies` directories until the dependency is found. If that also
-    // fails, then there will be a complaint and the process will exit.
-    //
-    // The idea is that the package manager will install dependencies into the `dependencies`
-    // directory at the root of the project (or maybe PWD, but that seems a bit too unwieldy).
-    // Meanwhile the `modules` directory will only exist if the developer wants it, but it can be
-    // useful for cross-cutting code in the same project that doesn't really need to be open-
-    // sourced but is annoying to always reference slightly differently in each file, eg
-    // `../../../util`. Instead the project can have a project-root-level `modules` directory and
-    // then `modules/util.ln` can be referenced simply with `import @util` anywhere in the project.
-    //
-    // Since this is also recursive, it's should make dependency injection a first-class citizen
-    // of the language. For instance you can put all of your models in `modules/models/`, and then
-    // your unit test suite can have its model mocks in `tests/modules/models/` and the dependency
-    // you intend to inject into can be symlinked in the `tests/` directory to cause that version
-    // to pull the injected code, instead. And of course, if different tests need different
-    // dependency injections, you can turn the test file into a directory of the same name and
-    // rename the file to `index.ln` within it, and then have the specific mocks that test needs
-    // stored in a `modules/` directory in parallel with it, which will not impact other mocks.
-    //
-    // Because these mocks also have a special exception to not import themselves, this can also
-    // be used for instrumentation purposes, where they override the actual module but then also
-    // import the real thing and add extra behavior to it.
-    //
-    // While there are certainly uses for splitting some logical piece of code into a tree of
-    // files and directories, it is my hope that the standard application organization path is a
-    // project with a root `index.ln` file and `modules` and `dependencies` directories, and little
-    // else. At least things like `modules/logger`, `modules/config`, etc should belong there.
-    if (dependency.globaldependency() != null) {
-      // Get the two potential dependency types, file and directory-style.
-      const fileModule = dependency.globaldependency().getText().toString().substring(1) + ".ln"
-      const dirModule = dependency.globaldependency().getText().toString().substring(1) + "/index.ln"
-      // Get the initial root to check
-      let pathRoot = path.dirname(modulePath)
-      // Search the recursively up the directory structure in the `modules` directories for the
-      // specified dependency, and if found, return it.
-      while (pathRoot != null) {
-        const dirPath = resolve(path.join(pathRoot, "modules", dirModule))
-        const filePath = resolve(path.join(pathRoot, "modules", fileModule))
-        // It's possible for a module to accidentally resolve to itself when the module wraps the
-        // actual dependency it is named for.
-        if (dirPath === modulePath || filePath === modulePath) {
-          pathRoot = path.dirname(pathRoot)
-          continue
-        }
-        // It's possible for both to exist. Prefer the directory-based one, but warn the user
-        if (typeof dirPath === "string" && typeof filePath === "string") {
-          System.err.println(dirPath + " and " + filePath + " both exist. Using " + dirPath)
-        }
-        if (typeof filePath === "string") {
-          importPath = filePath
-          break
-        }
-        if (typeof dirPath === "string") {
-          importPath = dirPath
-          break
-        }
-        if (pathRoot === "/") {
-          pathRoot = null
-        } else {
-          pathRoot = path.dirname(pathRoot)
-        }
-      }
-      if (importPath == null) {
-        // If we can't find it defined in a `modules` directory, check if it's an `@std/...`
-        // module and abort here so the built-in standard library is used.
-        if (dependency.globaldependency().getText().toString().substring(0, 5) === "@std/") {
-          // Not a valid path (starting with '@') to be used as signal to use built-in library)
-          importPath = dependency.globaldependency().getText().toString()
-        } else {
-          // Go back to the original point and search up the tree for `dependencies` directories
-          pathRoot = path.dirname(modulePath)
-          while (pathRoot != null) {
-            const dirPath = resolve(path.join(pathRoot, "dependencies", dirModule))
-            const filePath = resolve(path.join(pathRoot, "dependencies", fileModule))
+    catch (e) {
+        return null;
+    }
+};
+const Ast = {
+    fromString: (str) => {
+        const inputStream = new InputStream(str);
+        const langLexer = new LnLexer(inputStream);
+        const commonTokenStream = new CommonTokenStream(langLexer);
+        const langParser = new LnParser(commonTokenStream);
+        return langParser.module();
+    },
+    fromFile: (filename) => {
+        return Ast.fromString(fs.readFileSync(filename, { encoding: 'utf8', }));
+    },
+    resolveDependency: (modulePath, dependency) => {
+        let importPath = null;
+        // If the dependency is a local dependency, there's little logic in determining
+        // what is being imported. It's either the relative path to a file with the language
+        // extension, or the relative path to a directory containing an "index.ln" file
+        if (dependency.localdependency() != null) {
+            const dirPath = resolve(path.join(path.dirname(modulePath), dependency.localdependency().getText().toString(), "index.ln"));
+            const filePath = resolve(path.join(path.dirname(modulePath), dependency.localdependency().getText().toString() + ".ln"));
             // It's possible for both to exist. Prefer the directory-based one, but warn the user
             if (typeof dirPath === "string" && typeof filePath === "string") {
-              System.err.println(dirPath + " and " + filePath + " both exist. Using " + dirPath)
+                System.err.println(dirPath + " and " + filePath + " both exist. Using " + dirPath);
             }
             if (typeof filePath === "string") {
-              importPath = filePath
-              break
+                importPath = filePath;
             }
             if (typeof dirPath === "string") {
-              importPath = dirPath
-              break
+                importPath = dirPath;
             }
-            if (pathRoot === "/") {
-              pathRoot = null
-            } else {
-              pathRoot = path.dirname(pathRoot)
+            if (importPath === null) {
+                // Should I do anything else here?
+                console.error("The dependency " +
+                    dependency.localdependency().getText().toString() +
+                    " could not be found.");
+                process.exit(-2);
             }
-          }
         }
-        if (importPath == null) {
-          // Should I do anything else here?
-          console.error(
-            "The dependency " +
-            dependency.globaldependency().getText().toString() +
-            " could not be found.")
-          process.exit(-2)
+        // If the dependency is a global dependency, there's a more complicated resolution to find it.
+        // This is inspired by the Ruby and Node resolution mechanisms, but with some changes that
+        // should hopefully make some improvements so dependency-injection is effectively first-class
+        // and micro-libraries are discouraged (the latter will require a multi-pronged effort)
+        //
+        // Essentially, there are two recursively-found directories that global modules can be found,
+        // the `modules` directory and the `dependencies` directory (TBD: are these the final names?)
+        // The `modules` directory is recursively checked first (with a special check to make sure it
+        // ignores self-resolutions) and the first one found in that check, if any, is used. If not,
+        // there's a special check if the dependency is an `@std/...` dependency, and if so to return
+        // that string as-is so the built-in dependency is used. Next the same recursive check is
+        // performed on the `dependencies` directories until the dependency is found. If that also
+        // fails, then there will be a complaint and the process will exit.
+        //
+        // The idea is that the package manager will install dependencies into the `dependencies`
+        // directory at the root of the project (or maybe PWD, but that seems a bit too unwieldy).
+        // Meanwhile the `modules` directory will only exist if the developer wants it, but it can be
+        // useful for cross-cutting code in the same project that doesn't really need to be open-
+        // sourced but is annoying to always reference slightly differently in each file, eg
+        // `../../../util`. Instead the project can have a project-root-level `modules` directory and
+        // then `modules/util.ln` can be referenced simply with `import @util` anywhere in the project.
+        //
+        // Since this is also recursive, it's should make dependency injection a first-class citizen
+        // of the language. For instance you can put all of your models in `modules/models/`, and then
+        // your unit test suite can have its model mocks in `tests/modules/models/` and the dependency
+        // you intend to inject into can be symlinked in the `tests/` directory to cause that version
+        // to pull the injected code, instead. And of course, if different tests need different
+        // dependency injections, you can turn the test file into a directory of the same name and
+        // rename the file to `index.ln` within it, and then have the specific mocks that test needs
+        // stored in a `modules/` directory in parallel with it, which will not impact other mocks.
+        //
+        // Because these mocks also have a special exception to not import themselves, this can also
+        // be used for instrumentation purposes, where they override the actual module but then also
+        // import the real thing and add extra behavior to it.
+        //
+        // While there are certainly uses for splitting some logical piece of code into a tree of
+        // files and directories, it is my hope that the standard application organization path is a
+        // project with a root `index.ln` file and `modules` and `dependencies` directories, and little
+        // else. At least things like `modules/logger`, `modules/config`, etc should belong there.
+        if (dependency.globaldependency() != null) {
+            // Get the two potential dependency types, file and directory-style.
+            const fileModule = dependency.globaldependency().getText().toString().substring(1) + ".ln";
+            const dirModule = dependency.globaldependency().getText().toString().substring(1) + "/index.ln";
+            // Get the initial root to check
+            let pathRoot = path.dirname(modulePath);
+            // Search the recursively up the directory structure in the `modules` directories for the
+            // specified dependency, and if found, return it.
+            while (pathRoot != null) {
+                const dirPath = resolve(path.join(pathRoot, "modules", dirModule));
+                const filePath = resolve(path.join(pathRoot, "modules", fileModule));
+                // It's possible for a module to accidentally resolve to itself when the module wraps the
+                // actual dependency it is named for.
+                if (dirPath === modulePath || filePath === modulePath) {
+                    pathRoot = path.dirname(pathRoot);
+                    continue;
+                }
+                // It's possible for both to exist. Prefer the directory-based one, but warn the user
+                if (typeof dirPath === "string" && typeof filePath === "string") {
+                    System.err.println(dirPath + " and " + filePath + " both exist. Using " + dirPath);
+                }
+                if (typeof filePath === "string") {
+                    importPath = filePath;
+                    break;
+                }
+                if (typeof dirPath === "string") {
+                    importPath = dirPath;
+                    break;
+                }
+                if (pathRoot === "/") {
+                    pathRoot = null;
+                }
+                else {
+                    pathRoot = path.dirname(pathRoot);
+                }
+            }
+            if (importPath == null) {
+                // If we can't find it defined in a `modules` directory, check if it's an `@std/...`
+                // module and abort here so the built-in standard library is used.
+                if (dependency.globaldependency().getText().toString().substring(0, 5) === "@std/") {
+                    // Not a valid path (starting with '@') to be used as signal to use built-in library)
+                    importPath = dependency.globaldependency().getText().toString();
+                }
+                else {
+                    // Go back to the original point and search up the tree for `dependencies` directories
+                    pathRoot = path.dirname(modulePath);
+                    while (pathRoot != null) {
+                        const dirPath = resolve(path.join(pathRoot, "dependencies", dirModule));
+                        const filePath = resolve(path.join(pathRoot, "dependencies", fileModule));
+                        // It's possible for both to exist. Prefer the directory-based one, but warn the user
+                        if (typeof dirPath === "string" && typeof filePath === "string") {
+                            System.err.println(dirPath + " and " + filePath + " both exist. Using " + dirPath);
+                        }
+                        if (typeof filePath === "string") {
+                            importPath = filePath;
+                            break;
+                        }
+                        if (typeof dirPath === "string") {
+                            importPath = dirPath;
+                            break;
+                        }
+                        if (pathRoot === "/") {
+                            pathRoot = null;
+                        }
+                        else {
+                            pathRoot = path.dirname(pathRoot);
+                        }
+                    }
+                }
+                if (importPath == null) {
+                    // Should I do anything else here?
+                    console.error("The dependency " +
+                        dependency.globaldependency().getText().toString() +
+                        " could not be found.");
+                    process.exit(-2);
+                }
+            }
         }
-      }
-    }
-    return importPath
-  },
-
-  resolveImports: (modulePath, ast) => {
-    let resolvedImports = []
-    let imports = ast.imports();
-    for (let i = 0; i < imports.length; i++) {
-      const standardImport = imports[i].standardImport()
-      const fromImport = imports[i].fromImport()
-      let dependency = null
-
-      if (standardImport != null) {
-        dependency = standardImport.dependency()
-      }
-      if (fromImport != null) {
-        dependency = fromImport.dependency()
-      }
-      if (dependency == null) {
-        // Should I do anything else here?
-        console.error("Things are horribly broken!")
-        process.exit(-2)
-      }
-      importPath = Ast.resolveDependency(modulePath, dependency)
-      resolvedImports.push(importPath)
-    }
-    return resolvedImports
-  },
-
-  functionAstFromString: (fn) => {
-    const inputStream = new InputStream(fn)
-    const langLexer = new LnLexer(inputStream);
-    const commonTokenStream = new CommonTokenStream(langLexer);
-    const langParser = new LnParser(commonTokenStream);
-
-    return langParser.functions();
-  },
-}
-module.exports = Ast
+        return importPath;
+    },
+    resolveImports: (modulePath, ast) => {
+        let resolvedImports = [];
+        let imports = ast.imports();
+        for (let i = 0; i < imports.length; i++) {
+            const standardImport = imports[i].standardImport();
+            const fromImport = imports[i].fromImport();
+            let dependency = null;
+            if (standardImport != null) {
+                dependency = standardImport.dependency();
+            }
+            if (fromImport != null) {
+                dependency = fromImport.dependency();
+            }
+            if (dependency == null) {
+                // Should I do anything else here?
+                console.error("Things are horribly broken!");
+                process.exit(-2);
+            }
+            importPath = Ast.resolveDependency(modulePath, dependency);
+            resolvedImports.push(importPath);
+        }
+        return resolvedImports;
+    },
+    functionAstFromString: (fn) => {
+        const inputStream = new InputStream(fn);
+        const langLexer = new LnLexer(inputStream);
+        const commonTokenStream = new CommonTokenStream(langLexer);
+        const langParser = new LnParser(commonTokenStream);
+        return langParser.functions();
+    },
+};
+module.exports = Ast;
 
 }).call(this,require('_process'))
 },{"../ln":12,"_process":85,"antlr4":76,"fs":82,"path":84}],14:[function(require,module,exports){
 (function (process){
-const Type = require('./Type')
-const Int8 = require('./Int8')
-const Int16 = require('./Int16')
-const Int32 = require('./Int32')
-const Int64 = require('./Int64')
-const Float32 = require('./Float32')
-const Float64 = require('./Float64')
-
+const Type = require('./Type');
+const Int8 = require('./Int8');
+const Int16 = require('./Int16');
+const Int32 = require('./Int32');
+const Int64 = require('./Int64');
+const Float32 = require('./Float32');
+const Float64 = require('./Float64');
 class Box {
-  constructor(...args) {
-    // Work around circular deps in another way
-    const Scope = require('./Scope')
-    const Microstatement = require('./Microstatement')
-    const Int8 = require('./Int8')
-    const Int16 = require('./Int16')
-    const Int32 = require('./Int32')
-    const Int64 = require('./Int64')
-    const Float32 = require('./Float32')
-    const Float64 = require('./Float64')
-    const Event = require('./Event')
-    if (args.length === 0) {
-      this.type = Box.builtinTypes.void
-      this.readonly = true
-    } else if (args.length === 1) {
-      if (typeof args[0] === "boolean") {
-        this.type = Box.builtinTypes.void
-        this.readonly = args[0]
-      } else if (args[0] instanceof Type) {
-        this.type = Box.builtinTypes.type
-        this.typeval = args[0]
-        this.readonly = true // Type declarations are always read-only
-      } else if (args[0] instanceof Scope) {
-        this.type = Box.builtinTypes.scope
-        this.scopeval = args[0]
-        this.readonly = true // Boxed scopes are always read-only
-      } else if (args[0] instanceof Microstatement) {
-        this.type = Box.builtinTypes.microstatement
-        this.microstatementval = args[0]
-        this.readonly = true
-      } else if (args[0] instanceof Array) {
-        // This is only operator declarations right now
-        this.type = Box.builtinTypes.operator
-        this.operatorval = args[0]
-        this.readonly = true
-      }
-    } else if (args.length === 2) {
-      if (args[0] instanceof Int8) {
-        this.type = Box.builtinTypes.int8
-        this.int8val = args[0]
-        this.readonly = args[1]
-      } else if (args[0] instanceof Int16) {
-        this.type = Box.builtinTypes.int16
-        this.int16val = args[0]
-        this.readonly = args[1]
-      } else if (args[0] instanceof Int32) {
-        this.type = Box.builtinTypes.int32
-        this.int32val = args[0]
-        this.readonly = args[1]
-      } else if (args[0] instanceof Int64) {
-        this.type = Box.builtinTypes.int64
-        this.int64val = args[0]
-        this.readonly = args[1]
-      } else if (args[0] instanceof Float32) {
-        this.type = Box.builtinTypes.float32
-        this.float32val = args[0]
-        this.readonly = args[1]
-      } else if (args[0] instanceof Float64) {
-        this.type = Box.builtinTypes.float64
-        this.float64val = args[0]
-        this.readonly = args[1]
-      } else if (typeof args[0] === "boolean") {
-        this.type = Box.builtinTypes.bool
-        this.boolval = args[0]
-        this.readonly = args[1]
-      } else if (typeof args[0] === "string") {
-        this.type = Box.builtinTypes.string
-        this.stringval = args[0]
-        this.readonly = args[1]
-      } else if (args[0] instanceof Array) {
-        // This is only function declarations right now
-        this.type = Box.builtinTypes["function"]
-        this.functionval = args[0]
-        this.readonly = args[1]
-      } else if (args[0] instanceof Event) {
-        this.type = Box.builtinTypes.Event
-        this.eventval = args[0]
-        this.readonly = args[1]
-      }
-      // Technically there's also supposed to be something for an "Object blank" but I don't know
-      // what that is supposed to be for
-    } else if (args.length === 3) {
-      if (args[0] instanceof Array) {
-        // It's an array, like a real one
-        this.type = args[1]
-        this.arrayval = args[0]
-        this.readonly = args[2]
-      } else if (args[0] instanceof Map) {
-        // It's a map, also a real one
-        this.type = args[1]
-        this.mapval = args[0]
-        this.readonly = args[2]
-      } else if (args[0] instanceof Object) {
-        // It's an event or user-defined type
-        if (args[1].originalType == Box.builtinTypes.Event) {
-          let eventval = new Event(args[0].name.stringval, args[1].properties.type, false)
-          this.eventval = eventval
-          this.readonly = args[2]
-        } else {
-          this.type = args[1]
-          this.typevalval = args[0]
-          this.readonly = args[2]
+    constructor(...args) {
+        // Work around circular deps in another way
+        const Scope = require('./Scope');
+        const Microstatement = require('./Microstatement');
+        const Int8 = require('./Int8');
+        const Int16 = require('./Int16');
+        const Int32 = require('./Int32');
+        const Int64 = require('./Int64');
+        const Float32 = require('./Float32');
+        const Float64 = require('./Float64');
+        const Event = require('./Event');
+        if (args.length === 0) {
+            this.type = Box.builtinTypes.void;
+            this.readonly = true;
         }
-      }
-    }
-  }
-  
-  static fromConstantsAst(constantsAst, scope, expectedType, readonly) {
-    if (constantsAst.BOOLCONSTANT() != null) {
-      if (constantsAst.BOOLCONSTANT().getText() === "true") {
-        return new Box(true, readonly);
-      } else {
-        return new Box(false, readonly);
-      }
-    }
-    if (constantsAst.STRINGCONSTANT() != null) {
-      return new Box(
-        constantsAst
-          .STRINGCONSTANT()
-          .getText()
-          .substring(1, constantsAst.STRINGCONSTANT().getText().length - 1)
-          .replace("\\t", "\t")
-          .replace("\\b", "\b")
-          .replace("\\n", "\n")
-          .replace("\\r", "\r")
-          .replace("\\f", "\f")
-          .replace("\\'", "'")
-          .replace("\\\"", "\"")
-          .replace("\\\\", "\\"),
-        readonly
-      );
-    }
-    if (constantsAst.NUMBERCONSTANT() != null) {
-      // TODO: Add support for hex, octal, scientific, etc
-      const numberConst = constantsAst.NUMBERCONSTANT().getText();
-      const typename = expectedType != null ? expectedType.typename : null
-      if (typename != null && typename.equals("void")) typename = null;
-      if (numberConst.indexOf('.') > -1) { // It's a float
-        // TODO: How to handle other float constants like NaN, Infinity, -0, etc
-        if (typename == null) {
-          return new Box(new Float64(numberConst), readonly)
-        } else if (typename.equals("float32")) {
-          return new Box(new Float32(numberConst), readonly)
-        } else if (typename.equals("float64")) {
-          return new Box(new Float64(numberConst), readonly)
-        } else {
-          // Bad assignment
-          console.error("Assigning floating point number to non-floating point type")
-          process.exit(-6)
+        else if (args.length === 1) {
+            if (typeof args[0] === "boolean") {
+                this.type = Box.builtinTypes.void;
+                this.readonly = args[0];
+            }
+            else if (args[0] instanceof Type) {
+                this.type = Box.builtinTypes.type;
+                this.typeval = args[0];
+                this.readonly = true; // Type declarations are always read-only
+            }
+            else if (args[0] instanceof Scope) {
+                this.type = Box.builtinTypes.scope;
+                this.scopeval = args[0];
+                this.readonly = true; // Boxed scopes are always read-only
+            }
+            else if (args[0] instanceof Microstatement) {
+                this.type = Box.builtinTypes.microstatement;
+                this.microstatementval = args[0];
+                this.readonly = true;
+            }
+            else if (args[0] instanceof Array) {
+                // This is only operator declarations right now
+                this.type = Box.builtinTypes.operator;
+                this.operatorval = args[0];
+                this.readonly = true;
+            }
         }
-      } else { // It's an integer
-        // TODO: Should we error on overflowing constants in integer mode?
-        if (typename == null) {
-          return new Box(new Int64(numberConst), readonly)
-        } else if (typename.equals("int8")) {
-          return new Box(new Int8(numberConst), readonly)
-        } else if (typename.equals("int16")) {
-          return new Box(new Int16(numberConst), readonly)
-        } else if (typename.equals("int32")) {
-          return new Box(new Int32(numberConst), readonly)
-        } else if (typename.equals("int64")) {
-          return new Box(new Int64(numberConst), readonly)
-        } else if (typename.equals("float32")) { // We'll allow floats to get integer constants
-          return new Box(new Float32(numberConst), readonly)
-        } else if (typename.equals("float64")) {
-          return new Box(new Float64(numberConst), readonly)
-        } else {
-          // Bad assignment
-          console.error("Assigning integer number to non-numeric type")
-          console.error("Variable type: " + typename)
-          process.exit(-7)
+        else if (args.length === 2) {
+            if (args[0] instanceof Int8) {
+                this.type = Box.builtinTypes.int8;
+                this.int8val = args[0];
+                this.readonly = args[1];
+            }
+            else if (args[0] instanceof Int16) {
+                this.type = Box.builtinTypes.int16;
+                this.int16val = args[0];
+                this.readonly = args[1];
+            }
+            else if (args[0] instanceof Int32) {
+                this.type = Box.builtinTypes.int32;
+                this.int32val = args[0];
+                this.readonly = args[1];
+            }
+            else if (args[0] instanceof Int64) {
+                this.type = Box.builtinTypes.int64;
+                this.int64val = args[0];
+                this.readonly = args[1];
+            }
+            else if (args[0] instanceof Float32) {
+                this.type = Box.builtinTypes.float32;
+                this.float32val = args[0];
+                this.readonly = args[1];
+            }
+            else if (args[0] instanceof Float64) {
+                this.type = Box.builtinTypes.float64;
+                this.float64val = args[0];
+                this.readonly = args[1];
+            }
+            else if (typeof args[0] === "boolean") {
+                this.type = Box.builtinTypes.bool;
+                this.boolval = args[0];
+                this.readonly = args[1];
+            }
+            else if (typeof args[0] === "string") {
+                this.type = Box.builtinTypes.string;
+                this.stringval = args[0];
+                this.readonly = args[1];
+            }
+            else if (args[0] instanceof Array) {
+                // This is only function declarations right now
+                this.type = Box.builtinTypes["function"];
+                this.functionval = args[0];
+                this.readonly = args[1];
+            }
+            else if (args[0] instanceof Event) {
+                this.type = Box.builtinTypes.Event;
+                this.eventval = args[0];
+                this.readonly = args[1];
+            }
+            // Technically there's also supposed to be something for an "Object blank" but I don't know
+            // what that is supposed to be for
         }
-      }
-    }
-    // This should never be reached
-    return null
-  }
-
-  static fromConstAst(constAst, scope) {
-    const assignment = constAst.assignments()
-    return Box.fromAssignmentAst(assignment, scope, true)
-  }
-
-  static fromAssignmentAst(assignmentAst, scope, readonly) {
-    // TODO: This code is becoming very overloaded with different meanings in different contexts
-    // Should probably split this up into multiple functions instead of trying to have this function
-    // guess which context it's running in.
-    
-    // TODO: Review if any of the extra logic after deepGet is needed anymore
-    const typename = assignmentAst.varn().getText();
-    let typeBox = scope.deepGet(assignmentAst.varn());
-
-    let type;
-
-    if (typeBox == null) {
-      const nameSegments = typename.split(".");
-      let parentName = nameSegments[0]
-      for (let i = 1; i < nameSegments.length - 1; i++) {
-        parentName += "." + nameSegments[i]
-      }
-      const childName = nameSegments[nameSegments.length - 1]
-      typeBox = scope.deepGet(parentName)
-      if (typeBox == null) {
-        // Assignment to an undefined variable. This can legitimately happen in cases of type
-        // inference, but not in other cases. This whole bit really needs to be rethought.
-        return Box.fromAssignableAst(assignmentAst.assignables(), scope, null, readonly)
-      }
-      type = typeBox.type.properties[childName]
-    } else if (typeBox.type.typename !== "type") {
-      // This is actually a secondary assignment to an existing variable
-      if (typeBox.readonly) {
-        console.error("Invalid reassignment to constant: " + typename)
-        process.exit(-30)
-      }
-      return Box.fromAssignableAst(assignmentAst.assignables(), scope, typeBox.type, false)
-    } else {
-      type = typeBox.typeval
-    }
-
-    if (type.generics.length > 0 && assignmentAst.typegenerics() != null) {
-      let solidTypes = []
-      for (fulltypenameAst of assignmentAst.typegenerics().fulltypename()) {
-        solidTypes.push(fulltypenameAst.getText())
-      }
-      type = type.solidify(solidTypes, scope)
-    }
-
-    return Box.fromAssignableAst(assignmentAst.assignables(), scope, type, readonly)
-  }
-
-  static fromAssignableAst(assignableAst, scope, expectedType, readonly) {
-    if (assignableAst == null) {
-      return new Box(null, expectedType)
-    }
-    if (assignableAst.basicassignables() != null) {
-      return Box.fromBasicAssignableAst(
-        assignableAst.basicassignables(),
-        scope,
-        expectedType,
-        readonly
-      )
-    }
-    if (assignableAst.withoperators() != null) {
-      // TODO: How to support this in the compiler
-      // Operators are another form a function, to evaluate them requires a full interpreter, so
-      // we'll come back to this later
-      /* return Box.fromWithOperatorsAst(
-        assignableAst.withoperators(),
-        scope,
-        expectedType,
-        readonly
-      ) */
-      return new Box() // void it for now
-    }
-    // Just to prevent complains, but this should not be reachable
-    return null
-  }
-
-  static fromBasicAssignableAst(basicAssignable, scope, expectedType, readonly) {
-    if (basicAssignable.functions() != null) {
-      const assignedFunction = UserFunction.fromAst(basicAssignable.functions(), scope)
-      return new Box([assignedFunction], readonly)
-    }
-    if (basicAssignable.calls() != null) {
-      // TODO: Support generating global constants from function calls at some point
-      // return Function.callFromAst(basicAssignable.calls(), scope);
-      return new Box() // Void it for now
-    }
-    if (basicAssignable.varn() != null) {
-      return scope.deepGet(basicAssignable.varn());
-    }
-    if (basicAssignable.groups() != null) {
-      // TODO: Suppor this later
-      /* return Box.fromWithOperatorsAst(
-        basicAssignable.groups().withoperators(),
-        scope,
-        expectedType,
-        readonly
-      ) */
-      return new Box() // void it for now
-    }
-    if (basicAssignable.typeofn() != null) {
-      // Potentially add a bunch of guards around this
-      return new Box(Box.fromBasicAssignableAst(
-        basicAssignable.typeofn().basicassignables(),
-        scope,
-        null,
-        readonly
-      ).type.typename, readonly)
-    }
-    if (basicAssignable.objectliterals() != null) {
-      return Box.fromObjectLiteralsAst(
-        basicAssignable.objectliterals(),
-        scope,
-        null,
-        readonly
-      )
-    }
-    if (basicAssignable.constants() != null) {
-      return Box.fromConstantsAst(
-        basicAssignable.constants(),
-        scope,
-        expectedType,
-        readonly
-      );
-    }
-    // Shouldn't be possible
-    console.error("Something went wrong parsing the syntax")
-    process.exit(-8)
-  }
-
-  static fromObjectLiteralsAst(objectliteralsAst, scope, expectedType, readonly) {
-    const typename = objectliteralsAst.othertype().getText()
-    const typeBox = scope.deepGet(typename)
-    let type = null
-    if (objectliteralsAst.othertype().typegenerics() != null && typeBox == null) {
-      const originalTypeBox = scope.deepGet(objectliteralsAst.othertype().typename().getText())
-      if (originalTypeBox == null) {
-        console.error(objectliteralsAst.othertype().typename().getText() + " is referenced but not defined. Unexpected runtime error!")
-        process.exit(-46)
-      }
-      let solidTypes = []
-      for (const fulltypenameAst of objectliteralsAst.othertype().typegenerics().fulltypename()) {
-        solidTypes.push(fulltypenameAst.getText())
-      }
-      type = originalTypeBox.typeval.solidify(solidTypes, scope)
-    } else {
-      type = typeBox.typeval
-    }
-    if (type == null) {
-      console.error(objectliteralsAst.othertype().getText() + " is not a valid type")
-      process.exit(-45)
-    }
-    if (objectliteralsAst.arrayliteral() != null) {
-      let arrayval = []
-      for (const assignableAst of objectliteralsAst.arrayliteral().assignablelist().assignables()) {
-        arrayval.push(Box.fromAssignableAst(
-          assignableAst,
-          scope,
-          type.properties["records"], // Special for Arrays (and Trees and Sets later)
-          readonly
-        ))
-      }
-      return new Box(arrayval, type, readonly)
-    }
-    if (objectliteralsAst.typeliteral() != null) {
-      let typevalval = {}
-      for (const assignmentsAst of objectliteralsAst.typeliteral().assignments()) {
-        const property = assignmentsAst.varn().getText()
-        const assignmentType = type.properties[property]
-        if (assignmentsAst.assignables() == null) {
-          // TODO: this can only happen if parts of the `assignments` syntax not valid here are used
-          // This should be eliminated in the future, but for now just crash
-          console.error("Invalid literal assignment for " + type.typename + " on the "
-            + property + " property.")
-          process.exit(-46)
+        else if (args.length === 3) {
+            if (args[0] instanceof Array) {
+                // It's an array, like a real one
+                this.type = args[1];
+                this.arrayval = args[0];
+                this.readonly = args[2];
+            }
+            else if (args[0] instanceof Map) {
+                // It's a map, also a real one
+                this.type = args[1];
+                this.mapval = args[0];
+                this.readonly = args[2];
+            }
+            else if (args[0] instanceof Object) {
+                // It's an event or user-defined type
+                if (args[1].originalType == Box.builtinTypes.Event) {
+                    let eventval = new Event(args[0].name.stringval, args[1].properties.type, false);
+                    this.eventval = eventval;
+                    this.readonly = args[2];
+                }
+                else {
+                    this.type = args[1];
+                    this.typevalval = args[0];
+                    this.readonly = args[2];
+                }
+            }
         }
-        typevalval.put(assignmentsAst.varn().getText(), Box.fromAssignableAst(
-          assignmentsAst.assignables(),
-          scope,
-          assignmentType,
-          readonly
-        ))
-      }
-      return new Box(typevalval, type, readonly)
     }
-    if (objectliteralsAst.mapliteral() != null) {
-      let mapval = {}
-      if (objectliteralsAst.mapliteral().mapline() != null) {
-        for (const mapline of objectliteralsAst.mapliteral().mapline()) {
-          const keyBox = Box.fromAssignableAst(
-            mapline.assignables(0),
-            scope,
-            type.properties["key"], // Special for Maps
-            readonly
-          )
-          const valBox = Box.fromAssignableAst(
-            mapline.assignables(1),
-            scope,
-            type.properties["value"], // Special for Maps
-            readonly
-          )
-          mapval.put(keyBox, valBox)
+    static fromConstantsAst(constantsAst, scope, expectedType, readonly) {
+        if (constantsAst.BOOLCONSTANT() != null) {
+            if (constantsAst.BOOLCONSTANT().getText() === "true") {
+                return new Box(true, readonly);
+            }
+            else {
+                return new Box(false, readonly);
+            }
         }
-      }
-      return new Box(mapval, type, readonly)
+        if (constantsAst.STRINGCONSTANT() != null) {
+            return new Box(constantsAst
+                .STRINGCONSTANT()
+                .getText()
+                .substring(1, constantsAst.STRINGCONSTANT().getText().length - 1)
+                .replace("\\t", "\t")
+                .replace("\\b", "\b")
+                .replace("\\n", "\n")
+                .replace("\\r", "\r")
+                .replace("\\f", "\f")
+                .replace("\\'", "'")
+                .replace("\\\"", "\"")
+                .replace("\\\\", "\\"), readonly);
+        }
+        if (constantsAst.NUMBERCONSTANT() != null) {
+            // TODO: Add support for hex, octal, scientific, etc
+            const numberConst = constantsAst.NUMBERCONSTANT().getText();
+            const typename = expectedType != null ? expectedType.typename : null;
+            if (typename != null && typename.equals("void"))
+                typename = null;
+            if (numberConst.indexOf('.') > -1) { // It's a float
+                // TODO: How to handle other float constants like NaN, Infinity, -0, etc
+                if (typename == null) {
+                    return new Box(new Float64(numberConst), readonly);
+                }
+                else if (typename.equals("float32")) {
+                    return new Box(new Float32(numberConst), readonly);
+                }
+                else if (typename.equals("float64")) {
+                    return new Box(new Float64(numberConst), readonly);
+                }
+                else {
+                    // Bad assignment
+                    console.error("Assigning floating point number to non-floating point type");
+                    process.exit(-6);
+                }
+            }
+            else { // It's an integer
+                // TODO: Should we error on overflowing constants in integer mode?
+                if (typename == null) {
+                    return new Box(new Int64(numberConst), readonly);
+                }
+                else if (typename.equals("int8")) {
+                    return new Box(new Int8(numberConst), readonly);
+                }
+                else if (typename.equals("int16")) {
+                    return new Box(new Int16(numberConst), readonly);
+                }
+                else if (typename.equals("int32")) {
+                    return new Box(new Int32(numberConst), readonly);
+                }
+                else if (typename.equals("int64")) {
+                    return new Box(new Int64(numberConst), readonly);
+                }
+                else if (typename.equals("float32")) { // We'll allow floats to get integer constants
+                    return new Box(new Float32(numberConst), readonly);
+                }
+                else if (typename.equals("float64")) {
+                    return new Box(new Float64(numberConst), readonly);
+                }
+                else {
+                    // Bad assignment
+                    console.error("Assigning integer number to non-numeric type");
+                    console.error("Variable type: " + typename);
+                    process.exit(-7);
+                }
+            }
+        }
+        // This should never be reached
+        return null;
     }
-    // Should never reach here
-    return null
-  }
-
+    static fromConstAst(constAst, scope) {
+        const assignment = constAst.assignments();
+        return Box.fromAssignmentAst(assignment, scope, true);
+    }
+    static fromAssignmentAst(assignmentAst, scope, readonly) {
+        // TODO: This code is becoming very overloaded with different meanings in different contexts
+        // Should probably split this up into multiple functions instead of trying to have this function
+        // guess which context it's running in.
+        // TODO: Review if any of the extra logic after deepGet is needed anymore
+        const typename = assignmentAst.varn().getText();
+        let typeBox = scope.deepGet(assignmentAst.varn());
+        let type;
+        if (typeBox == null) {
+            const nameSegments = typename.split(".");
+            let parentName = nameSegments[0];
+            for (let i = 1; i < nameSegments.length - 1; i++) {
+                parentName += "." + nameSegments[i];
+            }
+            const childName = nameSegments[nameSegments.length - 1];
+            typeBox = scope.deepGet(parentName);
+            if (typeBox == null) {
+                // Assignment to an undefined variable. This can legitimately happen in cases of type
+                // inference, but not in other cases. This whole bit really needs to be rethought.
+                return Box.fromAssignableAst(assignmentAst.assignables(), scope, null, readonly);
+            }
+            type = typeBox.type.properties[childName];
+        }
+        else if (typeBox.type.typename !== "type") {
+            // This is actually a secondary assignment to an existing variable
+            if (typeBox.readonly) {
+                console.error("Invalid reassignment to constant: " + typename);
+                process.exit(-30);
+            }
+            return Box.fromAssignableAst(assignmentAst.assignables(), scope, typeBox.type, false);
+        }
+        else {
+            type = typeBox.typeval;
+        }
+        if (type.generics.length > 0 && assignmentAst.typegenerics() != null) {
+            let solidTypes = [];
+            for (fulltypenameAst of assignmentAst.typegenerics().fulltypename()) {
+                solidTypes.push(fulltypenameAst.getText());
+            }
+            type = type.solidify(solidTypes, scope);
+        }
+        return Box.fromAssignableAst(assignmentAst.assignables(), scope, type, readonly);
+    }
+    static fromAssignableAst(assignableAst, scope, expectedType, readonly) {
+        if (assignableAst == null) {
+            return new Box(null, expectedType);
+        }
+        if (assignableAst.basicassignables() != null) {
+            return Box.fromBasicAssignableAst(assignableAst.basicassignables(), scope, expectedType, readonly);
+        }
+        if (assignableAst.withoperators() != null) {
+            // TODO: How to support this in the compiler
+            // Operators are another form a function, to evaluate them requires a full interpreter, so
+            // we'll come back to this later
+            /* return Box.fromWithOperatorsAst(
+              assignableAst.withoperators(),
+              scope,
+              expectedType,
+              readonly
+            ) */
+            return new Box(); // void it for now
+        }
+        // Just to prevent complains, but this should not be reachable
+        return null;
+    }
+    static fromBasicAssignableAst(basicAssignable, scope, expectedType, readonly) {
+        if (basicAssignable.functions() != null) {
+            const assignedFunction = UserFunction.fromAst(basicAssignable.functions(), scope);
+            return new Box([assignedFunction], readonly);
+        }
+        if (basicAssignable.calls() != null) {
+            // TODO: Support generating global constants from function calls at some point
+            // return Function.callFromAst(basicAssignable.calls(), scope);
+            return new Box(); // Void it for now
+        }
+        if (basicAssignable.varn() != null) {
+            return scope.deepGet(basicAssignable.varn());
+        }
+        if (basicAssignable.groups() != null) {
+            // TODO: Suppor this later
+            /* return Box.fromWithOperatorsAst(
+              basicAssignable.groups().withoperators(),
+              scope,
+              expectedType,
+              readonly
+            ) */
+            return new Box(); // void it for now
+        }
+        if (basicAssignable.typeofn() != null) {
+            // Potentially add a bunch of guards around this
+            return new Box(Box.fromBasicAssignableAst(basicAssignable.typeofn().basicassignables(), scope, null, readonly).type.typename, readonly);
+        }
+        if (basicAssignable.objectliterals() != null) {
+            return Box.fromObjectLiteralsAst(basicAssignable.objectliterals(), scope, null, readonly);
+        }
+        if (basicAssignable.constants() != null) {
+            return Box.fromConstantsAst(basicAssignable.constants(), scope, expectedType, readonly);
+        }
+        // Shouldn't be possible
+        console.error("Something went wrong parsing the syntax");
+        process.exit(-8);
+    }
+    static fromObjectLiteralsAst(objectliteralsAst, scope, expectedType, readonly) {
+        const typename = objectliteralsAst.othertype().getText();
+        const typeBox = scope.deepGet(typename);
+        let type = null;
+        if (objectliteralsAst.othertype().typegenerics() != null && typeBox == null) {
+            const originalTypeBox = scope.deepGet(objectliteralsAst.othertype().typename().getText());
+            if (originalTypeBox == null) {
+                console.error(objectliteralsAst.othertype().typename().getText() + " is referenced but not defined. Unexpected runtime error!");
+                process.exit(-46);
+            }
+            let solidTypes = [];
+            for (const fulltypenameAst of objectliteralsAst.othertype().typegenerics().fulltypename()) {
+                solidTypes.push(fulltypenameAst.getText());
+            }
+            type = originalTypeBox.typeval.solidify(solidTypes, scope);
+        }
+        else {
+            type = typeBox.typeval;
+        }
+        if (type == null) {
+            console.error(objectliteralsAst.othertype().getText() + " is not a valid type");
+            process.exit(-45);
+        }
+        if (objectliteralsAst.arrayliteral() != null) {
+            let arrayval = [];
+            for (const assignableAst of objectliteralsAst.arrayliteral().assignablelist().assignables()) {
+                arrayval.push(Box.fromAssignableAst(assignableAst, scope, type.properties["records"], // Special for Arrays (and Trees and Sets later)
+                readonly));
+            }
+            return new Box(arrayval, type, readonly);
+        }
+        if (objectliteralsAst.typeliteral() != null) {
+            let typevalval = {};
+            for (const assignmentsAst of objectliteralsAst.typeliteral().assignments()) {
+                const property = assignmentsAst.varn().getText();
+                const assignmentType = type.properties[property];
+                if (assignmentsAst.assignables() == null) {
+                    // TODO: this can only happen if parts of the `assignments` syntax not valid here are used
+                    // This should be eliminated in the future, but for now just crash
+                    console.error("Invalid literal assignment for " + type.typename + " on the "
+                        + property + " property.");
+                    process.exit(-46);
+                }
+                typevalval.put(assignmentsAst.varn().getText(), Box.fromAssignableAst(assignmentsAst.assignables(), scope, assignmentType, readonly));
+            }
+            return new Box(typevalval, type, readonly);
+        }
+        if (objectliteralsAst.mapliteral() != null) {
+            let mapval = {};
+            if (objectliteralsAst.mapliteral().mapline() != null) {
+                for (const mapline of objectliteralsAst.mapliteral().mapline()) {
+                    const keyBox = Box.fromAssignableAst(mapline.assignables(0), scope, type.properties["key"], // Special for Maps
+                    readonly);
+                    const valBox = Box.fromAssignableAst(mapline.assignables(1), scope, type.properties["value"], // Special for Maps
+                    readonly);
+                    mapval.put(keyBox, valBox);
+                }
+            }
+            return new Box(mapval, type, readonly);
+        }
+        // Should never reach here
+        return null;
+    }
 }
-
 Box.builtinTypes = {
-  void: new Type("void", true),
-  int8: new Type("int8", true),
-  int16: new Type("int16", true),
-  int32: new Type("int32", true),
-  int64: new Type("int64", true),
-  float32: new Type("float32", true),
-  float64: new Type("float64", true),
-  bool: new Type("bool", true),
-  string: new Type("string", true),
-  Error: new Type("Error", true, {
-    message: new Type("string", true, true),
-    code: new Type("int64", true, true),
-  }),
-  "Array": new Type("Array", true, {
-    records: new Type("V", true, true),
-  }, {
-    V: 0,
-  }),
-  Map: new Type("Map", true, {
-    key: new Type("K", true, true),
-    value: new Type("V", true, true),
-  }, {
-    K: 0,
-    V: 1,
-  }),
-  KeyVal: new Type("KeyVal", true, {
-    key: new Type("K", true, true),
-    value: new Type("V", true, true),
-  }, {
-    K: 0,
-    V: 1,
-  }),
-  "function": new Type("function", true),
-  operator: new Type("operator", true),
-  Event: new Type("Event", true, {
-    type: new Type("E", true, true),
-  }, {
-    E: 0,
-  }),
-  type: new Type("type", true),
-  scope: new Type("scope", true),
-  microstatement: new Type("microstatement", true),
-}
-
-module.exports = Box
+    void: new Type("void", true),
+    int8: new Type("int8", true),
+    int16: new Type("int16", true),
+    int32: new Type("int32", true),
+    int64: new Type("int64", true),
+    float32: new Type("float32", true),
+    float64: new Type("float64", true),
+    bool: new Type("bool", true),
+    string: new Type("string", true),
+    Error: new Type("Error", true, {
+        message: new Type("string", true, true),
+        code: new Type("int64", true, true),
+    }),
+    "Array": new Type("Array", true, {
+        records: new Type("V", true, true),
+    }, {
+        V: 0,
+    }),
+    Map: new Type("Map", true, {
+        key: new Type("K", true, true),
+        value: new Type("V", true, true),
+    }, {
+        K: 0,
+        V: 1,
+    }),
+    KeyVal: new Type("KeyVal", true, {
+        key: new Type("K", true, true),
+        value: new Type("V", true, true),
+    }, {
+        K: 0,
+        V: 1,
+    }),
+    "function": new Type("function", true),
+    operator: new Type("operator", true),
+    Event: new Type("Event", true, {
+        type: new Type("E", true, true),
+    }, {
+        E: 0,
+    }),
+    type: new Type("type", true),
+    scope: new Type("scope", true),
+    microstatement: new Type("microstatement", true),
+};
+module.exports = Box;
 
 }).call(this,require('_process'))
 },{"./Event":15,"./Float32":16,"./Float64":17,"./Int16":19,"./Int32":20,"./Int64":21,"./Int8":22,"./Microstatement":24,"./Scope":27,"./Type":30,"_process":85}],15:[function(require,module,exports){
 (function (process){
 class Event {
-  constructor(name, type, builtIn) {
-    this.name = name,
-    this.type = type
-    this.builtIn = builtIn
-    this.handlers = []
-    Event.allEvents.push(this)
-  }
-
-  toString() {
-    return `event ${this.name}: ${this.type.typename}`
-  }
-
-  static fromAst(eventAst, scope) {
-    const name = eventAst.VARNAME().getText()
-    const boxedVal = scope.deepGet(eventAst.varn())
-    if (boxedVal === null) {
-      console.error("Could not find specified type: " + eventAst.varn().getText())
-      process.exit(-8)
-    } else if (!boxedVal.type.typename === "type") {
-      console.error(eventAst.varn().getText() + " is not a type")
-      process.exit(-9)
+    constructor(name, type, builtIn) {
+        this.name = name,
+            this.type = type;
+        this.builtIn = builtIn;
+        this.handlers = [];
+        Event.allEvents.push(this);
     }
-    const type = boxedVal.typeval
-    return new Event(name, type, false)
-  }
+    toString() {
+        return `event ${this.name}: ${this.type.typename}`;
+    }
+    static fromAst(eventAst, scope) {
+        const name = eventAst.VARNAME().getText();
+        const boxedVal = scope.deepGet(eventAst.varn());
+        if (boxedVal === null) {
+            console.error("Could not find specified type: " + eventAst.varn().getText());
+            process.exit(-8);
+        }
+        else if (!boxedVal.type.typename === "type") {
+            console.error(eventAst.varn().getText() + " is not a type");
+            process.exit(-9);
+        }
+        const type = boxedVal.typeval;
+        return new Event(name, type, false);
+    }
 }
-
-Event.allEvents = []
-
-module.exports = Event
+Event.allEvents = [];
+module.exports = Event;
 
 }).call(this,require('_process'))
 },{"_process":85}],16:[function(require,module,exports){
 class Float32 {
-  constructor(val) {
-    this.val = val
-  }
-  toString() {
-    return this.val
-  }
+    constructor(val) {
+        this.val = val;
+    }
+    toString() {
+        return this.val;
+    }
 }
-
-module.exports = Float32 
+module.exports = Float32;
 
 },{}],17:[function(require,module,exports){
 class Float64 {
-  constructor(val) {
-    this.val = val
-  }
-  toString() {
-    return this.val
-  }
+    constructor(val) {
+        this.val = val;
+    }
+    toString() {
+        return this.val;
+    }
 }
-
-module.exports = Float64
+module.exports = Float64;
 
 },{}],18:[function(require,module,exports){
 class FunctionType {
-  constructor(...args) {
-    if (args.length === 1) {
-      this.functionname = null
-      this.args = []
-      this.returnType = args[0]
-    } else if (args.length === 2) {
-      if (typeof args[0] === "string") {
-        this.functionname = args[0]
-        this.args = []
-        this.returnType = args[1]
-      } else if (args[0] instanceof Array) {
-        this.functionname = null
-        this.args = args[0]
-        this.returnType = args[1]
-      }
-    } else if (args.length === 3) {
-      this.functionname = args[0]
-      this.args = args[1]
-      this.returnType = args[2]
+    constructor(...args) {
+        if (args.length === 1) {
+            this.functionname = null;
+            this.args = [];
+            this.returnType = args[0];
+        }
+        else if (args.length === 2) {
+            if (typeof args[0] === "string") {
+                this.functionname = args[0];
+                this.args = [];
+                this.returnType = args[1];
+            }
+            else if (args[0] instanceof Array) {
+                this.functionname = null;
+                this.args = args[0];
+                this.returnType = args[1];
+            }
+        }
+        else if (args.length === 3) {
+            this.functionname = args[0];
+            this.args = args[1];
+            this.returnType = args[2];
+        }
     }
-  }
 }
-
-module.exports = FunctionType
+module.exports = FunctionType;
 
 },{}],19:[function(require,module,exports){
 class Int16 {
-  constructor(val) {
-    this.val = val
-  }
-  toString() {
-    return this.val
-  }
+    constructor(val) {
+        this.val = val;
+    }
+    toString() {
+        return this.val;
+    }
 }
-
-module.exports = Int16
+module.exports = Int16;
 
 },{}],20:[function(require,module,exports){
 class Int32 {
-  constructor(val) {
-    this.val = val
-  }
-  toString() {
-    return this.val
-  }
+    constructor(val) {
+        this.val = val;
+    }
+    toString() {
+        return this.val;
+    }
 }
-
-module.exports = Int32
+module.exports = Int32;
 
 },{}],21:[function(require,module,exports){
 class Int64 {
-  constructor(val) {
-    this.val = val
-  }
-  toString() {
-    return this.val
-  }
+    constructor(val) {
+        this.val = val;
+    }
+    toString() {
+        return this.val;
+    }
 }
-
-module.exports = Int64
+module.exports = Int64;
 
 },{}],22:[function(require,module,exports){
 class Int8 {
-  constructor(val) {
-    this.val = val
-  }
-  toString() {
-    return this.val
-  }
+    constructor(val) {
+        this.val = val;
+    }
+    toString() {
+        return this.val;
+    }
 }
-
-module.exports = Int8
+module.exports = Int8;
 
 },{}],23:[function(require,module,exports){
 (function (process){
-const Type = require('./Type')
-const FunctionType = require('./FunctionType')
-
+const Type = require('./Type');
+const FunctionType = require('./FunctionType');
 class Interface {
-  constructor(...args) {
-    if (args.length === 1) {
-      this.interfacename = args[0]
-      this.functionTypes = []
-      this.operatorTypes = []
-      this.requiredProperties = {}
-    } else if (args.length === 4) {
-      this.interfacename = args[0]
-      this.functionTypes = args[1]
-      this.operatorTypes = args[2]
-      this.requiredProperties = args[3]
-    }
-  }
-
-  typeApplies(typeToCheck, scope) {
-    // Solve circular dependency issue
-    const Box = require('./Box')
-    for (const requiredProperty of Object.keys(this.requiredProperties)) {
-      if (!typeToCheck.properties.hasOwnProperty(requiredProperty)) return false
-    }
-
-    for (const functionType of this.functionTypes) {
-      if (functionType.functionname === null) continue // Anonymous functions checked at callsite
-      const potentialFunctionsBox = scope.deepGet(functionType.functionname)
-      if (
-        potentialFunctionsBox == null ||
-        potentialFunctionsBox.type != Box.builtinTypes["function"]
-      ) {
-        console.error(functionType.functionname + " is not the name of a function")
-        process.exit(-48)
-      }
-      const potentialFunctions = potentialFunctionsBox.functionval
-      let functionFound = false;
-      for (const potentialFunction of potentialFunctions) {
-        const argTypes = potentialFunction.getArguments()
-        let argsMatch = true;
-        for (let i = 0; i < argTypes.length; i++) {
-          const functionTypeArgType = functionType.args[i];
-          if (argTypes[i] == functionTypeArgType) continue
-          if (argTypes[i].originalType == functionTypeArgType) continue
-          if (argTypes[i] == typeToCheck) continue
-          if (
-            argTypes[i].iface != null &&
-            functionTypeArgType.iface != null &&
-            argTypes[i].iface == functionTypeArgType.iface
-          ) continue
-          argsMatch = false
-          break
+    constructor(...args) {
+        if (args.length === 1) {
+            this.interfacename = args[0];
+            this.functionTypes = [];
+            this.operatorTypes = [];
+            this.requiredProperties = {};
         }
-        if (!argsMatch) continue
-        functionFound = true
-        break
-        // TODO: Need to do special work to handle n-ary functions, but users can't define those yet
-      }
-      if (!functionFound) return false
+        else if (args.length === 4) {
+            this.interfacename = args[0];
+            this.functionTypes = args[1];
+            this.operatorTypes = args[2];
+            this.requiredProperties = args[3];
+        }
     }
-
-    for (const operatorType of this.operatorTypes) {
-      // TODO: Implement me!
-    }
-
-    return true
-  }
-
-  static fromAst(interfaceAst, scope) {
-    const Box = require('./Box')
-    // Construct the basic interface, the wrapper type, and insert it into the scope
-    // This is all necessary so the interface can self-reference when constructing the function and
-    // operator types.
-    const interfacename = interfaceAst.VARNAME().getText()
-    let iface = new Interface(interfacename)
-    const ifaceType = new Type(interfacename, false, iface)
-    const ifaceTypeBox = new Box(ifaceType)
-    scope.put(interfacename, ifaceTypeBox)
-
-    // Now, insert the actual declarations of the interface, if there are any (if there are none,
-    // it will provide only as much as a type generic -- you can set it to a variable and return it
-    // but nothing else, unlike Go's ridiculous interpretation of a bare interface).
-    if (interfaceAst.interfaceline() != null) {
-      for (const interfaceline of interfaceAst.interfaceline()) {
-        if (interfaceline.functiontypeline() != null) {
-          const functiontypeline = interfaceline.functiontypeline()
-          let functionname = null
-          if (functiontypeline.VARNAME() != null) {
-            functionname = functiontypeline.VARNAME().getText()
-          }
-          const typenames = functiontypeline.functiontype().varn();
-          const returnTypeBox = scope.deepGet(typenames[typenames.length - 1].getText())
-          if (returnTypeBox == null || returnTypeBox.typeval == null) {
-            console.error(typenames.get(typenames.size() - 1).getText() + " is not a type")
-            process.exit(-48)
-          }
-          const returnType = returnTypeBox.typeval
-          let args = []
-          for (let i = 0; i < typenames.length - 1; i++) {
-            const argumentBox = scope.deepGet(typenames[i].getText())
-            if (argumentBox == null || argumentBox.typeval == null) {
-              console.error(typenames.get(i).getText() + " is not a type")
-              process.exit(-49)
+    typeApplies(typeToCheck, scope) {
+        // Solve circular dependency issue
+        const Box = require('./Box');
+        for (const requiredProperty of Object.keys(this.requiredProperties)) {
+            if (!typeToCheck.properties.hasOwnProperty(requiredProperty))
+                return false;
+        }
+        for (const functionType of this.functionTypes) {
+            if (functionType.functionname === null)
+                continue; // Anonymous functions checked at callsite
+            const potentialFunctionsBox = scope.deepGet(functionType.functionname);
+            if (potentialFunctionsBox == null ||
+                potentialFunctionsBox.type != Box.builtinTypes["function"]) {
+                console.error(functionType.functionname + " is not the name of a function");
+                process.exit(-48);
             }
-            args.push(argumentBox.typeval)
-          }
-          const functionType = new FunctionType(functionname, args, returnType)
-          iface.functionTypes.push(functionType)
+            const potentialFunctions = potentialFunctionsBox.functionval;
+            let functionFound = false;
+            for (const potentialFunction of potentialFunctions) {
+                const argTypes = potentialFunction.getArguments();
+                let argsMatch = true;
+                for (let i = 0; i < argTypes.length; i++) {
+                    const functionTypeArgType = functionType.args[i];
+                    if (argTypes[i] == functionTypeArgType)
+                        continue;
+                    if (argTypes[i].originalType == functionTypeArgType)
+                        continue;
+                    if (argTypes[i] == typeToCheck)
+                        continue;
+                    if (argTypes[i].iface != null &&
+                        functionTypeArgType.iface != null &&
+                        argTypes[i].iface == functionTypeArgType.iface)
+                        continue;
+                    argsMatch = false;
+                    break;
+                }
+                if (!argsMatch)
+                    continue;
+                functionFound = true;
+                break;
+                // TODO: Need to do special work to handle n-ary functions, but users can't define those yet
+            }
+            if (!functionFound)
+                return false;
         }
-        if (interfaceline.operatortypeline() != null) {
-          // TODO: Implement me! 
-          console.error("Operator type declarations not yet implemented!")
+        for (const operatorType of this.operatorTypes) {
+            // TODO: Implement me!
         }
-        if (interfaceline.propertytypeline() != null) {
-          const propertyTypeBox = scope.deepGet(interfaceline.propertytypeline().varn().getText())
-          if (propertyTypeBox == null || propertyTypeBox.typeval == null) {
-            console.error(interfaceline.propertytypeline().varn().getText() + " is not a type")
-            process.exit(-50)
-          }
-          iface.requiredProperties[
-            interfaceline.propertytypeline().VARNAME().getText()
-          ] = propertyTypeBox.typeval
-        }
-      }
+        return true;
     }
-    return ifaceTypeBox
-  }
+    static fromAst(interfaceAst, scope) {
+        const Box = require('./Box');
+        // Construct the basic interface, the wrapper type, and insert it into the scope
+        // This is all necessary so the interface can self-reference when constructing the function and
+        // operator types.
+        const interfacename = interfaceAst.VARNAME().getText();
+        let iface = new Interface(interfacename);
+        const ifaceType = new Type(interfacename, false, iface);
+        const ifaceTypeBox = new Box(ifaceType);
+        scope.put(interfacename, ifaceTypeBox);
+        // Now, insert the actual declarations of the interface, if there are any (if there are none,
+        // it will provide only as much as a type generic -- you can set it to a variable and return it
+        // but nothing else, unlike Go's ridiculous interpretation of a bare interface).
+        if (interfaceAst.interfaceline() != null) {
+            for (const interfaceline of interfaceAst.interfaceline()) {
+                if (interfaceline.functiontypeline() != null) {
+                    const functiontypeline = interfaceline.functiontypeline();
+                    let functionname = null;
+                    if (functiontypeline.VARNAME() != null) {
+                        functionname = functiontypeline.VARNAME().getText();
+                    }
+                    const typenames = functiontypeline.functiontype().varn();
+                    const returnTypeBox = scope.deepGet(typenames[typenames.length - 1].getText());
+                    if (returnTypeBox == null || returnTypeBox.typeval == null) {
+                        console.error(typenames.get(typenames.size() - 1).getText() + " is not a type");
+                        process.exit(-48);
+                    }
+                    const returnType = returnTypeBox.typeval;
+                    let args = [];
+                    for (let i = 0; i < typenames.length - 1; i++) {
+                        const argumentBox = scope.deepGet(typenames[i].getText());
+                        if (argumentBox == null || argumentBox.typeval == null) {
+                            console.error(typenames.get(i).getText() + " is not a type");
+                            process.exit(-49);
+                        }
+                        args.push(argumentBox.typeval);
+                    }
+                    const functionType = new FunctionType(functionname, args, returnType);
+                    iface.functionTypes.push(functionType);
+                }
+                if (interfaceline.operatortypeline() != null) {
+                    // TODO: Implement me! 
+                    console.error("Operator type declarations not yet implemented!");
+                }
+                if (interfaceline.propertytypeline() != null) {
+                    const propertyTypeBox = scope.deepGet(interfaceline.propertytypeline().varn().getText());
+                    if (propertyTypeBox == null || propertyTypeBox.typeval == null) {
+                        console.error(interfaceline.propertytypeline().varn().getText() + " is not a type");
+                        process.exit(-50);
+                    }
+                    iface.requiredProperties[interfaceline.propertytypeline().VARNAME().getText()] = propertyTypeBox.typeval;
+                }
+            }
+        }
+        return ifaceTypeBox;
+    }
 }
-
-module.exports = Interface
+module.exports = Interface;
 
 }).call(this,require('_process'))
 },{"./Box":14,"./FunctionType":18,"./Type":30,"_process":85}],24:[function(require,module,exports){
 (function (process){
-const { v4: uuid, } = require('uuid')
-
-const { LnParser, } = require('../ln')
-const StatementType = require('./StatementType')
-const Box = require('./Box')
-const UserFunction = require('./UserFunction')
-
+const { v4: uuid, } = require('uuid');
+const { LnParser, } = require('../ln');
+const StatementType = require('./StatementType');
+const Box = require('./Box');
+const UserFunction = require('./UserFunction');
 class Microstatement {
-  constructor(...args) {
-    if (args.length === 5) {
-      this.statementType = args[0]
-      this.scope = args[1]
-      this.pure = args[2]
-      this.outputName = args[3]
-      this.alias = ""
-      this.outputType = Box.builtinTypes.void
-      this.inputNames = []
-      this.fns = []
-      this.closureStatements = args[4]
-    } else if (args.length === 8) {
-      this.statementType = args[0]
-      this.scope = args[1]
-      this.pure = args[2]
-      this.outputName = args[3]
-      this.alias = args[4]
-      this.outputType = args[5]
-      this.inputNames = args[6]
-      this.fns = args[7]
-      this.closureStatements = []
-    } else if (args.length === 7) {
-      this.statementType = args[0]
-      this.scope = args[1]
-      this.pure = args[2]
-      this.outputName = args[3]
-      this.alias = ""
-      this.outputType = args[4]
-      this.inputNames = args[5]
-      this.fns = args[6]
-      this.closureStatements = []
-    }
-  }
-
-  toString() {
-    let outString = "";
-    switch (this.statementType) {
-      case StatementType.CONSTDEC:
-        outString = "const " + this.outputName + ": " + this.outputType.typename
-        if (this.fns.length > 0) {
-          outString += " = " + this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")"
-        } else if (this.inputNames.length > 0) {
-          outString += " = " + this.inputNames[0] // Doesn't appear the list is ever used here
+    constructor(...args) {
+        if (args.length === 5) {
+            this.statementType = args[0];
+            this.scope = args[1];
+            this.pure = args[2];
+            this.outputName = args[3];
+            this.alias = "";
+            this.outputType = Box.builtinTypes.void;
+            this.inputNames = [];
+            this.fns = [];
+            this.closureStatements = args[4];
         }
-        break
-      case StatementType.LETDEC:
-        outString = "let " + this.outputName + ": " + this.outputType.typename
-        if (this.fns.length > 0) {
-          outString += " = " + this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")"
-        } else if (this.inputNames.length > 0) {
-          outString += " = " + this.inputNames[0] // Doesn't appear the list is ever used here
+        else if (args.length === 8) {
+            this.statementType = args[0];
+            this.scope = args[1];
+            this.pure = args[2];
+            this.outputName = args[3];
+            this.alias = args[4];
+            this.outputType = args[5];
+            this.inputNames = args[6];
+            this.fns = args[7];
+            this.closureStatements = [];
         }
-        break
-      case StatementType.ASSIGNMENT:
-        outString = this.outputName
-        if (this.fns.length > 0) {
-          outString += " = " + this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")"
-        } else if (this.inputNames.length > 0) {
-          outString += " = " + this.inputNames[0] // Doesn't appear the list is ever used here
+        else if (args.length === 7) {
+            this.statementType = args[0];
+            this.scope = args[1];
+            this.pure = args[2];
+            this.outputName = args[3];
+            this.alias = "";
+            this.outputType = args[4];
+            this.inputNames = args[5];
+            this.fns = args[6];
+            this.closureStatements = [];
         }
-        break
-      case StatementType.CALL:
-        if (this.fns.length > 0) {
-          outString += this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")"
+    }
+    toString() {
+        let outString = "";
+        switch (this.statementType) {
+            case StatementType.CONSTDEC:
+                outString = "const " + this.outputName + ": " + this.outputType.typename;
+                if (this.fns.length > 0) {
+                    outString += " = " + this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
+                }
+                else if (this.inputNames.length > 0) {
+                    outString += " = " + this.inputNames[0]; // Doesn't appear the list is ever used here
+                }
+                break;
+            case StatementType.LETDEC:
+                outString = "let " + this.outputName + ": " + this.outputType.typename;
+                if (this.fns.length > 0) {
+                    outString += " = " + this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
+                }
+                else if (this.inputNames.length > 0) {
+                    outString += " = " + this.inputNames[0]; // Doesn't appear the list is ever used here
+                }
+                break;
+            case StatementType.ASSIGNMENT:
+                outString = this.outputName;
+                if (this.fns.length > 0) {
+                    outString += " = " + this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
+                }
+                else if (this.inputNames.length > 0) {
+                    outString += " = " + this.inputNames[0]; // Doesn't appear the list is ever used here
+                }
+                break;
+            case StatementType.CALL:
+                if (this.fns.length > 0) {
+                    outString += this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
+                }
+                break;
+            case StatementType.EXIT:
+                outString = "return ";
+                if (this.fns.length > 0) {
+                    outString += this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
+                }
+                else if (this.inputNames.length > 0) {
+                    outString += this.inputNames[0]; // Doesn't appear the list is ever used here
+                }
+                break;
+            case StatementType.EMIT:
+                outString = "emit " + this.outputName + " ";
+                if (this.fns.length > 0) {
+                    outString += this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
+                }
+                else if (this.inputNames.length > 0) {
+                    outString += this.inputNames[0]; // Doesn't appear the list is ever used here
+                }
+                break;
+            case StatementType.CLOSURE:
+                outString = "const " + this.outputName + ": function = fn (): void {\n";
+                for (const m of this.closureStatements) {
+                    const s = m.toString();
+                    if (s !== "") {
+                        outString += "    " + m.toString() + "\n";
+                    }
+                }
+                outString += "  }";
+                break;
+            case StatementType.REREF:
+            case StatementType.ARG:
+                // Intentionally never output anything, this is metadata for the transpiler algo only
+                break;
         }
-        break
-      case StatementType.EXIT:
-        outString = "return "
-        if (this.fns.length > 0) {
-          outString += this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")"
-        } else if (this.inputNames.length > 0) {
-          outString += this.inputNames[0] // Doesn't appear the list is ever used here
-        }
-        break
-      case StatementType.EMIT:
-        outString = "emit " + this.outputName + " "
-        if (this.fns.length > 0) {
-          outString += this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")"
-        } else if (this.inputNames.length > 0) {
-          outString += this.inputNames[0] // Doesn't appear the list is ever used here
-        }
-        break
-      case StatementType.CLOSURE:
-        outString = "const " + this.outputName + ": function = fn (): void {\n"
-        for (const m of this.closureStatements) {
-          const s = m.toString()
-          if (s !== "") {
-            outString += "    " + m.toString() + "\n"
-          }
-        }
-        outString += "  }"
-        break
-      case StatementType.REREF:
-      case StatementType.ARG:
-        // Intentionally never output anything, this is metadata for the transpiler algo only
-        break
+        return outString;
     }
-    return outString
-  }
-
-  static fromVarName(varName, microstatements) {
-    let original = null
-    for (let i = microstatements.length - 1; i > -1; i--) {
-      const microstatement = microstatements[i]
-      // TODO: var resolution is complex. Need to revisit this.
-      if (microstatement.outputName === varName) {
-        original = microstatement
-        break
-      }
-      if (microstatement.alias === varName) {
-        original = microstatement
-        break
-      }
-    }
-    return original
-  }
-
-  static fromVarAst(varAst, scope, microstatements) {
-    let original = Microstatement.fromVarName(varAst.getText(), microstatements)
-    if (original == null) {
-      original = scope.deepGet(varAst.getText())
-    }
-    if (original == null || !(original instanceof Microstatement)) {
-      console.error(varAst.getText() + " cannot be found")
-      console.error(
-        varAst.getText() +
-        " on line " +
-        varAst.start.line +
-        ":" +
-        varAst.start.column
-      )
-      process.exit(-104)
-    }
-    // When a variable is reassigned (or was referenced in a function call or operator statement,
-    // instead of duplicating its data, add a microstatement to rereference that data (all of the
-    // function and operator calls expect their arguments to be the N statements preceding them).
-    microstatements.push(new Microstatement(
-      StatementType.REREF,
-      scope,
-      true,
-      original.outputName,
-      original.outputType,
-      [],
-      [],
-    ))
-  }
-
-  static fromConstantsAst(constantsAst, scope, microstatements) {
-    const constName = "_" + uuid().replace(/-/g, "_")
-    const constBox = Box.fromConstantsAst(
-      constantsAst,
-      scope,
-      null,
-      true
-    )
-    let constVal
-    try {
-      JSON.parse(constantsAst.getText()) // Will fail on strings with escape chars
-      constVal = constantsAst.getText()
-    } catch (e) {
-      // Hackery to get these strings to work
-      constVal = JSON.stringify(constantsAst.getText().replace(/^["']/, '').replace(/["']$/, ''))
-    }
-    microstatements.push(new Microstatement(
-      StatementType.CONSTDEC,
-      scope,
-      true,
-      constName,
-      constBox.type,
-      [constVal],
-      [],
-    ))
-  }
-
-  static fromBasicAssignablesAst(basicAssignablesAst, returnTypeHint, scope, microstatements) {
-    // Functions will be inlined in a second pass over the microstatements whereever it is called.
-    // For now we still create the function object and the microstatement to assign it
-    if (basicAssignablesAst.functions() != null) {
-      const fnToAssign = UserFunction.fromAst(basicAssignablesAst.functions(), scope)
-      const fnName = "fn_" + uuid().replace(/-/g, "_")
-      microstatements.push(new Microstatement(
-        StatementType.CONSTDEC,
-        scope,
-        true, // This assignment, at least
-        fnName,
-        Box.builtinTypes["function"],
-        [],
-        [fnToAssign],
-      ))
-      return
-    }
-    // Here is where we inline the functions that were defined elsewhere or just above here! Or if
-    // it's a built-in function, we just call it as originally expected.
-    if (basicAssignablesAst.calls() != null) {
-      Microstatement.fromCallsAst(
-        basicAssignablesAst.calls(),
-        scope,
-        microstatements
-      )
-      return
-    }
-    // A `var` assignment is simply a renaming of a variable. We need to find the existing
-    // microstatement for that `var` name and "tag it" in the scope as an alias that can be looked
-    // up later. For now, we'll include a useless reassignment for simplicity's sake.
-    if (basicAssignablesAst.varn() != null) {
-      Microstatement.fromVarAst(
-        basicAssignablesAst.varn(),
-        scope,
-        microstatements
-      )
-      return
-    }
-    // `constants` are relatively simple affair.
-    if (basicAssignablesAst.constants() != null) {
-      Microstatement.fromConstantsAst(basicAssignablesAst.constants(), scope, microstatements)
-      return
-    }
-    // `groups` are just grouped `withOperators`.
-    if (basicAssignablesAst.groups() != null) {
-      Microstatement.fromWithOperatorsAst(
-        basicAssignablesAst.groups().withoperators(),
-        null,
-        scope,
-        microstatements
-      )
-      return
-    }
-    // `typeof` is a special statement to get the type from a variable. This is usually static but
-    // can be dynamic in certain cases. That's going to be tough to represent in the bytecode that
-    // otherwise strips all of the type data away. (Though with all functions inlined the type
-    // "branches" can be serialized in some fashion back to bare types. Only event handlers and
-    // event emission on ADTs, or opcodes that return ADTs remain a concern.)
-    // TODO: For now, ignore this complexity and assume it can just be serialized.
-    if (basicAssignablesAst.typeofn() != null) {
-      // First evaluate the type's basicassignables.
-      Microstatement.fromBasicAssignablesAst(
-        basicAssignablesAst.typeofn().basicassignables(),
-        null,
-        scope,
-        microstatements
-      )
-      // The last microstatement is the one we want to get the type data from.
-      const last = microstatements[microstatements.size() - 1]
-      const constName = "_" + uuid().replace(/-/g, "_")
-      microstatements.push(new Microstatement(
-        StatementType.CONSTDEC,
-        scope,
-        true,
-        constName,
-        Box.builtinTypes["string"],
-        [last.outputType.typename],
-        [],
-      ))
-      return
-    }
-    // The conversion of object literals is devolved to alangraphcode when types are erased, at this
-    // stage they're just passed through as-is. TODO: This is assuming everything inside of them are
-    // constants. That is not a valid assumption and should be revisited.
-    if (basicAssignablesAst.objectliterals() != null) {
-      const constName = "_" + uuid().replace(/-/g, "_")
-      const typeBox = scope.deepGet(basicAssignablesAst.objectliterals().othertype().getText())
-      if (typeBox == null) {
-        console.error(basicAssignablesAst.objectliterals().othertype().getText() + " is not defined")
-        console.error(
-          basicAssignablesAst.getText() +
-          " on line " +
-          basicAssignablesAst.start.line +
-          ":" +
-          basicAssignablesAst.start.column
-        )
-        process.exit(-105)
-      }
-      if (typeBox.typeval == null) {
-        console.error(basicAssignablesAst.objectliterals().othertype().getText() + " is not a type")
-        console.error(
-          basicAssignablesAst.getText() +
-          " on line " +
-          basicAssignablesAst.start.line +
-          ":" +
-          basicAssignablesAst.start.column
-        )
-        process.exit(-106)
-      }
-      microstatements.push(new Microstatement(
-        StatementType.CONSTDEC,
-        scope,
-        true,
-        constName,
-        typeBox.typeval,
-        [basicAssignablesAst.objectliterals().getText()],
-        [],
-      ))
-      return
-    }
-  }
-
-  static fromWithOperatorsAst(withOperatorsAst, returnTypeHint, scope, microstatements) {
-    let withOperatorsList = []
-    for (const operatorOrAssignable of withOperatorsAst.operatororassignable()) {
-      if (operatorOrAssignable.operators() != null) {
-        const operator = operatorOrAssignable.operators()
-        const op = scope.deepGet(operator.getText())
-        if (op == null || op.operatorval == null) {
-          console.error("Operator " + operator.getText() + " is not defined")
-          process.exit(-34)
-        }
-        withOperatorsList.push(op)
-      }
-      if (operatorOrAssignable.basicassignables() != null) {
-        Microstatement.fromBasicAssignablesAst(
-          operatorOrAssignable.basicassignables(),
-          null,
-          scope,
-          microstatements
-        )
-        const last = microstatements[microstatements.length - 1]
-        withOperatorsList.push(new Box(last)) // Wrapped in a box to make this work
-      }
-    }
-    // Now to combine these operators and values in the correct order. A compiled language could
-    // never do something so inefficient, but I don't care about performance right now, so here's
-    // the algorithm: while the list length is greater than 1, perform the two steps:
-    // 1. Find the operator with the greatest precedence
-    // 2. Apply the underlying function to the values on either side of the operator (or just the
-    //    right side if the operator is a prefix operator), then replace the operator with the
-    //    returned value in the list and delete the impacted values.
-    while (withOperatorsList.length > 1) {
-      let maxPrecedence = -1
-      let maxOperatorLoc = -1
-      let maxOperatorListLoc = -1
-      for (let i = 0; i < withOperatorsList.length; i++) {
-        if (withOperatorsList[i].operatorval != null) {
-          const ops = withOperatorsList[i].operatorval;
-          let op = null
-          let operatorListLoc = -1
-          let operatorPrecedence = -127
-          if (ops.length == 1) {
-            op = ops[0]
-            operatorListLoc = 0
-          } else {
-            // TODO: We need to identify which particular operator applies in this case.
-            // We're just going to short-circuit this process on the first operator that matches
-            // but we need to come up with a "best match" behavior (ie, if one argument is an int8
-            // it may choose the int64-based operator because it was first and it can cast int8 to
-            // int64 and then miss the specialized int8 version of the function).
-            let left = null
-            if (i != 0) left = withOperatorsList[i - 1]
-            let right = null // Technically, since we're doing this at runtime, there could be a syntax error
-            if (i != withOperatorsList.length - 1) right = withOperatorsList[i + 1]
-            for (let j = 0; j < ops.length; j++) {
-              if (
-                ops[j].precedence > operatorPrecedence &&
-                ops[j].applicableFunction(
-                  left == null ? null : left.microstatementval.outputType,
-                  right == null ? null : right.microstatementval.outputType,
-                  scope
-                ) != null
-              ) {
-                op = ops[j]
-                operatorListLoc = j
-                operatorPrecedence = op.precedence
-              }
+    static fromVarName(varName, microstatements) {
+        let original = null;
+        for (let i = microstatements.length - 1; i > -1; i--) {
+            const microstatement = microstatements[i];
+            // TODO: var resolution is complex. Need to revisit this.
+            if (microstatement.outputName === varName) {
+                original = microstatement;
+                break;
             }
-            // During the process of determining the operator ordering, there may be tests that
-            // will not match because operator precedence will convert the neighboring types into
-            // types that will match. This is complicated and doing this statically will be more
-            // difficult, but for now, just skip over these.
-            if (op == null) continue
-          }
-          
-          if (op.precedence > maxPrecedence) {
-            maxPrecedence = op.precedence
-            maxOperatorLoc = i
-            maxOperatorListLoc = operatorListLoc
-          }
-        }
-      }
-      if (maxPrecedence == -1 || maxOperatorLoc == -1) {
-        console.error("Cannot resolve operators with remaining statement")
-        let withOperatorsTranslation = []
-        for (let i = 0; i < withOperatorsList.length; i++) {
-          const node = withOperatorsList[i]
-          if (node.operatorval != null) {
-            withOperatorsTranslation.push(node.operatorval[0].name)
-          } else {
-            withOperatorsTranslation.push("<" + node.microstatementval.outputType.typename + ">")
-          }
-        }
-        console.error(withOperatorsTranslation.join(" "))
-        process.exit(-34)
-      }
-      const op = withOperatorsList[maxOperatorLoc].operatorval[maxOperatorListLoc]
-      let realArgNames = []
-      let realArgTypes = []
-      if (!op.isPrefix) {
-        const left = withOperatorsList[maxOperatorLoc - 1].microstatementval
-        realArgNames.push(left.outputName)
-        realArgTypes.push(left.outputType)
-      }
-      const right = withOperatorsList[maxOperatorLoc + 1].microstatementval
-      realArgNames.push(right.outputName)
-      realArgTypes.push(right.outputType)
-      UserFunction
-        .dispatchFn(op.potentialFunctions, realArgTypes, scope)
-        .microstatementInlining(realArgNames, scope, microstatements)
-      const last = microstatements[microstatements.length - 1]
-      withOperatorsList[maxOperatorLoc] = new Box(last)
-      withOperatorsList.splice(maxOperatorLoc + 1, 1)
-      if (!op.isPrefix) {
-        withOperatorsList.splice(maxOperatorLoc - 1, 1)
-      }
-    }
-  }
-
-  static closureFromBlocklikesAst(blocklikesAst, scope, microstatements) {
-    // There are roughly two paths for closure generation of the blocklike. If it's a var reference
-    // to another function, use the scope to grab the function definition directly, run the inlining
-    // logic on it, then attach them to a new microstatement declaring the closure. If it's closure
-    // that could (probably usually will) reference the outer scope, the inner statements should be
-    // converted as normal, but with the current length of the microstatements array tracked so they
-    // can be pruned back off of the list to be reattached to a closure microstatement type.
-    const constName = "_" + uuid().replace(/-/g, "_")
-    if (blocklikesAst.varn() != null) {
-      const fnToClose = scope.deepGet(blocklikesAst.varn())
-      if (fnToClose == null || fnToClose.functionval == null) {
-        console.error(blocklikesAst.varn().getText() + " is not a function")
-        process.exit(-111)
-      }
-      // TODO: Revisit this on resolving the appropriate function if multiple match, right now just
-      // take the first one.
-      const closureFn = fnToClose.functionval[0]
-      let innerMicrostatements = []
-      closureFn.microstatementInlining([], scope, innerMicrostatements)
-      microstatements.push(new Microstatement(
-        StatementType.CLOSURE,
-        scope,
-        true, // Guaranteed true in this case, it's not really a closure
-        constName,
-        innerMicrostatements
-      ))
-    } else {
-      let len = microstatements.length;
-      if (blocklikesAst.functionbody() != null) {
-        for (const s of blocklikesAst.functionbody().statements()) {
-          Microstatement.fromStatementsAst(s, scope, microstatements)
-        }
-      } else {
-        if (blocklikesAst.functions().fullfunctionbody().functionbody() != null) {
-          for (const s of blocklikesAst.functions().fullfunctionbody().functionbody().statements()) {
-            Microstatement.fromStatementsAst(s, scope, microstatements)
-          }
-        } else {
-          Microstatement.fromAssignablesAst(
-            blocklikesAst.functions().fullfunctionbody().assignables(),
-            scope,
-            microstatements
-          )
-        }
-      }
-      let newlen = microstatements.length;
-      // There might be off-by-one bugs in the conversion here
-      const innerMicrostatements = microstatements.slice(len, newlen)
-      microstatements.splice(len, newlen - len)
-      microstatements.push(new Microstatement(
-        StatementType.CLOSURE,
-        scope,
-        true, // Guaranteed true in this case, it's not really a closure
-        constName,
-        innerMicrostatements
-      ))
-    }
-  }
-
-  static fromConditionalsAst(conditionalsAst, scope, microstatements) {
-    // Solve circular dependency issue
-    const opcodeScope = require('./opcodes').exportScope
-    // TODO: There are two kinds of conditionals, the ones that are side-effect-only and the ones
-    // that return in one or more branches. First pass they all stay the same, but in the second
-    // pass when all functions are inlined into the handlers, returns are transformed into
-    // assignments and a trick will be necessary to handle conditional assignment with constants. It
-    // might be possible to turn all conditionals into ternary operators and maintain the same
-    // logical behavior, but it'll be complicated.
-    
-    // First, pull out the conditional and turn it into microstatements
-    Microstatement.fromWithOperatorsAst(
-      conditionalsAst.withoperators(),
-      "bool",
-      scope,
-      microstatements
-    )
-    // Now we grab that conditional assignment and hold onto a reference for use later
-    const conditional = microstatements[microstatements.length - 1]
-    // Next, we take the if statement body and turn it into a closure assignment. This is almost the
-    // same as function inlining, except we don't inline it and wrap it in `fn (): void { }`. We are
-    // guaranteed that there are no arguments passed to this closure explicitly due to how `if`
-    // statements work.
-    Microstatement.closureFromBlocklikesAst(
-      conditionalsAst.blocklikes()[0],
-      scope,
-      microstatements
-    )
-    // Time to grab a reference to the closure
-    const closure = microstatements[microstatements.length - 1]
-    // Next, we take the closure and feed it to the `condfn` function/opcode along with
-    // the conditional value.
-    microstatements.push(new Microstatement(
-      StatementType.CALL,
-      scope,
-      true,
-      "",
-      Box.builtinTypes.void,
-      [conditional.outputName, closure.outputName],
-      opcodeScope.get("condfn").functionval,
-    ))
-    if (conditionalsAst.ELSE()) {
-      // First we need to invert the boolean
-      // TODO: Should we create another opcode instead to reduce the instruction size?
-      const elseBoolName = "_" + uuid().replace(/-/g, "_")
-      microstatements.push(new Microstatement(
-        StatementType.CONSTDEC,
-        scope,
-        true,
-        elseBoolName,
-        Box.builtinTypes.bool,
-        [conditional.outputName],
-        opcodeScope.get('notbool').functionval,
-      ))
-      // Get a reference to the inverted boolean for checking
-      const otherwise = microstatements[microstatements.length - 1]
-      if (conditionalsAst.blocklikes()[1]) {
-        // This is just like the above and we're terminating our work here
-        Microstatement.closureFromBlocklikesAst(
-          conditionalsAst.blocklikes()[1],
-          scope,
-          microstatements
-        )
-      } else {
-        // Solve circular dependency issue again
-        const Scope = require('./Scope')
-        // This path is a bit different. We need to wrap the follow-up else if branch inside of a
-        // new microstatement closure definition and then conditionally call that closure
-        // We're creating this structure wholesale, so we can't re-use other closure code
-        const otherClosureName = "_" + uuid().replace(/-/g, "_")
-        let innerMicrostatements = []
-        // Since we blow away the microstatements list with a new sub-array, we need to let the
-        // inner scope have access to the original microstatements in case it's referencing the
-        // outer scope. We do this with a new scope that contains all of the microstatements placed
-        // in that scope. Ideally we can be a bit more picky in the future
-        let innerScope = new Scope(scope)
-        for (const m of microstatements) {
-          if (m.outputName != "") {
-            innerScope.put(m.outputName, m)
-          }
-        }
-        Microstatement.fromConditionalsAst(
-          conditionalsAst.conditionals(),
-          innerScope,
-          innerMicrostatements,
-        )
-        microstatements.push(new Microstatement(
-          StatementType.CLOSURE,
-          scope,
-          true, // TODO: Is this really true?
-          otherClosureName,
-          innerMicrostatements,
-        ))
-      }
-      // Time to grab a reference to the closure
-      const otherClosure = microstatements[microstatements.length - 1]
-      microstatements.push(new Microstatement(
-        StatementType.CALL,
-        scope,
-        true,
-        "",
-        Box.builtinTypes.void,
-        [otherwise.outputName, otherClosure.outputName],
-        opcodeScope.get("condfn").functionval,
-      ))
-    }
-    // TODO: Continue on this. Add early return detection and support
-  }
-
-  static fromEmitsAst(emitsAst, scope, microstatements) {
-    if (emitsAst.assignables() != null) {
-      // If there's an assignable value here, add it to the list of microstatements first, then
-      // rewrite the final const assignment as the emit statement.
-      Microstatement.fromAssignablesAst(emitsAst.assignables(), scope, microstatements)
-      const eventBox = scope.deepGet(emitsAst.varn())
-      if (eventBox.eventval == null) {
-        console.error(emitsAst.varn().getText() + " is not an event!")
-        console.error(
-          emitsAst.getText() +
-          " on line " +
-          emitsAst.start.line +
-          ":" +
-          emitsAst.start.column
-        )
-        process.exit(-101)
-      }
-      const last = microstatements[microstatements.length - 1]
-      if (
-        last.outputType != eventBox.eventval.type &&
-        !eventBox.eventval.type.castable(last.outputType)
-      ) {
-        console.error(
-          "Attempting to assign a value of type " +
-          last.outputType.typename +
-          " to an event of type " +
-          eventBox.eventval.type.typename
-        )
-        console.error(
-          emitsAst.getText() +
-          " on line " +
-          emitsAst.start.line +
-          ":" +
-          emitsAst.start.column
-        )
-        process.exit(-103)
-      }
-      microstatements.push(new Microstatement(
-        StatementType.EMIT,
-        scope,
-        true,
-        eventBox.eventval.name,
-        eventBox.eventval.type,
-        [last.outputName],
-        [],
-      ))
-    } else {
-      // Otherwise, create an emit statement with no value
-      const eventBox = scope.deepGet(emitsAst.varn());
-      if (eventBox.eventval == null) {
-        console.error(emitsAst.varn().getText() + " is not an event!")
-        console.error(
-          emitsAst.getText() +
-          " on line " +
-          emitsAst.start.line +
-          ":" +
-          emitsAst.start.column
-        )
-        process.exit(-102)
-      }
-      if (eventBox.eventval.type != Box.builtinTypes.void) {
-        console.error(emitsAst.varn().getText() + " must have a value emitted to it!")
-        console.error(
-          emitsAst.getText() +
-          " on line " +
-          emitsAst.start.line +
-          ":" +
-          emitsAst.start.column
-        )
-        process.exit(-103)
-      }
-      microstatements.push(new Microstatement(
-        StatementType.EMIT,
-        scope,
-        true,
-        eventBox.eventval.name,
-        Box.builtinTypes.void,
-        [],
-        [],
-      ))
-    }
-  }
-
-  static fromExitsAst(exitsAst, scope, microstatements) {
-    // `alan--` doesn't have the concept of a `return` statement, but this is necessary for
-    // the intermediate state before functions are inlined.
-    if (exitsAst.assignables() != null) {
-      // If there's an assignable value here, add it to the list of microstatements first, then
-      // rewrite the final const assignment as the exit statement.
-      Microstatement.fromAssignablesAst(
-        exitsAst.assignables(),
-        scope,
-        microstatements
-      )
-      microstatements[microstatements.length - 1].statementType = StatementType.EXIT
-    } else {
-      // Otherwise, create an exit statement with no value
-      microstatements.push(new Microstatement(
-        StatementType.EXIT,
-        scope,
-        true,
-        "void",
-        Box.builtinTypes.void,
-        [],
-        [],
-      ))
-    }
-  }
-
-  static fromCallsAst(callsAst, scope, microstatements) {
-    // Function call syntax also supports method chaining syntax, and you can chain off of any
-    // assignable value (where they're wrapped in parens for clarity, with a special exception for
-    // constants that would be unambiguous). This means there are three classes of function calls:
-    // 1. Simple function call `fn(args)`
-    // 2. Chained function calls `fn1(args1).fn2(args2)` (equivalent to `fn2(fn1(args1), args2)`)
-    // 3. Chained data function calls `arg1.fn1(args2).fn2(args3)` (`fn2(fn1(arg1, args2), args3)`)
-    // Four possible paths here:
-    // 1. Only function calls potentially chained to each other.
-    // 2. A constant is the first value, then function calls chained afterwards
-    // 3. Any other value type wrapped in parens, then function calls chained afterwards.
-    // 4. A variable name then a `.` then a function name. Both can contain dots, as well
-    // These four can be taken care of in the following way: If it's 2 or 3, eval them and
-    // generate the relevant microstatements. Take the last microstatement and store in a
-    // `firstArg` variable. If it's the first case, `firstArg` is `null`. If it's the final case,
-    // disambiguate it by iterating through the potential `varname.methodname` combinations and if
-    // one is found, that gets set as the `firstArg`, but this is only done if its the first run
-    // through the loops *and* no `firstArg` value already exists. After that, loop through the 
-    // `var` and `fncall` entries, evaluating the arguments and adding to the `realArg*` lists
-    // (and putting the `firstArg` value in the first entry of each if it exists). Then perform
-    // the function `microstatementInlining` and take the last microstatement as the new
-    // `firstArg` for the next loop iteration until all method calls have been taken care of.
-    let firstArg = null
-    if (callsAst.constants() != null) {
-      Microstatement.fromConstantsAst(callsAst.constants(), scope, microstatements)
-      firstArg = microstatements[microstatements.length - 1]
-    }
-    if (callsAst.assignables() != null) {
-      Microstatement.fromAssignablesAst(callsAst.assignables(), scope, microstatements)
-      firstArg = microstatements[microstatements.length - 1]
-    }
-    for (let i = 0; i < callsAst.varn().length; i++) {
-      // First, resolve the function. TODO: Need to add support for closure functions defined in
-      // the same function, which would not be in an outer scope passed in.
-      let fnBox = scope.deepGet(callsAst.varn(i).getText())
-      if (i == 0 && firstArg == null && fnBox == null) {
-        // This may be a method-style access on something with nested scoping
-        // TODO: Make this more robust in the future. Currently assuming the last ".something" is
-        // the method call and everything before it is easily accessible through the scopes.
-        const varSegs = callsAst.varn(0).getText().split(".")
-        const methodName = varSegs[varSegs.length - 1]
-        let scopePath = ""
-        for (let j = 0; j < varSegs.length - 1; j++) {
-          scopePath += varSegs[j] + "."
-        }
-        scopePath = scopePath.substring(0, scopePath.length - 1)
-        firstArg = Microstatement.fromVarName(scopePath, microstatements)
-        if (firstArg == null) { // It wasn't this, either, just return the same error
-          console.error("Undefined function called: " + callsAst.varn(0).getText())
-          process.exit(-140)
-        }
-        fnBox = scope.deepGet(methodName)
-      }
-      if (fnBox == null || fnBox.functionval == null) {
-        console.error(callsAst.varn(i).getText() + " is not a function!")
-        console.error(
-          callsAst.getText() +
-          " on line " +
-          callsAst.start.line +
-          ":" +
-          callsAst.start.column
-        )
-        process.exit(-106)
-      }
-      // Build up a list of the arguments to be passed into the function, first 'eval'ing them and
-      // getting the relevant microstatements defined.
-      let realArgNames = []
-      let realArgTypes = []
-      if (firstArg != null) {
-        if (firstArg.alias !== "") {
-          for (const m of microstatements) {
-            if (m.outputName === firstArg.outputName) {
-              firstArg = m
-              break
+            if (microstatement.alias === varName) {
+                original = microstatement;
+                break;
             }
-          }
         }
-        realArgNames.push(firstArg.outputName)
-        realArgTypes.push(firstArg.outputType)
-      }
-      if (callsAst.fncall(i).assignablelist() != null) {
-        for (const assignablesAst of callsAst.fncall(i).assignablelist().assignables()) {
-          Microstatement.fromAssignablesAst(assignablesAst, scope, microstatements)
-          let last = microstatements[microstatements.length - 1]
-          if (last.alias !== "") {
-            for (const m of microstatements) {
-              if (m.outputName === last.outputName) {
-                last = m
-                break
-              }
+        return original;
+    }
+    static fromVarAst(varAst, scope, microstatements) {
+        let original = Microstatement.fromVarName(varAst.getText(), microstatements);
+        if (original == null) {
+            original = scope.deepGet(varAst.getText());
+        }
+        if (original == null || !(original instanceof Microstatement)) {
+            console.error(varAst.getText() + " cannot be found");
+            console.error(varAst.getText() +
+                " on line " +
+                varAst.start.line +
+                ":" +
+                varAst.start.column);
+            process.exit(-104);
+        }
+        // When a variable is reassigned (or was referenced in a function call or operator statement,
+        // instead of duplicating its data, add a microstatement to rereference that data (all of the
+        // function and operator calls expect their arguments to be the N statements preceding them).
+        microstatements.push(new Microstatement(StatementType.REREF, scope, true, original.outputName, original.outputType, [], []));
+    }
+    static fromConstantsAst(constantsAst, scope, microstatements) {
+        const constName = "_" + uuid().replace(/-/g, "_");
+        const constBox = Box.fromConstantsAst(constantsAst, scope, null, true);
+        let constVal;
+        try {
+            JSON.parse(constantsAst.getText()); // Will fail on strings with escape chars
+            constVal = constantsAst.getText();
+        }
+        catch (e) {
+            // Hackery to get these strings to work
+            constVal = JSON.stringify(constantsAst.getText().replace(/^["']/, '').replace(/["']$/, ''));
+        }
+        microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, constName, constBox.type, [constVal], []));
+    }
+    static fromBasicAssignablesAst(basicAssignablesAst, returnTypeHint, scope, microstatements) {
+        // Functions will be inlined in a second pass over the microstatements whereever it is called.
+        // For now we still create the function object and the microstatement to assign it
+        if (basicAssignablesAst.functions() != null) {
+            const fnToAssign = UserFunction.fromAst(basicAssignablesAst.functions(), scope);
+            const fnName = "fn_" + uuid().replace(/-/g, "_");
+            microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, // This assignment, at least
+            fnName, Box.builtinTypes["function"], [], [fnToAssign]));
+            return;
+        }
+        // Here is where we inline the functions that were defined elsewhere or just above here! Or if
+        // it's a built-in function, we just call it as originally expected.
+        if (basicAssignablesAst.calls() != null) {
+            Microstatement.fromCallsAst(basicAssignablesAst.calls(), scope, microstatements);
+            return;
+        }
+        // A `var` assignment is simply a renaming of a variable. We need to find the existing
+        // microstatement for that `var` name and "tag it" in the scope as an alias that can be looked
+        // up later. For now, we'll include a useless reassignment for simplicity's sake.
+        if (basicAssignablesAst.varn() != null) {
+            Microstatement.fromVarAst(basicAssignablesAst.varn(), scope, microstatements);
+            return;
+        }
+        // `constants` are relatively simple affair.
+        if (basicAssignablesAst.constants() != null) {
+            Microstatement.fromConstantsAst(basicAssignablesAst.constants(), scope, microstatements);
+            return;
+        }
+        // `groups` are just grouped `withOperators`.
+        if (basicAssignablesAst.groups() != null) {
+            Microstatement.fromWithOperatorsAst(basicAssignablesAst.groups().withoperators(), null, scope, microstatements);
+            return;
+        }
+        // `typeof` is a special statement to get the type from a variable. This is usually static but
+        // can be dynamic in certain cases. That's going to be tough to represent in the bytecode that
+        // otherwise strips all of the type data away. (Though with all functions inlined the type
+        // "branches" can be serialized in some fashion back to bare types. Only event handlers and
+        // event emission on ADTs, or opcodes that return ADTs remain a concern.)
+        // TODO: For now, ignore this complexity and assume it can just be serialized.
+        if (basicAssignablesAst.typeofn() != null) {
+            // First evaluate the type's basicassignables.
+            Microstatement.fromBasicAssignablesAst(basicAssignablesAst.typeofn().basicassignables(), null, scope, microstatements);
+            // The last microstatement is the one we want to get the type data from.
+            const last = microstatements[microstatements.size() - 1];
+            const constName = "_" + uuid().replace(/-/g, "_");
+            microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, constName, Box.builtinTypes["string"], [last.outputType.typename], []));
+            return;
+        }
+        // The conversion of object literals is devolved to alangraphcode when types are erased, at this
+        // stage they're just passed through as-is. TODO: This is assuming everything inside of them are
+        // constants. That is not a valid assumption and should be revisited.
+        if (basicAssignablesAst.objectliterals() != null) {
+            const constName = "_" + uuid().replace(/-/g, "_");
+            const typeBox = scope.deepGet(basicAssignablesAst.objectliterals().othertype().getText());
+            if (typeBox == null) {
+                console.error(basicAssignablesAst.objectliterals().othertype().getText() + " is not defined");
+                console.error(basicAssignablesAst.getText() +
+                    " on line " +
+                    basicAssignablesAst.start.line +
+                    ":" +
+                    basicAssignablesAst.start.column);
+                process.exit(-105);
             }
-          }
-          realArgNames.push(last.outputName)
-          realArgTypes.push(last.outputType)
+            if (typeBox.typeval == null) {
+                console.error(basicAssignablesAst.objectliterals().othertype().getText() + " is not a type");
+                console.error(basicAssignablesAst.getText() +
+                    " on line " +
+                    basicAssignablesAst.start.line +
+                    ":" +
+                    basicAssignablesAst.start.column);
+                process.exit(-106);
+            }
+            microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, constName, typeBox.typeval, [basicAssignablesAst.objectliterals().getText()], []));
+            return;
         }
-      }
-      // Generate the relevant microstatements for this function. UserFunctions get inlined with the
-      // return statement turned into a const assignment (TODO: handle conditionals correctly) as
-      // the last statement, while built-in functions are kept as function calls with the correct
-      // renaming.
-      UserFunction
-        .dispatchFn(fnBox.functionval, realArgTypes, scope)
-        .microstatementInlining(realArgNames, scope, microstatements)
-      firstArg = microstatements[microstatements.length - 1]
     }
-  }
-
-  static fromAssignmentsAst(assignmentsAst, scope, microstatements) {
-    const letName = assignmentsAst.varn().getText()
-    let letType = null
-    for (const microstatement of microstatements) {
-      if (microstatement.outputName === letName) {
-        if (microstatement.statementType == StatementType.LETDEC) {
-          letType = microstatement.outputType
-          break
-        } else {
-          console.error("Attempting to reassign a non-let variable.")
-          console.error(
-            letName +
-            " on line " +
-            assignmentsAst.line +
-            ":" +
-            assignmentsAst.start.column
-          )
-          process.exit(100)
+    static fromWithOperatorsAst(withOperatorsAst, returnTypeHint, scope, microstatements) {
+        let withOperatorsList = [];
+        for (const operatorOrAssignable of withOperatorsAst.operatororassignable()) {
+            if (operatorOrAssignable.operators() != null) {
+                const operator = operatorOrAssignable.operators();
+                const op = scope.deepGet(operator.getText());
+                if (op == null || op.operatorval == null) {
+                    console.error("Operator " + operator.getText() + " is not defined");
+                    process.exit(-34);
+                }
+                withOperatorsList.push(op);
+            }
+            if (operatorOrAssignable.basicassignables() != null) {
+                Microstatement.fromBasicAssignablesAst(operatorOrAssignable.basicassignables(), null, scope, microstatements);
+                const last = microstatements[microstatements.length - 1];
+                withOperatorsList.push(new Box(last)); // Wrapped in a box to make this work
+            }
         }
-      }
+        // Now to combine these operators and values in the correct order. A compiled language could
+        // never do something so inefficient, but I don't care about performance right now, so here's
+        // the algorithm: while the list length is greater than 1, perform the two steps:
+        // 1. Find the operator with the greatest precedence
+        // 2. Apply the underlying function to the values on either side of the operator (or just the
+        //    right side if the operator is a prefix operator), then replace the operator with the
+        //    returned value in the list and delete the impacted values.
+        while (withOperatorsList.length > 1) {
+            let maxPrecedence = -1;
+            let maxOperatorLoc = -1;
+            let maxOperatorListLoc = -1;
+            for (let i = 0; i < withOperatorsList.length; i++) {
+                if (withOperatorsList[i].operatorval != null) {
+                    const ops = withOperatorsList[i].operatorval;
+                    let op = null;
+                    let operatorListLoc = -1;
+                    let operatorPrecedence = -127;
+                    if (ops.length == 1) {
+                        op = ops[0];
+                        operatorListLoc = 0;
+                    }
+                    else {
+                        // TODO: We need to identify which particular operator applies in this case.
+                        // We're just going to short-circuit this process on the first operator that matches
+                        // but we need to come up with a "best match" behavior (ie, if one argument is an int8
+                        // it may choose the int64-based operator because it was first and it can cast int8 to
+                        // int64 and then miss the specialized int8 version of the function).
+                        let left = null;
+                        if (i != 0)
+                            left = withOperatorsList[i - 1];
+                        let right = null; // Technically, since we're doing this at runtime, there could be a syntax error
+                        if (i != withOperatorsList.length - 1)
+                            right = withOperatorsList[i + 1];
+                        for (let j = 0; j < ops.length; j++) {
+                            if (ops[j].precedence > operatorPrecedence &&
+                                ops[j].applicableFunction(left == null ? null : left.microstatementval.outputType, right == null ? null : right.microstatementval.outputType, scope) != null) {
+                                op = ops[j];
+                                operatorListLoc = j;
+                                operatorPrecedence = op.precedence;
+                            }
+                        }
+                        // During the process of determining the operator ordering, there may be tests that
+                        // will not match because operator precedence will convert the neighboring types into
+                        // types that will match. This is complicated and doing this statically will be more
+                        // difficult, but for now, just skip over these.
+                        if (op == null)
+                            continue;
+                    }
+                    if (op.precedence > maxPrecedence) {
+                        maxPrecedence = op.precedence;
+                        maxOperatorLoc = i;
+                        maxOperatorListLoc = operatorListLoc;
+                    }
+                }
+            }
+            if (maxPrecedence == -1 || maxOperatorLoc == -1) {
+                console.error("Cannot resolve operators with remaining statement");
+                let withOperatorsTranslation = [];
+                for (let i = 0; i < withOperatorsList.length; i++) {
+                    const node = withOperatorsList[i];
+                    if (node.operatorval != null) {
+                        withOperatorsTranslation.push(node.operatorval[0].name);
+                    }
+                    else {
+                        withOperatorsTranslation.push("<" + node.microstatementval.outputType.typename + ">");
+                    }
+                }
+                console.error(withOperatorsTranslation.join(" "));
+                process.exit(-34);
+            }
+            const op = withOperatorsList[maxOperatorLoc].operatorval[maxOperatorListLoc];
+            let realArgNames = [];
+            let realArgTypes = [];
+            if (!op.isPrefix) {
+                const left = withOperatorsList[maxOperatorLoc - 1].microstatementval;
+                realArgNames.push(left.outputName);
+                realArgTypes.push(left.outputType);
+            }
+            const right = withOperatorsList[maxOperatorLoc + 1].microstatementval;
+            realArgNames.push(right.outputName);
+            realArgTypes.push(right.outputType);
+            UserFunction
+                .dispatchFn(op.potentialFunctions, realArgTypes, scope)
+                .microstatementInlining(realArgNames, scope, microstatements);
+            const last = microstatements[microstatements.length - 1];
+            withOperatorsList[maxOperatorLoc] = new Box(last);
+            withOperatorsList.splice(maxOperatorLoc + 1, 1);
+            if (!op.isPrefix) {
+                withOperatorsList.splice(maxOperatorLoc - 1, 1);
+            }
+        }
     }
-    // TODO: Clean up the const/let declarations and assignments. That this is possible with the
-    // parser is bad here, but necessary for let declarations because of the weird re-use of stuff.
-    if (assignmentsAst.assignables() == null) {
-      console.error("Let variable re-assignment without a value specified.")
-      console.error(
-        letName +
-        " on line " +
-        assignmentsAst.start.line +
-        ":" +
-        assignmentsAst.start.column
-      )
-      process.exit(101)
+    static closureFromBlocklikesAst(blocklikesAst, scope, microstatements) {
+        // There are roughly two paths for closure generation of the blocklike. If it's a var reference
+        // to another function, use the scope to grab the function definition directly, run the inlining
+        // logic on it, then attach them to a new microstatement declaring the closure. If it's closure
+        // that could (probably usually will) reference the outer scope, the inner statements should be
+        // converted as normal, but with the current length of the microstatements array tracked so they
+        // can be pruned back off of the list to be reattached to a closure microstatement type.
+        const constName = "_" + uuid().replace(/-/g, "_");
+        if (blocklikesAst.varn() != null) {
+            const fnToClose = scope.deepGet(blocklikesAst.varn());
+            if (fnToClose == null || fnToClose.functionval == null) {
+                console.error(blocklikesAst.varn().getText() + " is not a function");
+                process.exit(-111);
+            }
+            // TODO: Revisit this on resolving the appropriate function if multiple match, right now just
+            // take the first one.
+            const closureFn = fnToClose.functionval[0];
+            let innerMicrostatements = [];
+            closureFn.microstatementInlining([], scope, innerMicrostatements);
+            microstatements.push(new Microstatement(StatementType.CLOSURE, scope, true, // Guaranteed true in this case, it's not really a closure
+            constName, innerMicrostatements));
+        }
+        else {
+            let len = microstatements.length;
+            if (blocklikesAst.functionbody() != null) {
+                for (const s of blocklikesAst.functionbody().statements()) {
+                    Microstatement.fromStatementsAst(s, scope, microstatements);
+                }
+            }
+            else {
+                if (blocklikesAst.functions().fullfunctionbody().functionbody() != null) {
+                    for (const s of blocklikesAst.functions().fullfunctionbody().functionbody().statements()) {
+                        Microstatement.fromStatementsAst(s, scope, microstatements);
+                    }
+                }
+                else {
+                    Microstatement.fromAssignablesAst(blocklikesAst.functions().fullfunctionbody().assignables(), scope, microstatements);
+                }
+            }
+            let newlen = microstatements.length;
+            // There might be off-by-one bugs in the conversion here
+            const innerMicrostatements = microstatements.slice(len, newlen);
+            microstatements.splice(len, newlen - len);
+            microstatements.push(new Microstatement(StatementType.CLOSURE, scope, true, // Guaranteed true in this case, it's not really a closure
+            constName, innerMicrostatements));
+        }
     }
-    // An assignable may either be a basic constant or could be broken down into other microstatements
-    // The classification with assignables is: if it's a `withoperators` type it *always* becomes
-    // multiple microstatements and it should return the variable name it generated to store the data.
-    // If it's a `basicassignables` type it could be either a "true constant" or generate multiple
-    // microstatements. The types that fall under the "true constant" category are: functions,
-    // var, and constants.
-    if (assignmentsAst.assignables().withoperators() != null) {
-      // Update the microstatements list with the operator serialization
-      Microstatement.fromWithOperatorsAst(
-        assignmentsAst.assignables().withoperators(),
-        letType.typename,
-        scope,
-        microstatements
-      )
-      // By definition the last microstatement is the const assignment we care about, so we can just
-      // mutate its object to rename the output variable name to the name we need instead.
-      microstatements[microstatements.length - 1].outputName = letName
-      return
+    static fromConditionalsAst(conditionalsAst, scope, microstatements) {
+        // Solve circular dependency issue
+        const opcodeScope = require('./opcodes').exportScope;
+        // TODO: There are two kinds of conditionals, the ones that are side-effect-only and the ones
+        // that return in one or more branches. First pass they all stay the same, but in the second
+        // pass when all functions are inlined into the handlers, returns are transformed into
+        // assignments and a trick will be necessary to handle conditional assignment with constants. It
+        // might be possible to turn all conditionals into ternary operators and maintain the same
+        // logical behavior, but it'll be complicated.
+        // First, pull out the conditional and turn it into microstatements
+        Microstatement.fromWithOperatorsAst(conditionalsAst.withoperators(), "bool", scope, microstatements);
+        // Now we grab that conditional assignment and hold onto a reference for use later
+        const conditional = microstatements[microstatements.length - 1];
+        // Next, we take the if statement body and turn it into a closure assignment. This is almost the
+        // same as function inlining, except we don't inline it and wrap it in `fn (): void { }`. We are
+        // guaranteed that there are no arguments passed to this closure explicitly due to how `if`
+        // statements work.
+        Microstatement.closureFromBlocklikesAst(conditionalsAst.blocklikes()[0], scope, microstatements);
+        // Time to grab a reference to the closure
+        const closure = microstatements[microstatements.length - 1];
+        // Next, we take the closure and feed it to the `condfn` function/opcode along with
+        // the conditional value.
+        microstatements.push(new Microstatement(StatementType.CALL, scope, true, "", Box.builtinTypes.void, [conditional.outputName, closure.outputName], opcodeScope.get("condfn").functionval));
+        if (conditionalsAst.ELSE()) {
+            // First we need to invert the boolean
+            // TODO: Should we create another opcode instead to reduce the instruction size?
+            const elseBoolName = "_" + uuid().replace(/-/g, "_");
+            microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, elseBoolName, Box.builtinTypes.bool, [conditional.outputName], opcodeScope.get('notbool').functionval));
+            // Get a reference to the inverted boolean for checking
+            const otherwise = microstatements[microstatements.length - 1];
+            if (conditionalsAst.blocklikes()[1]) {
+                // This is just like the above and we're terminating our work here
+                Microstatement.closureFromBlocklikesAst(conditionalsAst.blocklikes()[1], scope, microstatements);
+            }
+            else {
+                // Solve circular dependency issue again
+                const Scope = require('./Scope');
+                // This path is a bit different. We need to wrap the follow-up else if branch inside of a
+                // new microstatement closure definition and then conditionally call that closure
+                // We're creating this structure wholesale, so we can't re-use other closure code
+                const otherClosureName = "_" + uuid().replace(/-/g, "_");
+                let innerMicrostatements = [];
+                // Since we blow away the microstatements list with a new sub-array, we need to let the
+                // inner scope have access to the original microstatements in case it's referencing the
+                // outer scope. We do this with a new scope that contains all of the microstatements placed
+                // in that scope. Ideally we can be a bit more picky in the future
+                let innerScope = new Scope(scope);
+                for (const m of microstatements) {
+                    if (m.outputName != "") {
+                        innerScope.put(m.outputName, m);
+                    }
+                }
+                Microstatement.fromConditionalsAst(conditionalsAst.conditionals(), innerScope, innerMicrostatements);
+                microstatements.push(new Microstatement(StatementType.CLOSURE, scope, true, // TODO: Is this really true?
+                otherClosureName, innerMicrostatements));
+            }
+            // Time to grab a reference to the closure
+            const otherClosure = microstatements[microstatements.length - 1];
+            microstatements.push(new Microstatement(StatementType.CALL, scope, true, "", Box.builtinTypes.void, [otherwise.outputName, otherClosure.outputName], opcodeScope.get("condfn").functionval));
+        }
+        // TODO: Continue on this. Add early return detection and support
     }
-    if (assignmentsAst.assignables().basicassignables() != null) {
-      Microstatement.fromBasicAssignablesAst(
-        assignmentsAst.assignables().basicassignables(),
-        letType.typename,
-        scope,
-        microstatements
-      )
-      // The same rule as above, the last microstatement is already a const assignment for the value
-      // that we care about, so just rename its variable to the one that will be expected by other
-      // code.
-      microstatements[microstatements.length - 1].outputName = letName
-      return
+    static fromEmitsAst(emitsAst, scope, microstatements) {
+        if (emitsAst.assignables() != null) {
+            // If there's an assignable value here, add it to the list of microstatements first, then
+            // rewrite the final const assignment as the emit statement.
+            Microstatement.fromAssignablesAst(emitsAst.assignables(), scope, microstatements);
+            const eventBox = scope.deepGet(emitsAst.varn());
+            if (eventBox.eventval == null) {
+                console.error(emitsAst.varn().getText() + " is not an event!");
+                console.error(emitsAst.getText() +
+                    " on line " +
+                    emitsAst.start.line +
+                    ":" +
+                    emitsAst.start.column);
+                process.exit(-101);
+            }
+            const last = microstatements[microstatements.length - 1];
+            if (last.outputType != eventBox.eventval.type &&
+                !eventBox.eventval.type.castable(last.outputType)) {
+                console.error("Attempting to assign a value of type " +
+                    last.outputType.typename +
+                    " to an event of type " +
+                    eventBox.eventval.type.typename);
+                console.error(emitsAst.getText() +
+                    " on line " +
+                    emitsAst.start.line +
+                    ":" +
+                    emitsAst.start.column);
+                process.exit(-103);
+            }
+            microstatements.push(new Microstatement(StatementType.EMIT, scope, true, eventBox.eventval.name, eventBox.eventval.type, [last.outputName], []));
+        }
+        else {
+            // Otherwise, create an emit statement with no value
+            const eventBox = scope.deepGet(emitsAst.varn());
+            if (eventBox.eventval == null) {
+                console.error(emitsAst.varn().getText() + " is not an event!");
+                console.error(emitsAst.getText() +
+                    " on line " +
+                    emitsAst.start.line +
+                    ":" +
+                    emitsAst.start.column);
+                process.exit(-102);
+            }
+            if (eventBox.eventval.type != Box.builtinTypes.void) {
+                console.error(emitsAst.varn().getText() + " must have a value emitted to it!");
+                console.error(emitsAst.getText() +
+                    " on line " +
+                    emitsAst.start.line +
+                    ":" +
+                    emitsAst.start.column);
+                process.exit(-103);
+            }
+            microstatements.push(new Microstatement(StatementType.EMIT, scope, true, eventBox.eventval.name, Box.builtinTypes.void, [], []));
+        }
     }
-  }
-
-  static fromLetdeclarationAst(letdeclarationAst, scope, microstatements) {
-    // TODO: Once we figure out how to handle re-assignment to let variables as new variable names
-    // with all references to that variable afterwards rewritten, these can just be brought in as
-    // constants, too.
-    let letName;
-    let letTypeHint = null;
-    if (letdeclarationAst.VARNAME() != null) {
-      letName = letdeclarationAst.VARNAME().getText()
-      letTypeHint = letdeclarationAst.assignments().varn().getText()
-      if (letdeclarationAst.assignments().typegenerics() != null) {
-        letTypeHint += letdeclarationAst.assignments().typegenerics().getText()
-      }
-    } else {
-      letName = letdeclarationAst.assignments().varn().getText()
-      // We don't know the type ahead of time and will have to rely on inference in this case
+    static fromExitsAst(exitsAst, scope, microstatements) {
+        // `alan--` doesn't have the concept of a `return` statement, but this is necessary for
+        // the intermediate state before functions are inlined.
+        if (exitsAst.assignables() != null) {
+            // If there's an assignable value here, add it to the list of microstatements first, then
+            // rewrite the final const assignment as the exit statement.
+            Microstatement.fromAssignablesAst(exitsAst.assignables(), scope, microstatements);
+            microstatements[microstatements.length - 1].statementType = StatementType.EXIT;
+        }
+        else {
+            // Otherwise, create an exit statement with no value
+            microstatements.push(new Microstatement(StatementType.EXIT, scope, true, "void", Box.builtinTypes.void, [], []));
+        }
     }
-    if (letdeclarationAst.assignments().assignables() == null) {
-      // This is the situation where a variable is declared but no value is yet assigned. This can
-      // be (and the interpreter currently behaves) as if this was a `type | void` situation, but
-      // perhaps that should be required to be explicit?
-      const blankLet = new Microstatement(
-        StatementType.LETDEC,
-        scope,
-        true,
-        letName,
-        scope.deepGet("void").typeval,
-        ["void"],
-        null
-      );
-      // This is a terminating condition for the microstatements, though
-      microstatements.push(blankLet)
-      return
+    static fromCallsAst(callsAst, scope, microstatements) {
+        // Function call syntax also supports method chaining syntax, and you can chain off of any
+        // assignable value (where they're wrapped in parens for clarity, with a special exception for
+        // constants that would be unambiguous). This means there are three classes of function calls:
+        // 1. Simple function call `fn(args)`
+        // 2. Chained function calls `fn1(args1).fn2(args2)` (equivalent to `fn2(fn1(args1), args2)`)
+        // 3. Chained data function calls `arg1.fn1(args2).fn2(args3)` (`fn2(fn1(arg1, args2), args3)`)
+        // Four possible paths here:
+        // 1. Only function calls potentially chained to each other.
+        // 2. A constant is the first value, then function calls chained afterwards
+        // 3. Any other value type wrapped in parens, then function calls chained afterwards.
+        // 4. A variable name then a `.` then a function name. Both can contain dots, as well
+        // These four can be taken care of in the following way: If it's 2 or 3, eval them and
+        // generate the relevant microstatements. Take the last microstatement and store in a
+        // `firstArg` variable. If it's the first case, `firstArg` is `null`. If it's the final case,
+        // disambiguate it by iterating through the potential `varname.methodname` combinations and if
+        // one is found, that gets set as the `firstArg`, but this is only done if its the first run
+        // through the loops *and* no `firstArg` value already exists. After that, loop through the 
+        // `var` and `fncall` entries, evaluating the arguments and adding to the `realArg*` lists
+        // (and putting the `firstArg` value in the first entry of each if it exists). Then perform
+        // the function `microstatementInlining` and take the last microstatement as the new
+        // `firstArg` for the next loop iteration until all method calls have been taken care of.
+        let firstArg = null;
+        if (callsAst.constants() != null) {
+            Microstatement.fromConstantsAst(callsAst.constants(), scope, microstatements);
+            firstArg = microstatements[microstatements.length - 1];
+        }
+        if (callsAst.assignables() != null) {
+            Microstatement.fromAssignablesAst(callsAst.assignables(), scope, microstatements);
+            firstArg = microstatements[microstatements.length - 1];
+        }
+        for (let i = 0; i < callsAst.varn().length; i++) {
+            // First, resolve the function. TODO: Need to add support for closure functions defined in
+            // the same function, which would not be in an outer scope passed in.
+            let fnBox = scope.deepGet(callsAst.varn(i).getText());
+            if (i == 0 && firstArg == null && fnBox == null) {
+                // This may be a method-style access on something with nested scoping
+                // TODO: Make this more robust in the future. Currently assuming the last ".something" is
+                // the method call and everything before it is easily accessible through the scopes.
+                const varSegs = callsAst.varn(0).getText().split(".");
+                const methodName = varSegs[varSegs.length - 1];
+                let scopePath = "";
+                for (let j = 0; j < varSegs.length - 1; j++) {
+                    scopePath += varSegs[j] + ".";
+                }
+                scopePath = scopePath.substring(0, scopePath.length - 1);
+                firstArg = Microstatement.fromVarName(scopePath, microstatements);
+                if (firstArg == null) { // It wasn't this, either, just return the same error
+                    console.error("Undefined function called: " + callsAst.varn(0).getText());
+                    process.exit(-140);
+                }
+                fnBox = scope.deepGet(methodName);
+            }
+            if (fnBox == null || fnBox.functionval == null) {
+                console.error(callsAst.varn(i).getText() + " is not a function!");
+                console.error(callsAst.getText() +
+                    " on line " +
+                    callsAst.start.line +
+                    ":" +
+                    callsAst.start.column);
+                process.exit(-106);
+            }
+            // Build up a list of the arguments to be passed into the function, first 'eval'ing them and
+            // getting the relevant microstatements defined.
+            let realArgNames = [];
+            let realArgTypes = [];
+            if (firstArg != null) {
+                if (firstArg.alias !== "") {
+                    for (const m of microstatements) {
+                        if (m.outputName === firstArg.outputName) {
+                            firstArg = m;
+                            break;
+                        }
+                    }
+                }
+                realArgNames.push(firstArg.outputName);
+                realArgTypes.push(firstArg.outputType);
+            }
+            if (callsAst.fncall(i).assignablelist() != null) {
+                for (const assignablesAst of callsAst.fncall(i).assignablelist().assignables()) {
+                    Microstatement.fromAssignablesAst(assignablesAst, scope, microstatements);
+                    let last = microstatements[microstatements.length - 1];
+                    if (last.alias !== "") {
+                        for (const m of microstatements) {
+                            if (m.outputName === last.outputName) {
+                                last = m;
+                                break;
+                            }
+                        }
+                    }
+                    realArgNames.push(last.outputName);
+                    realArgTypes.push(last.outputType);
+                }
+            }
+            // Generate the relevant microstatements for this function. UserFunctions get inlined with the
+            // return statement turned into a const assignment (TODO: handle conditionals correctly) as
+            // the last statement, while built-in functions are kept as function calls with the correct
+            // renaming.
+            UserFunction
+                .dispatchFn(fnBox.functionval, realArgTypes, scope)
+                .microstatementInlining(realArgNames, scope, microstatements);
+            firstArg = microstatements[microstatements.length - 1];
+        }
     }
-    // An assignable may either be a basic constant or could be broken down into other microstatements
-    // The classification with assignables is: if it's a `withoperators` type it *always* becomes
-    // multiple microstatements and it should return the variable name it generated to store the data.
-    // If it's a `basicassignables` type it could be either a "true constant" or generate multiple
-    // microstatements. The types that fall under the "true constant" category are: functions,
-    // var, and constants.
-    if (letdeclarationAst.assignments().assignables().withoperators() != null) {
-      // Update the microstatements list with the operator serialization
-      Microstatement.fromWithOperatorsAst(
-        letdeclarationAst.assignments().assignables().withoperators(),
-        letTypeHint,
-        scope,
-        microstatements
-      )
-      // By definition the last microstatement is the const assignment we care about, so we can just
-      // mutate its object to rename the output variable name to the name we need instead.
-      microstatements[microstatements.length - 1].outputName = letName
-      return
+    static fromAssignmentsAst(assignmentsAst, scope, microstatements) {
+        const letName = assignmentsAst.varn().getText();
+        let letType = null;
+        for (const microstatement of microstatements) {
+            if (microstatement.outputName === letName) {
+                if (microstatement.statementType == StatementType.LETDEC) {
+                    letType = microstatement.outputType;
+                    break;
+                }
+                else {
+                    console.error("Attempting to reassign a non-let variable.");
+                    console.error(letName +
+                        " on line " +
+                        assignmentsAst.line +
+                        ":" +
+                        assignmentsAst.start.column);
+                    process.exit(100);
+                }
+            }
+        }
+        // TODO: Clean up the const/let declarations and assignments. That this is possible with the
+        // parser is bad here, but necessary for let declarations because of the weird re-use of stuff.
+        if (assignmentsAst.assignables() == null) {
+            console.error("Let variable re-assignment without a value specified.");
+            console.error(letName +
+                " on line " +
+                assignmentsAst.start.line +
+                ":" +
+                assignmentsAst.start.column);
+            process.exit(101);
+        }
+        // An assignable may either be a basic constant or could be broken down into other microstatements
+        // The classification with assignables is: if it's a `withoperators` type it *always* becomes
+        // multiple microstatements and it should return the variable name it generated to store the data.
+        // If it's a `basicassignables` type it could be either a "true constant" or generate multiple
+        // microstatements. The types that fall under the "true constant" category are: functions,
+        // var, and constants.
+        if (assignmentsAst.assignables().withoperators() != null) {
+            // Update the microstatements list with the operator serialization
+            Microstatement.fromWithOperatorsAst(assignmentsAst.assignables().withoperators(), letType.typename, scope, microstatements);
+            // By definition the last microstatement is the const assignment we care about, so we can just
+            // mutate its object to rename the output variable name to the name we need instead.
+            microstatements[microstatements.length - 1].outputName = letName;
+            return;
+        }
+        if (assignmentsAst.assignables().basicassignables() != null) {
+            Microstatement.fromBasicAssignablesAst(assignmentsAst.assignables().basicassignables(), letType.typename, scope, microstatements);
+            // The same rule as above, the last microstatement is already a const assignment for the value
+            // that we care about, so just rename its variable to the one that will be expected by other
+            // code.
+            microstatements[microstatements.length - 1].outputName = letName;
+            return;
+        }
     }
-    if (letdeclarationAst.assignments().assignables().basicassignables() != null) {
-      Microstatement.fromBasicAssignablesAst(
-        letdeclarationAst.assignments().assignables().basicassignables(),
-        letTypeHint,
-        scope,
-        microstatements
-      )
-      // The same rule as above, the last microstatement is already a const assignment for the value
-      // that we care about, so just rename its variable to the one that will be expected by other
-      // code.
-      microstatements[microstatements.length - 1].outputName = letName
-      return
+    static fromLetdeclarationAst(letdeclarationAst, scope, microstatements) {
+        // TODO: Once we figure out how to handle re-assignment to let variables as new variable names
+        // with all references to that variable afterwards rewritten, these can just be brought in as
+        // constants, too.
+        let letName;
+        let letTypeHint = null;
+        if (letdeclarationAst.VARNAME() != null) {
+            letName = letdeclarationAst.VARNAME().getText();
+            letTypeHint = letdeclarationAst.assignments().varn().getText();
+            if (letdeclarationAst.assignments().typegenerics() != null) {
+                letTypeHint += letdeclarationAst.assignments().typegenerics().getText();
+            }
+        }
+        else {
+            letName = letdeclarationAst.assignments().varn().getText();
+            // We don't know the type ahead of time and will have to rely on inference in this case
+        }
+        if (letdeclarationAst.assignments().assignables() == null) {
+            // This is the situation where a variable is declared but no value is yet assigned. This can
+            // be (and the interpreter currently behaves) as if this was a `type | void` situation, but
+            // perhaps that should be required to be explicit?
+            const blankLet = new Microstatement(StatementType.LETDEC, scope, true, letName, scope.deepGet("void").typeval, ["void"], null);
+            // This is a terminating condition for the microstatements, though
+            microstatements.push(blankLet);
+            return;
+        }
+        // An assignable may either be a basic constant or could be broken down into other microstatements
+        // The classification with assignables is: if it's a `withoperators` type it *always* becomes
+        // multiple microstatements and it should return the variable name it generated to store the data.
+        // If it's a `basicassignables` type it could be either a "true constant" or generate multiple
+        // microstatements. The types that fall under the "true constant" category are: functions,
+        // var, and constants.
+        if (letdeclarationAst.assignments().assignables().withoperators() != null) {
+            // Update the microstatements list with the operator serialization
+            Microstatement.fromWithOperatorsAst(letdeclarationAst.assignments().assignables().withoperators(), letTypeHint, scope, microstatements);
+            // By definition the last microstatement is the const assignment we care about, so we can just
+            // mutate its object to rename the output variable name to the name we need instead.
+            microstatements[microstatements.length - 1].outputName = letName;
+            return;
+        }
+        if (letdeclarationAst.assignments().assignables().basicassignables() != null) {
+            Microstatement.fromBasicAssignablesAst(letdeclarationAst.assignments().assignables().basicassignables(), letTypeHint, scope, microstatements);
+            // The same rule as above, the last microstatement is already a const assignment for the value
+            // that we care about, so just rename its variable to the one that will be expected by other
+            // code.
+            microstatements[microstatements.length - 1].outputName = letName;
+            return;
+        }
     }
-  }
-
-  static fromConstdeclarationAst(constdeclarationAst, scope, microstatements) {
-    // TODO: Weirdness in the ANTLR grammar around declarations needs to be cleaned up at some point
-    let constName
-    let constTypeHint = null
-    if (constdeclarationAst.VARNAME() != null) {
-      constName = constdeclarationAst.VARNAME().getText()
-      constTypeHint = constdeclarationAst.assignments().varn().getText()
-      if (constdeclarationAst.assignments().typegenerics() != null) {
-        constTypeHint += constdeclarationAst.assignments().typegenerics().getText()
-      }
-    } else {
-      constName = constdeclarationAst.assignments().varn().getText()
-      // We don't know the type ahead of time and will have to refer on inference in this case
+    static fromConstdeclarationAst(constdeclarationAst, scope, microstatements) {
+        // TODO: Weirdness in the ANTLR grammar around declarations needs to be cleaned up at some point
+        let constName;
+        let constTypeHint = null;
+        if (constdeclarationAst.VARNAME() != null) {
+            constName = constdeclarationAst.VARNAME().getText();
+            constTypeHint = constdeclarationAst.assignments().varn().getText();
+            if (constdeclarationAst.assignments().typegenerics() != null) {
+                constTypeHint += constdeclarationAst.assignments().typegenerics().getText();
+            }
+        }
+        else {
+            constName = constdeclarationAst.assignments().varn().getText();
+            // We don't know the type ahead of time and will have to refer on inference in this case
+        }
+        if (constdeclarationAst.assignments().assignables() == null) {
+            // This is a weird edge case where a constant with no assignment was declared. Should this
+            // even be legal?
+            const weirdConst = new Microstatement(StatementType.CONSTDEC, scope, true, constName, scope.deepGet("void").typeval, ["void"], null);
+            // This is a terminating condition for the microstatements, though
+            microstatements.push(weirdConst);
+            return;
+        }
+        // An assignable may either be a basic constant or could be broken down into other microstatements
+        // The classification with assignables is: if it's a `withoperators` type it *always* becomes
+        // multiple microstatements and it should return the variable name it generated to store the data.
+        // If it's a `basicassignables` type it could be either a "true constant" or generate multiple
+        // microstatements. The types that fall under the "true constant" category are: functions,
+        // var, and constants.
+        if (constdeclarationAst.assignments().assignables().withoperators() != null) {
+            // Update the microstatements list with the operator serialization
+            Microstatement.fromWithOperatorsAst(constdeclarationAst.assignments().assignables().withoperators(), constTypeHint, scope, microstatements);
+            // By definition the last microstatement is the const assignment we care about, so we can just
+            // mutate its object to rename the output variable name to the name we need instead.
+            microstatements[microstatements.length - 1].outputName = constName;
+            return;
+        }
+        if (constdeclarationAst.assignments().assignables().basicassignables() != null) {
+            Microstatement.fromBasicAssignablesAst(constdeclarationAst.assignments().assignables().basicassignables(), constTypeHint, scope, microstatements);
+            // The same rule as above, the last microstatement is already a const assignment for the value
+            // that we care about, so just rename its variable to the one that will be expected by other
+            // code.
+            microstatements[microstatements.length - 1].outputName = constName;
+            return;
+        }
     }
-    if (constdeclarationAst.assignments().assignables() == null) {
-      // This is a weird edge case where a constant with no assignment was declared. Should this
-      // even be legal?
-      const weirdConst = new Microstatement(
-        StatementType.CONSTDEC,
-        scope,
-        true,
-        constName,
-        scope.deepGet("void").typeval,
-        ["void"],
-        null
-      );
-      // This is a terminating condition for the microstatements, though
-      microstatements.push(weirdConst)
-      return
+    // DFS recursive algo to get the microstatements in a valid ordering
+    static fromStatementsAst(statementAst, scope, microstatements) {
+        if (statementAst.declarations() != null) {
+            if (statementAst.declarations().constdeclaration() != null) {
+                Microstatement.fromConstdeclarationAst(statementAst.declarations().constdeclaration(), scope, microstatements);
+            }
+            else {
+                Microstatement.fromLetdeclarationAst(statementAst.declarations().letdeclaration(), scope, microstatements);
+            }
+        }
+        if (statementAst.assignments() != null) {
+            Microstatement.fromAssignmentsAst(statementAst.assignments(), scope, microstatements);
+        }
+        if (statementAst.calls() != null) {
+            Microstatement.fromCallsAst(statementAst.calls(), scope, microstatements);
+        }
+        if (statementAst.exits() != null) {
+            Microstatement.fromExitsAst(statementAst.exits(), scope, microstatements);
+        }
+        if (statementAst.emits() != null) {
+            Microstatement.fromEmitsAst(statementAst.emits(), scope, microstatements);
+        }
+        if (statementAst.conditionals() != null) {
+            Microstatement.fromConditionalsAst(statementAst.conditionals(), scope, microstatements);
+        }
+        return microstatements;
     }
-    // An assignable may either be a basic constant or could be broken down into other microstatements
-    // The classification with assignables is: if it's a `withoperators` type it *always* becomes
-    // multiple microstatements and it should return the variable name it generated to store the data.
-    // If it's a `basicassignables` type it could be either a "true constant" or generate multiple
-    // microstatements. The types that fall under the "true constant" category are: functions,
-    // var, and constants.
-    if (constdeclarationAst.assignments().assignables().withoperators() != null) {
-      // Update the microstatements list with the operator serialization
-      Microstatement.fromWithOperatorsAst(
-        constdeclarationAst.assignments().assignables().withoperators(),
-        constTypeHint,
-        scope,
-        microstatements
-      )
-      // By definition the last microstatement is the const assignment we care about, so we can just
-      // mutate its object to rename the output variable name to the name we need instead.
-      microstatements[microstatements.length - 1].outputName = constName
-      return
+    static fromAssignablesAst(assignablesAst, scope, microstatements) {
+        if (assignablesAst.basicassignables() != null) {
+            Microstatement.fromBasicAssignablesAst(assignablesAst.basicassignables(), null, scope, microstatements);
+        }
+        else {
+            Microstatement.fromWithOperatorsAst(assignablesAst.withoperators(), null, scope, microstatements);
+        }
     }
-    if (constdeclarationAst.assignments().assignables().basicassignables() != null) {
-      Microstatement.fromBasicAssignablesAst(
-        constdeclarationAst.assignments().assignables().basicassignables(),
-        constTypeHint,
-        scope,
-        microstatements
-      )
-      // The same rule as above, the last microstatement is already a const assignment for the value
-      // that we care about, so just rename its variable to the one that will be expected by other
-      // code.
-      microstatements[microstatements.length - 1].outputName = constName
-      return
+    static fromStatement(statement, microstatements) {
+        if (statement.statementOrAssignableAst instanceof LnParser.StatementsContext) {
+            Microstatement.fromStatementsAst(statement.statementOrAssignableAst, statement.scope, microstatements);
+        }
+        else {
+            // Otherwise it's a one-liner function
+            Microstatement.fromAssignablesAst(statement.statementOrAssignableAst, statement.scope, microstatements);
+        }
     }
-  }
-
-  // DFS recursive algo to get the microstatements in a valid ordering
-  static fromStatementsAst(statementAst, scope, microstatements) {
-    if (statementAst.declarations() != null) {
-      if (statementAst.declarations().constdeclaration() != null) {
-        Microstatement.fromConstdeclarationAst(
-          statementAst.declarations().constdeclaration(),
-          scope,
-          microstatements
-        )
-      } else {
-        Microstatement.fromLetdeclarationAst(
-          statementAst.declarations().letdeclaration(),
-          scope,
-          microstatements
-        )
-      }
-    }
-    if (statementAst.assignments() != null) {
-      Microstatement.fromAssignmentsAst(
-        statementAst.assignments(),
-        scope,
-        microstatements
-      )
-    }
-    if (statementAst.calls() != null) {
-      Microstatement.fromCallsAst(
-        statementAst.calls(),
-        scope,
-        microstatements
-      )
-    }
-    if (statementAst.exits() != null) {
-      Microstatement.fromExitsAst(
-        statementAst.exits(),
-        scope,
-        microstatements
-      )
-    }
-    if (statementAst.emits() != null) {
-      Microstatement.fromEmitsAst(
-        statementAst.emits(),
-        scope,
-        microstatements
-      )
-    }
-    if (statementAst.conditionals() != null) {
-      Microstatement.fromConditionalsAst(
-        statementAst.conditionals(),
-        scope,
-        microstatements
-      )
-    }
-    
-    return microstatements
-  }
-
-  static fromAssignablesAst(assignablesAst, scope, microstatements) {
-    if (assignablesAst.basicassignables() != null) {
-      Microstatement.fromBasicAssignablesAst(
-        assignablesAst.basicassignables(),
-        null,
-        scope,
-        microstatements
-      )
-    } else {
-      Microstatement.fromWithOperatorsAst(
-        assignablesAst.withoperators(),
-        null,
-        scope,
-        microstatements
-      )
-    }
-  }
-
-  static fromStatement(statement, microstatements) {
-    if (statement.statementOrAssignableAst instanceof LnParser.StatementsContext) {
-      Microstatement.fromStatementsAst(
-        statement.statementOrAssignableAst,
-        statement.scope,
-        microstatements
-      )
-    } else {
-      // Otherwise it's a one-liner function
-      Microstatement.fromAssignablesAst(
-        statement.statementOrAssignableAst,
-        statement.scope,
-        microstatements
-      )
-    }
-  }
 }
-
-module.exports = Microstatement
+module.exports = Microstatement;
 
 }).call(this,require('_process'))
 },{"../ln":12,"./Box":14,"./Scope":27,"./StatementType":29,"./UserFunction":31,"./opcodes":33,"_process":85,"uuid":87}],25:[function(require,module,exports){
 (function (process){
-const Ast = require('./Ast')
-const Box = require('./Box')
-const Event = require('./Event')
-const Interface = require('./Interface')
-const Operator = require('./Operator')
-const Scope = require('./Scope')
-const UserFunction = require('./UserFunction')
-const Type = require('./Type')
-
-const modules = {}
-
+const Ast = require('./Ast');
+const Box = require('./Box');
+const Event = require('./Event');
+const Interface = require('./Interface');
+const Operator = require('./Operator');
+const Scope = require('./Scope');
+const UserFunction = require('./UserFunction');
+const Type = require('./Type');
+const modules = {};
 class Module {
-  constructor(rootScope) {
-    // Thoughts on how to handle this right now:
-    // 1. The outermost module scope is read-only always.
-    // 2. Therefore anything in the export scope can simply be duplicated in both scopes
-    // 3. Therefore export scope needs access to the module scope so the functions function, but
-    //    the module scope can just use its local copy
-    this.moduleScope = new Scope(rootScope)
-    this.exportScope = new Scope(this.moduleScope)
-  }
-
-  static getAllModules() {
-    return modules
-  }
-  
-  static populateModule(
-    path, // string
+    constructor(rootScope) {
+        // Thoughts on how to handle this right now:
+        // 1. The outermost module scope is read-only always.
+        // 2. Therefore anything in the export scope can simply be duplicated in both scopes
+        // 3. Therefore export scope needs access to the module scope so the functions function, but
+        //    the module scope can just use its local copy
+        this.moduleScope = new Scope(rootScope);
+        this.exportScope = new Scope(this.moduleScope);
+    }
+    static getAllModules() {
+        return modules;
+    }
+    static populateModule(path, // string
     ast, // ModuleContext
     rootScope // Scope
-  ) {
-    let module = new Module(rootScope)
-    // First, populate all of the imports
-    const imports = ast.imports()
-    for (const importAst of imports) {
-      // Figure out which kind of import format we're dealing with
-      const standardImport = importAst.standardImport()
-      const fromImport = importAst.fromImport()
-      // If it's a "standard" import, figure out what name to call it (if the user overrode it)
-      // and then attach the entire module with that name to the local scope.
-      if (standardImport != null) {
-        let importName
-        if (standardImport.AS() != null) {
-          importName = standardImport.VARNAME().getText()
-        } else if (standardImport.dependency().localdependency() != null) {
-          let nameParts = standardImport.dependency().localdependency().getText().split("/")
-          importName = nameParts[nameParts.length - 1]
-        } else if (standardImport.dependency().globaldependency() != null) {
-          let nameParts = standardImport.dependency().globaldependency().getText().split("/")
-          importName = nameParts[nameParts.length - 1]
-        } else {
-          // What?
-          console.error("This path should be impossible")
-          process.exit(-3)
+    ) {
+        let module = new Module(rootScope);
+        // First, populate all of the imports
+        const imports = ast.imports();
+        for (const importAst of imports) {
+            // Figure out which kind of import format we're dealing with
+            const standardImport = importAst.standardImport();
+            const fromImport = importAst.fromImport();
+            // If it's a "standard" import, figure out what name to call it (if the user overrode it)
+            // and then attach the entire module with that name to the local scope.
+            if (standardImport != null) {
+                let importName;
+                if (standardImport.AS() != null) {
+                    importName = standardImport.VARNAME().getText();
+                }
+                else if (standardImport.dependency().localdependency() != null) {
+                    let nameParts = standardImport.dependency().localdependency().getText().split("/");
+                    importName = nameParts[nameParts.length - 1];
+                }
+                else if (standardImport.dependency().globaldependency() != null) {
+                    let nameParts = standardImport.dependency().globaldependency().getText().split("/");
+                    importName = nameParts[nameParts.length - 1];
+                }
+                else {
+                    // What?
+                    console.error("This path should be impossible");
+                    process.exit(-3);
+                }
+                const importedModule = modules[Ast.resolveDependency(path, standardImport.dependency())];
+                module.moduleScope.put(importName, new Box(importedModule.exportScope));
+            }
+            // If it's a "from" import, we're picking off pieces of the exported scope and inserting them
+            // also potentially renaming them if requested by the user
+            if (fromImport != null) {
+                const importedModule = modules[Ast.resolveDependency(path, fromImport.dependency())];
+                const vars = fromImport.varlist().renameablevar();
+                for (const moduleVar of vars) {
+                    let importName;
+                    const exportName = moduleVar.varop(0).getText();
+                    if (moduleVar.AS() != null) {
+                        importName = moduleVar.varop(1).getText();
+                    }
+                    else {
+                        importName = moduleVar.varop(0).getText();
+                    }
+                    const thing = importedModule.exportScope.get(exportName);
+                    module.moduleScope.put(importName, thing);
+                    // Special behavior for interfaces. If there are any functions or operators that match
+                    // the interface, pull them in. Similarly any types that match the entire interface. This
+                    // allows concise importing of a related suite of tools without having to explicitly call
+                    // out each one.
+                    if (thing.typeval && thing.typeval.iface) {
+                        const iface = thing.typeval.iface;
+                        const typesToCheck = Object.keys(importedModule.exportScope.vals)
+                            .map(n => importedModule.exportScope.vals[n])
+                            .filter(v => !!v.typeval);
+                        const fnsToCheck = Object.keys(importedModule.exportScope.vals)
+                            .map(n => importedModule.exportScope.vals[n])
+                            .filter(v => !!v.functionval);
+                        /**
+                         * Add opsToCheck after the code to declare operators in interfaces is added
+                        const opsToCheck = Object.keys(importedModule.exportScope)
+                          .map(n => importedModule.exportScope[n])
+                          .filter(v => !!v.operatorval)
+                         */
+                        typesToCheck
+                            .filter(t => iface.typeApplies(t.typeval, importedModule.exportScope))
+                            .forEach(t => {
+                            module.moduleScope.put(t.typeval.typename, t);
+                        });
+                        fnsToCheck
+                            .filter(fn => {
+                            // TODO: Make this better and move it to the Interface file in the future
+                            return iface.functionTypes.some(ft => ft.functionname === fn.functionval[0].getName());
+                        })
+                            .forEach(fn => {
+                            module.moduleScope.put(fn.functionval[0].getName(), fn);
+                        });
+                    }
+                }
+            }
         }
-        const importedModule = modules[Ast.resolveDependency(path, standardImport.dependency())]
-        module.moduleScope.put(importName, new Box(importedModule.exportScope))
-      }
-      // If it's a "from" import, we're picking off pieces of the exported scope and inserting them
-      // also potentially renaming them if requested by the user
-      if (fromImport != null) {
-        const importedModule = modules[Ast.resolveDependency(path, fromImport.dependency())]
-        const vars = fromImport.varlist().renameablevar()
-        for (const moduleVar of vars) {
-          let importName
-          const exportName = moduleVar.varop(0).getText()
-          if (moduleVar.AS() != null) {
-            importName = moduleVar.varop(1).getText()
-          } else {
-            importName = moduleVar.varop(0).getText()
-          }
-          const thing = importedModule.exportScope.get(exportName)
-          module.moduleScope.put(importName, thing)
-          // Special behavior for interfaces. If there are any functions or operators that match
-          // the interface, pull them in. Similarly any types that match the entire interface. This
-          // allows concise importing of a related suite of tools without having to explicitly call
-          // out each one.
-          if (thing.typeval && thing.typeval.iface) {
-            const iface = thing.typeval.iface
-            const typesToCheck = Object.keys(importedModule.exportScope.vals)
-              .map(n => importedModule.exportScope.vals[n])
-              .filter(v => !!v.typeval)
-            const fnsToCheck = Object.keys(importedModule.exportScope.vals)
-              .map(n => importedModule.exportScope.vals[n])
-              .filter(v => !!v.functionval)
-            /**
-             * Add opsToCheck after the code to declare operators in interfaces is added
-            const opsToCheck = Object.keys(importedModule.exportScope)
-              .map(n => importedModule.exportScope[n])
-              .filter(v => !!v.operatorval)
-             */
-
-            typesToCheck
-              .filter(t => iface.typeApplies(t.typeval, importedModule.exportScope))
-              .forEach(t => {
-                module.moduleScope.put(t.typeval.typename, t)
-              })
-
-            fnsToCheck
-              .filter(fn => {
-                // TODO: Make this better and move it to the Interface file in the future
-                return iface.functionTypes.some(
-                  ft => ft.functionname === fn.functionval[0].getName()
-                )
-              })
-              .forEach(fn => {
-                module.moduleScope.put(fn.functionval[0].getName(), fn)
-              })
-          }
+        // Next, types
+        const types = ast.types();
+        for (const typeAst of types) {
+            const newType = Type.fromAst(typeAst, module.moduleScope);
+            module.moduleScope.put(newType.typename, new Box(newType.alias === null ? newType : newType.alias));
         }
-      }
+        // Next, interfaces
+        const interfaces = ast.interfaces();
+        for (const interfaceAst of interfaces) {
+            Interface.fromAst(interfaceAst, module.moduleScope);
+            // Automatically inserts the interface into the module scope, we're done.
+        }
+        // Next, constants
+        const constdeclarations = ast.constdeclaration();
+        for (const constAst of constdeclarations) {
+            const newConst = Box.fromConstAst(constAst, module.moduleScope);
+            let constName;
+            if (constAst.VARNAME() != null) {
+                constName = constAst.VARNAME().getText();
+            }
+            else {
+                constName = constAst.assignments().varn().getText();
+            }
+            module.moduleScope.put(constName, newConst);
+        }
+        // Next, events
+        const events = ast.events();
+        for (const eventAst of events) {
+            const newEvent = Event.fromAst(eventAst, module.moduleScope);
+            module.moduleScope.put(newEvent.name, new Box(newEvent, true));
+        }
+        // Next, functions
+        const functions = ast.functions();
+        for (const functionAst of functions) {
+            const newFunc = UserFunction.fromAst(functionAst, module.moduleScope);
+            if (newFunc.getName() == null) {
+                console.error("Module-level functions must have a name");
+                process.exit(-19);
+            }
+            let fns = module.moduleScope.get(newFunc.getName());
+            if (fns == null) {
+                module.moduleScope.put(newFunc.getName(), new Box([newFunc], true));
+            }
+            else {
+                fns.functionval.push(newFunc);
+            }
+        }
+        // Next, operators
+        const operatorMapping = ast.operatormapping();
+        for (const operatorAst of operatorMapping) {
+            const isPrefix = operatorAst.infix() == null;
+            let isCommutative = false;
+            let isAssociative = false;
+            if (!isPrefix) {
+                isCommutative = operatorAst.infix().COMMUTATIVE() != null;
+                isAssociative = operatorAst.infix().ASSOCIATIVE() != null;
+            }
+            const name = operatorAst.operators().getText().trim();
+            const precedence = parseInt(operatorAst.NUMBERCONSTANT().getText(), 10);
+            const fns = module.moduleScope.deepGet(operatorAst.varn());
+            if (fns == null) {
+                console.error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
+                process.exit(-31);
+            }
+            const op = new Operator(name, precedence, isPrefix, isCommutative, isAssociative, fns.functionval);
+            const opsBox = module.moduleScope.deepGet(name);
+            if (opsBox == null) {
+                module.moduleScope.put(name, new Box([op]));
+            }
+            else {
+                // To make sure we don't accidentally mutate other scopes, we're cloning this operator list
+                let ops = [...opsBox.operatorval];
+                ops.push(op);
+                module.moduleScope.put(name, new Box(ops));
+            }
+        }
+        // Next, exports, which can be most of the above
+        const exports = ast.exports();
+        for (const exportAst of exports) {
+            if (exportAst.varn() != null) {
+                const exportVar = module.moduleScope.deepGet(exportAst.varn());
+                const splitName = exportAst.varn().getText().split(".");
+                module.moduleScope.put(splitName[splitName.length - 1], exportVar);
+                module.exportScope.put(splitName[splitName.length - 1], exportVar);
+            }
+            else if (exportAst.types() != null) {
+                const newType = Type.fromAst(exportAst.types(), module.moduleScope);
+                const typeBox = new Box(!newType.alias ? newType : newType.alias);
+                module.moduleScope.put(newType.typename, typeBox);
+                module.exportScope.put(newType.typename, typeBox);
+            }
+            else if (exportAst.interfaces() != null) {
+                const interfaceBox = Interface.fromAst(exportAst.interfaces(), module.moduleScope);
+                // Automatically inserts the interface into the module scope
+                module.exportScope.put(interfaceBox.typeval.typename, interfaceBox);
+            }
+            else if (exportAst.constdeclaration() != null) {
+                const newConst = Box.fromConstAst(exportAst.constdeclaration(), module.moduleScope);
+                let constName;
+                if (exportAst.constdeclaration().VARNAME() != null) {
+                    constName = exportAst.constdeclaration().VARNAME().getText();
+                }
+                else {
+                    constName = exportAst.constdeclaration().assignments().varn().getText();
+                }
+                module.moduleScope.put(constName, newConst);
+                module.exportScope.put(constName, newConst);
+            }
+            else if (exportAst.functions() != null) {
+                const newFunc = UserFunction.fromAst(exportAst.functions(), module.moduleScope);
+                if (newFunc.getName() == null) {
+                    console.error("Module-level functions must have a name");
+                    process.exit(-19);
+                }
+                // Exported scope must be checked first because it will fall through to the not-exported
+                // scope by default. Should probably create a `getShallow` for this case, but reordering
+                // the two if blocks below is enough to fix things here.
+                let expFns = module.exportScope.get(newFunc.getName());
+                if (expFns == null) {
+                    module.exportScope.put(newFunc.getName(), new Box([newFunc], true));
+                }
+                else {
+                    expFns.functionval.push(newFunc);
+                }
+                let modFns = module.moduleScope.get(newFunc.getName());
+                if (modFns == null) {
+                    module.moduleScope.put(newFunc.getName(), new Box([newFunc], true));
+                }
+                else {
+                    modFns.functionval.push(newFunc);
+                }
+            }
+            else if (exportAst.operatormapping() != null) {
+                const operatorAst = exportAst.operatormapping();
+                const isPrefix = operatorAst.infix() == null;
+                let isCommutative = false;
+                let isAssociative = false;
+                if (!isPrefix) {
+                    isCommutative = operatorAst.infix().COMMUTATIVE() != null;
+                    isAssociative = operatorAst.infix().ASSOCIATIVE() != null;
+                }
+                const name = operatorAst.operators().getText().trim();
+                const precedence = parseInt(operatorAst.NUMBERCONSTANT().getText(), 10);
+                let fns = module.exportScope.deepGet(operatorAst.varn());
+                if (fns == null) {
+                    fns = module.moduleScope.deepGet(operatorAst.varn());
+                    if (fns != null) {
+                        console.error("Exported operator " +
+                            name +
+                            " wrapping unexported function " +
+                            operatorAst.varn().getText() +
+                            " which is not allowed, please export the function, as well.");
+                        process.exit(-32);
+                    }
+                    console.error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
+                    process.exit(-33);
+                }
+                const op = new Operator(name, precedence, isPrefix, isCommutative, isAssociative, fns.functionval);
+                let modOpsBox = module.moduleScope.deepGet(name);
+                if (modOpsBox == null) {
+                    module.moduleScope.put(name, new Box([op]));
+                }
+                else {
+                    let ops = [...modOpsBox.operatorval];
+                    ops.push(op);
+                    module.moduleScope.put(name, new Box(ops));
+                }
+                let expOpsBox = module.exportScope.deepGet(name);
+                if (expOpsBox == null) {
+                    module.exportScope.put(name, new Box([op]));
+                }
+                else {
+                    let ops = [...expOpsBox.operatorval];
+                    ops.push(op);
+                    module.exportScope.put(name, new Box(ops));
+                }
+            }
+            else if (exportAst.events() != null) {
+                const newEvent = Event.fromAst(exportAst.events(), module.moduleScope);
+                module.moduleScope.put(newEvent.name, new Box(newEvent, true));
+                module.exportScope.put(newEvent.name, new Box(newEvent, true));
+            }
+            else {
+                // What?
+                console.error("What should be an impossible export state has been reached.");
+                process.exit(-8);
+            }
+        }
+        // Finally, event handlers, so they can depend on events that are exported from the same module
+        const handlers = ast.handlers();
+        for (const handlerAst of handlers) {
+            let eventBox = null;
+            if (handlerAst.eventref().varn() != null) {
+                const eventName = handlerAst.eventref().varn().getText();
+                eventBox = module.moduleScope.deepGet(handlerAst.eventref().varn());
+            }
+            else if (handlerAst.eventref().calls() != null) {
+                eventBox = AFunction.callFromAst(handlerAst.eventref().calls(), module.moduleScope);
+            }
+            if (eventBox == null) {
+                console.error("Could not find specified event: " + handlerAst.eventref().getText());
+                process.exit(-20);
+            }
+            if (eventBox.type != Box.builtinTypes["Event"]) {
+                console.error(eventBox);
+                console.error(handlerAst.eventref().getText() + " is not an event");
+                process.exit(-21);
+            }
+            const evt = eventBox.eventval;
+            let fn = null;
+            if (handlerAst.varn() != null) {
+                const fnName = handlerAst.varn().getText();
+                const fnBox = module.moduleScope.deepGet(handlerAst.varn());
+                if (fnBox == null) {
+                    console.error("Could not find specified function: " + fnName);
+                    process.exit(-22);
+                }
+                if (fnBox.type != Box.builtinTypes["function"]) {
+                    console.error(fnName + " is not a function");
+                    process.exit(-23);
+                }
+                const fns = fnBox.functionval;
+                for (let i = 0; i < fns.length; i++) {
+                    if (evt.type.typename === "void" && fns[i].getArguments().values().size() === 0) {
+                        fn = fns[i];
+                        break;
+                    }
+                    const argTypes = Object.values(fns[i].getArguments());
+                    if (argTypes.length !== 1)
+                        continue;
+                    if (argTypes[0] == evt.type) {
+                        fn = fns[i];
+                        break;
+                    }
+                }
+                if (fn == null) {
+                    console.error("Could not find function named " + fnName + " with matching function signature");
+                    process.exit(-35);
+                }
+            }
+            if (handlerAst.functions() != null) {
+                fn = UserFunction.fromAst(handlerAst.functions(), module.moduleScope);
+            }
+            if (handlerAst.functionbody() != null) {
+                fn = UserFunction.fromAst(handlerAst.functionbody(), module.moduleScope);
+            }
+            if (fn == null) {
+                // Shouldn't be possible
+                console.error("Impossible state reached processing event handler");
+                process.exit(-24);
+            }
+            if (Object.keys(fn.getArguments()).length > 1 ||
+                (evt.type == Box.builtinTypes["void"] && Object.keys(fn.getArguments()).length != 0)) {
+                console.error("Function provided for " + handlerAst.eventref().getText() + " has invalid argument signature");
+                process.exit(-25);
+            }
+            evt.handlers.push(fn);
+        }
+        return module;
     }
-    // Next, types
-    const types = ast.types()
-    for (const typeAst of types) {
-      const newType = Type.fromAst(typeAst, module.moduleScope);
-      module.moduleScope.put(newType.typename, new Box(
-        newType.alias === null ? newType : newType.alias
-      ))
-    }
-    // Next, interfaces
-    const interfaces = ast.interfaces()
-    for (const interfaceAst of interfaces) {
-      Interface.fromAst(interfaceAst, module.moduleScope);
-      // Automatically inserts the interface into the module scope, we're done.
-    }
-    // Next, constants
-    const constdeclarations = ast.constdeclaration()
-    for (const constAst of constdeclarations) {
-      const newConst = Box.fromConstAst(constAst, module.moduleScope)
-      let constName
-      if (constAst.VARNAME() != null) {
-        constName = constAst.VARNAME().getText()
-      } else {
-        constName = constAst.assignments().varn().getText()
-      }
-      module.moduleScope.put(constName, newConst)
-    }
-    // Next, events
-    const events = ast.events()
-    for (const eventAst of events) {
-      const newEvent = Event.fromAst(eventAst, module.moduleScope)
-      module.moduleScope.put(newEvent.name, new Box(newEvent, true))
-    }
-    // Next, functions
-    const functions = ast.functions()
-    for (const functionAst of functions) {
-      const newFunc = UserFunction.fromAst(functionAst, module.moduleScope)
-      if (newFunc.getName() == null) {
-        console.error("Module-level functions must have a name")
-        process.exit(-19)
-      }
-      let fns = module.moduleScope.get(newFunc.getName())
-      if (fns == null) {
-        module.moduleScope.put(newFunc.getName(), new Box([newFunc], true))
-      } else {
-        fns.functionval.push(newFunc)
-      }
-    }
-    // Next, operators
-    const operatorMapping = ast.operatormapping()
-    for (const operatorAst of operatorMapping) {
-      const isPrefix = operatorAst.infix() == null
-      let isCommutative = false
-      let isAssociative = false
-      if (!isPrefix) {
-        isCommutative = operatorAst.infix().COMMUTATIVE() != null
-        isAssociative = operatorAst.infix().ASSOCIATIVE() != null
-      }
-      const name = operatorAst.operators().getText().trim()
-      const precedence = parseInt(operatorAst.NUMBERCONSTANT().getText(), 10)
-      const fns = module.moduleScope.deepGet(operatorAst.varn())
-      if (fns == null) {
-        console.error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText())
-        process.exit(-31)
-      }
-      const op = new Operator(
-        name,
-        precedence,
-        isPrefix,
-        isCommutative,
-        isAssociative,
-        fns.functionval,
-      )
-      const opsBox = module.moduleScope.deepGet(name)
-      if (opsBox == null) {
-        module.moduleScope.put(name, new Box([op]))
-      } else {
-        // To make sure we don't accidentally mutate other scopes, we're cloning this operator list
-        let ops = [...opsBox.operatorval]
-        ops.push(op)
-        module.moduleScope.put(name, new Box(ops))
-      }
-    }
-    // Next, exports, which can be most of the above
-    const exports = ast.exports()
-    for (const exportAst of exports) {
-      if (exportAst.varn() != null) {
-        const exportVar = module.moduleScope.deepGet(exportAst.varn())
-        const splitName = exportAst.varn().getText().split(".")
-        module.moduleScope.put(splitName[splitName.length - 1], exportVar)
-        module.exportScope.put(splitName[splitName.length - 1], exportVar)
-      } else if (exportAst.types() != null) {
-        const newType = Type.fromAst(exportAst.types(), module.moduleScope)
-        const typeBox = new Box(!newType.alias ? newType : newType.alias)
-        module.moduleScope.put(newType.typename, typeBox)
-        module.exportScope.put(newType.typename, typeBox)
-      } else if (exportAst.interfaces() != null) {
-        const interfaceBox = Interface.fromAst(exportAst.interfaces(), module.moduleScope)
-        // Automatically inserts the interface into the module scope
-        module.exportScope.put(interfaceBox.typeval.typename, interfaceBox)
-      } else if (exportAst.constdeclaration() != null) {
-        const newConst = Box.fromConstAst(exportAst.constdeclaration(), module.moduleScope)
-        let constName
-        if (exportAst.constdeclaration().VARNAME() != null) {
-          constName = exportAst.constdeclaration().VARNAME().getText()
-        } else {
-          constName = exportAst.constdeclaration().assignments().varn().getText()
-        }
-        module.moduleScope.put(constName, newConst)
-        module.exportScope.put(constName, newConst)
-      } else if (exportAst.functions() != null) {
-        const newFunc = UserFunction.fromAst(exportAst.functions(), module.moduleScope)
-        if (newFunc.getName() == null) {
-          console.error("Module-level functions must have a name")
-          process.exit(-19)
-        }
-        // Exported scope must be checked first because it will fall through to the not-exported
-        // scope by default. Should probably create a `getShallow` for this case, but reordering
-        // the two if blocks below is enough to fix things here.
-        let expFns = module.exportScope.get(newFunc.getName())
-        if (expFns == null) {
-          module.exportScope.put(newFunc.getName(), new Box([newFunc], true))
-        } else {
-          expFns.functionval.push(newFunc)
-        }
-        let modFns = module.moduleScope.get(newFunc.getName())
-        if (modFns == null) {
-          module.moduleScope.put(newFunc.getName(), new Box([newFunc], true))
-        } else {
-          modFns.functionval.push(newFunc)
-        }
-      } else if (exportAst.operatormapping() != null) {
-        const operatorAst = exportAst.operatormapping()
-        const isPrefix = operatorAst.infix() == null
-        let isCommutative = false
-        let isAssociative = false
-        if (!isPrefix) {
-          isCommutative = operatorAst.infix().COMMUTATIVE() != null
-          isAssociative = operatorAst.infix().ASSOCIATIVE() != null
-        }
-        const name = operatorAst.operators().getText().trim();
-        const precedence = parseInt(operatorAst.NUMBERCONSTANT().getText(), 10)
-        let fns = module.exportScope.deepGet(operatorAst.varn())
-        if (fns == null) {
-          fns = module.moduleScope.deepGet(operatorAst.varn())
-          if (fns != null) {
-            console.error(
-              "Exported operator " +
-              name +
-              " wrapping unexported function " +
-              operatorAst.varn().getText() +
-              " which is not allowed, please export the function, as well."
-            )
-            process.exit(-32)
-          }
-          console.error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText())
-          process.exit(-33)
-        }
-        const op = new Operator(
-          name,
-          precedence,
-          isPrefix,
-          isCommutative,
-          isAssociative,
-          fns.functionval,
-        )
-        let modOpsBox = module.moduleScope.deepGet(name)
-        if (modOpsBox == null) {
-          module.moduleScope.put(name, new Box([op]))
-        } else {
-          let ops = [...modOpsBox.operatorval]
-          ops.push(op)
-          module.moduleScope.put(name, new Box(ops))
-        }
-        let expOpsBox = module.exportScope.deepGet(name)
-        if (expOpsBox == null) {
-          module.exportScope.put(name, new Box([op]))
-        } else {
-          let ops = [...expOpsBox.operatorval]
-          ops.push(op)
-          module.exportScope.put(name, new Box(ops))
-        }
-      } else if (exportAst.events() != null) {
-        const newEvent = Event.fromAst(exportAst.events(), module.moduleScope)
-        module.moduleScope.put(newEvent.name, new Box(newEvent, true))
-        module.exportScope.put(newEvent.name, new Box(newEvent, true))
-      } else {
-        // What?
-        console.error("What should be an impossible export state has been reached.")
-        process.exit(-8)
-      }
-    }
-    // Finally, event handlers, so they can depend on events that are exported from the same module
-    const handlers = ast.handlers()
-    for (const handlerAst of handlers) {
-      let eventBox = null
-      if (handlerAst.eventref().varn() != null) {
-        const eventName = handlerAst.eventref().varn().getText()
-        eventBox = module.moduleScope.deepGet(handlerAst.eventref().varn())
-      } else if (handlerAst.eventref().calls() != null) {
-        eventBox = AFunction.callFromAst(handlerAst.eventref().calls(), module.moduleScope)
-      }
-      if (eventBox == null) {
-        console.error("Could not find specified event: " + handlerAst.eventref().getText())
-        process.exit(-20)
-      }
-      if (eventBox.type != Box.builtinTypes["Event"]) {
-        console.error(eventBox)
-        console.error(handlerAst.eventref().getText() + " is not an event")
-        process.exit(-21)
-      }
-      const evt = eventBox.eventval
-      let fn = null
-      if (handlerAst.varn() != null) {
-        const fnName = handlerAst.varn().getText()
-        const fnBox = module.moduleScope.deepGet(handlerAst.varn())
-        if (fnBox == null) {
-          console.error("Could not find specified function: " + fnName)
-          process.exit(-22)
-        }
-        if (fnBox.type != Box.builtinTypes["function"]) {
-          console.error(fnName + " is not a function")
-          process.exit(-23)
-        }
-        const fns = fnBox.functionval
-        for (let i = 0; i < fns.length; i++) {
-          if (evt.type.typename === "void" && fns[i].getArguments().values().size() === 0) {
-            fn = fns[i]
-            break
-          }
-          const argTypes = Object.values(fns[i].getArguments())
-          if (argTypes.length !== 1) continue
-          if (argTypes[0] == evt.type) {
-            fn = fns[i]
-            break
-          }
-        }
-        if (fn == null) {
-          console.error("Could not find function named " + fnName + " with matching function signature")
-          process.exit(-35)
-        }
-      }
-      if (handlerAst.functions() != null) {
-        fn = UserFunction.fromAst(handlerAst.functions(), module.moduleScope)
-      }
-      if (handlerAst.functionbody() != null) {
-        fn = UserFunction.fromAst(handlerAst.functionbody(), module.moduleScope)
-      }
-      if (fn == null) {
-        // Shouldn't be possible
-        console.error("Impossible state reached processing event handler")
-        process.exit(-24)
-      }
-      if (Object.keys(fn.getArguments()).length > 1 ||
-        (evt.type == Box.builtinTypes["void"] && Object.keys(fn.getArguments()).length != 0)
-      ) {
-        console.error("Function provided for " + handlerAst.eventref().getText() + " has invalid argument signature")
-        process.exit(-25)
-      }
-      evt.handlers.push(fn)
-    }
-    return module
-  }
-
-  static modulesFromAsts(
-    astMap, // string to ModuleContext
+    static modulesFromAsts(astMap, // string to ModuleContext
     rootScope // Scope
-  ) {
-    let modulePaths = Object.keys(astMap)
-    while (modulePaths.length > 0) {
-      for (let i = 0; i < modulePaths.length; i++) {
-        const path = modulePaths[i]
-        const moduleAst = astMap[path]
-        const imports = Ast.resolveImports(path, moduleAst)
-        let loadable = true
-        for (const importPath of imports) {
-          if (importPath[0] === '@') continue
-          if (modules.hasOwnProperty(importPath)) continue
-          loadable = false
+    ) {
+        let modulePaths = Object.keys(astMap);
+        while (modulePaths.length > 0) {
+            for (let i = 0; i < modulePaths.length; i++) {
+                const path = modulePaths[i];
+                const moduleAst = astMap[path];
+                const imports = Ast.resolveImports(path, moduleAst);
+                let loadable = true;
+                for (const importPath of imports) {
+                    if (importPath[0] === '@')
+                        continue;
+                    if (modules.hasOwnProperty(importPath))
+                        continue;
+                    loadable = false;
+                }
+                if (!loadable)
+                    continue;
+                modulePaths.splice(i, 1);
+                i--;
+                const module = Module.populateModule(path, moduleAst, rootScope);
+                modules[path] = module;
+            }
         }
-        if (!loadable) continue
-        modulePaths.splice(i, 1)
-        i--
-        const module = Module.populateModule(path, moduleAst, rootScope)
-        modules[path] = module
-      }
+        return modules;
     }
-    return modules
-  }
 }
-
-module.exports = Module
+module.exports = Module;
 
 }).call(this,require('_process'))
 },{"./Ast":13,"./Box":14,"./Event":15,"./Interface":23,"./Operator":26,"./Scope":27,"./Type":30,"./UserFunction":31,"_process":85}],26:[function(require,module,exports){
 class Operator {
-  constructor(name, precedence, isPrefix, isCommutative, isAssociative, potentialFunctions) {
-    this.name = name
-    this.precedence = precedence
-    this.isPrefix = isPrefix
-    this.isCommutative = isCommutative
-    this.isAssociative = isAssociative
-    this.potentialFunctions = potentialFunctions
-  }
-
-  applicableFunction(left, right, scope) {
-    let argumentTypeList = []
-    if (!this.isPrefix) {
-      if (left == null) return null
-      argumentTypeList.push(left)
+    constructor(name, precedence, isPrefix, isCommutative, isAssociative, potentialFunctions) {
+        this.name = name;
+        this.precedence = precedence;
+        this.isPrefix = isPrefix;
+        this.isCommutative = isCommutative;
+        this.isAssociative = isAssociative;
+        this.potentialFunctions = potentialFunctions;
     }
-    argumentTypeList.push(right)
-    const fns = this.potentialFunctions
-    for (let i = 0; i < fns.length; i++) {
-      const isNary = fns[i].isNary()
-      const args = fns[i].getArguments()
-      const argList = Object.values(args)
-      if (!isNary && argList.length != argumentTypeList.length) continue
-      if (isNary && argList.length > argumentTypeList.length) continue
-      let skip = false
-      for (let j = 0; j < argList.length; j++) {
-        if (argList[j].typename === argumentTypeList[j].typename) continue
-        if( 
-          argList[j].iface != null &&
-          argList[j].iface.typeApplies(argumentTypeList[j], scope)
-        ) continue
-        if (argList[j].generics.length > 0 && argumentTypeList[j].originalType == argList[j]) {
-          continue
+    applicableFunction(left, right, scope) {
+        let argumentTypeList = [];
+        if (!this.isPrefix) {
+            if (left == null)
+                return null;
+            argumentTypeList.push(left);
         }
-        if (
-          argList[j].originalType != null &&
-          argumentTypeList[j].originalType == argList[j].originalType
-        ) {
-          for (const propKey of Object.keys(argList[j].properties)) {
-            const propVal = argList[j].properties[propKey]
-            if (propVal == argumentTypeList[j].properties[propKey]) continue
-            if (
-              propVal.iface != null &&
-              propVal.iface.typeApplies(
-                argumentTypeList[j].properties[propKey],
-                scope
-              )
-            ) continue
-            skip = true
-          }
-          continue
+        argumentTypeList.push(right);
+        const fns = this.potentialFunctions;
+        for (let i = 0; i < fns.length; i++) {
+            const isNary = fns[i].isNary();
+            const args = fns[i].getArguments();
+            const argList = Object.values(args);
+            if (!isNary && argList.length != argumentTypeList.length)
+                continue;
+            if (isNary && argList.length > argumentTypeList.length)
+                continue;
+            let skip = false;
+            for (let j = 0; j < argList.length; j++) {
+                if (argList[j].typename === argumentTypeList[j].typename)
+                    continue;
+                if (argList[j].iface != null &&
+                    argList[j].iface.typeApplies(argumentTypeList[j], scope))
+                    continue;
+                if (argList[j].generics.length > 0 && argumentTypeList[j].originalType == argList[j]) {
+                    continue;
+                }
+                if (argList[j].originalType != null &&
+                    argumentTypeList[j].originalType == argList[j].originalType) {
+                    for (const propKey of Object.keys(argList[j].properties)) {
+                        const propVal = argList[j].properties[propKey];
+                        if (propVal == argumentTypeList[j].properties[propKey])
+                            continue;
+                        if (propVal.iface != null &&
+                            propVal.iface.typeApplies(argumentTypeList[j].properties[propKey], scope))
+                            continue;
+                        skip = true;
+                    }
+                    continue;
+                }
+                skip = true;
+            }
+            if (skip)
+                continue;
+            return fns[i];
         }
-        skip = true
-      }
-      if (skip) continue
-      return fns[i]
+        return null;
     }
-    return null
-  }
 }
-
-module.exports = Operator
+module.exports = Operator;
 
 },{}],27:[function(require,module,exports){
 (function (process){
-const Box = require('./Box')
-const { LnParser, } = require('../ln')
-
+const Box = require('./Box');
+const { LnParser, } = require('../ln');
 class Scope {
-  constructor(par) {
-    this.vals = {}
-    this.par = par ? par : null
-  }
-
-  get(name) {
-    if (this.vals.hasOwnProperty(name)) {
-      return this.vals[name]
+    constructor(par) {
+        this.vals = {};
+        this.par = par ? par : null;
     }
-    if (this.par != null) {
-      return this.par.get(name)
-    }
-    return null
-  }
-
-  deepGet(fullName) {
-    // For circular dependency reasons
-    const opcodeScope = require('./opcodes').exportScope
-    if (typeof fullName === "string") {
-      const fullVar = fullName.trim().split(".")
-      let boxedVar
-      for (let i = 0; i < fullVar.length; i++) {
-        if (i === 0) {
-          boxedVar = this.get(fullVar[i])
-        } else if (boxedVar === null) {
-          return null
-        } else {
-          if (boxedVar.type === Box.builtinTypes['scope']) {
-            boxedVar = boxedVar.scopeval.get(fullVar[i])
-          } else if (boxedVar.typevalval !== null) {
-            boxedVar = boxedVar.typevalval[fullVar[i]]
-          } else {
-            return null
-          }
+    get(name) {
+        if (this.vals.hasOwnProperty(name)) {
+            return this.vals[name];
         }
-      }
-      return boxedVar
-    } else if (fullName instanceof LnParser.VarnContext) {
-      const varAst = fullName
-      let boxedVar = null
-      for (const varSegment of varAst.varsegment()) {
-        if (boxedVar === null) {
-          // The first lookup is to grab the root of the specified variable
-          boxedVar = this.get(varSegment.getText())
-        } else {
-          if (varSegment.METHODSEP() != null) continue // Skip these, they're just periods
-          if (varSegment.VARNAME() != null) {
-            // This path is like the original deepGet
-            if (boxedVar.type === Box.builtinTypes["scope"]) {
-              boxedVar = boxedVar.scopeval.get(varSegment.getText())
-            } else if (boxedVar.typevalval !== null) { // User-defined type instance
-              boxedVar = boxedVar.typevalval[varSegment.getText()]
-            } else { // This should be a terminal value so an extra "." makes no sense
-              return null
-            }
-          }
-          if (varSegment.arrayaccess() != null) {
-            // First resolve the value of the array accessor
-            const arrayAccessBox = Box.fromAssignableAst(
-              varSegment.arrayaccess().assignables(),
-              this,
-              null,
-              true
-            )
-            if (boxedVar.type.originalType !== null && boxedVar.type.originalType === Box.builtinTypes["Array"]) {
-              boxedVar = boxedVar.arrayval.get(arrayAccessBox.int64val)
-            } else if (boxedVar.type.originalType != null && boxedVar.type.originalType == Box.builtinTypes["Map"]) {
-              boxedVar = boxedVar.mapval.get(arrayAccessBox)
-              if (boxedVar == null) {
-                boxedVar = opcodeScope.get("_")
-              }
-            } else {
-              if (arrayAccessBox.stringval == null) {
-                // This should be prevented at "compile time" in the future
-                console.error("Expected string type when accessing a type by array accessor")
-                process.exit(-38)
-              }
-              const arrayAccessStr = arrayAccessBox.stringval;
-              if (boxedVar.type == Box.builtinTypes["scope"]) {
-                boxedVar = boxedVar.scopeval.get(arrayAccessStr)
-              } else if (boxedVar.typevalval !== null) { // User-defined type instance
-                boxedVar = boxedVar.typevalval[arrayAccessStr]
-              } else { // This should be a terminal value so an extra "." makes no sense
-                return null
-              }
-            }
-          }
+        if (this.par != null) {
+            return this.par.get(name);
         }
-      }
-      return boxedVar
+        return null;
     }
-  }
-
-  has(name) {
-    if (this.vals.hasOwnProperty(name)) {
-      return true
+    deepGet(fullName) {
+        // For circular dependency reasons
+        const opcodeScope = require('./opcodes').exportScope;
+        if (typeof fullName === "string") {
+            const fullVar = fullName.trim().split(".");
+            let boxedVar;
+            for (let i = 0; i < fullVar.length; i++) {
+                if (i === 0) {
+                    boxedVar = this.get(fullVar[i]);
+                }
+                else if (boxedVar === null) {
+                    return null;
+                }
+                else {
+                    if (boxedVar.type === Box.builtinTypes['scope']) {
+                        boxedVar = boxedVar.scopeval.get(fullVar[i]);
+                    }
+                    else if (boxedVar.typevalval !== null) {
+                        boxedVar = boxedVar.typevalval[fullVar[i]];
+                    }
+                    else {
+                        return null;
+                    }
+                }
+            }
+            return boxedVar;
+        }
+        else if (fullName instanceof LnParser.VarnContext) {
+            const varAst = fullName;
+            let boxedVar = null;
+            for (const varSegment of varAst.varsegment()) {
+                if (boxedVar === null) {
+                    // The first lookup is to grab the root of the specified variable
+                    boxedVar = this.get(varSegment.getText());
+                }
+                else {
+                    if (varSegment.METHODSEP() != null)
+                        continue; // Skip these, they're just periods
+                    if (varSegment.VARNAME() != null) {
+                        // This path is like the original deepGet
+                        if (boxedVar.type === Box.builtinTypes["scope"]) {
+                            boxedVar = boxedVar.scopeval.get(varSegment.getText());
+                        }
+                        else if (boxedVar.typevalval !== null) { // User-defined type instance
+                            boxedVar = boxedVar.typevalval[varSegment.getText()];
+                        }
+                        else { // This should be a terminal value so an extra "." makes no sense
+                            return null;
+                        }
+                    }
+                    if (varSegment.arrayaccess() != null) {
+                        // First resolve the value of the array accessor
+                        const arrayAccessBox = Box.fromAssignableAst(varSegment.arrayaccess().assignables(), this, null, true);
+                        if (boxedVar.type.originalType !== null && boxedVar.type.originalType === Box.builtinTypes["Array"]) {
+                            boxedVar = boxedVar.arrayval.get(arrayAccessBox.int64val);
+                        }
+                        else if (boxedVar.type.originalType != null && boxedVar.type.originalType == Box.builtinTypes["Map"]) {
+                            boxedVar = boxedVar.mapval.get(arrayAccessBox);
+                            if (boxedVar == null) {
+                                boxedVar = opcodeScope.get("_");
+                            }
+                        }
+                        else {
+                            if (arrayAccessBox.stringval == null) {
+                                // This should be prevented at "compile time" in the future
+                                console.error("Expected string type when accessing a type by array accessor");
+                                process.exit(-38);
+                            }
+                            const arrayAccessStr = arrayAccessBox.stringval;
+                            if (boxedVar.type == Box.builtinTypes["scope"]) {
+                                boxedVar = boxedVar.scopeval.get(arrayAccessStr);
+                            }
+                            else if (boxedVar.typevalval !== null) { // User-defined type instance
+                                boxedVar = boxedVar.typevalval[arrayAccessStr];
+                            }
+                            else { // This should be a terminal value so an extra "." makes no sense
+                                return null;
+                            }
+                        }
+                    }
+                }
+            }
+            return boxedVar;
+        }
     }
-    if (this.par != null) {
-      return this.par.has(name)
+    has(name) {
+        if (this.vals.hasOwnProperty(name)) {
+            return true;
+        }
+        if (this.par != null) {
+            return this.par.has(name);
+        }
+        return false;
     }
-    return false
-  }
-
-  put(name, val) {
-    this.vals[name.trim()] = val
-  }
-
-  deepPut(fullName, val) {
-    const fullVar = fullName.split(".")
-    let almostFullVar = fullVar[0];
-    for (let i = 1; i < fullVar.length - 1; i++) {
-      almostFullVar += "." + fullVar[i];
+    put(name, val) {
+        this.vals[name.trim()] = val;
     }
-    let boxedVar = this.deepGet(almostFullVar)
-    if (boxedVar !== null) {
-      if (boxedVar.typevalval === null) {
-        boxedVar = null // Just reset and continue with the for loop
-      } else {
-        boxedVar.typevalval[fullVar[fullVar.length - 1]] = val
-        return
-      }
-    }
-    for (let i = 0; i < fullVar.length; i++) {
-      if (boxedVar === null) {
-        boxedVar = this.deepGet(fullVar[i])
-      } else {
+    deepPut(fullName, val) {
+        const fullVar = fullName.split(".");
+        let almostFullVar = fullVar[0];
+        for (let i = 1; i < fullVar.length - 1; i++) {
+            almostFullVar += "." + fullVar[i];
+        }
+        let boxedVar = this.deepGet(almostFullVar);
+        if (boxedVar !== null) {
+            if (boxedVar.typevalval === null) {
+                boxedVar = null; // Just reset and continue with the for loop
+            }
+            else {
+                boxedVar.typevalval[fullVar[fullVar.length - 1]] = val;
+                return;
+            }
+        }
+        for (let i = 0; i < fullVar.length; i++) {
+            if (boxedVar === null) {
+                boxedVar = this.deepGet(fullVar[i]);
+            }
+            else {
+                if (boxedVar.type === Box.builtinTypes["scope"]) {
+                    boxedVar = boxedVar.scopeval.get(fullVar[i]);
+                }
+                else if (boxedVar.typevalval !== null) { // User-defined type instance
+                    boxedVar = boxedVar.typevalval[fullVar[i]];
+                }
+                else { // This should be a terminal value so an extra "." makes no sense
+                    console.error("Attempted to export non-existent value: " + fullName);
+                    process.exit(-26);
+                }
+            }
+        }
         if (boxedVar.type === Box.builtinTypes["scope"]) {
-          boxedVar = boxedVar.scopeval.get(fullVar[i])
-        } else if (boxedVar.typevalval !== null) { // User-defined type instance
-          boxedVar = boxedVar.typevalval[fullVar[i]]
-        } else { // This should be a terminal value so an extra "." makes no sense
-          console.error("Attempted to export non-existent value: " + fullName)
-          process.exit(-26)
+            boxedVar.scopeval.put(fullVar[fullVar.length - 1], val);
         }
-      }
+        else if (boxedVar.typevalval != null) {
+            boxedVar.typevalval[fullVar[fullVar.length - 1]] = val;
+        }
+        else if (boxedVar.type.typename === "void") {
+            // We're cool, this is throwing away some value
+            return;
+        }
+        else if (boxedVar.readonly === false && boxedVar.type === val.type) {
+            // We're reassigning a variable with the same time
+            // TODO: When we add ADTs, need to make the type check more advanced
+            // Also TODO: Make the following algorithm less dumb and slow.
+            let boxedScope = this;
+            while (!boxedScope.vals.containsValue(boxedVar)) {
+                // We've already proven that we can find this value in the scope hierarchy, so this *will*
+                // halt. :)
+                boxedScope = boxedScope.par;
+            }
+            // Replace that value with the new one. This *should* work without having to scan the keys
+            boxedScope.put(fullVar[fullVar.length - 1], val);
+        }
+        else {
+            console.error("Attempted to set a value on a non-scope, non-compound-type value");
+            process.exit(-27);
+        }
     }
-    if (boxedVar.type === Box.builtinTypes["scope"]) {
-      boxedVar.scopeval.put(fullVar[fullVar.length - 1], val)
-    } else if (boxedVar.typevalval != null) {
-      boxedVar.typevalval[fullVar[fullVar.length - 1]] = val
-    } else if (boxedVar.type.typename === "void") {
-      // We're cool, this is throwing away some value
-      return
-    } else if (boxedVar.readonly === false && boxedVar.type === val.type) {
-      // We're reassigning a variable with the same time
-      // TODO: When we add ADTs, need to make the type check more advanced
-      // Also TODO: Make the following algorithm less dumb and slow.
-      let boxedScope = this
-      while (!boxedScope.vals.containsValue(boxedVar)) {
-        // We've already proven that we can find this value in the scope hierarchy, so this *will*
-        // halt. :)
-        boxedScope = boxedScope.par
-      }
-      // Replace that value with the new one. This *should* work without having to scan the keys
-      boxedScope.put(fullVar[fullVar.length - 1], val)
-    } else {
-      console.error("Attempted to set a value on a non-scope, non-compound-type value")
-      process.exit(-27)
-    }
-  }
 }
-
-module.exports = Scope
+module.exports = Scope;
 
 }).call(this,require('_process'))
 },{"../ln":12,"./Box":14,"./opcodes":33,"_process":85}],28:[function(require,module,exports){
 (function (process){
-const Box = require('./Box')
-const { LnParser, } = require('../ln')
-
+const Box = require('./Box');
+const { LnParser, } = require('../ln');
 // Only implements the pieces necessary for the first stage compiler
 class Statement {
-  constructor(statementOrAssignableAst, scope, pure) {
-    this.statementOrAssignableAst = statementOrAssignableAst,
-    this.scope = scope
-    this.pure = pure
-  }
-
-  static isCallPure(callAst, scope) {
-    // TODO: Add purity checking for chained method-style calls
-    const functionBox = scope.deepGet(callAst.varn(0))
-    if (functionBox == null) {
-      // TODO: This function may be defined in the execution scope, we won't know until runtime
-      // right now, but it should be determinable at "compile time". Need to fix this to check
-      // if prior statements defined it, for now, just assume it exists and is not pure
-      return false
+    constructor(statementOrAssignableAst, scope, pure) {
+        this.statementOrAssignableAst = statementOrAssignableAst,
+            this.scope = scope;
+        this.pure = pure;
     }
-    if (functionBox.type !== Box.builtinTypes["function"]) {
-      console.error(callAst.varn(0).getText() + " is not a function")
-      process.exit(-17)
-    }
-    // TODO: Add all of the logic to determine which function to use in here, too. For now,
-    // let's just assume they all have the same purity state, which is a terrible assumption, but
-    // easier.
-    if (!functionBox.functionval[0].isPure()) return false
-    const assignableListAst = callAst.fncall(0).assignablelist()
-    if (assignableListAst == null) { // No arguments to this function call
-      return true
-    }
-    for (const assignable of assignableListAst.assignables()) {
-      if (Statement.isAssignablePure(assignable, scope) === false) return false
-    }
-    return true
-  }
-
-  static isWithOperatorsPure(withOperatorsAst, scope) {
-    for (const operatorOrAssignable of withOperatorsAst.operatororassignable()) {
-      if (operatorOrAssignable.operators() != null) {
-        const operator = operatorOrAssignable.operators()
-        const op = scope.deepGet(operator.getText())
-        if (op == null || op.operatorval == null) {
-          console.error("Operator " + operator.getText() + " is not defined")
-          process.exit(-33)
+    static isCallPure(callAst, scope) {
+        // TODO: Add purity checking for chained method-style calls
+        const functionBox = scope.deepGet(callAst.varn(0));
+        if (functionBox == null) {
+            // TODO: This function may be defined in the execution scope, we won't know until runtime
+            // right now, but it should be determinable at "compile time". Need to fix this to check
+            // if prior statements defined it, for now, just assume it exists and is not pure
+            return false;
         }
-        // TODO: Similar to the above, need to figure out logic to determine which particular function
-        // will be the one called. For now, just assume the first one and fix this later.
-        if (!op.operatorval[0].potentialFunctions[0].isPure()) return false
-      }
-      if (operatorOrAssignable.basicassignables() != null) {
-        if (!Statement.isBasicAssignablePure(operatorOrAssignable.basicassignables(), scope)) {
-          return false
+        if (functionBox.type !== Box.builtinTypes["function"]) {
+            console.error(callAst.varn(0).getText() + " is not a function");
+            process.exit(-17);
         }
-      }
+        // TODO: Add all of the logic to determine which function to use in here, too. For now,
+        // let's just assume they all have the same purity state, which is a terrible assumption, but
+        // easier.
+        if (!functionBox.functionval[0].isPure())
+            return false;
+        const assignableListAst = callAst.fncall(0).assignablelist();
+        if (assignableListAst == null) { // No arguments to this function call
+            return true;
+        }
+        for (const assignable of assignableListAst.assignables()) {
+            if (Statement.isAssignablePure(assignable, scope) === false)
+                return false;
+        }
+        return true;
     }
-    
-    return true
-  }
-
-  static isBasicAssignablePure(basicAssignable, scope) {
-    if (basicAssignable.functions() != null) {
-      // Defining a function in itself is a pure situation
-      return true
-    }
-    if (basicAssignable.calls() != null) {
-      return Statement.isCallPure(basicAssignable.calls(), scope)
-    }
-    if (basicAssignable.varn() != null) {
-      // This would be a read-only operation to pull a value into local scope
-      return true
-    }
-    if (basicAssignable.constants() != null) {
-      // This is an explicit constant that cannot impact any outer scope
-      return true
-    }
-    if (basicAssignable.groups() != null) {
-      // This is a "group" (parens surrounding one or more operators and operands)
-      return Statement.isWithOperatorsPure(basicAssignable.groups().withoperators(), scope)
-    }
-    // Shouldn't be reached
-    return false
-  }
-
-  static isAssignablePure(assignableAst, scope) {
-    if (assignableAst.basicassignables() != null) {
-      return Statement.isBasicAssignablePure(assignableAst.basicassignables(), scope)
-    }
-    if (assignableAst.withoperators() != null) {
-      return Statement.isWithOperatorsPure(assignableAst.withoperators(), scope)
-    }
-    // This should never be reached
-    console.error("Impossible assignment situation")
-    process.exit(-14)
-  }
-
-  static create(statementOrAssignableAst, scope) {
-    if (statementOrAssignableAst instanceof LnParser.AssignablesContext) {
-      const pure = Statement.isAssignablePure(statementOrAssignableAst, scope)
-      return new Statement(statementOrAssignableAst, scope, pure)
-    } else if (statementOrAssignableAst instanceof LnParser.StatementsContext) {
-      const statementAst = statementOrAssignableAst
-      let pure = true
-      if (statementAst.declarations() != null) {
-        if (statementAst.declarations().constdeclaration() != null) {
-          pure = Statement.isAssignablePure(
-            statementAst.declarations().constdeclaration().assignments().assignables(),
-            scope
-          )
-        } else if (statementAst.declarations().letdeclaration() != null) {
-          if (statementAst.declarations().letdeclaration().assignments() != null) {
-            if (statementAst.declarations().letdeclaration().assignments().assignables() == null) {
-              pure = true
-            } else {
-              pure = Statement.isAssignablePure(
-                statementAst.declarations().letdeclaration().assignments().assignables(),
-                scope
-              )
+    static isWithOperatorsPure(withOperatorsAst, scope) {
+        for (const operatorOrAssignable of withOperatorsAst.operatororassignable()) {
+            if (operatorOrAssignable.operators() != null) {
+                const operator = operatorOrAssignable.operators();
+                const op = scope.deepGet(operator.getText());
+                if (op == null || op.operatorval == null) {
+                    console.error("Operator " + operator.getText() + " is not defined");
+                    process.exit(-33);
+                }
+                // TODO: Similar to the above, need to figure out logic to determine which particular function
+                // will be the one called. For now, just assume the first one and fix this later.
+                if (!op.operatorval[0].potentialFunctions[0].isPure())
+                    return false;
             }
-          }
-        } else {
-          console.error("Bad assignment somehow reached")
-          process.exit(-18)
+            if (operatorOrAssignable.basicassignables() != null) {
+                if (!Statement.isBasicAssignablePure(operatorOrAssignable.basicassignables(), scope)) {
+                    return false;
+                }
+            }
         }
-      }
-      if (statementAst.assignments() != null) {
-        if (statementAst.assignments().assignables() != null) {
-          pure = Statement.isAssignablePure(statementAst.assignments().assignables(), scope)
-        }
-      }
-      if (statementAst.calls() != null) {
-        pure = Statement.isCallPure(statementAst.calls(), scope)
-      }
-      if (statementAst.exits() != null) {
-        if (statementAst.exits().assignables() != null) {
-          pure = Statement.isAssignablePure(statementAst.exits().assignables(), scope)
-        }
-      }
-      if (statementAst.emits() != null) {
-        if (statementAst.emits().assignables() != null) {
-          pure = Statement.isAssignablePure(statementAst.emits().assignables(), scope)
-        }
-      }
-      return new Statement(statementAst, scope, pure)
-    } else {
-      // What?
-      console.error("This should not be possible")
-      process.exit(-19)
+        return true;
     }
-  }
-
-  toString() {
-    return statementOrAssignableAst.getText()
-  }
+    static isBasicAssignablePure(basicAssignable, scope) {
+        if (basicAssignable.functions() != null) {
+            // Defining a function in itself is a pure situation
+            return true;
+        }
+        if (basicAssignable.calls() != null) {
+            return Statement.isCallPure(basicAssignable.calls(), scope);
+        }
+        if (basicAssignable.varn() != null) {
+            // This would be a read-only operation to pull a value into local scope
+            return true;
+        }
+        if (basicAssignable.constants() != null) {
+            // This is an explicit constant that cannot impact any outer scope
+            return true;
+        }
+        if (basicAssignable.groups() != null) {
+            // This is a "group" (parens surrounding one or more operators and operands)
+            return Statement.isWithOperatorsPure(basicAssignable.groups().withoperators(), scope);
+        }
+        // Shouldn't be reached
+        return false;
+    }
+    static isAssignablePure(assignableAst, scope) {
+        if (assignableAst.basicassignables() != null) {
+            return Statement.isBasicAssignablePure(assignableAst.basicassignables(), scope);
+        }
+        if (assignableAst.withoperators() != null) {
+            return Statement.isWithOperatorsPure(assignableAst.withoperators(), scope);
+        }
+        // This should never be reached
+        console.error("Impossible assignment situation");
+        process.exit(-14);
+    }
+    static create(statementOrAssignableAst, scope) {
+        if (statementOrAssignableAst instanceof LnParser.AssignablesContext) {
+            const pure = Statement.isAssignablePure(statementOrAssignableAst, scope);
+            return new Statement(statementOrAssignableAst, scope, pure);
+        }
+        else if (statementOrAssignableAst instanceof LnParser.StatementsContext) {
+            const statementAst = statementOrAssignableAst;
+            let pure = true;
+            if (statementAst.declarations() != null) {
+                if (statementAst.declarations().constdeclaration() != null) {
+                    pure = Statement.isAssignablePure(statementAst.declarations().constdeclaration().assignments().assignables(), scope);
+                }
+                else if (statementAst.declarations().letdeclaration() != null) {
+                    if (statementAst.declarations().letdeclaration().assignments() != null) {
+                        if (statementAst.declarations().letdeclaration().assignments().assignables() == null) {
+                            pure = true;
+                        }
+                        else {
+                            pure = Statement.isAssignablePure(statementAst.declarations().letdeclaration().assignments().assignables(), scope);
+                        }
+                    }
+                }
+                else {
+                    console.error("Bad assignment somehow reached");
+                    process.exit(-18);
+                }
+            }
+            if (statementAst.assignments() != null) {
+                if (statementAst.assignments().assignables() != null) {
+                    pure = Statement.isAssignablePure(statementAst.assignments().assignables(), scope);
+                }
+            }
+            if (statementAst.calls() != null) {
+                pure = Statement.isCallPure(statementAst.calls(), scope);
+            }
+            if (statementAst.exits() != null) {
+                if (statementAst.exits().assignables() != null) {
+                    pure = Statement.isAssignablePure(statementAst.exits().assignables(), scope);
+                }
+            }
+            if (statementAst.emits() != null) {
+                if (statementAst.emits().assignables() != null) {
+                    pure = Statement.isAssignablePure(statementAst.emits().assignables(), scope);
+                }
+            }
+            return new Statement(statementAst, scope, pure);
+        }
+        else {
+            // What?
+            console.error("This should not be possible");
+            process.exit(-19);
+        }
+    }
+    toString() {
+        return statementOrAssignableAst.getText();
+    }
 }
-
-module.exports = Statement
+module.exports = Statement;
 
 }).call(this,require('_process'))
 },{"../ln":12,"./Box":14,"_process":85}],29:[function(require,module,exports){
 module.exports = {
-  CONSTDEC: 'CONSTDEC',
-  LETDEC: 'LETDEC',
-  ASSIGNMENT: 'ASSIGNMENT',
-  CALL: 'CALL',
-  EXIT: 'EXIT',
-  EMIT: 'EMIT',
-  REREF: 'REREF',
-  CLOSURE: 'CLOSURE',
-  ARG: 'ARG',
-}
+    CONSTDEC: 'CONSTDEC',
+    LETDEC: 'LETDEC',
+    ASSIGNMENT: 'ASSIGNMENT',
+    CALL: 'CALL',
+    EXIT: 'EXIT',
+    EMIT: 'EMIT',
+    REREF: 'REREF',
+    CLOSURE: 'CLOSURE',
+    ARG: 'ARG',
+};
 
 },{}],30:[function(require,module,exports){
 (function (process){
 class Type {
-  constructor(...args) {
-    // Circular dependency 'fix'
-    const Interface = require('./Interface')
-    // Simulate multiple dispatch by duck typing the args
-    if (args.length === 1) {
-      this.typename = args[0]
-      this.builtIn = false
-      this.isGenericStandin = false
-      this.properties = {}
-      this.generics = {}
-      this.originalType = null
-      this.unionTypes = null
-      this.iface = null
-    } else if (args.length === 2) {
-      this.typename = args[0]
-      this.builtIn = args[1]
-      this.isGenericStandin = false
-      this.properties = {}
-      this.generics = {}
-      this.originalType = null
-      this.unionTypes = null
-      this.iface = null
-    } else if (args.length === 3) {
-      if (typeof args[2] === "boolean") {
-        this.typename = args[0]
-        this.builtIn = args[1]
-        this.isGenericStandin = args[2]
-        this.properties = {}
-        this.generics = {}
-        this.originalType = null
-        this.unionTypes = null
-        this.iface = null
-      } else if (args[2] instanceof Interface) {
-        this.typename = args[0]
-        this.builtIn = args[1]
-        this.isGenericStandin = false
-        this.properties = {}
-        this.generics = {}
-        this.originalType = null
-        this.unionTypes = null
-        this.iface = args[2]
-      } else if (args[2] instanceof Array) {
-        this.typename = args[0]
-        this.builtIn = args[1]
-        this.isGenericStandin = false
-        this.properties = {}
-        this.generics = {}
-        this.originalType = null
-        this.unionTypes = args[2]
-        this.iface = null
-      } else if (args[2] instanceof Object) {
-        this.typename = args[0]
-        this.builtIn = args[1]
-        this.isGenericStandin = false
-        this.properties = args[2]
-        this.generics = {}
-        this.originalType = null
-        this.unionTypes = null
-        this.iface = null
-      }
-    } else if (args.length === 4) {
-      this.typename = args[0]
-      this.builtIn = args[1]
-      this.isGenericStandin = false
-      this.properties = args[2]
-      this.generics = args[3]
-      this.originalType = null
-      this.unionTypes = null
-      this.iface = null
-    }
-  }
-
-  toString() {
-    // TODO: Handle interfaces union types appropriately
-    if (this.iface != null) return "// Interfaces TBD"
-    if (this.unionTypes != null) return "// Union types TBD"
-    let outString = "type " + typename
-    if (this.alias != null) {
-      outString += " = " + this.alias.typename
-      return outString
-    }
-    if (this.generics.length > 0) {
-      outString += "<" + Object.keys(this.generics).join(", ") + ">"
-    }
-    outString += "{\n"
-    for (const propName of Object.keys(this.properties)) {
-      outString += "  " + propName + ": " + this.properties[propName].typename + "\n"
-    }
-    outString += "}\n"
-    return outString
-  }
-
-  static fromAst(typeAst, scope) {
-    let type = new Type(typeAst.typename().getText())
-    if (typeAst.typegenerics() != null) {
-      const generics = typeAst.typegenerics().fulltypename()
-      for (let i = 0; i < generics.length; i++) {
-        type.generics[generics[i].getText()] = i
-      }
-    }
-    if (typeAst.typebody() != null) {
-      const lines = typeAst.typebody().typeline()
-      for (const lineAst of lines) {
-        const propertyName = lineAst.VARNAME().getText()
-        let propertyType = null
-        const typeName = lineAst.varn().getText()
-        const property = scope.deepGet(lineAst.varn())
-        if (property == null || !property.type.typename === "type") {
-          if (type.generics.hasOwnProperty(typeName)) {
-            type.properties[propertyName] = new Type(typeName, true, true)
-          } else {
-            console.error(lineAst.varn().getText() + " is not a type")
-            process.exit(-4)
-          }
-        } else {
-          type.properties[propertyName] = property.typeval
+    constructor(...args) {
+        // Circular dependency 'fix'
+        const Interface = require('./Interface');
+        // Simulate multiple dispatch by duck typing the args
+        if (args.length === 1) {
+            this.typename = args[0];
+            this.builtIn = false;
+            this.isGenericStandin = false;
+            this.properties = {};
+            this.generics = {};
+            this.originalType = null;
+            this.unionTypes = null;
+            this.iface = null;
         }
-      }
+        else if (args.length === 2) {
+            this.typename = args[0];
+            this.builtIn = args[1];
+            this.isGenericStandin = false;
+            this.properties = {};
+            this.generics = {};
+            this.originalType = null;
+            this.unionTypes = null;
+            this.iface = null;
+        }
+        else if (args.length === 3) {
+            if (typeof args[2] === "boolean") {
+                this.typename = args[0];
+                this.builtIn = args[1];
+                this.isGenericStandin = args[2];
+                this.properties = {};
+                this.generics = {};
+                this.originalType = null;
+                this.unionTypes = null;
+                this.iface = null;
+            }
+            else if (args[2] instanceof Interface) {
+                this.typename = args[0];
+                this.builtIn = args[1];
+                this.isGenericStandin = false;
+                this.properties = {};
+                this.generics = {};
+                this.originalType = null;
+                this.unionTypes = null;
+                this.iface = args[2];
+            }
+            else if (args[2] instanceof Array) {
+                this.typename = args[0];
+                this.builtIn = args[1];
+                this.isGenericStandin = false;
+                this.properties = {};
+                this.generics = {};
+                this.originalType = null;
+                this.unionTypes = args[2];
+                this.iface = null;
+            }
+            else if (args[2] instanceof Object) {
+                this.typename = args[0];
+                this.builtIn = args[1];
+                this.isGenericStandin = false;
+                this.properties = args[2];
+                this.generics = {};
+                this.originalType = null;
+                this.unionTypes = null;
+                this.iface = null;
+            }
+        }
+        else if (args.length === 4) {
+            this.typename = args[0];
+            this.builtIn = args[1];
+            this.isGenericStandin = false;
+            this.properties = args[2];
+            this.generics = args[3];
+            this.originalType = null;
+            this.unionTypes = null;
+            this.iface = null;
+        }
     }
-    if (typeAst.othertype() != null && typeAst.othertype().length == 1) {
-      const otherTypebox = scope.deepGet(typeAst.othertype(0).typename().getText())
-
-      if (otherTypebox == null) {
-        console.error("Type " + typeAst.othertype(0).getText() + " not defined")
-        process.exit(-38)
-      }
-      if (otherTypebox.typeval == null) {
-        console.error(typeAst.othertype(0).getText() + " is not a valid type")
-        process.exit(-39)
-      }
-
-      const othertype = otherTypebox.typeval
-      if (othertype.generics.length > 0 && typeAst.othertype(0).typegenerics() != null) {
-        let solidTypes = []
-        for (fulltypenameAst of typeAst.othertype(0).typegenerics().fulltypename()) {
-          solidTypes.push(fulltypenameAst.getText())
+    toString() {
+        // TODO: Handle interfaces union types appropriately
+        if (this.iface != null)
+            return "// Interfaces TBD";
+        if (this.unionTypes != null)
+            return "// Union types TBD";
+        let outString = "type " + typename;
+        if (this.alias != null) {
+            outString += " = " + this.alias.typename;
+            return outString;
         }
-        othertype = othertype.solidify(solidTypes, scope)
-      }
-
-      // For simplification of the type aliasing functionality, the other type is attached as
-      // an alias. The module construction will, if present, perfer the alias over the actual
-      // type, to make sure built-in types that are aliased continue to work. This means that
-      // `type varA == type varB` will work if `varA` is assigned to an alias and `varB` to the
-      // orignal type. I can see the argument either way on this, but the simplicity of this
-      // approach is why I will go with this for now.
-      type.alias = othertype
-    } else if (typeAst.othertype() != null) { // It's a union type
-      const othertypes = typeAst.othertype()
-      let unionTypes = []
-      for (const othertype of othertypes) {
-        const othertypeBox = scope.deepGet(othertype.typename().getText())
-
-        if (othertypeBox == null) {
-          console.error("Type " + othertype.getText() + " not defined")
-          process.exit(-48)
+        if (this.generics.length > 0) {
+            outString += "<" + Object.keys(this.generics).join(", ") + ">";
         }
-        if (othertypeBox.typeval == null) {
-          console.error(othertype.getText() + " is not a valid type")
-          process.exit(-49)
+        outString += "{\n";
+        for (const propName of Object.keys(this.properties)) {
+            outString += "  " + propName + ": " + this.properties[propName].typename + "\n";
         }
-
-        let othertypeVal = othertypeBox.typeval
-        if (othertypeVal.generics.length > 0 && othertype.typegenerics() != null) {
-          let solidTypes = []
-          for (fulltypenameAst of othertype.typegenerics().fulltypename()) {
-            solidTypes.push(fulltypenameAst.getText())
-          }
-          othertypeVal = othertypeVal.solidify(solidTypes, scope)
-        }
-        unionTypes.push(othertypeVal)
-      }
-      type.unionTypes = unionTypes
+        outString += "}\n";
+        return outString;
     }
-    return type
-  }
-
-  solidify(genericReplacements, scope) {
-    const Box = require('./Box') // To solve circular dependency issues
-    let replacementTypes = []
-    for (const typename of genericReplacements) {
-      const typebox = scope.deepGet(typename)
-      if (typebox == null || typebox.type.typename !== "type") {
-        console.error(typename + " type not found")
-        process.exit(-35)
-      }
-      replacementTypes.push(typebox.typeval)
-    }
-    const solidifiedName = this.typename + "<" + genericReplacements.join(", ") + ">"
-    let solidified = new Type(solidifiedName, this.builtIn)
-    solidified.originalType = this
-    for (const propKey of Object.keys(this.properties)) {
-      const propValue = this.properties[propKey]
-      if (propValue.isGenericStandin) {
-        const genericLoc = this.generics[propValue.typename]
-        if (genericLoc == null) {
-          console.error("Generic property not described but not found. Should be impossible")
-          process.exit(-36)
+    static fromAst(typeAst, scope) {
+        let type = new Type(typeAst.typename().getText());
+        if (typeAst.typegenerics() != null) {
+            const generics = typeAst.typegenerics().fulltypename();
+            for (let i = 0; i < generics.length; i++) {
+                type.generics[generics[i].getText()] = i;
+            }
         }
-        const replacementType = replacementTypes[genericLoc]
-        solidified.properties[propKey] = replacementType
-      } else {
-        solidified.properties[propKey] = propValue
-      }
+        if (typeAst.typebody() != null) {
+            const lines = typeAst.typebody().typeline();
+            for (const lineAst of lines) {
+                const propertyName = lineAst.VARNAME().getText();
+                let propertyType = null;
+                const typeName = lineAst.varn().getText();
+                const property = scope.deepGet(lineAst.varn());
+                if (property == null || !property.type.typename === "type") {
+                    if (type.generics.hasOwnProperty(typeName)) {
+                        type.properties[propertyName] = new Type(typeName, true, true);
+                    }
+                    else {
+                        console.error(lineAst.varn().getText() + " is not a type");
+                        process.exit(-4);
+                    }
+                }
+                else {
+                    type.properties[propertyName] = property.typeval;
+                }
+            }
+        }
+        if (typeAst.othertype() != null && typeAst.othertype().length == 1) {
+            const otherTypebox = scope.deepGet(typeAst.othertype(0).typename().getText());
+            if (otherTypebox == null) {
+                console.error("Type " + typeAst.othertype(0).getText() + " not defined");
+                process.exit(-38);
+            }
+            if (otherTypebox.typeval == null) {
+                console.error(typeAst.othertype(0).getText() + " is not a valid type");
+                process.exit(-39);
+            }
+            const othertype = otherTypebox.typeval;
+            if (othertype.generics.length > 0 && typeAst.othertype(0).typegenerics() != null) {
+                let solidTypes = [];
+                for (fulltypenameAst of typeAst.othertype(0).typegenerics().fulltypename()) {
+                    solidTypes.push(fulltypenameAst.getText());
+                }
+                othertype = othertype.solidify(solidTypes, scope);
+            }
+            // For simplification of the type aliasing functionality, the other type is attached as
+            // an alias. The module construction will, if present, perfer the alias over the actual
+            // type, to make sure built-in types that are aliased continue to work. This means that
+            // `type varA == type varB` will work if `varA` is assigned to an alias and `varB` to the
+            // orignal type. I can see the argument either way on this, but the simplicity of this
+            // approach is why I will go with this for now.
+            type.alias = othertype;
+        }
+        else if (typeAst.othertype() != null) { // It's a union type
+            const othertypes = typeAst.othertype();
+            let unionTypes = [];
+            for (const othertype of othertypes) {
+                const othertypeBox = scope.deepGet(othertype.typename().getText());
+                if (othertypeBox == null) {
+                    console.error("Type " + othertype.getText() + " not defined");
+                    process.exit(-48);
+                }
+                if (othertypeBox.typeval == null) {
+                    console.error(othertype.getText() + " is not a valid type");
+                    process.exit(-49);
+                }
+                let othertypeVal = othertypeBox.typeval;
+                if (othertypeVal.generics.length > 0 && othertype.typegenerics() != null) {
+                    let solidTypes = [];
+                    for (fulltypenameAst of othertype.typegenerics().fulltypename()) {
+                        solidTypes.push(fulltypenameAst.getText());
+                    }
+                    othertypeVal = othertypeVal.solidify(solidTypes, scope);
+                }
+                unionTypes.push(othertypeVal);
+            }
+            type.unionTypes = unionTypes;
+        }
+        return type;
     }
-    scope.put(solidifiedName, new Box(solidified))
-    return solidified
-  }
-
-  // This is only necessary for the numeric types. TODO: Can we eliminate it?
-  castable(otherType) {
-    const intTypes = ["int8", "int16", "int32", "int64"]
-    const floatTypes = ["float32", "float64"]
-    if (intTypes.includes(this.typename) && intTypes.includes(otherType.typename)) return true
-    if (floatTypes.includes(this.typename) && floatTypes.includes(otherType.typename)) return true
-    if (floatTypes.includes(this.typename) && intTypes.includes(otherType.typename)) return true
-    return false
-  }
+    solidify(genericReplacements, scope) {
+        const Box = require('./Box'); // To solve circular dependency issues
+        let replacementTypes = [];
+        for (const typename of genericReplacements) {
+            const typebox = scope.deepGet(typename);
+            if (typebox == null || typebox.type.typename !== "type") {
+                console.error(typename + " type not found");
+                process.exit(-35);
+            }
+            replacementTypes.push(typebox.typeval);
+        }
+        const solidifiedName = this.typename + "<" + genericReplacements.join(", ") + ">";
+        let solidified = new Type(solidifiedName, this.builtIn);
+        solidified.originalType = this;
+        for (const propKey of Object.keys(this.properties)) {
+            const propValue = this.properties[propKey];
+            if (propValue.isGenericStandin) {
+                const genericLoc = this.generics[propValue.typename];
+                if (genericLoc == null) {
+                    console.error("Generic property not described but not found. Should be impossible");
+                    process.exit(-36);
+                }
+                const replacementType = replacementTypes[genericLoc];
+                solidified.properties[propKey] = replacementType;
+            }
+            else {
+                solidified.properties[propKey] = propValue;
+            }
+        }
+        scope.put(solidifiedName, new Box(solidified));
+        return solidified;
+    }
+    // This is only necessary for the numeric types. TODO: Can we eliminate it?
+    castable(otherType) {
+        const intTypes = ["int8", "int16", "int32", "int64"];
+        const floatTypes = ["float32", "float64"];
+        if (intTypes.includes(this.typename) && intTypes.includes(otherType.typename))
+            return true;
+        if (floatTypes.includes(this.typename) && floatTypes.includes(otherType.typename))
+            return true;
+        if (floatTypes.includes(this.typename) && intTypes.includes(otherType.typename))
+            return true;
+        return false;
+    }
 }
-
-module.exports = Type
+module.exports = Type;
 
 }).call(this,require('_process'))
 },{"./Box":14,"./Interface":23,"_process":85}],31:[function(require,module,exports){
 (function (process){
-const Box = require('./Box')
-const Statement = require('./Statement')
-const StatementType = require('./StatementType')
-const { LnParser, } = require('../ln')
-
+const Box = require('./Box');
+const Statement = require('./Statement');
+const StatementType = require('./StatementType');
+const { LnParser, } = require('../ln');
 // This only implements the parts required for the compiler
 class UserFunction {
-  constructor(name, args, returnType, closureScope, statements, pure) {
-    this.name = name
-    this.args = args
-    this.returnType = returnType
-    this.closureScope = closureScope
-    this.statements = statements
-    this.pure = pure
-  }
-
-  static fromAst(functionishAst, closureScope) {
-    if (functionishAst instanceof LnParser.BlocklikesContext) {
-      if (functionishAst.functions() != null) {
-        return UserFunction.fromFunctionsAst(functionishAst.functions(), closureScope)
-      }
-      if (functionishAst.functionbody() != null) {
-        return UserFunction.fromFunctionbodyAst(functionishAst.functionbody(), closureScope)
-      }
+    constructor(name, args, returnType, closureScope, statements, pure) {
+        this.name = name;
+        this.args = args;
+        this.returnType = returnType;
+        this.closureScope = closureScope;
+        this.statements = statements;
+        this.pure = pure;
     }
-    if (functionishAst instanceof LnParser.FunctionsContext) {
-      return UserFunction.fromFunctionsAst(functionishAst, closureScope)
-    }
-    if (functionishAst instanceof LnParser.FunctionbodyContext) {
-      return UserFunction.fromFunctionbodyAst(functionishAst, closureScope)
-    }
-    return null
-  }
-
-  static fromFunctionbodyAst(functionbodyAst, closureScope) {
-    let args = {}
-    const returnType = Box.builtinTypes.void
-    let pure = true // Assume purity and then downgrade if needed
-    let statements = []
-    const statementsAst = functionbodyAst.statements()
-    for (const statementAst of statementsAst) {
-      const statement = Statement.create(statementAst, closureScope)
-      if (!statement.pure) pure = false
-      statements.push(statement)
-    }
-    return new UserFunction(null, args, returnType, closureScope, statements, pure)
-  }
-
-  static fromFunctionsAst(functionAst, closureScope) {
-    const name = functionAst.VARNAME() == null ? null : functionAst.VARNAME().getText()
-    let args = {}
-    const argsAst = functionAst.arglist()
-    if (argsAst !== null) {
-      const arglen = argsAst.VARNAME().length
-      for (let i = 0; i < arglen; i++) {
-        const argName = argsAst.VARNAME(i).getText()
-        let getArgType = closureScope.deepGet(argsAst.argtype(i).getText())
-        if (getArgType === null) {
-          if (argsAst.argtype(i).othertype().length === 1) {
-            if (argsAst.argtype(i).othertype(0).typegenerics() !== null) {
-              getArgType = closureScope.deepGet(argsAst.argtype(i).othertype(0).typename().getText())
-              if (getArgType == null) {
-                console.error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName)
-                process.exit(-39)
-              }
-              if (getArgType.type !== Box.builtinTypes["type"]) {
-                console.error("Function argument is not a valid type: " + argsAst.argtype(i).getText())
-                process.exit(-50);
-              }
-              let genericTypes = []
-              for (const fulltypename of argsAst.argtype(i).othertype(0).typegenerics().fulltypename()) {
-                genericTypes.push(fulltypename.getText())
-              }
-              getArgType = new Box(getArgType.typeval.solidify(genericTypes, closureScope))
-            } else {
-              console.error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName)
-              process.exit(-51)
+    static fromAst(functionishAst, closureScope) {
+        if (functionishAst instanceof LnParser.BlocklikesContext) {
+            if (functionishAst.functions() != null) {
+                return UserFunction.fromFunctionsAst(functionishAst.functions(), closureScope);
             }
-          } else { // It's an inline-declared union type
-            const othertypes = argsAst.argtype(i).othertype()
-            let unionTypes = []
-            for (const othertype of othertypes) {
-              let othertypeBox = closureScope.deepGet(othertype.getText())
-              if (othertypeBox == null) {
-                if (othertype.typegenerics() != null) {
-                  othertypeBox = closureScope.deepGet(othertype.typename().getText())
-                  if (othertypeBox == null) {
-                    console.error("Could not find type " + othertype.getText() + " for argument " + argName)
-                    process.exit(-59)
-                  }
-                  if (othertypeBox.type != Box.builtinTypes["type"]) {
-                    console.error("Function argument is not a valid type: " + othertype.getText())
-                    process.exit(-60)
-                  }
-                  let genericTypes = []
-                  for (const fulltypename of othertype.typegenerics().fulltypename()) {
-                    genericTypes.push(fulltypename.getText())
-                  }
-                  othertypeBox = new Box(othertypeBox.typeval.solidify(genericTypes, closureScope))
-                } else {
-                  console.error("Could not find type " + othertype.getText() + " for argument " + argName)
-                  process.exit(-51)
+            if (functionishAst.functionbody() != null) {
+                return UserFunction.fromFunctionbodyAst(functionishAst.functionbody(), closureScope);
+            }
+        }
+        if (functionishAst instanceof LnParser.FunctionsContext) {
+            return UserFunction.fromFunctionsAst(functionishAst, closureScope);
+        }
+        if (functionishAst instanceof LnParser.FunctionbodyContext) {
+            return UserFunction.fromFunctionbodyAst(functionishAst, closureScope);
+        }
+        return null;
+    }
+    static fromFunctionbodyAst(functionbodyAst, closureScope) {
+        let args = {};
+        const returnType = Box.builtinTypes.void;
+        let pure = true; // Assume purity and then downgrade if needed
+        let statements = [];
+        const statementsAst = functionbodyAst.statements();
+        for (const statementAst of statementsAst) {
+            const statement = Statement.create(statementAst, closureScope);
+            if (!statement.pure)
+                pure = false;
+            statements.push(statement);
+        }
+        return new UserFunction(null, args, returnType, closureScope, statements, pure);
+    }
+    static fromFunctionsAst(functionAst, closureScope) {
+        const name = functionAst.VARNAME() == null ? null : functionAst.VARNAME().getText();
+        let args = {};
+        const argsAst = functionAst.arglist();
+        if (argsAst !== null) {
+            const arglen = argsAst.VARNAME().length;
+            for (let i = 0; i < arglen; i++) {
+                const argName = argsAst.VARNAME(i).getText();
+                let getArgType = closureScope.deepGet(argsAst.argtype(i).getText());
+                if (getArgType === null) {
+                    if (argsAst.argtype(i).othertype().length === 1) {
+                        if (argsAst.argtype(i).othertype(0).typegenerics() !== null) {
+                            getArgType = closureScope.deepGet(argsAst.argtype(i).othertype(0).typename().getText());
+                            if (getArgType == null) {
+                                console.error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName);
+                                process.exit(-39);
+                            }
+                            if (getArgType.type !== Box.builtinTypes["type"]) {
+                                console.error("Function argument is not a valid type: " + argsAst.argtype(i).getText());
+                                process.exit(-50);
+                            }
+                            let genericTypes = [];
+                            for (const fulltypename of argsAst.argtype(i).othertype(0).typegenerics().fulltypename()) {
+                                genericTypes.push(fulltypename.getText());
+                            }
+                            getArgType = new Box(getArgType.typeval.solidify(genericTypes, closureScope));
+                        }
+                        else {
+                            console.error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName);
+                            process.exit(-51);
+                        }
+                    }
+                    else { // It's an inline-declared union type
+                        const othertypes = argsAst.argtype(i).othertype();
+                        let unionTypes = [];
+                        for (const othertype of othertypes) {
+                            let othertypeBox = closureScope.deepGet(othertype.getText());
+                            if (othertypeBox == null) {
+                                if (othertype.typegenerics() != null) {
+                                    othertypeBox = closureScope.deepGet(othertype.typename().getText());
+                                    if (othertypeBox == null) {
+                                        console.error("Could not find type " + othertype.getText() + " for argument " + argName);
+                                        process.exit(-59);
+                                    }
+                                    if (othertypeBox.type != Box.builtinTypes["type"]) {
+                                        console.error("Function argument is not a valid type: " + othertype.getText());
+                                        process.exit(-60);
+                                    }
+                                    let genericTypes = [];
+                                    for (const fulltypename of othertype.typegenerics().fulltypename()) {
+                                        genericTypes.push(fulltypename.getText());
+                                    }
+                                    othertypeBox = new Box(othertypeBox.typeval.solidify(genericTypes, closureScope));
+                                }
+                                else {
+                                    console.error("Could not find type " + othertype.getText() + " for argument " + argName);
+                                    process.exit(-51);
+                                }
+                            }
+                            unionTypes.push(othertypeBox.typeval);
+                        }
+                        const union = new Type(argsAst.argtype(i).getText(), false, unionTypes);
+                        getArgType = new Box(union);
+                    }
                 }
-              }
-              unionTypes.push(othertypeBox.typeval)
+                if (getArgType.type != Box.builtinTypes["type"]) {
+                    console.error("Function argument is not a valid type: " + argsAst.argtype(i).getText());
+                    process.exit(-13);
+                }
+                args[argName] = getArgType.typeval;
             }
-            const union = new Type(argsAst.argtype(i).getText(), false, unionTypes)
-            getArgType = new Box(union)
-          }
         }
-        if (getArgType.type != Box.builtinTypes["type"]) {
-          console.error("Function argument is not a valid type: " + argsAst.argtype(i).getText())
-          process.exit(-13)
-        }
-        args[argName] = getArgType.typeval
-      }
-    }
-    let returnType = null
-    if (functionAst.argtype() !== null) {
-      if (functionAst.argtype().othertype().length === 1) {
-        let getReturnType = closureScope.deepGet(functionAst.argtype().getText())
-        if (getReturnType == null || getReturnType.type != Box.builtinTypes["type"]) {
-          if (functionAst.argtype().othertype(0).typegenerics() != null) {
-            getReturnType = closureScope.deepGet(functionAst.argtype().othertype(0).typename().getText())
-            if (getReturnType == null) {
-              console.error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText())
-              process.exit(-59)
+        let returnType = null;
+        if (functionAst.argtype() !== null) {
+            if (functionAst.argtype().othertype().length === 1) {
+                let getReturnType = closureScope.deepGet(functionAst.argtype().getText());
+                if (getReturnType == null || getReturnType.type != Box.builtinTypes["type"]) {
+                    if (functionAst.argtype().othertype(0).typegenerics() != null) {
+                        getReturnType = closureScope.deepGet(functionAst.argtype().othertype(0).typename().getText());
+                        if (getReturnType == null) {
+                            console.error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText());
+                            process.exit(-59);
+                        }
+                        if (getReturnType.type !== Box.builtinTypes["type"]) {
+                            console.error("Function return is not a valid type: " + functionAst.argtype().getText());
+                            process.exit(-60);
+                        }
+                        let genericTypes = [];
+                        for (const fulltypename of functionAst.argType().othertype(0).typegenerics().fulltypename()) {
+                            genericTypes.push(fulltypename.getText());
+                        }
+                        getReturnType = new Box(getReturnType.typeval.solidify(genericTypes, closureScope));
+                    }
+                    else {
+                        console.error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText());
+                        process.exit(-61);
+                    }
+                }
+                returnType = getReturnType.typeval;
             }
-            if (getReturnType.type !== Box.builtinTypes["type"]) {
-              console.error("Function return is not a valid type: " + functionAst.argtype().getText())
-              process.exit(-60)
+            else {
+                const othertypes = functionAst.argtype().othertype();
+                let unionTypes = [];
+                for (const othertype of othertypes) {
+                    let othertypeBox = closureScope.deepGet(othertype.getText());
+                    if (othertypeBox === null) {
+                        if (othertype.typegenerics() !== null) {
+                            othertypeBox = closureScope.deepGet(othertype.typename().getText());
+                            if (othertypeBox === null) {
+                                console.error("Could not find return type " + othertype.getText() + " for function " + functionAst.VARNAME().getText());
+                                process.exit(-59);
+                            }
+                            if (othertypeBox.type !== Box.builtinTypes["type"]) {
+                                console.error("Function argument is not a valid type: " + othertype.getText());
+                                process.exit(-60);
+                            }
+                            let genericTypes = [];
+                            for (const fulltypename of othertype.typegenerics().fulltypename()) {
+                                genericTypes.push(fulltypename.getText());
+                            }
+                            othertypeBox = new Box(othertypeBox.typeval.solidify(genericTypes, closureScope));
+                        }
+                        else {
+                            console.error("Could not find return type " + othertype.getText() + " for function " + functionAst.VARNAME().getText());
+                            process.exit(-51);
+                        }
+                    }
+                    unionTypes.push(othertypeBox.typeval);
+                }
+                returnType = new Type(functionAst.argtype().getText(), false, unionTypes);
             }
-            let genericTypes = []
-            for (const fulltypename of functionAst.argType().othertype(0).typegenerics().fulltypename()) {
-              genericTypes.push(fulltypename.getText())
+        }
+        else {
+            // TODO: Infer the return type by finding the return value and tracing backwards
+            returnType = Box.builtinTypes["void"];
+        }
+        let pure = true;
+        let statements = [];
+        const functionbody = functionAst.fullfunctionbody().functionbody();
+        if (functionbody !== null) {
+            const statementsAst = functionbody.statements();
+            for (const statementAst of statementsAst) {
+                let statement = Statement.create(statementAst, closureScope);
+                if (!statement.pure)
+                    pure = false;
+                statements.push(statement);
             }
-            getReturnType = new Box(getReturnType.typeval.solidify(genericTypes, closureScope))
-          } else {
-            console.error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText())
-            process.exit(-61)
-          }
         }
-        returnType = getReturnType.typeval
-      } else {
-        const othertypes = functionAst.argtype().othertype()
-        let unionTypes = []
-        for (const othertype of othertypes) {
-          let othertypeBox = closureScope.deepGet(othertype.getText())
-          if (othertypeBox === null) {
-            if (othertype.typegenerics() !== null) {
-              othertypeBox = closureScope.deepGet(othertype.typename().getText())
-              if (othertypeBox === null) {
-                console.error("Could not find return type " + othertype.getText() + " for function " + functionAst.VARNAME().getText())
-                process.exit(-59)
-              }
-              if (othertypeBox.type !== Box.builtinTypes["type"]) {
-                console.error("Function argument is not a valid type: " + othertype.getText())
-                process.exit(-60)
-              }
-              let genericTypes = []
-              for (const fulltypename of othertype.typegenerics().fulltypename()) {
-                genericTypes.push(fulltypename.getText())
-              }
-              othertypeBox = new Box(othertypeBox.typeval.solidify(genericTypes, closureScope))
-            } else {
-              console.error("Could not find return type " + othertype.getText() + " for function " + functionAst.VARNAME().getText())
-              process.exit(-51)
+        else {
+            const assignablesAst = functionAst.fullfunctionbody().assignables();
+            let statement = Statement.create(assignablesAst, closureScope);
+            if (!statement.pure)
+                pure = false;
+            statements.push(statement);
+            // TODO: Infer the return type for anything other than calls of other functions
+            if (assignablesAst.basicassignables() && assignablesAst.basicassignables().calls()) {
+                const fnCall = closureScope.deepGet(assignablesAst.basicassignables().calls().varn(0));
+                if (fnCall && fnCall.functionval) {
+                    // TODO: For now, also take the first matching function name, in the future
+                    // figure out the argument types provided recursively to select appropriately
+                    // similar to how the Microstatements piece works
+                    returnType = fnCall.functionval[0].getReturnType();
+                }
             }
-          }
-          unionTypes.push(othertypeBox.typeval)
         }
-        returnType = new Type(functionAst.argtype().getText(), false, unionTypes)
-      }
-    } else {
-      // TODO: Infer the return type by finding the return value and tracing backwards
-      returnType = Box.builtinTypes["void"]
+        return new UserFunction(name, args, returnType, closureScope, statements, pure);
     }
-    let pure = true
-    let statements = []
-    const functionbody = functionAst.fullfunctionbody().functionbody()
-    if (functionbody !== null) {
-      const statementsAst = functionbody.statements()
-      for (const statementAst of statementsAst) {
-        let statement = Statement.create(statementAst, closureScope)
-        if (!statement.pure) pure = false
-        statements.push(statement)
-      }
-    } else {
-      const assignablesAst = functionAst.fullfunctionbody().assignables()
-      let statement = Statement.create(assignablesAst, closureScope)
-      if (!statement.pure) pure = false
-      statements.push(statement)
-      // TODO: Infer the return type for anything other than calls of other functions
-      if (assignablesAst.basicassignables() && assignablesAst.basicassignables().calls()) {
-        const fnCall = closureScope.deepGet(assignablesAst.basicassignables().calls().varn(0))
-        if (fnCall && fnCall.functionval) {
-          // TODO: For now, also take the first matching function name, in the future
-          // figure out the argument types provided recursively to select appropriately
-          // similar to how the Microstatements piece works
-          returnType = fnCall.functionval[0].getReturnType()
+    getName() {
+        return this.name;
+    }
+    getArguments() {
+        return this.args;
+    }
+    getReturnType() {
+        return this.returnType;
+    }
+    isNary() {
+        return false; // TODO: support `...rest` in the future
+    }
+    isPure() {
+        return this.pure;
+    }
+    microstatementInlining(realArgNames, scope, microstatements) {
+        // Resolve circular dependency issue
+        const Microstatement = require('./Microstatement');
+        const internalNames = Object.keys(this.args);
+        for (let i = 0; i < internalNames.length; i++) {
+            const realArgName = realArgNames[i];
+            // Instead of copying the relevant data, define a reference to where the data is located with
+            // an alias for the function's expected variable name so statements referencing the argument
+            // can be rewritten to use the new variable name.
+            microstatements.push(new Microstatement(StatementType.REREF, scope, true, realArgName, internalNames[i], this.args[internalNames[i]], [], []));
         }
-      }
-    }
-    return new UserFunction(name, args, returnType, closureScope, statements, pure)
-  }
-
-  getName() {
-    return this.name
-  }
-  getArguments() {
-    return this.args
-  }
-  getReturnType() {
-    return this.returnType
-  }
-  isNary() {
-    return false // TODO: support `...rest` in the future
-  }
-  isPure() {
-    return this.pure
-  }
-
-  microstatementInlining(realArgNames, scope, microstatements) {
-    // Resolve circular dependency issue
-    const Microstatement = require('./Microstatement')
-    const internalNames = Object.keys(this.args)
-    for (let i = 0; i < internalNames.length; i++) {
-      const realArgName = realArgNames[i]
-      // Instead of copying the relevant data, define a reference to where the data is located with
-      // an alias for the function's expected variable name so statements referencing the argument
-      // can be rewritten to use the new variable name.
-      microstatements.push(new Microstatement(
-        StatementType.REREF,
-        scope,
-        true,
-        realArgName,
-        internalNames[i],
-        this.args[internalNames[i]],
-        [],
-        [],
-      ))
-    }
-    for (const s of this.statements) {
-      Microstatement.fromStatement(s, microstatements)
-    }
-  }
-
-  static dispatchFn(fns, argumentTypeList, scope) {
-    let fn = null;
-    for (let i = 0; i < fns.length; i++) {
-      const isNary = fns[i].isNary()
-      const args = fns[i].getArguments()
-      const argList = Object.values(args)
-      if (!isNary && argList.length != argumentTypeList.length) continue
-      if (isNary && argList.length > argumentTypeList.length) continue
-      let skip = false
-      for (let j = 0; j < argList.length; j++) {
-        if (argList[j].typename === argumentTypeList[j].typename) continue
-        if ( 
-          argList[j].iface != null &&
-          argList[j].iface.typeApplies(argumentTypeList[j], scope)
-        ) continue
-        if (argList[j].generics.length > 0 && argumentTypeList[j].originalType == argList[j]) {
-          continue
+        for (const s of this.statements) {
+            Microstatement.fromStatement(s, microstatements);
         }
-        if (
-          argList[j].originalType != null &&
-          argumentTypeList[j].originalType == argList[j].originalType
-        ) {
-          for (const propKey in argList[j].properties) {
-            const propVal = argList[j].properties[propKey]
-            if (
-              propVal ==
-              argumentTypeList[j].properties[propKey]
-            ) continue
-            if (
-              propVal.iface != null &&
-              propValiface.typeApplies(
-                argumentTypeList[j].properties[propKey],
-                scope
-              )
-            ) continue
-            skip = true
-          }
-          continue
-        }
-        if (argList[j].unionTypes != null) {
-          let unionSkip = true
-          for (const unionType of argList[j].unionTypes) {
-            // TODO: support other union types
-            if (unionType.typename === argumentTypeList[j].typename) {
-              unionSkip = false
-              break
+    }
+    static dispatchFn(fns, argumentTypeList, scope) {
+        let fn = null;
+        for (let i = 0; i < fns.length; i++) {
+            const isNary = fns[i].isNary();
+            const args = fns[i].getArguments();
+            const argList = Object.values(args);
+            if (!isNary && argList.length != argumentTypeList.length)
+                continue;
+            if (isNary && argList.length > argumentTypeList.length)
+                continue;
+            let skip = false;
+            for (let j = 0; j < argList.length; j++) {
+                if (argList[j].typename === argumentTypeList[j].typename)
+                    continue;
+                if (argList[j].iface != null &&
+                    argList[j].iface.typeApplies(argumentTypeList[j], scope))
+                    continue;
+                if (argList[j].generics.length > 0 && argumentTypeList[j].originalType == argList[j]) {
+                    continue;
+                }
+                if (argList[j].originalType != null &&
+                    argumentTypeList[j].originalType == argList[j].originalType) {
+                    for (const propKey in argList[j].properties) {
+                        const propVal = argList[j].properties[propKey];
+                        if (propVal ==
+                            argumentTypeList[j].properties[propKey])
+                            continue;
+                        if (propVal.iface != null &&
+                            propValiface.typeApplies(argumentTypeList[j].properties[propKey], scope))
+                            continue;
+                        skip = true;
+                    }
+                    continue;
+                }
+                if (argList[j].unionTypes != null) {
+                    let unionSkip = true;
+                    for (const unionType of argList[j].unionTypes) {
+                        // TODO: support other union types
+                        if (unionType.typename === argumentTypeList[j].typename) {
+                            unionSkip = false;
+                            break;
+                        }
+                    }
+                    if (!unionSkip)
+                        continue;
+                }
+                skip = true;
             }
-          }
-          if (!unionSkip) continue
+            if (skip)
+                continue;
+            fn = fns[i];
         }
-        skip = true
-      }
-      if (skip) continue
-      fn = fns[i]
+        if (fn == null) {
+            console.error("Unable to find matching function for name and argument type set");
+            let argTypes = [];
+            for (let i = 0; i < argumentTypeList.length; i++) {
+                argTypes.push("<" + argumentTypeList[i].typename + ">");
+            }
+            console.error(fns[0].getName() + "(" + argTypes.join(", ") + ")");
+            process.exit(-40);
+        }
+        return fn;
     }
-    if (fn == null) {
-      console.error("Unable to find matching function for name and argument type set")
-      let argTypes = []
-      for (let i = 0; i < argumentTypeList.length; i++) {
-        argTypes.push("<" + argumentTypeList[i].typename + ">")
-      }
-      console.error(fns[0].getName() + "(" + argTypes.join(", ") + ")")
-      process.exit(-40)
-    }
-    return fn
-  }
 }
-
-module.exports = UserFunction
+module.exports = UserFunction;
 
 }).call(this,require('_process'))
 },{"../ln":12,"./Box":14,"./Microstatement":24,"./Statement":28,"./StatementType":29,"_process":85}],32:[function(require,module,exports){
-const fs = require('fs')
-const path = require('path')
-
-const { v4: uuid, } = require('uuid')
-
-const opcodes = require('./opcodes')
-const Ast = require('./Ast')
-const Std = require('./Std')
-const Module = require('./Module')
-const Event = require('./Event')
-const UserFunction = require('./UserFunction')
-const Microstatement = require('./Microstatement')
-const StatementType = require('./StatementType')
-
+const fs = require('fs');
+const path = require('path');
+const { v4: uuid, } = require('uuid');
+const opcodes = require('./opcodes');
+const Ast = require('./Ast');
+const Std = require('./Std');
+const Module = require('./Module');
+const Event = require('./Event');
+const UserFunction = require('./UserFunction');
+const Microstatement = require('./Microstatement');
+const StatementType = require('./StatementType');
 const hoistConst = (microstatements, constantDedupeLookup, constants) => {
-  let i = 0
-  while (i < microstatements.length) {
-    const m = microstatements[i]
-    if (
-      m.statementType === StatementType.CONSTDEC &&
-      m.fns.length === 0
-    ) {
-      const original = constantDedupeLookup[m.inputNames[0]]
-      if (!original) {
-        constants.add(m)
-        if (!m.outputType.builtIn) {
-          eventTypes.add(m.outputType)
-        }
-        microstatements.splice(i, 1)
-        constantDedupeLookup[m.inputNames[0]] = m
-      } else {
-        // Rewrite with the replaced name
-        for(let j = i + 1; j < microstatements.length; j++) {
-          const n = microstatements[j]
-          for (let k = 0; k < n.inputNames.length; k++) {
-            if (n.inputNames[k] === m.outputName) {
-              n.inputNames[k] = original.outputName
+    let i = 0;
+    while (i < microstatements.length) {
+        const m = microstatements[i];
+        if (m.statementType === StatementType.CONSTDEC &&
+            m.fns.length === 0) {
+            const original = constantDedupeLookup[m.inputNames[0]];
+            if (!original) {
+                constants.add(m);
+                if (!m.outputType.builtIn) {
+                    eventTypes.add(m.outputType);
+                }
+                microstatements.splice(i, 1);
+                constantDedupeLookup[m.inputNames[0]] = m;
             }
-          }
+            else {
+                // Rewrite with the replaced name
+                for (let j = i + 1; j < microstatements.length; j++) {
+                    const n = microstatements[j];
+                    for (let k = 0; k < n.inputNames.length; k++) {
+                        if (n.inputNames[k] === m.outputName) {
+                            n.inputNames[k] = original.outputName;
+                        }
+                    }
+                }
+                microstatements.splice(i, 1);
+            }
         }
-        microstatements.splice(i, 1);
-      }
-    } else if (m.statementType === StatementType.CLOSURE) {
-      hoistConst(m.closureStatements, constantDedupeLookup, constants)
-      i++
-    } else {
-      i++
+        else if (m.statementType === StatementType.CLOSURE) {
+            hoistConst(m.closureStatements, constantDedupeLookup, constants);
+            i++;
+        }
+        else {
+            i++;
+        }
     }
-  }
-}
-
+};
 const moduleAstsFromFile = (filename) => {
-  let moduleAsts = {}
-  let paths = []
-  const rootPath = fs.realpathSync(filename)
-  paths.push(rootPath)
-  while (paths.length > 0) {
-    const modulePath = paths.shift()
-    let module = null
-    try {
-      module = Ast.fromFile(modulePath)
-    } catch (e) {
-      console.error("Could not load " + modulePath)
-      console.error(e)
-      throw e
+    let moduleAsts = {};
+    let paths = [];
+    const rootPath = fs.realpathSync(filename);
+    paths.push(rootPath);
+    while (paths.length > 0) {
+        const modulePath = paths.shift();
+        let module = null;
+        try {
+            module = Ast.fromFile(modulePath);
+        }
+        catch (e) {
+            console.error("Could not load " + modulePath);
+            console.error(e);
+            throw e;
+        }
+        moduleAsts[modulePath] = module;
+        const imports = Ast.resolveImports(modulePath, module);
+        for (let i = 0; i < imports.length; i++) {
+            if (!moduleAsts[imports[i]] && !(imports[i].substring(0, 5) === "@std/")) {
+                paths.push(imports[i]);
+            }
+        }
     }
-    moduleAsts[modulePath] = module
-    const imports = Ast.resolveImports(modulePath, module)
-    for (let i = 0; i < imports.length; i++) {
-      if (!moduleAsts[imports[i]] && !(imports[i].substring(0, 5) === "@std/")) {
-        paths.push(imports[i])
-      }
-    }
-  }
-  return moduleAsts
-}
-
+    return moduleAsts;
+};
 const moduleAstsFromString = (str) => {
-  let moduleAsts = {}
-  const fakeRoot = '/fake/root/test.ln'
-  let module = null
-  try {
-    module = Ast.fromString(str)
-  } catch (e) {
-    console.error("Could not load test.ln")
-    console.error(e)
-    throw e
-  }
-  moduleAsts[fakeRoot] = module
-  const imports = Ast.resolveImports(fakeRoot, module)
-  for (let i = 0; i < imports.length; i++) {
-    if (moduleAsts[imports[i]] === null && !(imports[i].substring(0, 5) === "@std/")) {
-      console.error('Only @std imports allowed in the playground')
-      throw new Error('Import declaration error')
+    let moduleAsts = {};
+    const fakeRoot = '/fake/root/test.ln';
+    let module = null;
+    try {
+        module = Ast.fromString(str);
     }
-  }
-  return moduleAsts
-}
-
+    catch (e) {
+        console.error("Could not load test.ln");
+        console.error(e);
+        throw e;
+    }
+    moduleAsts[fakeRoot] = module;
+    const imports = Ast.resolveImports(fakeRoot, module);
+    for (let i = 0; i < imports.length; i++) {
+        if (moduleAsts[imports[i]] === null && !(imports[i].substring(0, 5) === "@std/")) {
+            console.error('Only @std imports allowed in the playground');
+            throw new Error('Import declaration error');
+        }
+    }
+    return moduleAsts;
+};
 const ammFromModuleAsts = (moduleAsts) => {
-  // Load the standard library
-  Std.loadStdModules(Module.getAllModules())
-  const rootScope = Module.getAllModules()['<root>'].exportScope
-  // Load all modules
-  const modules = Module.modulesFromAsts(moduleAsts, rootScope)
-
-  // This implicitly populates the `allEvents` static property on the `Event` type, which we can
-  // use to serialize out the definitions, skipping the built-in events. In the process we're need
-  // to check a hashset for duplicate event names and rename as necessary. We also need to get the
-  // list of user-defined types that we need to emit.
-  let eventNames = new Set()
-  let eventTypeNames = new Set()
-  let eventTypes = new Set()
-  for (const evt of Event.allEvents) {
-    // Skip built-in events
-    if (evt.builtIn) continue
-    // Check if there's a collision
-    if (eventNames.has(evt.name)) {
-      // We modify the event name by attaching a UUIDv4 to it
-      evt.name = evt.name + "_" + uuid().replace(/-/g, "_")
-    }
-    // Add the event to the list
-    eventNames.add(evt.name)
-    // Now on to event type processing
-    const type = evt.type
-    // Skip built-in types, too
-    if (type.builtIn) continue
-    // Check if there's a collision
-    if (eventTypeNames.has(type.typename)) {
-      // An event type may be seen multiple times, make sure this is an actual collision
-      if (eventTypes.has(type)) continue // This event was already processed, so we're done
-      // Modify the type name by attaching a UUIDv4 to it
-      type.typename = type.typename + "_" + uuid().replace(/-/g, "_")
-    }
-    // Add the type to the list
-    eventTypeNames.add(type.typename)
-    eventTypes.add(type)
-    // Determine if the event type is a union type, if so do the same checks for each subtype
-    for (const unionType of type.unionTypes) {
-      // Skip built-in types, too
-      if (unionType.builtIn) continue
-      // Check if there's a collision
-      if (eventTypeNames.has(unionType.typename)) {
-        // A type may be seen multiple times, make sure this is an actual collision
-        if (eventTypes.has(unionType)) continue // This event was already processed, so we're done
-        // Modify the type name by attaching a UUIDv4 to it
-        unionType.typename = unionType.typename + "_" + uuid().replace(/-/g, "_")
-      }
-      // Add the type to the list
-      eventTypeNames.add(unionType.typename)
-      eventTypes.add(unionType)
-    } // TODO: DRY this all up
-    // Determine if any of the properties of the type should be added to the list
-    for (const propType of Object.values(type.properties)) {
-      // Skip built-in types, too
-      if (propType.builtIn) continue
-      // Check if there's a collision
-      if (eventTypeNames.has(propType.typename)) {
-        // A type may be seen multiple times, make sure this is an actual collision
-        if (eventTypes.has(propType)) continue // This event was already processed, so we're done
-        // Modify the type name by attaching a UUIDv4 to it
-        propType.typename = propType.typename + "_" + uuid().replace(/-/g, "_")
-      }
-      // Add the type to the list
-      eventTypeNames.add(propType.typename)
-      eventTypes.add(propType)
-    }
-  }
-  // Extract the handler definitions and constant data
-  let handlers = {} // String to array of Microstatement objects
-  let constantDedupeLookup = {} // String to Microstatement object
-  let constants = new Set() // Microstatment objects
-  for (let evt of Event.allEvents) {
-    for (let handler of evt.handlers) {
-      if (handler instanceof UserFunction) {
-        // Define the handler preamble
-        let handlerDec = "on " + evt.name + " fn ("
-        let argList = []
-        let microstatements = []
-        for (const arg of Object.keys(handler.getArguments())) {
-          argList.push(arg + ": " + handler.getArguments()[arg].typename)
-          microstatements.push(new Microstatement(
-            StatementType.ARG,
-            handler.closureScope,
-            true,
-            arg,
-            handler.getArguments()[arg],
-            [],
-            [],
-          ))
+    // Load the standard library
+    Std.loadStdModules(Module.getAllModules());
+    const rootScope = Module.getAllModules()['<root>'].exportScope;
+    // Load all modules
+    const modules = Module.modulesFromAsts(moduleAsts, rootScope);
+    // This implicitly populates the `allEvents` static property on the `Event` type, which we can
+    // use to serialize out the definitions, skipping the built-in events. In the process we're need
+    // to check a hashset for duplicate event names and rename as necessary. We also need to get the
+    // list of user-defined types that we need to emit.
+    let eventNames = new Set();
+    let eventTypeNames = new Set();
+    let eventTypes = new Set();
+    for (const evt of Event.allEvents) {
+        // Skip built-in events
+        if (evt.builtIn)
+            continue;
+        // Check if there's a collision
+        if (eventNames.has(evt.name)) {
+            // We modify the event name by attaching a UUIDv4 to it
+            evt.name = evt.name + "_" + uuid().replace(/-/g, "_");
         }
-        handlerDec += argList.join(", ")
-        handlerDec += "): " + handler.getReturnType().typename + " {"
-        // Extract the handler statements and compile into microstatements
-        const statements = handler.statements;
-        for (const s of statements) {
-          Microstatement.fromStatement(s, microstatements)
+        // Add the event to the list
+        eventNames.add(evt.name);
+        // Now on to event type processing
+        const type = evt.type;
+        // Skip built-in types, too
+        if (type.builtIn)
+            continue;
+        // Check if there's a collision
+        if (eventTypeNames.has(type.typename)) {
+            // An event type may be seen multiple times, make sure this is an actual collision
+            if (eventTypes.has(type))
+                continue; // This event was already processed, so we're done
+            // Modify the type name by attaching a UUIDv4 to it
+            type.typename = type.typename + "_" + uuid().replace(/-/g, "_");
         }
-        // Pull the constants out of the microstatements into the constants set.
-        hoistConst(microstatements, constantDedupeLookup, constants)
-        // Register the handler and remaining statements
-        handlers[handlerDec] = microstatements
-      }
+        // Add the type to the list
+        eventTypeNames.add(type.typename);
+        eventTypes.add(type);
+        // Determine if the event type is a union type, if so do the same checks for each subtype
+        for (const unionType of type.unionTypes) {
+            // Skip built-in types, too
+            if (unionType.builtIn)
+                continue;
+            // Check if there's a collision
+            if (eventTypeNames.has(unionType.typename)) {
+                // A type may be seen multiple times, make sure this is an actual collision
+                if (eventTypes.has(unionType))
+                    continue; // This event was already processed, so we're done
+                // Modify the type name by attaching a UUIDv4 to it
+                unionType.typename = unionType.typename + "_" + uuid().replace(/-/g, "_");
+            }
+            // Add the type to the list
+            eventTypeNames.add(unionType.typename);
+            eventTypes.add(unionType);
+        } // TODO: DRY this all up
+        // Determine if any of the properties of the type should be added to the list
+        for (const propType of Object.values(type.properties)) {
+            // Skip built-in types, too
+            if (propType.builtIn)
+                continue;
+            // Check if there's a collision
+            if (eventTypeNames.has(propType.typename)) {
+                // A type may be seen multiple times, make sure this is an actual collision
+                if (eventTypes.has(propType))
+                    continue; // This event was already processed, so we're done
+                // Modify the type name by attaching a UUIDv4 to it
+                propType.typename = propType.typename + "_" + uuid().replace(/-/g, "_");
+            }
+            // Add the type to the list
+            eventTypeNames.add(propType.typename);
+            eventTypes.add(propType);
+        }
     }
-  }
-  let outStr = ""
-  // Print the event types
-  for (const eventType of eventTypes) {
-    outStr += eventType.toString() + "\n"
-  }
-  // Print the constants
-  for (const constant of constants) {
-    outStr += constant.toString() + "\n"
-  }
-  // Print the user-defined event declarations
-  for (const evt of Event.allEvents) {
-    if (evt.builtIn) continue // Skip built-in events
-    if (evt.handlers.length == 0) continue // Skip events that are never handled
-    outStr += evt.toString() + "\n"
-  }
-  // Print the user-defined event handlers
-  for (const handlerDec of Object.keys(handlers)) {
-    outStr += handlerDec + "\n"
-    const microstatements = handlers[handlerDec]
-    for (const m of microstatements) {
-      const mString = m.toString()
-      if (mString === "") continue
-      outStr += "  " + mString + "\n"
+    // Extract the handler definitions and constant data
+    let handlers = {}; // String to array of Microstatement objects
+    let constantDedupeLookup = {}; // String to Microstatement object
+    let constants = new Set(); // Microstatment objects
+    for (let evt of Event.allEvents) {
+        for (let handler of evt.handlers) {
+            if (handler instanceof UserFunction) {
+                // Define the handler preamble
+                let handlerDec = "on " + evt.name + " fn (";
+                let argList = [];
+                let microstatements = [];
+                for (const arg of Object.keys(handler.getArguments())) {
+                    argList.push(arg + ": " + handler.getArguments()[arg].typename);
+                    microstatements.push(new Microstatement(StatementType.ARG, handler.closureScope, true, arg, handler.getArguments()[arg], [], []));
+                }
+                handlerDec += argList.join(", ");
+                handlerDec += "): " + handler.getReturnType().typename + " {";
+                // Extract the handler statements and compile into microstatements
+                const statements = handler.statements;
+                for (const s of statements) {
+                    Microstatement.fromStatement(s, microstatements);
+                }
+                // Pull the constants out of the microstatements into the constants set.
+                hoistConst(microstatements, constantDedupeLookup, constants);
+                // Register the handler and remaining statements
+                handlers[handlerDec] = microstatements;
+            }
+        }
     }
-    outStr += "}\n"
-  }
-  return outStr
-}
+    let outStr = "";
+    // Print the event types
+    for (const eventType of eventTypes) {
+        outStr += eventType.toString() + "\n";
+    }
+    // Print the constants
+    for (const constant of constants) {
+        outStr += constant.toString() + "\n";
+    }
+    // Print the user-defined event declarations
+    for (const evt of Event.allEvents) {
+        if (evt.builtIn)
+            continue; // Skip built-in events
+        if (evt.handlers.length == 0)
+            continue; // Skip events that are never handled
+        outStr += evt.toString() + "\n";
+    }
+    // Print the user-defined event handlers
+    for (const handlerDec of Object.keys(handlers)) {
+        outStr += handlerDec + "\n";
+        const microstatements = handlers[handlerDec];
+        for (const m of microstatements) {
+            const mString = m.toString();
+            if (mString === "")
+                continue;
+            outStr += "  " + mString + "\n";
+        }
+        outStr += "}\n";
+    }
+    return outStr;
+};
+module.exports = (filename) => ammFromModuleAsts(moduleAstsFromFile(filename));
+module.exports.lnTextToAmm = (str) => ammFromModuleAsts(moduleAstsFromString(str));
 
-module.exports = (filename) => ammFromModuleAsts(moduleAstsFromFile(filename))
-module.exports.lnTextToAmm = (str) => ammFromModuleAsts(moduleAstsFromString(str))
-
-},{"./Ast":13,"./Event":15,"./Microstatement":24,"./Module":25,"./StatementType":29,"./Std":7,"./UserFunction":31,"./opcodes":33,"fs":82,"path":84,"uuid":87}],33:[function(require,module,exports){
-const { v4: uuid, } = require('uuid')
-
-const Box = require('./Box') // TODO: Eliminate Box
-const Module = require('./Module')
-const Event = require('./Event')
-const Interface = require('./Interface')
-const Scope = require('./Scope')
-const Type = require('./Type')
-const Microstatement = require('./Microstatement')
-const StatementType = require('./StatementType')
-
-const opcodeScope = new Scope()
-const opcodeModule = new Module(opcodeScope)
-
+},{"./Ast":13,"./Event":15,"./Microstatement":24,"./Module":25,"./StatementType":29,"./Std":1,"./UserFunction":31,"./opcodes":33,"fs":82,"path":84,"uuid":87}],33:[function(require,module,exports){
+const { v4: uuid, } = require('uuid');
+const Box = require('./Box'); // TODO: Eliminate Box
+const Module = require('./Module');
+const Event = require('./Event');
+const Interface = require('./Interface');
+const Scope = require('./Scope');
+const Type = require('./Type');
+const Microstatement = require('./Microstatement');
+const StatementType = require('./StatementType');
+const opcodeScope = new Scope();
+const opcodeModule = new Module(opcodeScope);
 // Base types
-const t = (str) => Box.builtinTypes[str]
-const addBuiltIn = (name) => { opcodeScope.put(name, new Box(t(name))) }
+const t = (str) => Box.builtinTypes[str];
+const addBuiltIn = (name) => { opcodeScope.put(name, new Box(t(name))); };
 ([
-  'void', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64', 'bool', 'string', 'function',
-  'operator', 'Error', 'Array', 'Map', 'KeyVal',
-].map(addBuiltIn))
-Box.builtinTypes['Array'].solidify(['string'], opcodeScope)
-Box.builtinTypes['Map'].solidify(['string', 'string'], opcodeScope)
-opcodeScope.put('any', new Box(new Type('any', true, new Interface('any'))))
-Box.builtinTypes['Array'].solidify(['any'], opcodeScope)
-Box.builtinTypes['Map'].solidify(['any', 'any'], opcodeScope)
-Box.builtinTypes['KeyVal'].solidify(['any', 'any'], opcodeScope)
-opcodeScope.put("start", new Box(new Event("_start", Box.builtinTypes.void, true), true))
-
+    'void', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64', 'bool', 'string', 'function',
+    'operator', 'Error', 'Array', 'Map', 'KeyVal',
+].map(addBuiltIn));
+Box.builtinTypes['Array'].solidify(['string'], opcodeScope);
+Box.builtinTypes['Map'].solidify(['string', 'string'], opcodeScope);
+opcodeScope.put('any', new Box(new Type('any', true, new Interface('any'))));
+Box.builtinTypes['Array'].solidify(['any'], opcodeScope);
+Box.builtinTypes['Map'].solidify(['any', 'any'], opcodeScope);
+Box.builtinTypes['KeyVal'].solidify(['any', 'any'], opcodeScope);
+opcodeScope.put("start", new Box(new Event("_start", Box.builtinTypes.void, true), true));
 // opcode declarations
 const addopcodes = (opcodes) => {
-  const opcodeNames = Object.keys(opcodes)
-  opcodeNames.forEach((opcodeName) => {
-    const opcodeDef = opcodes[opcodeName]
-    const [args, returnType] = opcodeDef
-    const opcodeObj = {
-      getName: () => opcodeName,
-      getArguments: () => args,
-      getReturnType: () => returnType,
-      isNary: () => false,
-      isPure: () => true,
-      microstatementInlining: (realArgNames, scope, microstatements) => {
-        microstatements.push(new Microstatement(
-          StatementType.CONSTDEC,
-          scope,
-          true,
-          "_" + uuid().replace(/-/g, "_"),
-          opcodeObj.getReturnType(),
-          realArgNames,
-          [opcodeObj],
-        ))
-      },
-    }
-    // Add each opcode
-    opcodeScope.put(opcodeName, new Box([opcodeObj], true))
-  })
-}
-
+    const opcodeNames = Object.keys(opcodes);
+    opcodeNames.forEach((opcodeName) => {
+        const opcodeDef = opcodes[opcodeName];
+        const [args, returnType] = opcodeDef;
+        const opcodeObj = {
+            getName: () => opcodeName,
+            getArguments: () => args,
+            getReturnType: () => returnType,
+            isNary: () => false,
+            isPure: () => true,
+            microstatementInlining: (realArgNames, scope, microstatements) => {
+                microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, "_" + uuid().replace(/-/g, "_"), opcodeObj.getReturnType(), realArgNames, [opcodeObj]));
+            },
+        };
+        // Add each opcode
+        opcodeScope.put(opcodeName, new Box([opcodeObj], true));
+    });
+};
 addopcodes({
-  i8f64: [{ number: t('int8'), }, t('float64')],
-  i16f64: [{ number: t('int16'), }, t('float64')],
-  i32f64: [{ number: t('int32'), }, t('float64')],
-  i64f64: [{ number: t('int64'), }, t('float64')],
-  f32f64: [{ number: t('float32'), }, t('float64')],
-  strf64: [{ str: t('string'), }, t('float64')],
-  boolf64: [{ boo: t('bool'), }, t('float64')],
-  i8f32: [{ number: t('int8'), }, t('float32')],
-  i16f32: [{ number: t('int16'), }, t('float32')],
-  i32f32: [{ number: t('int32'), }, t('float32')],
-  i64f32: [{ number: t('int64'), }, t('float32')],
-  f64f32: [{ number: t('float64'), }, t('float32')],
-  strf32: [{ str: t('string'), }, t('float32')],
-  boolf32: [{ boo: t('bool'), }, t('float32')],
-  i8i64: [{ number: t('int8'), }, t('int64')],
-  i16i64: [{ number: t('int16'), }, t('int64')],
-  i32i64: [{ number: t('int32'), }, t('int64')],
-  f32i64: [{ number: t('float32'), }, t('int64')],
-  f64i64: [{ number: t('float64'), }, t('int64')],
-  stri64: [{ str: t('string'), }, t('int64')],
-  booli64: [{ boo: t('bool'), }, t('int64')],
-  i8i32: [{ number: t('int8'), }, t('int32')],
-  i16i32: [{ number: t('int16'), }, t('int32')],
-  i64i32: [{ number: t('int64'), }, t('int32')],
-  f32i32: [{ number: t('float32'), }, t('int32')],
-  f64i32: [{ number: t('float64'), }, t('int32')],
-  stri32: [{ str: t('string'), }, t('int32')],
-  booli32: [{ boo: t('bool'), }, t('int32')],
-  i8i16: [{ number: t('int8'), }, t('int16')],
-  i32i16: [{ number: t('int32'), }, t('int16')],
-  i64i16: [{ number: t('int64'), }, t('int16')],
-  f32i16: [{ number: t('float32'), }, t('int16')],
-  f64i16: [{ number: t('float64'), }, t('int16')],
-  stri16: [{ str: t('string'), }, t('int16')],
-  booli16: [{ boo: t('bool'), }, t('int16')],
-  i16i8: [{ number: t('int16'), }, t('int8')],
-  i32i8: [{ number: t('int32'), }, t('int8')],
-  i64i8: [{ number: t('int64'), }, t('int8')],
-  f32i8: [{ number: t('float32'), }, t('int8')],
-  f64i8: [{ number: t('float64'), }, t('int8')],
-  stri8: [{ str: t('string'), }, t('int8')],
-  booli8: [{ boo: t('bool'), }, t('int8')],
-  i8bool: [{ number: t('int8'), }, t('bool')],
-  i16bool: [{ number: t('int16'), }, t('bool')],
-  i32bool: [{ number: t('int32'), }, t('bool')],
-  i64bool: [{ number: t('int64'), }, t('bool')],
-  f32bool: [{ number: t('float32'), }, t('bool')],
-  f64bool: [{ number: t('float64'), }, t('bool')],
-  strbool: [{ str: t('string'), }, t('bool')],
-  i8str: [{ number: t('int8'), }, t('string')],
-  i16str: [{ number: t('int16'), }, t('string')],
-  i32str: [{ number: t('int32'), }, t('string')],
-  i64str: [{ number: t('int64'), }, t('string')],
-  f32str: [{ number: t('float32'), }, t('string')],
-  f64str: [{ number: t('float64'), }, t('string')],
-  boolstr: [{ boo: t('bool'), }, t('string')],
-  addi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-  addi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-  addi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-  addi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-  addf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-  addf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
-  subi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-  subi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-  subi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-  subi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-  subf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-  subf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
-  negi8: [{ a: t('int8'), }, t('int8')],
-  negi16: [{ a: t('int16'), }, t('int16')],
-  negi32: [{ a: t('int32'), }, t('int32')],
-  negi64: [{ a: t('int64'), }, t('int64')],
-  negf32: [{ a: t('float32'), }, t('float32')],
-  negf64: [{ a: t('float64'), }, t('float64')],
-  absi8: [{ a: t('int8'), }, t('int8')],
-  absi16: [{ a: t('int16'), }, t('int16')],
-  absi32: [{ a: t('int32'), }, t('int32')],
-  absi64: [{ a: t('int64'), }, t('int64')],
-  absf32: [{ a: t('float32'), }, t('float32')],
-  absf64: [{ a: t('float64'), }, t('float64')],
-  muli8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-  muli16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-  muli32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-  muli64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-  mulf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-  mulf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
-  divi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-  divi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-  divi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-  divi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-  divf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-  divf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
-  modi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-  modi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-  modi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-  modi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-  powi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-  powi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-  powi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-  powi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-  powf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-  powf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
-  sqrtf32: [{ a: t('float32'), }, t('float32')],
-  sqrtf64: [{ a: t('float64'), }, t('float64')],
-  andi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-  andi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-  andi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-  andi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-  andbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-  ori8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-  ori16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-  ori32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-  ori64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-  orbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-  xori8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-  xori16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-  xori32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-  xori64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-  xorbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-  noti8: [{ a: t('int8'), }, t('int8')],
-  noti16: [{ a: t('int16'), }, t('int16')],
-  noti32: [{ a: t('int32'), }, t('int32')],
-  noti64: [{ a: t('int64'), }, t('int64')],
-  notbool: [{ a: t('bool'), }, t('bool')],
-  nandi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-  nandi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-  nandi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-  nandi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-  nandboo: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-  nori8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-  nori16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-  nori32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-  nori64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-  norbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-  xnori8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-  xnori16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-  xnori32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-  xnori64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-  xnorboo: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-  eqi8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
-  eqi16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
-  eqi32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
-  eqi64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
-  eqf32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
-  eqf64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
-  eqbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-  eqstr: [{ a: t('string'), b: t('string'), }, t('bool')],
-  neqi8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
-  neqi16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
-  neqi32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
-  neqi64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
-  neqf32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
-  neqf64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
-  neqbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-  neqstr: [{ a: t('string'), b: t('string'), }, t('bool')],
-  lti8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
-  lti16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
-  lti32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
-  lti64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
-  ltf32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
-  ltf64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
-  ltstr: [{ a: t('string'), b: t('string'), }, t('bool')],
-  ltei8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
-  ltei16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
-  ltei32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
-  ltei64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
-  ltef32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
-  ltef64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
-  ltestr: [{ a: t('string'), b: t('string'), }, t('bool')],
-  gti8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
-  gti16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
-  gti32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
-  gti64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
-  gtf32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
-  gtf64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
-  gtstr: [{ a: t('string'), b: t('string'), }, t('bool')],
-  gtei8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
-  gtei16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
-  gtei32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
-  gtei64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
-  gtef32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
-  gtef64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
-  gtestr: [{ a: t('string'), b: t('string'), }, t('bool')],
-  catstr: [{ a: t('string'), b: t('string'), }, t('string')],
-  catarr: [{ a: t('Array<any>'), b: t('string')}, t('Array<any>')],
-  split: [{ str: t('string'), spl: t('string'), }, t('Array<string>')],
-  repstr: [{ s: t('string'), n: t('int64'), }, t('string')],
-  reparr: [{ arr: t('Array<any>'), n: t('int64'), }, t('Array<any>')],
-  templ: [{ str: t('string'), map: t('Map<string, string>'), }, t('string')],
-  matches: [{ s: t('string'), t: t('string'), }, t('bool')],
-  indstr: [{ s: t('string'), t: t('string'), }, t('int64')],
-  indarr: [{ arr: t('Array<any>'), val: t('any'), }, t('int64')],
-  lenstr: [{ s: t('string'), }, t('int64')],
-  lenarr: [{ arr: t('Array<any>'), }, t('int64')],
-  lenmap: [{ map: t('Map<any, any>'), }, t('int64')],
-  trim: [{ s: t('string'), }, t('string')],
-  pair: [{ trueval: t('any'), falseval: t('any'), }, t('Array<any>')],
-  condarr: [{ cond: t('bool'), options: t('Array<any>'), }, t('any')],
-  condfn: [{ cond: t('bool'), optional: t('function'), }, t('any')],
-  each: [{ arr: t('Array<any>'), cb: t('function'), }, t('void')],
-  map: [{ arr: t('Array<any>'), cb: t('function'), }, t('Array<any>')],
-  reduce: [{ arr: t('Array<any>'), cb: t('function'), }, t('any')],
-  filter: [{ arr: t('Array<any>'), cb: t('function'), }, t('Array<any>')],
-  find: [{ arr: t('Array<any>'), cb: t('function'), }, t('any')],
-  every: [{ arr: t('Array<any>'), cb: t('function'), }, t('bool')],
-  some: [{ arr: t('Array<any>'), cb: t('function'), }, t('bool')],
-  join: [{ arr: t('Array<string>'), sep: t('string'), }, t('string')],
-  keyVal: [{ map: t('Map<any, any>'), }, t('Array<KeyVal<any, any>>')],
-  keys: [{ map: t('Map<any, any>'), }, t('Array<any>')],
-  values: [{ map: t('Map<any, any>'), }, t('Array<any>')],
-  stdoutp: [{ out: t('string'), }, t('void')],
-  exitop: [{ code: t('int8'), }, t('void')],
-})
+    i8f64: [{ number: t('int8'), }, t('float64')],
+    i16f64: [{ number: t('int16'), }, t('float64')],
+    i32f64: [{ number: t('int32'), }, t('float64')],
+    i64f64: [{ number: t('int64'), }, t('float64')],
+    f32f64: [{ number: t('float32'), }, t('float64')],
+    strf64: [{ str: t('string'), }, t('float64')],
+    boolf64: [{ boo: t('bool'), }, t('float64')],
+    i8f32: [{ number: t('int8'), }, t('float32')],
+    i16f32: [{ number: t('int16'), }, t('float32')],
+    i32f32: [{ number: t('int32'), }, t('float32')],
+    i64f32: [{ number: t('int64'), }, t('float32')],
+    f64f32: [{ number: t('float64'), }, t('float32')],
+    strf32: [{ str: t('string'), }, t('float32')],
+    boolf32: [{ boo: t('bool'), }, t('float32')],
+    i8i64: [{ number: t('int8'), }, t('int64')],
+    i16i64: [{ number: t('int16'), }, t('int64')],
+    i32i64: [{ number: t('int32'), }, t('int64')],
+    f32i64: [{ number: t('float32'), }, t('int64')],
+    f64i64: [{ number: t('float64'), }, t('int64')],
+    stri64: [{ str: t('string'), }, t('int64')],
+    booli64: [{ boo: t('bool'), }, t('int64')],
+    i8i32: [{ number: t('int8'), }, t('int32')],
+    i16i32: [{ number: t('int16'), }, t('int32')],
+    i64i32: [{ number: t('int64'), }, t('int32')],
+    f32i32: [{ number: t('float32'), }, t('int32')],
+    f64i32: [{ number: t('float64'), }, t('int32')],
+    stri32: [{ str: t('string'), }, t('int32')],
+    booli32: [{ boo: t('bool'), }, t('int32')],
+    i8i16: [{ number: t('int8'), }, t('int16')],
+    i32i16: [{ number: t('int32'), }, t('int16')],
+    i64i16: [{ number: t('int64'), }, t('int16')],
+    f32i16: [{ number: t('float32'), }, t('int16')],
+    f64i16: [{ number: t('float64'), }, t('int16')],
+    stri16: [{ str: t('string'), }, t('int16')],
+    booli16: [{ boo: t('bool'), }, t('int16')],
+    i16i8: [{ number: t('int16'), }, t('int8')],
+    i32i8: [{ number: t('int32'), }, t('int8')],
+    i64i8: [{ number: t('int64'), }, t('int8')],
+    f32i8: [{ number: t('float32'), }, t('int8')],
+    f64i8: [{ number: t('float64'), }, t('int8')],
+    stri8: [{ str: t('string'), }, t('int8')],
+    booli8: [{ boo: t('bool'), }, t('int8')],
+    i8bool: [{ number: t('int8'), }, t('bool')],
+    i16bool: [{ number: t('int16'), }, t('bool')],
+    i32bool: [{ number: t('int32'), }, t('bool')],
+    i64bool: [{ number: t('int64'), }, t('bool')],
+    f32bool: [{ number: t('float32'), }, t('bool')],
+    f64bool: [{ number: t('float64'), }, t('bool')],
+    strbool: [{ str: t('string'), }, t('bool')],
+    i8str: [{ number: t('int8'), }, t('string')],
+    i16str: [{ number: t('int16'), }, t('string')],
+    i32str: [{ number: t('int32'), }, t('string')],
+    i64str: [{ number: t('int64'), }, t('string')],
+    f32str: [{ number: t('float32'), }, t('string')],
+    f64str: [{ number: t('float64'), }, t('string')],
+    boolstr: [{ boo: t('bool'), }, t('string')],
+    addi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
+    addi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
+    addi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
+    addi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
+    addf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
+    addf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
+    subi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
+    subi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
+    subi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
+    subi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
+    subf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
+    subf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
+    negi8: [{ a: t('int8'), }, t('int8')],
+    negi16: [{ a: t('int16'), }, t('int16')],
+    negi32: [{ a: t('int32'), }, t('int32')],
+    negi64: [{ a: t('int64'), }, t('int64')],
+    negf32: [{ a: t('float32'), }, t('float32')],
+    negf64: [{ a: t('float64'), }, t('float64')],
+    absi8: [{ a: t('int8'), }, t('int8')],
+    absi16: [{ a: t('int16'), }, t('int16')],
+    absi32: [{ a: t('int32'), }, t('int32')],
+    absi64: [{ a: t('int64'), }, t('int64')],
+    absf32: [{ a: t('float32'), }, t('float32')],
+    absf64: [{ a: t('float64'), }, t('float64')],
+    muli8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
+    muli16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
+    muli32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
+    muli64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
+    mulf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
+    mulf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
+    divi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
+    divi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
+    divi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
+    divi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
+    divf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
+    divf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
+    modi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
+    modi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
+    modi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
+    modi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
+    powi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
+    powi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
+    powi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
+    powi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
+    powf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
+    powf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
+    sqrtf32: [{ a: t('float32'), }, t('float32')],
+    sqrtf64: [{ a: t('float64'), }, t('float64')],
+    andi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
+    andi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
+    andi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
+    andi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
+    andbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
+    ori8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
+    ori16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
+    ori32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
+    ori64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
+    orbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
+    xori8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
+    xori16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
+    xori32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
+    xori64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
+    xorbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
+    noti8: [{ a: t('int8'), }, t('int8')],
+    noti16: [{ a: t('int16'), }, t('int16')],
+    noti32: [{ a: t('int32'), }, t('int32')],
+    noti64: [{ a: t('int64'), }, t('int64')],
+    notbool: [{ a: t('bool'), }, t('bool')],
+    nandi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
+    nandi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
+    nandi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
+    nandi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
+    nandboo: [{ a: t('bool'), b: t('bool'), }, t('bool')],
+    nori8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
+    nori16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
+    nori32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
+    nori64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
+    norbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
+    xnori8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
+    xnori16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
+    xnori32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
+    xnori64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
+    xnorboo: [{ a: t('bool'), b: t('bool'), }, t('bool')],
+    eqi8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
+    eqi16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
+    eqi32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
+    eqi64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
+    eqf32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
+    eqf64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
+    eqbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
+    eqstr: [{ a: t('string'), b: t('string'), }, t('bool')],
+    neqi8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
+    neqi16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
+    neqi32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
+    neqi64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
+    neqf32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
+    neqf64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
+    neqbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
+    neqstr: [{ a: t('string'), b: t('string'), }, t('bool')],
+    lti8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
+    lti16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
+    lti32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
+    lti64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
+    ltf32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
+    ltf64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
+    ltstr: [{ a: t('string'), b: t('string'), }, t('bool')],
+    ltei8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
+    ltei16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
+    ltei32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
+    ltei64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
+    ltef32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
+    ltef64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
+    ltestr: [{ a: t('string'), b: t('string'), }, t('bool')],
+    gti8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
+    gti16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
+    gti32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
+    gti64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
+    gtf32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
+    gtf64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
+    gtstr: [{ a: t('string'), b: t('string'), }, t('bool')],
+    gtei8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
+    gtei16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
+    gtei32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
+    gtei64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
+    gtef32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
+    gtef64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
+    gtestr: [{ a: t('string'), b: t('string'), }, t('bool')],
+    waitop: [{ a: t('int64') }, t('void')],
+    catstr: [{ a: t('string'), b: t('string'), }, t('string')],
+    catarr: [{ a: t('Array<any>'), b: t('string') }, t('Array<any>')],
+    split: [{ str: t('string'), spl: t('string'), }, t('Array<string>')],
+    repstr: [{ s: t('string'), n: t('int64'), }, t('string')],
+    reparr: [{ arr: t('Array<any>'), n: t('int64'), }, t('Array<any>')],
+    templ: [{ str: t('string'), map: t('Map<string, string>'), }, t('string')],
+    matches: [{ s: t('string'), t: t('string'), }, t('bool')],
+    indstr: [{ s: t('string'), t: t('string'), }, t('int64')],
+    indarr: [{ arr: t('Array<any>'), val: t('any'), }, t('int64')],
+    lenstr: [{ s: t('string'), }, t('int64')],
+    lenarr: [{ arr: t('Array<any>'), }, t('int64')],
+    lenmap: [{ map: t('Map<any, any>'), }, t('int64')],
+    trim: [{ s: t('string'), }, t('string')],
+    pair: [{ trueval: t('any'), falseval: t('any'), }, t('Array<any>')],
+    condarr: [{ cond: t('bool'), options: t('Array<any>'), }, t('any')],
+    condfn: [{ cond: t('bool'), optional: t('function'), }, t('any')],
+    each: [{ arr: t('Array<any>'), cb: t('function'), }, t('void')],
+    map: [{ arr: t('Array<any>'), cb: t('function'), }, t('Array<any>')],
+    reduce: [{ arr: t('Array<any>'), cb: t('function'), }, t('any')],
+    filter: [{ arr: t('Array<any>'), cb: t('function'), }, t('Array<any>')],
+    find: [{ arr: t('Array<any>'), cb: t('function'), }, t('any')],
+    every: [{ arr: t('Array<any>'), cb: t('function'), }, t('bool')],
+    some: [{ arr: t('Array<any>'), cb: t('function'), }, t('bool')],
+    join: [{ arr: t('Array<string>'), sep: t('string'), }, t('string')],
+    keyVal: [{ map: t('Map<any, any>'), }, t('Array<KeyVal<any, any>>')],
+    keys: [{ map: t('Map<any, any>'), }, t('Array<any>')],
+    values: [{ map: t('Map<any, any>'), }, t('Array<any>')],
+    stdoutp: [{ out: t('string'), }, t('void')],
+    exitop: [{ code: t('int8'), }, t('void')],
+});
+module.exports = opcodeModule;
 
-module.exports = opcodeModule
 },{"./Box":14,"./Event":15,"./Interface":23,"./Microstatement":24,"./Module":25,"./Scope":27,"./StatementType":29,"./Type":30,"uuid":87}],34:[function(require,module,exports){
-const lntoamm = require('../lntoamm')
-const { ammTextToJs, } = require('../ammtojs')
+const lntoamm = require('../lntoamm');
+const { ammTextToJs, } = require('../ammtojs');
+module.exports = (filename) => ammTextToJs(lntoamm(filename));
+module.exports.lnTextToJs = (str) => ammTextToJs(lntoamm.lnTextToAmm(str));
 
-module.exports = (filename) => ammTextToJs(lntoamm(filename))
-module.exports.lnTextToJs = (str) => ammTextToJs(lntoamm.lnTextToAmm(str))
-
-},{"../ammtojs":6,"../lntoamm":32}],35:[function(require,module,exports){
+},{"../ammtojs":8,"../lntoamm":32}],35:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -32360,9 +30552,9 @@ const v5 = (0, _v.default)('v5', 0x50, _sha.default);
 var _default = v5;
 exports.default = _default;
 },{"./sha1.js":90,"./v35.js":93}],"alan-compiler":[function(require,module,exports){
-const ammtojs = require('./ammtojs').ammTextToJs
-const lntoamm = require('./lntoamm').lnTextToAmm
-const lntojs = require('./lntojs').lnTextToJs
+const ammtojs = require('./dist/ammtojs').ammTextToJs
+const lntoamm = require('./dist/lntoamm').lnTextToAmm
+const lntojs = require('./dist/lntojs').lnTextToJs
 
 // We won't support AGC for now because of the complexities of moving off the Buffer API
 const convert = {
@@ -32387,35 +30579,250 @@ module.exports = (inFormat, outFormat, text) => {
   }
 }
 
-},{"./ammtojs":6,"./lntoamm":32,"./lntojs":34}],"alan-js-runtime":[function(require,module,exports){
+},{"./dist/ammtojs":8,"./dist/lntoamm":32,"./dist/lntojs":34}],"alan-js-runtime":[function(require,module,exports){
 (function (process){
 const EventEmitter = require('events')
 
 const e = new EventEmitter()
 
 module.exports = {
-  addi64:  (a, b) => a + b,
+  // Type conversion opcodes (mostly no-ops in JS, unless we implement a strict mode)
+  i8f64:   a => a,
+  i16f64:  a => a,
+  i32f64:  a => a,
+  i64f64:  a => a,
+  f32f64:  a => a,
+  strf64:  a => parseFloat(a),
+  boolf64: a => a ? 1.0 : 0.0,
+
+  i8f32:   a => a,
+  i16f32:  a => a,
+  i32f32:  a => a,
+  i64f32:  a => a,
+  f64f32:  a => a,
+  strf32:  a => parseFloat(a),
+  boolf32: a => a ? 1.0 : 0.0,
+
+  i8i64:   a => a,
+  i16i64:  a => a,
+  i32i64:  a => a,
+  f32i64:  a => Math.floor(a),
+  f64i64:  a => Math.floor(a),
+  stri64:  a => parseInt(a), // intentionally allowing other bases here
+  booli64: a => a ? 1 : 0,
+
+  i8i32:   a => a,
+  i16i32:  a => a,
+  i64i32:  a => a,
+  f32i32:  a => Math.floor(a),
+  f64i32:  a => Math.floor(a),
+  stri32:  a => parseInt(a),
+  booli64: a => a ? 1 : 0,
+
+  i8i16:   a => a,
+  i32i16:  a => a,
+  i64i16:  a => a,
+  f32i16:  a => Math.floor(a),
+  f64i16:  a => Math.floor(a),
+  stri16:  a => parseInt(a),
+  booli16: a => a ? 1 : 0,
+
+  i16i8:   a => a,
+  i32i8:   a => a,
+  i64i8:   a => a,
+  f32i8:   a => Math.floor(a),
+  f64i8:   a => Math.floor(a),
+  stri8:   a => parseInt(a),
+  booli8:  a => a ? 1 : 0,
+
+  i8bool:  a => a !== 0,
+  i16bool: a => a !== 0,
+  i32bool: a => a !== 0,
+  i64bool: a => a !== 0,
+  f32bool: a => a !== 0.0,
+  f64bool: a => a !== 0.0,
+  strbool: a => a === "true",
+
+  i8str:   a => a.toString(),
+  i16str:  a => a.toString(),
+  i32str:  a => a.toString(),
   i64str:  a => a.toString(),
-  catstr:  (a, b) => a.concat(b),
-  subi64:  (a, b) => a - b,
-  muli64:  (a, b) => a * b,
-  divf64:  (a, b) => a / b,
-  modi64:  (a, b) => a % b,
-  powi64:  (a, b) => Math.floor(Math.pow(a, b)),
-  andi64:  (a, b) => a & b,
-  ori64:   (a, b) => a | b,
-  xori64:  (a, b) => a ^ b,
-  noti64:  a => ~a,
-  nandi64: (a, b) => ~(a & b),
-  nori64:  (a, b) => ~(a | b),
-  xnori64: (a, b) => ~(a ^ b),
-  eqi64:   (a, b) => a === b,
-  sqrtf64: a => Math.sqrt(a),
+  f32str:  a => a.toString(),
   f64str:  a => a.toString(),
-  condfn:  (cond, fn) => cond ? fn() : undefined,
+  boolstr: a => a.toString(),
+
+  // Arithmetic opcodes
+  addi8:   (a, b) => a + b,
+  addi16:  (a, b) => a + b,
+  addi32:  (a, b) => a + b,
+  addi64:  (a, b) => a + b,
+  addf32:  (a, b) => a + b,
+  addf64:  (a, b) => a + b,
+
+  subi8:   (a, b) => a - b,
+  subi16:  (a, b) => a - b,
+  subi32:  (a, b) => a - b,
+  subi64:  (a, b) => a - b,
+  subf32:  (a, b) => a - b,
+  subf64:  (a, b) => a - b,
+
+  negi8:   a => 0 - a,
+  negi16:  a => 0 - a,
+  negi32:  a => 0 - a,
+  negi64:  a => 0 - a,
+  negf32:  a => 0.0 - a,
+  negf64:  a => 0.0 - a,
+
+  muli8:   (a, b) => a * b,
+  muli16:  (a, b) => a * b,
+  muli32:  (a, b) => a * b,
+  muli64:  (a, b) => a * b,
+  mulf32:  (a, b) => a * b,
+  mulf64:  (a, b) => a * b,
+
+  divi8:   (a, b) => Math.floor(a / b),
+  divi16:  (a, b) => Math.floor(a / b),
+  divi32:  (a, b) => Math.floor(a / b),
+  divi64:  (a, b) => Math.floor(a / b),
+  divf32:  (a, b) => a / b,
+  divf64:  (a, b) => a / b,
+
+  modi8:   (a, b) => a % b,
+  modi16:  (a, b) => a % b,
+  modi32:  (a, b) => a % b,
+  modi64:  (a, b) => a % b,
+
+  powi8:   (a, b) => Math.floor(a ** b), // If 'b' is negative, it would produce a fraction
+  powi16:  (a, b) => Math.floor(a ** b),
+  powi32:  (a, b) => Math.floor(a ** b),
+  powi64:  (a, b) => Math.floor(a ** b),
+  powf32:  (a, b) => a ** b,
+  powf64:  (a, b) => a ** b,
+
+  sqrtf32: a => Math.sqrt(a),
+  sqrtf64: a => Math.sqrt(a),
+
+  // Boolean and bitwise opcodes
+  andi8:   (a, b) => a & b,
+  andi16:  (a, b) => a & b,
+  andi32:  (a, b) => a & b,
+  andi64:  (a, b) => a & b,
+  andbool: (a, b) => a && b,
+
+  ori8:    (a, b) => a | b,
+  ori16:   (a, b) => a | b,
+  ori32:   (a, b) => a | b,
+  ori64:   (a, b) => a | b,
+  orbool:  (a, b) => a || b,
+
+  xori8:   (a, b) => a ^ b,
+  xori16:  (a, b) => a ^ b,
+  xori32:  (a, b) => a ^ b,
+  xori64:  (a, b) => a ^ b,
+  xorbool: (a, b) => !!(a ^ b),
+
+  noti8:   a => ~a,
+  noti16:  a => ~a,
+  noti32:  a => ~a,
+  noti64:  a => ~a,
   notbool: a => !a,
+
+  nandi8:  (a, b) => ~(a & b),
+  nandi16: (a, b) => ~(a & b),
+  nandi32: (a, b) => ~(a & b),
+  nandi64: (a, b) => ~(a & b),
+  nandboo: (a, b) => !(a && b),
+
+  nori8:   (a, b) => ~(a | b),
+  nori16:  (a, b) => ~(a | b),
+  nori32:  (a, b) => ~(a | b),
+  nori64:  (a, b) => ~(a | b),
+  norbool: (a, b) => !(a || b),
+
+  xnori8:  (a, b) => ~(a ^ b),
+  xnori16: (a, b) => ~(a ^ b),
+  xnori32: (a, b) => ~(a ^ b),
+  xnori64: (a, b) => ~(a ^ b),
+  xnorboo: (a, b) => !(a ^ b),
+
+  // Equality and order opcodes
+  eqi8:    (a, b) => a === b,
+  eqi16:   (a, b) => a === b,
+  eqi32:   (a, b) => a === b,
+  eqi64:   (a, b) => a === b,
+  eqf32:   (a, b) => a === b,
+  eqf64:   (a, b) => a === b,
+  eqstr:   (a, b) => a === b,
+  eqbool:  (a, b) => a === b,
+
+  neqi8:   (a, b) => a !== b,
+  neqi16:  (a, b) => a !== b,
+  neqi32:  (a, b) => a !== b,
+  neqi64:  (a, b) => a !== b,
+  neqf32:  (a, b) => a !== b,
+  neqf64:  (a, b) => a !== b,
+  neqstr:  (a, b) => a !== b,
+  neqbool: (a, b) => a !== b,
+
+  lti8:    (a, b) => a < b,
+  lti16:   (a, b) => a < b,
+  lti32:   (a, b) => a < b,
+  lti64:   (a, b) => a < b,
+  ltf32:   (a, b) => a < b,
+  ltf64:   (a, b) => a < b,
+  ltstr:   (a, b) => a < b,
+
+  ltei8:   (a, b) => a <= b,
+  ltei16:  (a, b) => a <= b,
+  ltei32:  (a, b) => a <= b,
+  ltei64:  (a, b) => a <= b,
+  ltef32:  (a, b) => a <= b,
+  ltef64:  (a, b) => a <= b,
+  ltestr:  (a, b) => a <= b,
+
+  gti8:    (a, b) => a > b,
+  gti16:   (a, b) => a > b,
+  gti32:   (a, b) => a > b,
+  gti64:   (a, b) => a > b,
+  gtf32:   (a, b) => a > b,
+  gtf64:   (a, b) => a > b,
+  gtstr:   (a, b) => a > b,
+
+  gtei8:   (a, b) => a >= b,
+  gtei16:  (a, b) => a >= b,
+  gtei32:  (a, b) => a >= b,
+  gtei64:  (a, b) => a >= b,
+  gtef32:  (a, b) => a >= b,
+  gtef64:  (a, b) => a >= b,
+  gtestr:  (a, b) => a >= b,
+
+  // String opcodes
+  catstr:  (a, b) => a.concat(b),
+  split:   (a, b) => a.split(b),
+  repstr:  (a, b) => new Array(b).fill(a).join(''),
+  // TODO: templ, after maps are figured out
+  matches: (a, b) => a.includes(b),
+  indstr:  (a, b) => a.indexOf(b),
+  lenstr:  a => a.length,
+  trim:    a => a.trim(),
+
+  // Array opcodes TODO after arrays are figured out
+  
+  // Map opcodes TODO after maps are figured out
+
+  // Ternary functions
+  // TODO: pair and condarr after arrays are figured out
+  condfn:  (cond, fn) => cond ? fn() : undefined,
+
+  // IO opcodes
+  asyncopcodes: ['waitop'],
+  waitop: a => new Promise(resolve => setTimeout(resolve, a)),
+
+  // "Special" opcodes
   stdoutp: out => process.stdout.write(out),
   exitop:  code => process.exit(code),
+
+  // Event bookkeeping
   emit:    (name, payload) => e.emit(name, payload),
   on:      (name, cb) => e.on(name, cb),
   emitter: e,

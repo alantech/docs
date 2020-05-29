@@ -1,0 +1,732 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+<head>
+    <!-- Book generated using mdBook -->
+    <meta charset="UTF-8">
+    <title>More advanced examples - Alan Interactive Documentation</title>
+
+    <!-- Custom HTML head -->
+    
+
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff" />
+
+    <link rel="shortcut icon" href="favicon.png">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/general.css">
+    <link rel="stylesheet" href="css/chrome.css">
+
+    <!-- Fonts -->
+    <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+    
+
+    <!-- Highlight.js Stylesheets -->
+    <link rel="stylesheet" href="highlight.css">
+    <link rel="stylesheet" href="tomorrow-night.css">
+    <link rel="stylesheet" href="ayu-highlight.css">
+
+    <!-- Custom theme stylesheets -->
+    
+        <link rel="stylesheet" href="css/solarized-light-hljs.css">
+    
+        <link rel="stylesheet" href="css/solarized-dark-hljs.css">
+    
+
+    
+</head>
+<body>
+<!-- Provide site root to javascript -->
+<script type="text/javascript">
+    var path_to_root = "";
+    var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "solarized-dark" : "solarized-light";
+</script>
+
+<!-- Work around some values being stored in localStorage wrapped in quotes -->
+<script type="text/javascript">
+    try {
+        var sidebar = localStorage.getItem('mdbook-sidebar');
+
+        if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+            localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+        }
+    } catch (e) { }
+</script>
+
+<!-- Set the theme before any content is loaded, prevents flash -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    html.classList.remove('no-js')
+    html.classList.add(default_theme);
+    html.classList.add('js');
+</script>
+
+<!-- Hide / unhide sidebar before it is displayed -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    var sidebar = 'hidden';
+    if (document.body.clientWidth >= 1080) {
+        try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+        sidebar = sidebar || 'visible';
+    }
+    html.classList.remove('sidebar-visible');
+    html.classList.add("sidebar-" + sidebar);
+</script>
+
+<nav id="sidebar" class="sidebar" aria-label="Table of contents">
+    <div class="sidebar-scrollbox">
+        <ol class="chapter"><li class="chapter-item expanded "><a href="about_alan.html"><strong aria-hidden="true">1.</strong> About alan</a></li><li class="chapter-item expanded "><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li class="chapter-item expanded "><a href="language_reference.html"><strong aria-hidden="true">3.</strong> Language Reference</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="structure_and_notation.html"><strong aria-hidden="true">3.1.</strong> Structure and Notation</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="file_structure.html"><strong aria-hidden="true">3.1.1.</strong> File Structure</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="scope.html"><strong aria-hidden="true">3.1.1.1.</strong> Implied Structure: Scope</a></li><li class="chapter-item "><a href="imports.html"><strong aria-hidden="true">3.1.1.2.</strong> Imports</a></li><li class="chapter-item "><a href="types.html"><strong aria-hidden="true">3.1.1.3.</strong> Types</a></li><li class="chapter-item "><a href="constants.html"><strong aria-hidden="true">3.1.1.4.</strong> Constants</a></li><li class="chapter-item "><a href="events.html"><strong aria-hidden="true">3.1.1.5.</strong> Events</a></li><li class="chapter-item "><a href="functions.html"><strong aria-hidden="true">3.1.1.6.</strong> Functions</a></li><li class="chapter-item "><a href="operators.html"><strong aria-hidden="true">3.1.1.7.</strong> Operators</a></li><li class="chapter-item "><a href="statements.html"><strong aria-hidden="true">3.1.1.8.</strong> Statements</a></li><li class="chapter-item "><a href="interfaces.html"><strong aria-hidden="true">3.1.1.9.</strong> Interfaces</a></li><li class="chapter-item "><a href="handlers.html"><strong aria-hidden="true">3.1.1.10.</strong> Handlers</a></li><li class="chapter-item "><a href="exports.html"><strong aria-hidden="true">3.1.1.11.</strong> Exports</a></li><li class="chapter-item "><a href="classes.html"><strong aria-hidden="true">3.1.1.12.</strong> Classes</a></li></ol></li><li class="chapter-item expanded "><a href="modules.html"><strong aria-hidden="true">3.1.2.</strong> Modules</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="module_definition.html"><strong aria-hidden="true">3.1.2.1.</strong> Definition</a></li><li class="chapter-item "><a href="module_resolution.html"><strong aria-hidden="true">3.1.2.2.</strong> Resolution</a></li><li class="chapter-item "><a href="module_acquisition.html"><strong aria-hidden="true">3.1.2.3.</strong> Acquisition</a></li><li class="chapter-item "><a href="module_testing.html"><strong aria-hidden="true">3.1.2.4.</strong> Testing and Mocking</a></li><li class="chapter-item "><a href="module_mutation.html"><strong aria-hidden="true">3.1.2.5.</strong> Mutation</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="standard_library.html"><strong aria-hidden="true">3.2.</strong> Standard Library</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="built_ins.html"><strong aria-hidden="true">3.2.1.</strong> Built-ins</a></li><li class="chapter-item expanded "><a href="std_app.html"><strong aria-hidden="true">3.2.2.</strong> @std/app</a></li><li class="chapter-item expanded "><a href="std_trig.html"><strong aria-hidden="true">3.2.3.</strong> @std/trig</a></li><li class="chapter-item expanded "><a href="std_stats.html"><strong aria-hidden="true">3.2.4.</strong> @std/stats</a></li><li class="chapter-item expanded "><a href="std_http.html"><strong aria-hidden="true">3.2.5.</strong> @std/http</a></li><li class="chapter-item expanded "><a href="std_dht.html"><strong aria-hidden="true">3.2.6.</strong> @std/dht</a></li><li class="chapter-item expanded "><a href="std_datastore.html"><strong aria-hidden="true">3.2.7.</strong> @std/datastore</a></li><li class="chapter-item expanded "><a href="std_logger.html"><strong aria-hidden="true">3.2.8.</strong> @std/logger</a></li><li class="chapter-item expanded "><a href="std_tcp.html"><strong aria-hidden="true">3.2.9.</strong> @std/tcp</a></li><li class="chapter-item expanded "><a href="std_udp.html"><strong aria-hidden="true">3.2.10.</strong> @std/udp</a></li><li class="chapter-item expanded "><a href="alantech_postgres.html"><strong aria-hidden="true">3.2.11.</strong> @alantech/postgres</a></li><li class="chapter-item expanded "><a href="std_test.html"><strong aria-hidden="true">3.2.12.</strong> @std/test</a></li><li class="chapter-item expanded "><a href="std_fs.html"><strong aria-hidden="true">3.2.13.</strong> @std/fs</a></li><li class="chapter-item expanded "><a href="std_csv.html"><strong aria-hidden="true">3.2.14.</strong> @std/csv</a></li><li class="chapter-item expanded "><a href="std_json.html"><strong aria-hidden="true">3.2.15.</strong> @std/json</a></li><li class="chapter-item expanded "><a href="std_xml.html"><strong aria-hidden="true">3.2.16.</strong> @std/xml</a></li><li class="chapter-item expanded "><a href="std_html.html"><strong aria-hidden="true">3.2.17.</strong> @std/html</a></li><li class="chapter-item expanded "><a href="std_css.html"><strong aria-hidden="true">3.2.18.</strong> @std/css</a></li><li class="chapter-item expanded "><a href="std_zlib.html"><strong aria-hidden="true">3.2.19.</strong> @std/zlib</a></li><li class="chapter-item expanded "><a href="std_bz2.html"><strong aria-hidden="true">3.2.20.</strong> @std/bz2</a></li><li class="chapter-item expanded "><a href="std_lzma.html"><strong aria-hidden="true">3.2.21.</strong> @std/lzma</a></li><li class="chapter-item expanded "><a href="std_base64.html"><strong aria-hidden="true">3.2.22.</strong> @std/base64</a></li><li class="chapter-item expanded "><a href="std_hash.html"><strong aria-hidden="true">3.2.23.</strong> @std/hash</a></li><li class="chapter-item expanded "><a href="std_ssl.html"><strong aria-hidden="true">3.2.24.</strong> @std/ssl</a></li><li class="chapter-item expanded "><a href="alantech_auth.html"><strong aria-hidden="true">3.2.25.</strong> @alantech/auth</a></li><li class="chapter-item expanded "><a href="std_i18n.html"><strong aria-hidden="true">3.2.26.</strong> @std/i18n</a></li><li class="chapter-item expanded "><a href="alantech_graphql.html"><strong aria-hidden="true">3.2.27.</strong> @alantech/graphql</a></li><li class="chapter-item expanded "><a href="alantech_oauth2.html"><strong aria-hidden="true">3.2.28.</strong> @alantech/oauth2</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="examples_with_explanations.html"><strong aria-hidden="true">4.</strong> Examples with Explanations</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="many_forms_hello_world.html"><strong aria-hidden="true">4.1.</strong> The many forms of &quot;Hello, World!&quot;</a></li><li class="chapter-item expanded "><a href="advanced_examples.html" class="active"><strong aria-hidden="true">4.2.</strong> More advanced examples</a></li></ol></li></ol>
+    </div>
+    <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+</nav>
+
+<div id="page-wrapper" class="page-wrapper">
+
+    <div class="page">
+        
+        <div id="menu-bar-hover-placeholder"></div>
+        <div id="menu-bar" class="menu-bar sticky bordered">
+            <div class="left-buttons">
+                <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                    <i class="fa fa-bars"></i>
+                </button>
+                
+                    <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <i class="fa fa-search"></i>
+                    </button>
+                
+            </div>
+
+            <h1 class="menu-title">Alan Interactive Documentation</h1>
+
+            <div class="right-buttons">
+                
+                    <a href="https://github.com/alantech" title="Git repository" aria-label="Git repository">
+                        <i id="git-repository-button" class="fa fa-github"></i>
+                    </a>
+                
+            </div>
+        </div>
+
+        
+            <div id="search-wrapper" class="hidden">
+                <form id="searchbar-outer" class="searchbar-outer">
+                    <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                </form>
+                <div id="searchresults-outer" class="searchresults-outer hidden">
+                    <div id="searchresults-header" class="searchresults-header"></div>
+                    <ul id="searchresults">
+                    </ul>
+                </div>
+            </div>
+        
+
+        <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+        <script type="text/javascript">
+            document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+            document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+            Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+            });
+        </script>
+
+        <div id="content" class="content">
+            <main>
+                <h2><a class="header" href="#more-advanced-examples" id="more-advanced-examples">More advanced examples</a></h2>
+<p>These examples are still relatively simple (they fit in a single file) but they demonstrate more concepts that cannot be easily shown in just a &quot;Hello, World!&quot; application.</p>
+<h3><a class="header" href="#mathln" id="mathln"><code>math.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+
+on start fn {
+  print(concat(&quot;1 + 2 = &quot;, toString(1 + 2)))
+  print(concat(&quot;1 - 2 = &quot;, toString(1 - 2)))
+  print(concat(&quot;1 * 2 = &quot;, toString(1 * 2)))
+  print(concat(&quot;1 / 2 = &quot;, toString(1.0 / 2.0)))
+  print(concat(&quot;1 % 2 = &quot;, toString(1 % 2)))
+  print(concat(&quot;1 ** 2 = &quot;, toString(1 ** 2)))
+  print(concat(&quot;1 &amp; 2 = &quot;, toString(1 &amp; 2)))
+  print(concat(&quot;1 | 2 = &quot;, toString(1 | 2)))
+  print(concat(&quot;1 ^ 2 = &quot;, toString(1 ^ 2)))
+  print(concat(&quot;!1 = &quot;, toString(!1)))
+  print(concat(&quot;1 !&amp; 2 = &quot;, toString(1 !&amp; 2)))
+  print(concat(&quot;1 !| 2 = &quot;, toString(1 !| 2)))
+  print(concat(&quot;1 !^ 2 = &quot;, toString(1 !^ 2)))
+  print(concat(&quot;1 + 2 * 3 ** 4 = &quot;, toString(1 + 2 * 3 ** 4)))
+
+  emit exit 0
+}
+</code></pre></pre>
+<p>This example shows multiple math operations and their results, with the last statement demonstrating the order of operations effectively inverting the computational flow of that statement.</p>
+<h3><a class="header" href="#object_literalsln" id="object_literalsln"><code>object_literals.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+
+type MyType {
+  foo: string
+  bar: bool
+}
+
+on start {
+  print(&quot;Custom type assignment&quot;)
+  const test = new MyType {
+    foo = &quot;foo!&quot;
+    bar = true
+  }
+  print(test.foo)
+  print(test.bar)
+
+  let test2 = new MyType {
+    foo = &quot;foo2&quot;
+    bar = true
+  }
+  test2.bar = false
+  print(test2.foo)
+  print(test2.bar)
+
+  print(&quot;Array literal assignment&quot;)
+  const test3 = new Array&lt;int64&gt; [ 1, 2, 4, 8, 16, 32, 64 ]
+  print(test3[0])
+  print(test3[1])
+  print(test3[2])
+
+  let test4 = new Array&lt;int64&gt; [ 0, 1, 2, 3 ]
+  test4[0] = 1
+  print(test4[0])
+
+  print(&quot;Map literal assignment&quot;)
+  const test5 = new Map&lt;bool, int64&gt; {
+    true: 1
+    false: 0
+  }
+
+  print(test5[true])
+  print(test5[false])
+
+  let test6 = new Map&lt;string, string&gt; {
+    &quot;foo&quot;: &quot;bar&quot;
+  }
+  test6[&quot;foo&quot;] = &quot;baz&quot;
+  print(test6[&quot;foo&quot;])
+
+  emit exit 0
+}
+</code></pre></pre>
+<p>This example demonstrates the three (so far) object literal syntaxes and sub-value accessor syntaxes.</p>
+<h3><a class="header" href="#ifln" id="ifln"><code>if.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+
+fn bar() {
+  print(&quot;bar!&quot;)
+}
+
+fn baz() {
+  print(&quot;baz!&quot;)
+}
+
+fn nearOrFar(distance: float64): string {
+  if distance &lt; 5.0 {
+    return &quot;Near!&quot;
+  } else {
+    return &quot;Far!&quot;
+  }
+}
+
+on start {
+  if 1 == 0 {
+    print(&quot;What!?&quot;)
+  } else {
+    print(&quot;The world is sane...&quot;)
+  }
+
+  if 1 == 0 {
+    print(&quot;Not this again...&quot;)
+  } else if 1 == 2 {
+    print(&quot;Still wrong...&quot;)
+  } else {
+    print(&quot;The world is still sane, for now...&quot;)
+  }
+
+  const foo: bool = true
+  if foo bar else baz
+
+  print(nearOrFar(3.14))
+  print(nearOrFar(6.28))
+
+  const options = pair(2, 4)
+  print(options[0])
+  print(options[1])
+
+  const options2 = 3 : 5
+  print(options2[0])
+  print(options2[1])
+
+  const val1 = 1 == 1 ? 1 : 2
+  const val2 = 1 == 0 ? 1 : 2
+  print(val1)
+  print(val2)
+
+  const val3 = cond(1 == 1, pair(3, 4))
+  const val4 = cond(1 == 0, pair(3, 4))
+  print(val3)
+  print(val4)
+
+  const val5 = 1 == 0 ? options2
+  print(val5)
+
+  emit exit 0
+}
+</code></pre></pre>
+<p>This example demonstrates conditionals (if statements) and shows that the conditional &quot;scopes&quot; are actually functions, but due to how nested scope rules work, they can still manipulate the parent function scope as needed for execution to function. It also demonstrates &quot;ternary&quot; operators and how they are composed of <code>pair</code> and <code>cond</code> function calls.</p>
+<h3><a class="header" href="#datetimeln" id="datetimeln"><code>datetime.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import print
+
+export type Year {
+  year: int32
+}
+
+export type YearMonth {
+  year: int32
+  month: int8
+}
+
+export type Date {
+  year: int32
+  month: int8
+  day: int8
+}
+
+export type Hour {
+  hour: int8
+}
+
+export type HourMinute {
+  hour: int8
+  minute: int8
+}
+
+export type Time {
+  hour: int8
+  minute: int8
+  second: float64
+}
+
+export type DateTime {
+  date: Date
+  time: Time
+  timezone: HourMinute
+}
+
+export fn makeYear(year: int32): Year {
+  return new Year {
+    year = year
+  }
+}
+
+export fn makeYear(year: int64): Year {
+  return new Year {
+    year = toInt32(year)
+  }
+}
+
+export fn makeYearMonth(year: int32, month: int8): YearMonth {
+  return new YearMonth {
+    year = year
+    month = month
+  }
+}
+
+export fn makeYearMonth(y: Year, month: int64): YearMonth {
+  return new YearMonth {
+    year = y.year
+    month = toInt8(month)
+  }
+}
+
+export fn makeDate(year: int32, month: int8, day: int8): Date {
+  return new Date {
+    year = year
+    month = month
+    day = day
+  }
+}
+
+export fn makeDate(ym: YearMonth, day: int64): Date {
+  return new Date {
+    year = ym.year
+    month = ym.month
+    day = toInt8(day)
+  }
+}
+
+export fn makeHour(hour: int8): Hour {
+  return new Hour {
+    hour = hour
+  }
+}
+
+export fn makeHourMinute(hour: int8, minute: int8): HourMinute {
+  return new HourMinute {
+    hour = hour
+    minute = minute
+  }
+}
+
+export fn makeHourMinute(hour: int64, minute: int64): HourMinute {
+  return new HourMinute {
+    hour = toInt8(hour)
+    minute = toInt8(minute)
+  }
+}
+
+export fn makeHourMinute(h: Hour, minute: int8): HourMinute {
+  return new HourMinute {
+    hour = h.hour
+    minute = minute
+  }
+}
+
+export fn makeTime(hour: int8, minute: int8, second: float64): Time {
+  return new Time {
+    hour = hour
+    minute = minute
+    second = second
+  }
+}
+
+export fn makeTime(hm: HourMinute, second: float64): Time {
+  return new Time {
+    hour = hm.hour
+    minute = hm.minute
+    second = second
+  }
+}
+
+export fn makeTime(hm: HourMinute, second: int64): Time {
+  return new Time {
+    hour = hm.hour
+    minute = hm.minute
+    second = toFloat64(second)
+  }
+}
+
+export fn makeDateTime(date: Date, time: Time, timezone: HourMinute): DateTime {
+  return new DateTime {
+    date = date
+    time = time
+    timezone = timezone
+  }
+}
+
+export fn makeDateTime(date: Date, time: Time): DateTime {
+  return new DateTime {
+    date = date
+    time = time
+  }
+}
+
+export fn makeDateTimeTimezone(dt: DateTime, timezone: HourMinute): DateTime {
+  return new DateTime {
+    date = dt.date
+    time = dt.time
+    timezone = timezone
+  }
+}
+
+export fn makeDateTimeTimezoneRev(dt: DateTime, timezone: HourMinute): DateTime {
+  return new DateTime {
+    date = dt.date
+    time = dt.time
+    timezone = new HourMinute {
+      hour = -timezone.hour
+      minute = timezone.minute
+    }
+  }
+}
+
+export fn print(dt: DateTime) {
+  // TODO: Work on formatting stuff
+  let timezoneOffsetSymbol: string
+  if (dt.timezone.hour &lt; toInt8(0)) {
+    timezoneOffsetSymbol = &quot;-&quot;
+  } else {
+    timezoneOffsetSymbol = &quot;+&quot;
+  }
+  let str: string = concat(
+    toString(dt.date.year), &quot;-&quot;, toString(dt.date.month), &quot;-&quot;, toString(dt.date.day), &quot;@&quot;,
+    toString(dt.time.hour), &quot;:&quot;, toString(dt.time.minute), &quot;:&quot;, toString(dt.time.second),
+    timezoneOffsetSymbol, abs(dt.timezone.hour).toString(), &quot;:&quot;, dt.timezone.minute.toString()
+  )
+  print(str)
+}
+
+export prefix # 2 makeYear
+
+export infix - 2 makeYearMonth
+
+export infix - 2 makeDate
+
+export infix : 3 makeHourMinute
+
+export infix : 3 makeTime
+
+export infix @ 2 makeDateTime
+
+export infix + 2 makeDateTimeTimezone
+
+export infix - 2 makeDateTimeTimezoneRev
+</code></pre></pre>
+<p>This more complex example defines a simplistic DateTime type and associated types, as well as various constructor functions and mappings of those onto operators.</p>
+<h3><a class="header" href="#test_datetimeln" id="test_datetimeln"><code>test_datetime.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, exit
+
+from ./datetime import DateTime, print, #, -, :, @, +
+
+on start fn {
+  const dt: DateTime = #2020-01-15@09:45:00-08:00
+  print(dt)
+  emit exit 0
+}
+</code></pre></pre>
+<p>This file uses the <code>datetime.ln</code> file to very concisely define a time in ISO format and then print it out. It is a demonstration of how operators can be used to create compact-but-clear DSLs where you can still go to the source code to find out how and why it works.</p>
+<h3><a class="header" href="#methodln" id="methodln"><code>method.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+
+from ./datetime import DateTime, print, #, -, :, @, +
+
+on start fn {
+  true.print()
+  1.print()
+  3.14159.print()
+  &quot;Hello, World!&quot;.print()
+
+  const dt: DateTime = #2020-01-17@16:15:00-08:00
+  dt.print()
+
+  print(3.add(2))
+  3.add(2).print()
+  (3 + 2).print()
+
+  emit exit 0
+}
+</code></pre></pre>
+<p>This example introduces method syntax, and shows multiple variants of the same statement at the end.</p>
+<h3><a class="header" href="#stringln" id="stringln"><code>string.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+
+on start fn {
+  const helloWorld: string = &quot;Hello, &quot; + &quot;World!&quot;
+  print(helloWorld)
+
+  const helloWorldArr: Array&lt;string&gt; = helloWorld / &quot;, &quot;
+  print(helloWorldArr[0])
+  print(helloWorldArr[1])
+
+  const helloWorldArr2: Array&lt;string&gt; = helloWorld.split(&quot;, &quot;)
+  print(helloWorldArr2[0])
+  print(helloWorldArr2[1])
+
+  const helloWorldMap = new Map&lt;string, string&gt; {
+    &quot;hello&quot;: &quot;Hello&quot;
+    &quot;world&quot;: &quot;World&quot;
+  }
+  print(template(&quot;${hello}, ${world}!&quot;, helloWorldMap))
+  print(&quot;${hello}, ${world}!&quot; % helloWorldMap)
+
+  print(&quot;Hi &quot; * 5)
+  print(repeat(&quot;Hi &quot;, 5))
+
+  print(helloWorld ~ &quot;or&quot;) // Java's regex engine is whack, this returns false, replace with PCRE
+  print(helloWorld.matches(&quot;or&quot;))
+
+  print(helloWorld @ &quot;or&quot;)
+  helloWorld.index(&quot;or&quot;).print()
+
+  print(#helloWorld)
+  print(length(helloWorld))
+  print(helloWorld.length())
+  helloWorld.length().print()
+
+  print(&quot;'&quot; + `(&quot;Hi &quot; * 5) + &quot;'&quot;)
+  print(concat(&quot;'&quot;, trim(repeat(&quot;Hi &quot;, 5)), &quot;'&quot;))
+
+  emit exit 0
+}
+</code></pre></pre>
+<p>This example exercises many string manipulation mechanisms and alternate syntaxes using operators and method style function calls.</p>
+<h3><a class="header" href="#typeofln" id="typeofln"><code>typeof.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+
+type foo&lt;A, B&gt; {
+  bar: A
+  baz: B
+}
+
+type foo2 = foo&lt;int64, float64&gt;
+
+on start fn {
+  print(type 3)
+  print(type 3.14)
+  print(type (1 + 2))
+  print(type &quot;str&quot;)
+  print(type true)
+  print(type true == &quot;bool&quot;)
+  
+  let a: foo&lt;string, int64&gt;
+  let b: foo&lt;int64, bool&gt;
+  let c: foo2
+  let d: foo&lt;int64, float64&gt;
+  print(type a)
+  print(type b)
+  print(type type a)
+  print(type c)
+  print(type d)
+  print(type c == type d)
+
+  emit exit 0
+}
+</code></pre></pre>
+<p>This example demonstrates acquiring the type of constants and variables, as well as the basics of generic types.</p>
+<h3><a class="header" href="#boxln" id="boxln"><code>box.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+
+type box&lt;V&gt; {
+  set: bool
+  val: V
+}
+
+on start fn {
+  let int8Box: box&lt;int8&gt;
+  int8Box.val = 8
+  int8Box.set = true
+  print(int8Box.val)
+  print(int8Box.set)
+
+  let stringBox: box&lt;string&gt;
+  stringBox.val = &quot;hello, generics!&quot;
+  stringBox.set = true
+  print(stringBox.val)
+  print(stringBox.set)
+
+  const stringBoxBox = new box&lt;box&lt;string&gt;&gt; {
+    val = new box&lt;string&gt; {
+      val = &quot;hello, nested generics!&quot;
+      set = true
+    }
+    set = true
+  }
+  stringBoxBox.set.print()
+  stringBoxBox.val.set.print()
+  stringBoxBox.val.val.print()
+
+  // The following should crash, later will be a compile-time error
+  stringBox.val = 8
+
+  emit exit 0
+}
+</code></pre></pre>
+<p>This example uses generics to define a Box type and how to work with it at a basic assignment level.</p>
+<h3><a class="header" href="#big_loopln" id="big_loopln"><code>big_loop.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+
+event loop: int64
+
+on loop fn looper(val: int64) {
+  print(val)
+  if val &gt;= 1000000 {
+    emit exit 0
+  } else {
+    emit loop val + 1
+  }
+}
+
+on start {
+  emit loop 0
+}
+</code></pre></pre>
+<p>This example defines a custom event type and then uses it to implement a recursive function that prints to 1 million and then quits. It also usesif statements to accomplish this.</p>
+<p>This is slow and intentionally awkward because this is an escape hatch to Turing-completeness and not the intended primary use case, as <code>alan</code>'s execution planner will not be able to properly optimize the parallelization of this approach (it is by definition a sequential operation, though the body of the recursive function may be parallelized). It shouldn't be necessary to accomplish your needs in the language, but it is there.</p>
+<h3><a class="header" href="#httpln" id="httpln"><code>http.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">import @std/http
+
+on http.port(8080) fn (socket: http.Socket) {
+  socket.response.statusCode = 200
+  socket.response.body = &quot;Hello, World!&quot;
+  http.close(socket)
+}
+</code></pre></pre>
+<p>This example defines a <code>Hello, World!</code> http server on port 8080.</p>
+
+            </main>
+
+            <nav class="nav-wrapper" aria-label="Page navigation">
+                <!-- Mobile navigation buttons -->
+                
+                    <a rel="prev" href="many_forms_hello_world.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+
+                <div style="clear: both"></div>
+            </nav>
+        </div>
+    </div>
+
+    <nav class="nav-wide-wrapper" aria-label="Page navigation">
+        
+            <a rel="prev" href="many_forms_hello_world.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        
+    </nav>
+
+</div>
+
+
+
+
+
+
+    <script type="text/javascript">
+        window.playpen_line_numbers = true;
+    </script>
+
+
+
+    <script type="text/javascript">
+        window.playpen_copyable = true;
+    </script>
+
+
+
+    <script src="ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="editor.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mode-rust.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-dawn.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-tomorrow_night.js" type="text/javascript" charset="utf-8"></script>
+
+
+
+    <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+
+<!-- Custom JS scripts -->
+
+    <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_dark.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_light.js"></script>
+
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+<script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+</body>
+</html>

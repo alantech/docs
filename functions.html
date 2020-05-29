@@ -1,0 +1,296 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+<head>
+    <!-- Book generated using mdBook -->
+    <meta charset="UTF-8">
+    <title>Functions - Alan Interactive Documentation</title>
+
+    <!-- Custom HTML head -->
+    
+
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff" />
+
+    <link rel="shortcut icon" href="favicon.png">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/general.css">
+    <link rel="stylesheet" href="css/chrome.css">
+
+    <!-- Fonts -->
+    <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+    
+
+    <!-- Highlight.js Stylesheets -->
+    <link rel="stylesheet" href="highlight.css">
+    <link rel="stylesheet" href="tomorrow-night.css">
+    <link rel="stylesheet" href="ayu-highlight.css">
+
+    <!-- Custom theme stylesheets -->
+    
+        <link rel="stylesheet" href="css/solarized-light-hljs.css">
+    
+        <link rel="stylesheet" href="css/solarized-dark-hljs.css">
+    
+
+    
+</head>
+<body>
+<!-- Provide site root to javascript -->
+<script type="text/javascript">
+    var path_to_root = "";
+    var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "solarized-dark" : "solarized-light";
+</script>
+
+<!-- Work around some values being stored in localStorage wrapped in quotes -->
+<script type="text/javascript">
+    try {
+        var sidebar = localStorage.getItem('mdbook-sidebar');
+
+        if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+            localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+        }
+    } catch (e) { }
+</script>
+
+<!-- Set the theme before any content is loaded, prevents flash -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    html.classList.remove('no-js')
+    html.classList.add(default_theme);
+    html.classList.add('js');
+</script>
+
+<!-- Hide / unhide sidebar before it is displayed -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    var sidebar = 'hidden';
+    if (document.body.clientWidth >= 1080) {
+        try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+        sidebar = sidebar || 'visible';
+    }
+    html.classList.remove('sidebar-visible');
+    html.classList.add("sidebar-" + sidebar);
+</script>
+
+<nav id="sidebar" class="sidebar" aria-label="Table of contents">
+    <div class="sidebar-scrollbox">
+        <ol class="chapter"><li class="chapter-item expanded "><a href="about_alan.html"><strong aria-hidden="true">1.</strong> About alan</a></li><li class="chapter-item expanded "><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li class="chapter-item expanded "><a href="language_reference.html"><strong aria-hidden="true">3.</strong> Language Reference</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="structure_and_notation.html"><strong aria-hidden="true">3.1.</strong> Structure and Notation</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="file_structure.html"><strong aria-hidden="true">3.1.1.</strong> File Structure</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="scope.html"><strong aria-hidden="true">3.1.1.1.</strong> Implied Structure: Scope</a></li><li class="chapter-item "><a href="imports.html"><strong aria-hidden="true">3.1.1.2.</strong> Imports</a></li><li class="chapter-item "><a href="types.html"><strong aria-hidden="true">3.1.1.3.</strong> Types</a></li><li class="chapter-item "><a href="constants.html"><strong aria-hidden="true">3.1.1.4.</strong> Constants</a></li><li class="chapter-item "><a href="events.html"><strong aria-hidden="true">3.1.1.5.</strong> Events</a></li><li class="chapter-item expanded "><a href="functions.html" class="active"><strong aria-hidden="true">3.1.1.6.</strong> Functions</a></li><li class="chapter-item "><a href="operators.html"><strong aria-hidden="true">3.1.1.7.</strong> Operators</a></li><li class="chapter-item "><a href="statements.html"><strong aria-hidden="true">3.1.1.8.</strong> Statements</a></li><li class="chapter-item "><a href="interfaces.html"><strong aria-hidden="true">3.1.1.9.</strong> Interfaces</a></li><li class="chapter-item "><a href="handlers.html"><strong aria-hidden="true">3.1.1.10.</strong> Handlers</a></li><li class="chapter-item "><a href="exports.html"><strong aria-hidden="true">3.1.1.11.</strong> Exports</a></li><li class="chapter-item "><a href="classes.html"><strong aria-hidden="true">3.1.1.12.</strong> Classes</a></li></ol></li><li class="chapter-item expanded "><a href="modules.html"><strong aria-hidden="true">3.1.2.</strong> Modules</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="module_definition.html"><strong aria-hidden="true">3.1.2.1.</strong> Definition</a></li><li class="chapter-item "><a href="module_resolution.html"><strong aria-hidden="true">3.1.2.2.</strong> Resolution</a></li><li class="chapter-item "><a href="module_acquisition.html"><strong aria-hidden="true">3.1.2.3.</strong> Acquisition</a></li><li class="chapter-item "><a href="module_testing.html"><strong aria-hidden="true">3.1.2.4.</strong> Testing and Mocking</a></li><li class="chapter-item "><a href="module_mutation.html"><strong aria-hidden="true">3.1.2.5.</strong> Mutation</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="standard_library.html"><strong aria-hidden="true">3.2.</strong> Standard Library</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="built_ins.html"><strong aria-hidden="true">3.2.1.</strong> Built-ins</a></li><li class="chapter-item expanded "><a href="std_app.html"><strong aria-hidden="true">3.2.2.</strong> @std/app</a></li><li class="chapter-item expanded "><a href="std_trig.html"><strong aria-hidden="true">3.2.3.</strong> @std/trig</a></li><li class="chapter-item expanded "><a href="std_stats.html"><strong aria-hidden="true">3.2.4.</strong> @std/stats</a></li><li class="chapter-item expanded "><a href="std_http.html"><strong aria-hidden="true">3.2.5.</strong> @std/http</a></li><li class="chapter-item expanded "><a href="std_dht.html"><strong aria-hidden="true">3.2.6.</strong> @std/dht</a></li><li class="chapter-item expanded "><a href="std_datastore.html"><strong aria-hidden="true">3.2.7.</strong> @std/datastore</a></li><li class="chapter-item expanded "><a href="std_logger.html"><strong aria-hidden="true">3.2.8.</strong> @std/logger</a></li><li class="chapter-item expanded "><a href="std_tcp.html"><strong aria-hidden="true">3.2.9.</strong> @std/tcp</a></li><li class="chapter-item expanded "><a href="std_udp.html"><strong aria-hidden="true">3.2.10.</strong> @std/udp</a></li><li class="chapter-item expanded "><a href="alantech_postgres.html"><strong aria-hidden="true">3.2.11.</strong> @alantech/postgres</a></li><li class="chapter-item expanded "><a href="std_test.html"><strong aria-hidden="true">3.2.12.</strong> @std/test</a></li><li class="chapter-item expanded "><a href="std_fs.html"><strong aria-hidden="true">3.2.13.</strong> @std/fs</a></li><li class="chapter-item expanded "><a href="std_csv.html"><strong aria-hidden="true">3.2.14.</strong> @std/csv</a></li><li class="chapter-item expanded "><a href="std_json.html"><strong aria-hidden="true">3.2.15.</strong> @std/json</a></li><li class="chapter-item expanded "><a href="std_xml.html"><strong aria-hidden="true">3.2.16.</strong> @std/xml</a></li><li class="chapter-item expanded "><a href="std_html.html"><strong aria-hidden="true">3.2.17.</strong> @std/html</a></li><li class="chapter-item expanded "><a href="std_css.html"><strong aria-hidden="true">3.2.18.</strong> @std/css</a></li><li class="chapter-item expanded "><a href="std_zlib.html"><strong aria-hidden="true">3.2.19.</strong> @std/zlib</a></li><li class="chapter-item expanded "><a href="std_bz2.html"><strong aria-hidden="true">3.2.20.</strong> @std/bz2</a></li><li class="chapter-item expanded "><a href="std_lzma.html"><strong aria-hidden="true">3.2.21.</strong> @std/lzma</a></li><li class="chapter-item expanded "><a href="std_base64.html"><strong aria-hidden="true">3.2.22.</strong> @std/base64</a></li><li class="chapter-item expanded "><a href="std_hash.html"><strong aria-hidden="true">3.2.23.</strong> @std/hash</a></li><li class="chapter-item expanded "><a href="std_ssl.html"><strong aria-hidden="true">3.2.24.</strong> @std/ssl</a></li><li class="chapter-item expanded "><a href="alantech_auth.html"><strong aria-hidden="true">3.2.25.</strong> @alantech/auth</a></li><li class="chapter-item expanded "><a href="std_i18n.html"><strong aria-hidden="true">3.2.26.</strong> @std/i18n</a></li><li class="chapter-item expanded "><a href="alantech_graphql.html"><strong aria-hidden="true">3.2.27.</strong> @alantech/graphql</a></li><li class="chapter-item expanded "><a href="alantech_oauth2.html"><strong aria-hidden="true">3.2.28.</strong> @alantech/oauth2</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="examples_with_explanations.html"><strong aria-hidden="true">4.</strong> Examples with Explanations</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="many_forms_hello_world.html"><strong aria-hidden="true">4.1.</strong> The many forms of &quot;Hello, World!&quot;</a></li><li class="chapter-item expanded "><a href="advanced_examples.html"><strong aria-hidden="true">4.2.</strong> More advanced examples</a></li></ol></li></ol>
+    </div>
+    <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+</nav>
+
+<div id="page-wrapper" class="page-wrapper">
+
+    <div class="page">
+        
+        <div id="menu-bar-hover-placeholder"></div>
+        <div id="menu-bar" class="menu-bar sticky bordered">
+            <div class="left-buttons">
+                <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                    <i class="fa fa-bars"></i>
+                </button>
+                
+                    <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <i class="fa fa-search"></i>
+                    </button>
+                
+            </div>
+
+            <h1 class="menu-title">Alan Interactive Documentation</h1>
+
+            <div class="right-buttons">
+                
+                    <a href="https://github.com/alantech" title="Git repository" aria-label="Git repository">
+                        <i id="git-repository-button" class="fa fa-github"></i>
+                    </a>
+                
+            </div>
+        </div>
+
+        
+            <div id="search-wrapper" class="hidden">
+                <form id="searchbar-outer" class="searchbar-outer">
+                    <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                </form>
+                <div id="searchresults-outer" class="searchresults-outer hidden">
+                    <div id="searchresults-header" class="searchresults-header"></div>
+                    <ul id="searchresults">
+                    </ul>
+                </div>
+            </div>
+        
+
+        <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+        <script type="text/javascript">
+            document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+            document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+            Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+            });
+        </script>
+
+        <div id="content" class="content">
+            <main>
+                <h4><a class="header" href="#functions" id="functions">Functions</a></h4>
+<p>Functions are where actual work happens. There are built-in functions and user-defined functions. The user-defined functions consist of a sequence of statements composing other functions, operators, types, etc.</p>
+<h5><a class="header" href="#function-declarations" id="function-declarations">Function Declarations</a></h5>
+<p>Declaration of functions works like so:</p>
+<pre><code>fn functionName (firstArgument: argumentType, secondArgument: anotherType): returnType {
+  ...statements...
+}
+</code></pre>
+<p>This is a named function with a name, some arguments, and a return type.</p>
+<pre><code>fn functionName (firstArgument: argumentType, secondArgument: anotherType): void {
+  ...statements...
+}
+</code></pre>
+<p>This is a named function that does not return any value.</p>
+<pre><code>fn functionName (): returnType {
+  ... statements...
+}
+</code></pre>
+<p>This is a named function that takes no arguments but returns a value.</p>
+<pre><code>fn functionName {
+  ...statements...
+}
+</code></pre>
+<p>This is a named function that takes no arguments and returns no value. (So side-effects only.)</p>
+<pre><code>const anonymousFunction = fn (firstArg: argType, secondArg: anotherType): returnType {
+  ...statements...
+}
+</code></pre>
+<p>This is an anonymous function that takes arguments and returns a value. Anonymous functions can only be assigned to variables or immediately passed to other syntax that takes a function (event handlers, conditionals, or as an argument to another function).</p>
+<pre><code>const anonymousArglessFunction = fn (): returnType {
+  ...statements...
+</code></pre>
+<p>This is an anonymous function that takes no arguments and returns a value.</p>
+<pre><code>const anonymousSideEffectFunction = fn {
+  ...statements...
+</code></pre>
+<p>This is an anonymous function that takes no arguments and returns no value (side-effect only).</p>
+<pre><code>on eventname {
+  ...statements...
+}
+</code></pre>
+<p>When an anonymous, argumentless, no-return function is defined inline with event handlers or conditionals, it is unambiguous to omit the <code>fn</code> so it is allowed in these conditions.</p>
+<h5><a class="header" href="#function-dispatch" id="function-dispatch">Function Dispatch</a></h5>
+<p>When determining which function to use in a function call (more on calls later), the argument types and count are taken into consideration. Multiple functions with the same name may be declared as long as the argument types and/or counts are different between them. For example:</p>
+<pre><code>fn someFn (arg1: string, arg2: bool): string {
+  ...
+}
+
+fn someFn (arg1: int64, arg2: bool): int64 {
+  ...
+}
+</code></pre>
+<p>If you provide a <code>string</code> to <code>someFn</code> it will use the first definition, and if provided an <code>int64</code> it will use the second.</p>
+<p>This means it is possible to alias/replace even built-in functions within your module scope. <strong>This is dangerous.</strong> If you are not aware that, for instance, the <code>+</code> operator is also called <code>add</code> as a function, and define your own <code>add</code> function that works on numbers, you'll find things are very broken. I think I will add warnings or errors on aliasing built-in functions (where the original can no longer be accessed because it perfectly matches the type signatures), but currently you're on your own here.</p>
+<h5><a class="header" href="#function--arity" id="function--arity">Function -arity</a></h5>
+<p><code>alan</code>'s interpreter has the ability to use functions with <code>n</code>-arity, functions where the last argument is actually treated as an array of an arbitrary length of the same type. This is used to implement the <code>concat</code> built-in function, allowing an arbitrary number of <code>string</code>s to be concatenated together. The syntax in the language does not allow that <em>yet</em> as it depends on the <code>Array</code> special type to be fully functional, first. Eventually, the expected syntax will look something like this:</p>
+<pre><code>fn narityFunction(arg1: type1, ...arg2: Array&lt;type2&gt;): returnType {
+  ...statements...
+}
+</code></pre>
+<p>where the last argument is allowed to have the <code>...</code> syntax to indicate that the function should expect 0 or more of these elements in the call and automatically box them into an array of that type (or if the last element provided <em>is</em> an array of that type, just use it as-is).</p>
+<h5><a class="header" href="#function-type" id="function-type">Function Type</a></h5>
+<p>A function's type is simply <code>function</code> right now. It is intended to expand this to use a syntax allowing more precise argument matching when passing functions to higher-order functions, so the user can know what arguments and return type their function is expected to have. This type syntax would look like:</p>
+<pre><code>(firstType, secondType): returnType
+</code></pre>
+<p>Essentially the argument list with only the types specified and the return type. In this case, the parenthesis and <code>void</code> would be required to prevent ambiguity (and keep it easier to follow), so a side-effect-only function type would look like this:</p>
+<pre><code>(): void
+</code></pre>
+<p>Because type names are specified in very specific situations, the extra colon and space in the type name should not be unambiguous to the interpreter.</p>
+<h5><a class="header" href="#function-calls" id="function-calls">Function Calls</a></h5>
+<p>One of the kinds of statements you can write inside of a function is a function call. There are actually two syntaxes for function calls, standard form and method form.</p>
+<p>Standard form looks like this:</p>
+<pre><code>add(3, 2)
+</code></pre>
+<p>while method form looks like this:</p>
+<pre><code>3.add(2)
+</code></pre>
+<p>Method form allows you to pull the first argument out of the function and treat the function call like an Object-Oriented Language's method syntax. This allows method chaining, which can be much more legible when the output of one function is the input of the next, without requiring a custom chaining syntax that some functional languages have adopted (eg <code>|&gt;</code> in F#). Eg, <code>3.add(2).mul(5).mod(3)</code> is equivalent to <code>mod(mul(add(3, 2), 5), 3)</code>.</p>
+
+            </main>
+
+            <nav class="nav-wrapper" aria-label="Page navigation">
+                <!-- Mobile navigation buttons -->
+                
+                    <a rel="prev" href="events.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="operators.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+                <div style="clear: both"></div>
+            </nav>
+        </div>
+    </div>
+
+    <nav class="nav-wide-wrapper" aria-label="Page navigation">
+        
+            <a rel="prev" href="events.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        
+            <a rel="next" href="operators.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </nav>
+
+</div>
+
+
+
+
+
+
+    <script type="text/javascript">
+        window.playpen_line_numbers = true;
+    </script>
+
+
+
+    <script type="text/javascript">
+        window.playpen_copyable = true;
+    </script>
+
+
+
+    <script src="ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="editor.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mode-rust.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-dawn.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-tomorrow_night.js" type="text/javascript" charset="utf-8"></script>
+
+
+
+    <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+
+<!-- Custom JS scripts -->
+
+    <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_dark.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_light.js"></script>
+
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+<script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+</body>
+</html>

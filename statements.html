@@ -1,0 +1,306 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+<head>
+    <!-- Book generated using mdBook -->
+    <meta charset="UTF-8">
+    <title>Statements - Alan Interactive Documentation</title>
+
+    <!-- Custom HTML head -->
+    
+
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff" />
+
+    <link rel="shortcut icon" href="favicon.png">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/general.css">
+    <link rel="stylesheet" href="css/chrome.css">
+
+    <!-- Fonts -->
+    <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+    
+
+    <!-- Highlight.js Stylesheets -->
+    <link rel="stylesheet" href="highlight.css">
+    <link rel="stylesheet" href="tomorrow-night.css">
+    <link rel="stylesheet" href="ayu-highlight.css">
+
+    <!-- Custom theme stylesheets -->
+    
+        <link rel="stylesheet" href="css/solarized-light-hljs.css">
+    
+        <link rel="stylesheet" href="css/solarized-dark-hljs.css">
+    
+
+    
+</head>
+<body>
+<!-- Provide site root to javascript -->
+<script type="text/javascript">
+    var path_to_root = "";
+    var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "solarized-dark" : "solarized-light";
+</script>
+
+<!-- Work around some values being stored in localStorage wrapped in quotes -->
+<script type="text/javascript">
+    try {
+        var sidebar = localStorage.getItem('mdbook-sidebar');
+
+        if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+            localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+        }
+    } catch (e) { }
+</script>
+
+<!-- Set the theme before any content is loaded, prevents flash -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    html.classList.remove('no-js')
+    html.classList.add(default_theme);
+    html.classList.add('js');
+</script>
+
+<!-- Hide / unhide sidebar before it is displayed -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    var sidebar = 'hidden';
+    if (document.body.clientWidth >= 1080) {
+        try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+        sidebar = sidebar || 'visible';
+    }
+    html.classList.remove('sidebar-visible');
+    html.classList.add("sidebar-" + sidebar);
+</script>
+
+<nav id="sidebar" class="sidebar" aria-label="Table of contents">
+    <div class="sidebar-scrollbox">
+        <ol class="chapter"><li class="chapter-item expanded "><a href="about_alan.html"><strong aria-hidden="true">1.</strong> About alan</a></li><li class="chapter-item expanded "><a href="getting_started.html"><strong aria-hidden="true">2.</strong> Getting Started</a></li><li class="chapter-item expanded "><a href="language_reference.html"><strong aria-hidden="true">3.</strong> Language Reference</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="structure_and_notation.html"><strong aria-hidden="true">3.1.</strong> Structure and Notation</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="file_structure.html"><strong aria-hidden="true">3.1.1.</strong> File Structure</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="scope.html"><strong aria-hidden="true">3.1.1.1.</strong> Implied Structure: Scope</a></li><li class="chapter-item "><a href="imports.html"><strong aria-hidden="true">3.1.1.2.</strong> Imports</a></li><li class="chapter-item "><a href="types.html"><strong aria-hidden="true">3.1.1.3.</strong> Types</a></li><li class="chapter-item "><a href="constants.html"><strong aria-hidden="true">3.1.1.4.</strong> Constants</a></li><li class="chapter-item "><a href="events.html"><strong aria-hidden="true">3.1.1.5.</strong> Events</a></li><li class="chapter-item "><a href="functions.html"><strong aria-hidden="true">3.1.1.6.</strong> Functions</a></li><li class="chapter-item "><a href="operators.html"><strong aria-hidden="true">3.1.1.7.</strong> Operators</a></li><li class="chapter-item expanded "><a href="statements.html" class="active"><strong aria-hidden="true">3.1.1.8.</strong> Statements</a></li><li class="chapter-item "><a href="interfaces.html"><strong aria-hidden="true">3.1.1.9.</strong> Interfaces</a></li><li class="chapter-item "><a href="handlers.html"><strong aria-hidden="true">3.1.1.10.</strong> Handlers</a></li><li class="chapter-item "><a href="exports.html"><strong aria-hidden="true">3.1.1.11.</strong> Exports</a></li><li class="chapter-item "><a href="classes.html"><strong aria-hidden="true">3.1.1.12.</strong> Classes</a></li></ol></li><li class="chapter-item expanded "><a href="modules.html"><strong aria-hidden="true">3.1.2.</strong> Modules</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="module_definition.html"><strong aria-hidden="true">3.1.2.1.</strong> Definition</a></li><li class="chapter-item "><a href="module_resolution.html"><strong aria-hidden="true">3.1.2.2.</strong> Resolution</a></li><li class="chapter-item "><a href="module_acquisition.html"><strong aria-hidden="true">3.1.2.3.</strong> Acquisition</a></li><li class="chapter-item "><a href="module_testing.html"><strong aria-hidden="true">3.1.2.4.</strong> Testing and Mocking</a></li><li class="chapter-item "><a href="module_mutation.html"><strong aria-hidden="true">3.1.2.5.</strong> Mutation</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="standard_library.html"><strong aria-hidden="true">3.2.</strong> Standard Library</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="built_ins.html"><strong aria-hidden="true">3.2.1.</strong> Built-ins</a></li><li class="chapter-item expanded "><a href="std_app.html"><strong aria-hidden="true">3.2.2.</strong> @std/app</a></li><li class="chapter-item expanded "><a href="std_trig.html"><strong aria-hidden="true">3.2.3.</strong> @std/trig</a></li><li class="chapter-item expanded "><a href="std_stats.html"><strong aria-hidden="true">3.2.4.</strong> @std/stats</a></li><li class="chapter-item expanded "><a href="std_http.html"><strong aria-hidden="true">3.2.5.</strong> @std/http</a></li><li class="chapter-item expanded "><a href="std_dht.html"><strong aria-hidden="true">3.2.6.</strong> @std/dht</a></li><li class="chapter-item expanded "><a href="std_datastore.html"><strong aria-hidden="true">3.2.7.</strong> @std/datastore</a></li><li class="chapter-item expanded "><a href="std_logger.html"><strong aria-hidden="true">3.2.8.</strong> @std/logger</a></li><li class="chapter-item expanded "><a href="std_tcp.html"><strong aria-hidden="true">3.2.9.</strong> @std/tcp</a></li><li class="chapter-item expanded "><a href="std_udp.html"><strong aria-hidden="true">3.2.10.</strong> @std/udp</a></li><li class="chapter-item expanded "><a href="alantech_postgres.html"><strong aria-hidden="true">3.2.11.</strong> @alantech/postgres</a></li><li class="chapter-item expanded "><a href="std_test.html"><strong aria-hidden="true">3.2.12.</strong> @std/test</a></li><li class="chapter-item expanded "><a href="std_fs.html"><strong aria-hidden="true">3.2.13.</strong> @std/fs</a></li><li class="chapter-item expanded "><a href="std_csv.html"><strong aria-hidden="true">3.2.14.</strong> @std/csv</a></li><li class="chapter-item expanded "><a href="std_json.html"><strong aria-hidden="true">3.2.15.</strong> @std/json</a></li><li class="chapter-item expanded "><a href="std_xml.html"><strong aria-hidden="true">3.2.16.</strong> @std/xml</a></li><li class="chapter-item expanded "><a href="std_html.html"><strong aria-hidden="true">3.2.17.</strong> @std/html</a></li><li class="chapter-item expanded "><a href="std_css.html"><strong aria-hidden="true">3.2.18.</strong> @std/css</a></li><li class="chapter-item expanded "><a href="std_zlib.html"><strong aria-hidden="true">3.2.19.</strong> @std/zlib</a></li><li class="chapter-item expanded "><a href="std_bz2.html"><strong aria-hidden="true">3.2.20.</strong> @std/bz2</a></li><li class="chapter-item expanded "><a href="std_lzma.html"><strong aria-hidden="true">3.2.21.</strong> @std/lzma</a></li><li class="chapter-item expanded "><a href="std_base64.html"><strong aria-hidden="true">3.2.22.</strong> @std/base64</a></li><li class="chapter-item expanded "><a href="std_hash.html"><strong aria-hidden="true">3.2.23.</strong> @std/hash</a></li><li class="chapter-item expanded "><a href="std_ssl.html"><strong aria-hidden="true">3.2.24.</strong> @std/ssl</a></li><li class="chapter-item expanded "><a href="alantech_auth.html"><strong aria-hidden="true">3.2.25.</strong> @alantech/auth</a></li><li class="chapter-item expanded "><a href="std_i18n.html"><strong aria-hidden="true">3.2.26.</strong> @std/i18n</a></li><li class="chapter-item expanded "><a href="alantech_graphql.html"><strong aria-hidden="true">3.2.27.</strong> @alantech/graphql</a></li><li class="chapter-item expanded "><a href="alantech_oauth2.html"><strong aria-hidden="true">3.2.28.</strong> @alantech/oauth2</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="examples_with_explanations.html"><strong aria-hidden="true">4.</strong> Examples with Explanations</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="many_forms_hello_world.html"><strong aria-hidden="true">4.1.</strong> The many forms of &quot;Hello, World!&quot;</a></li><li class="chapter-item expanded "><a href="advanced_examples.html"><strong aria-hidden="true">4.2.</strong> More advanced examples</a></li></ol></li></ol>
+    </div>
+    <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+</nav>
+
+<div id="page-wrapper" class="page-wrapper">
+
+    <div class="page">
+        
+        <div id="menu-bar-hover-placeholder"></div>
+        <div id="menu-bar" class="menu-bar sticky bordered">
+            <div class="left-buttons">
+                <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                    <i class="fa fa-bars"></i>
+                </button>
+                
+                    <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <i class="fa fa-search"></i>
+                    </button>
+                
+            </div>
+
+            <h1 class="menu-title">Alan Interactive Documentation</h1>
+
+            <div class="right-buttons">
+                
+                    <a href="https://github.com/alantech" title="Git repository" aria-label="Git repository">
+                        <i id="git-repository-button" class="fa fa-github"></i>
+                    </a>
+                
+            </div>
+        </div>
+
+        
+            <div id="search-wrapper" class="hidden">
+                <form id="searchbar-outer" class="searchbar-outer">
+                    <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                </form>
+                <div id="searchresults-outer" class="searchresults-outer hidden">
+                    <div id="searchresults-header" class="searchresults-header"></div>
+                    <ul id="searchresults">
+                    </ul>
+                </div>
+            </div>
+        
+
+        <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+        <script type="text/javascript">
+            document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+            document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+            Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+            });
+        </script>
+
+        <div id="content" class="content">
+            <main>
+                <h4><a class="header" href="#statements" id="statements">Statements</a></h4>
+<p>Within a function are multiple statements. The order of the statements defines their dependence on one another based on what they manipulate in their scope hierarchy. Currently the interpreter simply runs them sequentially, but soon (tm) it will use the scope manipulation to determine a dependency graph of the statements to determine running order without impacting the result (which will also allow multiple threads to be used to run a single function call if there is a performance advantage to doing so).</p>
+<p>Statements must be on different lines, but statements can span multiple lines, as well. There are six types of statements: variable declarations, variable assignments, function calls, function returns, event emission, and conditionals (if statements).</p>
+<h5><a class="header" href="#variable-declarations" id="variable-declarations">Variable Declarations</a></h5>
+<p>There are two types of variables, constants and mutable variables. Constants are declared with these two syntaxes:</p>
+<pre><code>const varname: typename = constantOrFunctionCallOrExpression
+const varname = constantOrFunctionCallOrExpression
+</code></pre>
+<p>The typename is optional as it can be inferred from the value being assigned. Providing the type can be useful to make sure your code is doing what you expected, though, and not using an unexpected type. By default all numeric constants are automatically the highest definition version possible. (<code>int64</code> or <code>float64</code>)</p>
+<p>Any type that exists in the language can be assigned. Simple constants are simply declared, or produced via function calls or operator expressions. User-defined types can be assigned to constants through the use of a constructor function and calling it, through an expression involving operators that produces the user-defined type, or through the user-type literal syntax. Arrays and Maps have similar but slightly different syntaxes, as they deal with inherently plural data versus the struct-like user-defined types:</p>
+<pre><code>const simpleConstant: bool = true
+const simpleConstant2 = &quot;simple&quot;
+const expressionResult: int64 = 3 + 5 * 2 + fnCall2(3, 1)
+const fnResult: someType = functioncall(3, 5)
+const userTypeLiteral = new UserType {
+  key = &quot;val&quot;
+  foo = true
+  bar = 3
+}
+const arrayTypeLiteral = new Array&lt;int64&gt; [ 1, 1, 2, 3, 5, 8, 13 ]
+const mapTypeLiteral = new Map&lt;bool, string&gt; {
+  true: &quot;It's true!&quot;
+  false: &quot;Nuh uh!&quot;
+}
+</code></pre>
+<p>All three complex type literals begin with the <code>new</code> keyword, followed by the type name, which must be a realized generic if it is a generic type. If the original generic type was an <code>Array</code> or <code>Map</code> it gets a special syntax. Arrays are surrounded by brackets (<code>[</code>, <code>]</code>) instead of curly braces (<code>{</code>, <code>}</code>) and are simply a comma-delimited list of values (they could also be generated by functions or operator expressions, or be a user-defined type literal). Maps are keep the curly braces, but the <code>key</code> and <code>value</code> pairs are separated by a colon (<code>:</code>) instead of an equal sign (<code>=</code>), which fits more closely to the Map/Object syntax popularized by JSON (but able to have more than just <code>string</code> values for the keys).</p>
+<p>Beyond that, there is also the ability to assign the type name of another variable, but the constant <em>must</em> be a string in that case:</p>
+<pre><code>const typename: string = type otherVariable
+</code></pre>
+<p>For mutable variables, there are three syntaxes:</p>
+<pre><code>let varname: typename
+let varname: typename = constantOrFunctionCallOrExpression 
+let varname = constantOrFunctionCallOrExpression
+</code></pre>
+<p>The first syntax allows one to declare a variable without giving it any value (it will default to 0 or false or empty string, etc). The second syntax is identical to the constants syntax, but the first syntax <em>requires</em> the type to be declared as it would be unknown, otherwise.</p>
+<h5><a class="header" href="#variable-assignments" id="variable-assignments">Variable Assignments</a></h5>
+<p>This syntax only works with mutable variables:</p>
+<pre><code>varname = constantOrFunctionCallOrExpression
+varname.propertyName = constantOrFunctionCallOrExpression
+varname[integerOrMapKey] = constantOrFunctionCallOrExpression
+</code></pre>
+<p>Since the variable type is already known, it is no longer included. Anything that could be assigned at declaration time is assignable in future assignments. When re-assigning to the properties of user-defined types, you use the dot notation. When re-assigning to <code>Array</code>s or <code>Map</code>s, you use the array-accessor notation.</p>
+<h5><a class="header" href="#function-calls" id="function-calls">Function Calls</a></h5>
+<p>Because functions can have side effects that might be desirable, and functions defined within the scope of the current function could potentially mutate multiple variables, and so on, it's allowed to call them without storing a return value. It simply looks like this:</p>
+<pre><code>someFunction(arg1, arg2)
+</code></pre>
+<p>where the arguments themselves could be constants, variable names, other function calls, operator statements, and variable type selection.</p>
+<h5><a class="header" href="#function-returns" id="function-returns">Function Returns</a></h5>
+<p>A return statement sets the value of the return type for the function and ends execution:</p>
+<pre><code>return constantOrFunctionCallOrExpression
+</code></pre>
+<p>If the function has no return value, you can also trigger an exit without assigning a return value by simply stating:</p>
+<pre><code>return
+</code></pre>
+<h5><a class="header" href="#event-emission" id="event-emission">Event Emission</a></h5>
+<p>A function can trigger new events to occur by emitting one:</p>
+<pre><code>emit eventName
+emit eventName constantOrFunctionCallOrExpression
+</code></pre>
+<p>If the event is a void event (no arguments given to the handler functions) then you use the simple first syntax. If there is a value provided to the handler, then as with the other statements it could be a constant or variable name or function call or operator expression or type name of a variable that is provided.</p>
+<h5><a class="header" href="#conditionals" id="conditionals">Conditionals</a></h5>
+<p>Conditionals optionally run one block of code (or potentially another) based on a condition. Since this language is intended to run statements in dependency order, the scope the conditions run in are actually functions to prevent them from being run ahead of time. This also means all scopes once you enter a function scope are function scopes, which makes things simpler to reason about. If one of these functions returns a value, the outer function immediately returns that value from the conditional statement.</p>
+<p>The conditional syntax is:</p>
+<pre><code>if booleanConstantOrFunctionCallOrExpression thenFunction
+if booleanConstantOrFunctionCallOrExpression thenFunction else elseFunction
+if booleanConstantOrFunctionCallOrExpression thenFunction else if ...
+</code></pre>
+<p>where the constant, function call, or operational expression <em>must</em> evaluate to a boolean (so no type checking, unless it is within an equality check against an expected type name).</p>
+<p>Conditionals are one of the two places (the other being event handler declarations) where the <code>fn</code> may be omitted from a purely-side-effect function (no arguments, no return value), so the above can look exactly as one would expect:</p>
+<pre><code>if 1 == 2 {
+  print(&quot;Wrong&quot;)
+} else {
+  print(&quot;Right&quot;)
+}
+</code></pre>
+<p>The conditional has two anonymous functions declared inline. But it could just as easily be something like:</p>
+<pre><code>fn right() {
+  print(&quot;Right&quot;)
+}
+
+fn wrong() {
+  print(&quot;Wrong&quot;)
+}
+
+const condition: bool = 1 != 2
+
+if condition right else wrong
+</code></pre>
+
+            </main>
+
+            <nav class="nav-wrapper" aria-label="Page navigation">
+                <!-- Mobile navigation buttons -->
+                
+                    <a rel="prev" href="operators.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="interfaces.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+                <div style="clear: both"></div>
+            </nav>
+        </div>
+    </div>
+
+    <nav class="nav-wide-wrapper" aria-label="Page navigation">
+        
+            <a rel="prev" href="operators.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        
+            <a rel="next" href="interfaces.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </nav>
+
+</div>
+
+
+
+
+
+
+    <script type="text/javascript">
+        window.playpen_line_numbers = true;
+    </script>
+
+
+
+    <script type="text/javascript">
+        window.playpen_copyable = true;
+    </script>
+
+
+
+    <script src="ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="editor.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mode-rust.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-dawn.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-tomorrow_night.js" type="text/javascript" charset="utf-8"></script>
+
+
+
+    <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+
+<!-- Custom JS scripts -->
+
+    <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_dark.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_light.js"></script>
+
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+<script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+</body>
+</html>

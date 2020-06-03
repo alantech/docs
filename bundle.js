@@ -31218,8 +31218,8 @@ module.exports = (inFormat, outFormat, text) => {
 },{"./dist/ammtojs":8,"./dist/lntoamm":32,"./dist/lntojs":34}],"alan-js-runtime":[function(require,module,exports){
 (function (process){
 const EventEmitter = require('events')
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
+const util = require('util')
+const exec = util.promisify ? util.promisify(require('child_process').exec) : () => {} // browsers
 
 const e = new EventEmitter()
 
@@ -31475,7 +31475,6 @@ const r = require('alan-js-runtime')
 // Redefined stdoutp and exitop to work in the browser
 module.exports = {
   ...r,
-  execop: a => {}, // no-op in the browser
   stdoutp: (...args) => console.log(...args), // Lazy binding to replace `console.log` at will
   exitop: () => {
     r.emitter.removeAllListeners()

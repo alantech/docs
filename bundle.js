@@ -13317,6 +13317,13 @@ const Ast = {
         const langParser = new LnParser(commonTokenStream);
         return langParser.functions();
     },
+    statementAstFromString: (s) => {
+        const inputStream = new InputStream(s);
+        const langLexer = new LnLexer(inputStream);
+        const commonTokenStream = new CommonTokenStream(langLexer);
+        const langParser = new LnParser(commonTokenStream);
+        return langParser.statements();
+    },
 };
 module.exports = Ast;
 
@@ -14252,6 +14259,11 @@ class Microstatement {
         }
     }
     static fromWithOperatorsAst(withOperatorsAst, returnTypeHint, scope, microstatements) {
+        // Short circuit on the trivial case
+        if (withOperatorsAst.operatororassignable().length === 1 &&
+            !!withOperatorsAst.operatororassignable(1).basicassignables()) {
+            Microstatement.fromBasicAssignablesAst(withOperatorsAst.operatororassignable(1).basicassignables(), returnTypeHint, scope, microstatements);
+        }
         let withOperatorsList = [];
         for (const operatorOrAssignable of withOperatorsAst.operatororassignable()) {
             if (operatorOrAssignable.operators() != null) {
@@ -14435,68 +14447,6 @@ class Microstatement {
             microstatements.push(new Microstatement(StatementType.CLOSURE, scope, true, // Guaranteed true in this case, it's not really a closure
             constName, innerMicrostatements));
         }
-    }
-    static fromConditionalsAst(conditionalsAst, scope, microstatements) {
-        // Solve circular dependency issue
-        const opcodeScope = require('./opcodes').exportScope;
-        // TODO: There are two kinds of conditionals, the ones that are side-effect-only and the ones
-        // that return in one or more branches. First pass they all stay the same, but in the second
-        // pass when all functions are inlined into the handlers, returns are transformed into
-        // assignments and a trick will be necessary to handle conditional assignment with constants. It
-        // might be possible to turn all conditionals into ternary operators and maintain the same
-        // logical behavior, but it'll be complicated.
-        // First, pull out the conditional and turn it into microstatements
-        Microstatement.fromWithOperatorsAst(conditionalsAst.withoperators(), "bool", scope, microstatements);
-        // Now we grab that conditional assignment and hold onto a reference for use later
-        const conditional = microstatements[microstatements.length - 1];
-        // Next, we take the if statement body and turn it into a closure assignment. This is almost the
-        // same as function inlining, except we don't inline it and wrap it in `fn (): void { }`. We are
-        // guaranteed that there are no arguments passed to this closure explicitly due to how `if`
-        // statements work.
-        Microstatement.closureFromBlocklikesAst(conditionalsAst.blocklikes()[0], scope, microstatements);
-        // Time to grab a reference to the closure
-        const closure = microstatements[microstatements.length - 1];
-        // Next, we take the closure and feed it to the `condfn` function/opcode along with
-        // the conditional value.
-        microstatements.push(new Microstatement(StatementType.CALL, scope, true, "", Box.builtinTypes.void, [conditional.outputName, closure.outputName], opcodeScope.get("condfn").functionval));
-        if (conditionalsAst.ELSE()) {
-            // First we need to invert the boolean
-            // TODO: Should we create another opcode instead to reduce the instruction size?
-            const elseBoolName = "_" + uuid().replace(/-/g, "_");
-            microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, elseBoolName, Box.builtinTypes.bool, [conditional.outputName], opcodeScope.get('notbool').functionval));
-            // Get a reference to the inverted boolean for checking
-            const otherwise = microstatements[microstatements.length - 1];
-            if (conditionalsAst.blocklikes()[1]) {
-                // This is just like the above and we're terminating our work here
-                Microstatement.closureFromBlocklikesAst(conditionalsAst.blocklikes()[1], scope, microstatements);
-            }
-            else {
-                // Solve circular dependency issue again
-                const Scope = require('./Scope');
-                // This path is a bit different. We need to wrap the follow-up else if branch inside of a
-                // new microstatement closure definition and then conditionally call that closure
-                // We're creating this structure wholesale, so we can't re-use other closure code
-                const otherClosureName = "_" + uuid().replace(/-/g, "_");
-                let innerMicrostatements = [];
-                // Since we blow away the microstatements list with a new sub-array, we need to let the
-                // inner scope have access to the original microstatements in case it's referencing the
-                // outer scope. We do this with a new scope that contains all of the microstatements placed
-                // in that scope. Ideally we can be a bit more picky in the future
-                let innerScope = new Scope(scope);
-                for (const m of microstatements) {
-                    if (m.outputName != "") {
-                        innerScope.put(m.outputName, m);
-                    }
-                }
-                Microstatement.fromConditionalsAst(conditionalsAst.conditionals(), innerScope, innerMicrostatements);
-                microstatements.push(new Microstatement(StatementType.CLOSURE, scope, true, // TODO: Is this really true?
-                otherClosureName, innerMicrostatements));
-            }
-            // Time to grab a reference to the closure
-            const otherClosure = microstatements[microstatements.length - 1];
-            microstatements.push(new Microstatement(StatementType.CALL, scope, true, "", Box.builtinTypes.void, [otherwise.outputName, otherClosure.outputName], opcodeScope.get("condfn").functionval));
-        }
-        // TODO: Continue on this. Add early return detection and support
     }
     static fromEmitsAst(emitsAst, scope, microstatements) {
         if (emitsAst.assignables() != null) {
@@ -14686,9 +14636,8 @@ class Microstatement {
                 process.exit(-106);
             }
             // Generate the relevant microstatements for this function. UserFunctions get inlined with the
-            // return statement turned into a const assignment (TODO: handle conditionals correctly) as
-            // the last statement, while built-in functions are kept as function calls with the correct
-            // renaming.
+            // return statement turned into a const assignment as the last statement, while built-in
+            // functions are kept as function calls with the correct renaming.
             UserFunction
                 .dispatchFn(fnBox.functionval, realArgTypes, scope)
                 .microstatementInlining(realArgNames, scope, microstatements);
@@ -14796,9 +14745,8 @@ class Microstatement {
             Microstatement.fromWithOperatorsAst(letdeclarationAst.assignments().assignables().withoperators(), letTypeHint, scope, microstatements);
             // By definition the last microstatement is the const assignment we care about, so we can just
             // mutate its object to rename the output variable name to the name we need instead.
-            microstatements[microstatements.length - 1].outputName = letName;
             microstatements[microstatements.length - 1].statementType = StatementType.LETDEC;
-            microstatements.push(new Microstatement(StatementType.REREF, scope, true, letName, letAlias, microstatements[microstatements.length - 1].outputType, [], []));
+            microstatements.push(new Microstatement(StatementType.REREF, scope, true, microstatements[microstatements.length - 1].outputName, letAlias, microstatements[microstatements.length - 1].outputType, [], []));
             return;
         }
         if (letdeclarationAst.assignments().assignables().basicassignables() != null) {
@@ -14806,9 +14754,8 @@ class Microstatement {
             // The same rule as above, the last microstatement is already a const assignment for the value
             // that we care about, so just rename its variable to the one that will be expected by other
             // code.
-            microstatements[microstatements.length - 1].outputName = letName;
             microstatements[microstatements.length - 1].statementType = StatementType.LETDEC;
-            microstatements.push(new Microstatement(StatementType.REREF, scope, true, letName, letAlias, microstatements[microstatements.length - 1].outputType, [], []));
+            microstatements.push(new Microstatement(StatementType.REREF, scope, true, microstatements[microstatements.length - 1].outputName, letAlias, microstatements[microstatements.length - 1].outputType, [], []));
             return;
         }
     }
@@ -14848,8 +14795,7 @@ class Microstatement {
             Microstatement.fromWithOperatorsAst(constdeclarationAst.assignments().assignables().withoperators(), constTypeHint, scope, microstatements);
             // By definition the last microstatement is the const assignment we care about, so we can just
             // mutate its object to rename the output variable name to the name we need instead.
-            microstatements[microstatements.length - 1].outputName = constName;
-            microstatements.push(new Microstatement(StatementType.REREF, scope, true, constName, constAlias, microstatements[microstatements.length - 1].outputType, [], []));
+            microstatements.push(new Microstatement(StatementType.REREF, scope, true, microstatements[microstatements.length - 1].outputName, constAlias, microstatements[microstatements.length - 1].outputType, [], []));
             return;
         }
         if (constdeclarationAst.assignments().assignables().basicassignables() != null) {
@@ -14857,8 +14803,7 @@ class Microstatement {
             // The same rule as above, the last microstatement is already a const assignment for the value
             // that we care about, so just rename its variable to the one that will be expected by other
             // code.
-            microstatements[microstatements.length - 1].outputName = constName;
-            microstatements.push(new Microstatement(StatementType.REREF, scope, true, constName, constAlias, microstatements[microstatements.length - 1].outputType, [], []));
+            microstatements.push(new Microstatement(StatementType.REREF, scope, true, microstatements[microstatements.length - 1].outputName, constAlias, microstatements[microstatements.length - 1].outputType, [], []));
             return;
         }
     }
@@ -14884,9 +14829,6 @@ class Microstatement {
         if (statementAst.emits() != null) {
             Microstatement.fromEmitsAst(statementAst.emits(), scope, microstatements);
         }
-        if (statementAst.conditionals() != null) {
-            Microstatement.fromConditionalsAst(statementAst.conditionals(), scope, microstatements);
-        }
         return microstatements;
     }
     static fromAssignablesAst(assignablesAst, scope, microstatements) {
@@ -14910,7 +14852,7 @@ class Microstatement {
 module.exports = Microstatement;
 
 }).call(this,require('_process'))
-},{"../ln":12,"./Box":14,"./Scope":27,"./StatementType":29,"./UserFunction":31,"./opcodes":33,"_process":85,"uuid":90}],25:[function(require,module,exports){
+},{"../ln":12,"./Box":14,"./StatementType":29,"./UserFunction":31,"_process":85,"uuid":90}],25:[function(require,module,exports){
 (function (process){
 const Ast = require('./Ast');
 const Box = require('./Box');
@@ -15562,6 +15504,10 @@ class Statement {
             this.scope = scope;
         this.pure = pure;
     }
+    isConditionalStatement() {
+        return this.statementOrAssignableAst instanceof LnParser.StatementsContext &&
+            this.statementOrAssignableAst.conditionals() !== null;
+    }
     static isCallPure(callAst, scope) {
         // TODO: Add purity checking for chained method-style calls
         const functionBox = scope.deepGet(callAst.varn(0));
@@ -15951,6 +15897,8 @@ module.exports = Type;
 }).call(this,require('_process'))
 },{"./Box":14,"./Interface":23,"_process":85}],31:[function(require,module,exports){
 (function (process){
+const { v4: uuid, } = require('uuid');
+const Ast = require('./Ast');
 const Box = require('./Box');
 const Statement = require('./Statement');
 const StatementType = require('./StatementType');
@@ -16178,18 +16126,96 @@ class UserFunction {
     isPure() {
         return this.pure;
     }
+    toFnStr() {
+        if (this.statements.length === 1 &&
+            this.statements[0].statementOrAssignableAst instanceof LnParser.AssignablesContext) {
+            return `
+        fn ${this.name || ''} (${Object.keys(this.args).map(argName => `${argName}: ${this.args[argName].typename}`).join(', ')}): ${this.returnType.typename} = ${this.statements[0].statementOrAssignableAst.getText()}
+      `.trim();
+        }
+        return `
+      fn ${this.name || ''} (${Object.keys(this.args).map(argName => `${argName}: ${this.args[argName].typename}`).join(', ')}): ${this.returnType.typename} {
+        ${this.statements.map(s => s.statementOrAssignableAst.getText()).join('\n')}
+      }
+    `.trim();
+    }
+    static conditionalToCond(cond, scope) {
+        let newStatements = [];
+        const condName = "_" + uuid().replace(/-/g, "_");
+        const condStatement = Ast.statementAstFromString(`
+      const ${condName}: bool = ${cond.withoperators().getText()}
+    `.trim() + '\n');
+        const condBlock = cond.blocklikes(0).functionbody() ?
+            `fn ${cond.blocklikes(0).getText()}` :
+            cond.blocklikes(0).varn() ?
+                scope.deepGet(cond.blocklikes(0).varn()).functionval[0].maybeTransform().toFnStr() :
+                cond.blocklikes(0).getText();
+        const condCall = Ast.statementAstFromString(`
+      cond(${condName}, ${condBlock})
+    `.trim() + '\n'); // TODO: If the blocklike is a reference, grab it and inline it
+        newStatements.push(condStatement, condCall);
+        if (!!cond.ELSE()) {
+            if (!!cond.blocklikes(1)) {
+                const elseBlock = cond.blocklikes(1).functionbody() ?
+                    `fn ${cond.blocklikes(1).getText()}` :
+                    cond.blocklikes(1).varn() ?
+                        scope.deepGet(cond.blocklikes(1).varn()).functionval[0].maybeTransform().toFnStr() :
+                        cond.blocklikes(1).getText();
+                const elseStatement = Ast.statementAstFromString(`
+          cond(!${condName}, ${elseBlock})
+        `.trim() + '\n');
+                newStatements.push(elseStatement);
+            }
+            else {
+                const innerCondStatements = UserFunction.conditionalToCond(cond.conditionals(), scope);
+                const elseStatement = Ast.statementAstFromString(`
+          cond(!${condName}, fn {
+            ${innerCondStatements.map(s => s.getText()).join('\n')}
+          })
+        `.trim() + '\n');
+                newStatements.push(elseStatement);
+            }
+        }
+        return newStatements;
+    }
+    maybeTransform() {
+        if (this.statements.some(s => s.isConditionalStatement())) {
+            // First pass, convert conditionals to `cond` fn calls
+            let statementAsts = [];
+            for (let i = 0; i < this.statements.length; i++) {
+                const s = this.statements[i];
+                if (s.isConditionalStatement()) {
+                    const cond = s.statementOrAssignableAst.conditionals();
+                    const newStatements = UserFunction.conditionalToCond(cond, this.closureScope);
+                    statementAsts.push(...newStatements);
+                }
+                else {
+                    statementAsts.push(s.statementOrAssignableAst);
+                }
+            }
+            const fnStr = `
+        fn ${this.name || ''} (${Object.keys(this.args).map(argName => `${argName}: ${this.args[argName].typename}`)}): ${this.returnType.typename} {
+          ${statementAsts.map(s => s.getText()).join('\n')}
+        }
+      `.trim();
+            return UserFunction.fromAst(Ast.functionAstFromString(fnStr), this.closureScope);
+        }
+        return this;
+    }
     microstatementInlining(realArgNames, scope, microstatements) {
+        // Perform a transform, if necessary, before generating the microstatements
+        const fn = this.maybeTransform();
         // Resolve circular dependency issue
         const Microstatement = require('./Microstatement');
-        const internalNames = Object.keys(this.args);
+        const internalNames = Object.keys(fn.args);
         for (let i = 0; i < internalNames.length; i++) {
             const realArgName = realArgNames[i];
             // Instead of copying the relevant data, define a reference to where the data is located with
             // an alias for the function's expected variable name so statements referencing the argument
             // can be rewritten to use the new variable name.
-            microstatements.push(new Microstatement(StatementType.REREF, scope, true, realArgName, internalNames[i], this.args[internalNames[i]], [], []));
+            microstatements.push(new Microstatement(StatementType.REREF, scope, true, realArgName, internalNames[i], fn.args[internalNames[i]], [], []));
         }
-        for (const s of this.statements) {
+        for (const s of fn.statements) {
             Microstatement.fromStatement(s, microstatements);
         }
     }
@@ -16260,7 +16286,7 @@ class UserFunction {
 module.exports = UserFunction;
 
 }).call(this,require('_process'))
-},{"../ln":12,"./Box":14,"./Microstatement":24,"./Statement":28,"./StatementType":29,"_process":85}],32:[function(require,module,exports){
+},{"../ln":12,"./Ast":13,"./Box":14,"./Microstatement":24,"./Statement":28,"./StatementType":29,"_process":85,"uuid":90}],32:[function(require,module,exports){
 const fs = require('fs');
 const path = require('path');
 const { v4: uuid, } = require('uuid');
@@ -16450,7 +16476,7 @@ const ammFromModuleAsts = (moduleAsts) => {
                 handlerDec += argList.join(", ");
                 handlerDec += "): " + handler.getReturnType().typename + " {";
                 // Extract the handler statements and compile into microstatements
-                const statements = handler.statements;
+                const statements = handler.maybeTransform().statements;
                 for (const s of statements) {
                     Microstatement.fromStatement(s, microstatements);
                 }

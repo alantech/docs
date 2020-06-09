@@ -35,7 +35,7 @@ module.exports = {
   },
 }
 
-},{"../dist/lntoamm/Ast":13,"../dist/lntoamm/Module":25,"../dist/lntoamm/Scope":27,"../dist/lntoamm/opcodes":33,"./stdlibs.json":2}],2:[function(require,module,exports){
+},{"../dist/lntoamm/Ast":14,"../dist/lntoamm/Module":26,"../dist/lntoamm/Scope":28,"../dist/lntoamm/opcodes":34,"./stdlibs.json":2}],2:[function(require,module,exports){
 module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out)\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\"\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status)\n\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n)","deps.ln":"import @std/app\nimport @std/cmd\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\n// export fn add(remote: string) {\n  // TODO implement once we have arrays and proper error handling\n  // const parts = remote.split('/')\n  // const repo = parts[length(parts)-1]\n  // const repoParts = repo.split('.git')\n  // const repoName = repoParts[0]\n  // const dest = '/dependencies/' + repoName\n  // cmd.exec('rm -rf .' + dest)\n  // cmd.exec('git clone ' + remote + ' .' + dest)\n  // cmd.exec('rm -rf .' + dest + '/.git')\n// }\n\n// Emit the `install` event on app `start`\non app.start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  cmd.exec('rm -rf dependencies')\n  cmd.exec('mkdir dependencies')\n  emit install\n}\n","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Special _ variable\nexport const _: void\n\n// Default Interfaces\nexport interface any {}\nexport interface Stringifiable {\n  toString(Stringifiable): string\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n)\nexport fn toFloat64(n: int16) = i16f64(n)\nexport fn toFloat64(n: int32) = i32f64(n)\nexport fn toFloat64(n: int64) = i64f64(n)\nexport fn toFloat64(n: float32) = f32f64(n)\nexport fn toFloat64(n: float64) = n\nexport fn toFloat64(n: string) = strf64(n)\nexport fn toFloat64(n: bool) = boolf64(n)\n\nexport fn toFloat32(n: int8) = i8f32(n)\nexport fn toFloat32(n: int16) = i16f32(n)\nexport fn toFloat32(n: int32) = i32f32(n)\nexport fn toFloat32(n: int64) = i64f32(n)\nexport fn toFloat32(n: float32) = n\nexport fn toFloat32(n: float64) = f64f32(n)\nexport fn toFloat32(n: string) = strf32(n)\nexport fn toFloat32(n: bool) = boolf32(n)\n\nexport fn toInt64(n: int8) = i8i64(n)\nexport fn toInt64(n: int16) = i16i64(n)\nexport fn toInt64(n: int32) = i32i64(n)\nexport fn toInt64(n: int64) = n\nexport fn toInt64(n: float32) = f32i64(n)\nexport fn toInt64(n: float64) = f64i64(n)\nexport fn toInt64(n: string) = stri64(n)\nexport fn toInt64(n: bool) = booli64(n)\n\nexport fn toInt32(n: int8) = i8i32(n)\nexport fn toInt32(n: int16) = i16i32(n)\nexport fn toInt32(n: int32) = n\nexport fn toInt32(n: int64) = i64i32(n)\nexport fn toInt32(n: float32) = f32i32(n)\nexport fn toInt32(n: float64) = f64i32(n)\nexport fn toInt32(n: string) = stri32(n)\nexport fn toInt32(n: bool) = booli32(n)\n\nexport fn toInt16(n: int8) = i8i16(n)\nexport fn toInt16(n: int16) = n\nexport fn toInt16(n: int32) = i32i16(n)\nexport fn toInt16(n: int64) = i64i16(n)\nexport fn toInt16(n: float32) = f32i16(n)\nexport fn toInt16(n: float64) = f64i16(n)\nexport fn toInt16(n: string) = stri16(n)\nexport fn toInt16(n: bool) = booli16(n)\n\nexport fn toInt8(n: int8) = n\nexport fn toInt8(n: int16) = i16i8(n)\nexport fn toInt8(n: int32) = i32i8(n)\nexport fn toInt8(n: int64) = i64i8(n)\nexport fn toInt8(n: float32) = f32i8(n)\nexport fn toInt8(n: float64) = f64i8(n)\nexport fn toInt8(n: string) = stri8(n)\nexport fn toInt8(n: bool) = booli8(n)\n\nexport fn toBool(n: int8) = i8bool(n)\nexport fn toBool(n: int16) = i16bool(n)\nexport fn toBool(n: int32) = i32bool(n)\nexport fn toBool(n: int64) = i64bool(n)\nexport fn toBool(n: float32) = f32bool(n)\nexport fn toBool(n: float64) = f64bool(n)\nexport fn toBool(n: string) = strbool(n)\nexport fn toBool(n: bool) = n\n\nexport fn toString(n: int8) = i8str(n)\nexport fn toString(n: int16) = i16str(n)\nexport fn toString(n: int32) = i32str(n)\nexport fn toString(n: int64) = i64str(n)\nexport fn toString(n: float32) = f32str(n)\nexport fn toString(n: float64) = f64str(n)\nexport fn toString(n: string) = n\nexport fn toString(n: bool) = boolstr(n)\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b)\nexport fn add(a: int16, b: int16) = addi16(a, b)\nexport fn add(a: int32, b: int32) = addi32(a, b)\nexport fn add(a: int64, b: int64) = addi64(a, b)\nexport fn add(a: float32, b: float32) = addf32(a, b)\nexport fn add(a: float64, b: float64) = addf64(a, b)\n\nexport fn sub(a: int8, b: int8) = subi8(a, b)\nexport fn sub(a: int16, b: int16) = subi16(a, b)\nexport fn sub(a: int32, b: int32) = subi32(a, b)\nexport fn sub(a: int64, b: int64) = subi64(a, b)\nexport fn sub(a: float32, b: float32) = subf32(a, b)\nexport fn sub(a: float64, b: float64) = subf64(a, b)\n\nexport fn negate(n: int8) = negi8(n)\nexport fn negate(n: int16) = negi16(n)\nexport fn negate(n: int32) = negi32(n)\nexport fn negate(n: int64) = negi64(n)\nexport fn negate(n: float32) = negf32(n)\nexport fn negate(n: float64) = negf64(n)\n\nexport fn mul(a: int8, b: int8) = muli8(a, b)\nexport fn mul(a: int16, b: int16) = muli16(a, b)\nexport fn mul(a: int32, b: int32) = muli32(a, b)\nexport fn mul(a: int64, b: int64) = muli64(a, b)\nexport fn mul(a: float32, b: float32) = mulf32(a, b)\nexport fn mul(a: float64, b: float64) = mulf64(a, b)\n\nexport fn div(a: int8, b: int8) = divi8(a, b)\nexport fn div(a: int16, b: int16) = divi16(a, b)\nexport fn div(a: int32, b: int32) = divi32(a, b)\nexport fn div(a: int64, b: int64) = divi64(a, b)\nexport fn div(a: float32, b: float32) = divf32(a, b)\nexport fn div(a: float64, b: float64) = divf64(a, b)\n\nexport fn mod(a: int8, b: int8) = modi8(a, b)\nexport fn mod(a: int16, b: int16) = modi16(a, b)\nexport fn mod(a: int32, b: int32) = modi32(a, b)\nexport fn mod(a: int64, b: int64) = modi64(a, b)\n\nexport fn pow(a: int8, b: int8) = powi8(a, b)\nexport fn pow(a: int16, b: int16) = powi16(a, b)\nexport fn pow(a: int32, b: int32) = powi32(a, b)\nexport fn pow(a: int64, b: int64) = powi64(a, b)\nexport fn pow(a: float32, b: float32) = powf32(a, b)\nexport fn pow(a: float64, b: float64) = powf64(a, b)\n\nexport fn sqrt(n: float32) = sqrtf32(n)\nexport fn sqrt(n: float64) = sqrtf64(n)\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b)\nexport fn and(a: int16, b: int16) = andi16(a, b)\nexport fn and(a: int32, b: int32) = andi32(a, b)\nexport fn and(a: int64, b: int64) = andi64(a, b)\nexport fn and(a: bool, b: bool) = andbool(a, b)\n\nexport fn or(a: int8, b: int8) = ori8(a, b)\nexport fn or(a: int16, b: int16) = ori16(a, b)\nexport fn or(a: int32, b: int32) = ori32(a, b)\nexport fn or(a: int64, b: int64) = ori64(a, b)\nexport fn or(a: bool, b: bool) = orbool(a, b)\n\nexport fn xor(a: int8, b: int8) = xori8(a, b)\nexport fn xor(a: int16, b: int16) = xori16(a, b)\nexport fn xor(a: int32, b: int32) = xori32(a, b)\nexport fn xor(a: int64, b: int64) = xori64(a, b)\nexport fn xor(a: bool, b: bool) = xorbool(a, b)\n\nexport fn not(n: int8) = noti8(n)\nexport fn not(n: int16) = noti16(n)\nexport fn not(n: int32) = noti32(n)\nexport fn not(n: int64) = noti64(n)\nexport fn not(n: bool) = notbool(n)\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b)\nexport fn nand(a: int16, b: int16) = nandi16(a, b)\nexport fn nand(a: int32, b: int32) = nandi32(a, b)\nexport fn nand(a: int64, b: int64) = nandi64(a, b)\nexport fn nand(a: bool, b: bool) = nandboo(a, b)\n\nexport fn nor(a: int8, b: int8) = nori8(a, b)\nexport fn nor(a: int16, b: int16) = nori16(a, b)\nexport fn nor(a: int32, b: int32) = nori32(a, b)\nexport fn nor(a: int64, b: int64) = nori64(a, b)\nexport fn nor(a: bool, b: bool) = norbool(a, b)\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b)\nexport fn xnor(a: int16, b: int16) = xnori16(a, b)\nexport fn xnor(a: int32, b: int32) = xnori32(a, b)\nexport fn xnor(a: int64, b: int64) = xnori64(a, b)\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b)\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b)\nexport fn eq(a: int16, b: int16) = eqi16(a, b)\nexport fn eq(a: int32, b: int32) = eqi32(a, b)\nexport fn eq(a: int64, b: int64) = eqi64(a, b)\nexport fn eq(a: float32, b: float32) = eqf32(a, b)\nexport fn eq(a: float64, b: float64) = eqf64(a, b)\nexport fn eq(a: string, b: string) = eqstr(a, b)\nexport fn eq(a: bool, b: bool) = eqbool(a, b)\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b)\nexport fn neq(a: int16, b: int16) = neqi16(a, b)\nexport fn neq(a: int32, b: int32) = neqi32(a, b)\nexport fn neq(a: int64, b: int64) = neqi64(a, b)\nexport fn neq(a: float32, b: float32) = neqf32(a, b)\nexport fn neq(a: float64, b: float64) = neqf64(a, b)\nexport fn neq(a: string, b: string) = neqstr(a, b)\nexport fn neq(a: bool, b: bool) = neqbool(a, b)\n\nexport fn lt(a: int8, b: int8) = lti8(a, b)\nexport fn lt(a: int16, b: int16) = lti16(a, b)\nexport fn lt(a: int32, b: int32) = lti32(a, b)\nexport fn lt(a: int64, b: int64) = lti64(a, b)\nexport fn lt(a: float32, b: float32) = ltf32(a, b)\nexport fn lt(a: float64, b: float64) = ltf64(a, b)\nexport fn lt(a: string, b: string) = ltstr(a, b)\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b)\nexport fn lte(a: int16, b: int16) = ltei16(a, b)\nexport fn lte(a: int32, b: int32) = ltei32(a, b)\nexport fn lte(a: int64, b: int64) = ltei64(a, b)\nexport fn lte(a: float32, b: float32) = ltef32(a, b)\nexport fn lte(a: float64, b: float64) = ltef64(a, b)\nexport fn lte(a: string, b: string) = ltestr(a, b)\n\nexport fn gt(a: int8, b: int8) = gti8(a, b)\nexport fn gt(a: int16, b: int16) = gti16(a, b)\nexport fn gt(a: int32, b: int32) = gti32(a, b)\nexport fn gt(a: int64, b: int64) = gti64(a, b)\nexport fn gt(a: float32, b: float32) = gtf32(a, b)\nexport fn gt(a: float64, b: float64) = gtf64(a, b)\nexport fn gt(a: string, b: string) = gtstr(a, b)\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b)\nexport fn gte(a: int16, b: int16) = gtei16(a, b)\nexport fn gte(a: int32, b: int32) = gtei32(a, b)\nexport fn gte(a: int64, b: int64) = gtei64(a, b)\nexport fn gte(a: float32, b: float32) = gtef32(a, b)\nexport fn gte(a: float64, b: float64) = gtef64(a, b)\nexport fn gte(a: string, b: string) = gtestr(a, b)\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n))\nexport fn wait(n: int16) = waitop(i16i64(n))\nexport fn wait(n: int32) = waitop(i32i64(n))\nexport fn wait(n: int64) = waitop(n)\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b)\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n)\nexport fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t)\nexport fn length(s: string) = lenstr(s)\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b)\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n)\nexport fn index(arr: Array<any>, val: any) = indarr(arr, val)\nexport fn length(arr: Array<any>) = lenarr(arr)\nexport fn push(arr: Array<any>, val: any) = pusharr(arr, val)\nexport fn pop(arr: Array<any>): any = poparr(arr, val)\nexport each // opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport map // opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport reduce // opcode with signature `fn reduce(arr: Array<any>, cb: function): any`\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): any`\nexport every // opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport some // opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\n\n// Map functions\nexport keyVal // opcode with signature `fn keyVal(map: Map<any, any>): Array<KeyVal<any, any>>`\nexport keys // opcode with signature `fn keys(map: Map<any, any>): Array<any>`\nexport values // opcode with signature `fn values(map: Map<any, any>): Array<any>`\n\n// Ternary functions\nexport pair // opcode with signature `fn pair(trueval: any, falseval: any): Array<any>`\nexport fn cond(c: bool, options: Array<any>): any = condarr(c, options)\nexport fn cond(c: bool, optional: function): void = condfn(c, optional)\n\n// Operator declarations\nexport infix commutative associative + 2 add\nexport infix associative + 2 concat\nexport infix - 2 sub\nexport prefix - 1 negate\nexport infix commutative associative * 3 mul\nexport infix * 3 repeat\nexport infix / 3 div\nexport infix / 3 split\nexport infix % 3 mod\nexport infix % 3 template\nexport infix ** 4 pow\nexport infix commutative associative & 3 and\nexport infix commutative associative && 3 and\nexport infix commutative associative | 2 or\nexport infix commutative associative || 2 or\nexport infix commutative associative ^ 2 xor\nexport prefix ! 4 not\nexport infix commutative associative !& 3 nand\nexport infix commutative associative !| 2 nor\nexport infix commutative associative !^ 2 xnor\nexport infix commutative associative == 1 eq\nexport infix commutative associative != 1 neq\nexport infix < 1 lt\nexport infix <= 1 lte\nexport infix > 1 gt\nexport infix >= 1 gte\nexport infix ~ 1 matches\nexport infix @ 1 index\nexport prefix # 4 length\nexport prefix ` 4 trim\nexport infix : 5 pair\nexport infix ? 0 cond\n\n"}
 
 },{}],3:[function(require,module,exports){
@@ -251,7 +251,7 @@ AmmLexer.prototype.ruleNames = ["TYPE", "FN", "EVENT", "ON", "CONST", "LET",
 AmmLexer.prototype.grammarFileName = "Amm.g4";
 exports.AmmLexer = AmmLexer;
 
-},{"antlr4/index":76}],4:[function(require,module,exports){
+},{"antlr4/index":77}],4:[function(require,module,exports){
 // Generated from Amm.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -444,7 +444,7 @@ AmmListener.prototype.exitHandlers = function (ctx) {
 };
 exports.AmmListener = AmmListener;
 
-},{"antlr4/index":76}],5:[function(require,module,exports){
+},{"antlr4/index":77}],5:[function(require,module,exports){
 // Generated from Amm.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -4307,7 +4307,7 @@ AmmParser.prototype.handlers = function () {
 };
 exports.AmmParser = AmmParser;
 
-},{"./AmmListener":4,"antlr4/index":76}],6:[function(require,module,exports){
+},{"./AmmListener":4,"antlr4/index":77}],6:[function(require,module,exports){
 const fs = require('fs');
 const { InputStream, CommonTokenStream, } = require('antlr4');
 const { AmmLexer, AmmParser, } = require('./');
@@ -4325,13 +4325,413 @@ const Ast = {
 };
 module.exports = Ast;
 
-},{"./":7,"antlr4":76,"fs":82}],7:[function(require,module,exports){
+},{"./":7,"antlr4":77,"fs":83}],7:[function(require,module,exports){
 module.exports = {
     AmmLexer: require('./AmmLexer').AmmLexer,
     AmmParser: require('./AmmParser').AmmParser,
 };
 
 },{"./AmmLexer":3,"./AmmParser":5}],8:[function(require,module,exports){
+(function (process){
+const Ast = require('../amm/Ast');
+// This project depends on BigNum and associated support in Node's Buffer, so must be >= Node 10.20
+// and does not work in the browser. It would be possible to implement a browser-compatible version
+// but there is no need for it and it would make it harder to work with.
+const ceil8 = n => Math.ceil(n / 8) * 8;
+const loadGlobalMem = (globalMemAst, addressMap) => {
+    const globalMem = {};
+    let currentOffset = -1;
+    for (const globalConst of globalMemAst) {
+        let val;
+        switch (globalConst.fulltypename().getText().trim()) {
+            case "int64":
+                val = globalConst.assignables().getText().trim() + 'i64';
+                globalMem[`@${currentOffset}`] = val;
+                addressMap[globalConst.decname().getText()] = currentOffset;
+                currentOffset -= 8;
+                break;
+            case "float64":
+                val = globalConst.assignables().getText().trim() + 'f64';
+                globalMem[`@${currentOffset}`] = val;
+                addressMap[globalConst.decname().getText()] = currentOffset;
+                currentOffset -= 8;
+                break;
+            case "string":
+                let str;
+                try {
+                    // Will fail on strings with escape chars
+                    str = JSON.parse(globalConst.assignables().getText().trim());
+                }
+                catch (e) {
+                    // Hackery to get these strings to work
+                    str = JSON.stringify(globalConst.assignables().getText().trim().replace(/^["']/, '').replace(/["']$/, ''));
+                }
+                let len = ceil8(str.length) + 8;
+                val = globalConst.assignables().getText().trim();
+                globalMem[`@${currentOffset}`] = val;
+                addressMap[globalConst.decname().getText()] = currentOffset;
+                currentOffset -= len;
+                break;
+            case "bool":
+                val = globalConst.assignables().getText().trim();
+                globalMem[`@${currentOffset}`] = val;
+                addressMap[globalConst.decname().getText()] = currentOffset;
+                currentOffset -= 8;
+                break;
+            default:
+                console.error(globalConst.fulltypename().getText() + " not yet implemented");
+                process.exit(1);
+        }
+    }
+    return globalMem;
+};
+const loadEventDecs = (eventAst) => {
+    const eventMem = {};
+    for (const evt of eventAst) {
+        const evtName = evt.VARNAME().getText().trim();
+        const evtType = evt.typename().getText().trim();
+        const evtSize = evtType === "void" ? 0 : (evtType === "string" ? -1 : 8);
+        eventMem[evtName] = evtSize;
+    }
+    return eventMem;
+};
+const getFunctionbodyMem = (functionbody) => {
+    let memSize = 0;
+    const addressMap = {};
+    for (const statement of functionbody.statements()) {
+        if (statement.declarations()) {
+            if (statement.declarations().constdeclaration()) {
+                if (statement.declarations().constdeclaration().assignables().functions()) {
+                    // Because closures re-use their parent memory space, their own memory needs to be included
+                    const closureMem = getFunctionbodyMem(statement.declarations().constdeclaration().assignables().functions().functionbody());
+                    Object.keys(closureMem.addressMap).forEach(name => addressMap[name] = closureMem.addressMap[name] + memSize);
+                    memSize += closureMem.memSize;
+                }
+                else {
+                    addressMap[statement.declarations().constdeclaration().decname().getText().trim()] = memSize;
+                    memSize += 8;
+                }
+            }
+            else {
+                addressMap[statement.declarations().letdeclaration().decname().getText().trim()] = memSize;
+                memSize += 8;
+            }
+        }
+    }
+    return {
+        memSize,
+        addressMap,
+    };
+};
+const getHandlersMem = handlers => handlers.map(handler => {
+    const handlerMem = getFunctionbodyMem(handler.functions().functionbody());
+    if (handler.functions().VARNAME()) {
+        // Increase the memory usage and shift *everything* down, then add the new address
+        handlerMem.memSize += 8;
+        Object.keys(handlerMem.addressMap).forEach(name => handlerMem.addressMap[name] += 8);
+        handlerMem.addressMap[handler.functions().VARNAME().getText().trim()] = 0;
+    }
+    return handlerMem;
+});
+const closuresFromDeclaration = (declaration, closureMem, eventDecs) => {
+    const name = declaration.constdeclaration().decname().getText().trim();
+    const allStatements = declaration
+        .constdeclaration()
+        .assignables()
+        .functions()
+        .functionbody()
+        .statements();
+    const statements = allStatements.filter(statement => !(statement.declarations() &&
+        statement.declarations().constdeclaration() &&
+        statement.declarations().constdeclaration().assignables().functions()));
+    const otherClosures = allStatements.filter(statement => statement.declarations() &&
+        statement.declarations().constdeclaration() &&
+        statement.declarations().constdeclaration().assignables().functions()).map(s => closuresFromDeclaration(s.declarations(), closureMem, eventDecs)).reduce((obj, rec) => ({
+        ...obj,
+        ...rec,
+    }), {});
+    eventDecs[name] = 0;
+    return {
+        [name]: {
+            name,
+            statements,
+            closureMem,
+        },
+        ...otherClosures,
+    };
+};
+const extractClosures = (handlers, handlerMem, eventDecs) => {
+    let closures = {};
+    for (let i = 0; i < handlers.length; i++) {
+        const closureMem = handlerMem[i];
+        const handler = handlers[i];
+        for (const statement of handler.functions().functionbody().statements()) {
+            if (statement.declarations() &&
+                statement.declarations().constdeclaration() &&
+                statement.declarations().constdeclaration().assignables().functions()) {
+                // It's a closure, first try to extract any inner closures it may have
+                const innerClosures = closuresFromDeclaration(statement.declarations(), closureMem, eventDecs);
+                closures = {
+                    ...closures,
+                    ...innerClosures,
+                };
+            }
+        }
+    }
+    return Object.values(closures);
+};
+const loadStatements = (statements, localMem, globalMem) => {
+    let vec = [];
+    let line = 0;
+    let localMemToLine = {};
+    for (const statement of statements) {
+        if (statement.declarations() &&
+            statement.declarations().constdeclaration() &&
+            statement.declarations().constdeclaration().assignables().functions()) {
+            // It's a closure, skip it
+            continue;
+        }
+        // let s = `line ${line}`
+        let s = '';
+        if (statement.declarations()) {
+            const dec = statement.declarations().constdeclaration() || statement.declarations().letdeclaration();
+            const resultAddress = localMem[dec.decname().getText().trim()];
+            localMemToLine[dec.decname().getText().trim()] = line;
+            const assignables = dec.assignables();
+            if (assignables.functions()) {
+                console.error("This shouldn't be possible!");
+                process.exit(2);
+            }
+            else if (assignables.calls()) {
+                const call = assignables.calls();
+                const fn = call.VARNAME().getText().trim();
+                const vars = (call.calllist() ? call.calllist().VARNAME() : []).map(v => v.getText().trim());
+                const args = vars.map(v => localMem.hasOwnProperty(v) ?
+                    localMem[v] :
+                    globalMem.hasOwnProperty(v) ?
+                        globalMem[v] :
+                        v).map(a => typeof a === 'string' ? a : `@${a}`);
+                while (args.length < 2)
+                    args.push('@0');
+                const deps = vars
+                    .filter(v => localMem.hasOwnProperty(v))
+                    .map(v => localMemToLine[localMem[v]])
+                    .filter(v => v !== undefined) // Filter out the handler arg from the dep list
+                    .map(v => `#${v}`);
+                s += `@${resultAddress} = ${fn}(${args.join(', ')}) #${line}`;
+                if (deps.length > 0) {
+                    s += ` <- [${deps.join(', ')}]`;
+                }
+            }
+            else if (assignables.constants()) {
+                // Only required for `let` statements
+                let fn;
+                let val;
+                switch (dec.fulltypename().getText().trim()) {
+                    case 'int64':
+                        fn = 'seti64';
+                        val = assignables.getText() + 'i64';
+                        break;
+                    case 'int32':
+                        fn = 'seti32';
+                        val = assignables.getText() + 'i32';
+                        break;
+                    case 'int16':
+                        fn = 'seti16';
+                        val = assignables.getText() + 'i16';
+                        break;
+                    case 'int8':
+                        fn = 'seti8';
+                        val = assignables.getText() + 'i8';
+                        break;
+                    case 'float64':
+                        fn = 'setf64';
+                        val = assignables.getText() + 'f64';
+                        break;
+                    case 'float32':
+                        fn = 'setf32';
+                        val = assignables.getText() + 'f32';
+                        break;
+                    case 'bool':
+                        fn = 'setbool';
+                        val = assignables.getText() + 'i8'; // Bools are just bytes in the runtime
+                        break;
+                    case 'string':
+                        throw new Error('TODO: Decide if this is the responsibility of first or second stage');
+                        break;
+                    default:
+                        throw new Error(`Unsupported variable type ${dec.fulltypename().getText()}`);
+                        break;
+                }
+                s += `@${resultAddress} = ${fn}(${val}, @0) #${line}`;
+            }
+            else if (assignables.objectliterals()) {
+                console.error("Not yet implemented");
+                process.exit(4);
+            }
+            else if (assignables.VARNAME()) {
+                console.error("This should have been squashed");
+                process.exit(5);
+            }
+        }
+        else if (statement.assignments()) {
+            const asgn = statement.assignments();
+            const resultAddress = localMem[asgn.decname().getText().trim()];
+            localMemToLine[resultAddress] = line;
+            const assignables = asgn.assignables();
+            if (assignables.functions()) {
+                console.error("This shouldn't be possible!");
+                process.exit(2);
+            }
+            else if (assignables.calls()) {
+                const call = assignables.calls();
+                const fn = call.VARNAME().getText().trim();
+                const vars = (call.calllist() ? call.calllist().VARNAME() : []);
+                const args = vars.map(v => v.getText().trim()).map(v => localMem.hasOwnProperty(v) ?
+                    localMem[v] :
+                    globalMem.hasOwnProperty(v) ?
+                        globalMem[v] :
+                        v).map(a => typeof a === 'string' ? a : `@${a}`);
+                while (args.length < 2)
+                    args.push('@0');
+                const deps = vars
+                    .filter(v => localMem.hasOwnProperty(v))
+                    .map(v => localMemToLine[localMem[v]])
+                    .filter(v => v !== undefined) // Filter out the handler arg from the dep list
+                    .map(v => `#${v}`);
+                s += `@${resultAddress} = ${fn}(${args.join(', ')}) #${line}`;
+                if (deps.length > 0) {
+                    s += ` <- [${deps.join(', ')}]`;
+                }
+            }
+            else if (assignables.constants()) {
+                console.error("This should have been hoisted");
+                process.exit(3);
+            }
+            else if (assignables.objectliterals()) {
+                console.error("Not yet implemented");
+                process.exit(4);
+            }
+            else if (assignables.VARNAME()) {
+                console.error("This should have been squashed");
+                process.exit(5);
+            }
+        }
+        else if (statement.calls()) {
+            const call = statement.calls();
+            const fn = call.VARNAME().getText().trim();
+            const vars = (call.calllist() ? call.calllist().VARNAME() : []);
+            const args = vars.map(v => v.getText().trim()).map(v => localMem.hasOwnProperty(v) ?
+                localMem[v] :
+                globalMem.hasOwnProperty(v) ?
+                    globalMem[v] :
+                    v).map(a => typeof a === 'string' ? a : `@${a}`);
+            while (args.length < 2)
+                args.push(0);
+            const deps = vars
+                .filter(v => localMem.hasOwnProperty(v))
+                .map(v => localMemToLine[localMem[v]])
+                .filter(v => v !== undefined) // Filter out the handler arg from the dep list
+                .map(v => `#${v}`);
+            s += `${fn}(${args.join(', ')}) #${line}`;
+            if (deps.length > 0) {
+                s += ` <- [${deps.join(', ')}]`;
+            }
+        }
+        else if (statement.emits()) {
+            const emit = statement.emits();
+            const evtName = emit.VARNAME(0).getText().trim();
+            const payloadVar = emit.VARNAME(1).getText().trim();
+            const payload = !payloadVar ?
+                0 :
+                localMem.hasOwnProperty(payloadVar) ?
+                    localMem[payloadVar] :
+                    globalMem.hasOwnProperty(payloadVar) ?
+                        globalMem[payloadVar] :
+                        payloadVar;
+            const deps = (!payloadVar ? [] :
+                localMem.hasOwnProperty(payloadVar) ?
+                    [localMemToLine[payloadVar]].filter(v => v !== undefined) :
+                    []).map(v => `#${v}`);
+            s += `emit(${evtName}, ${typeof payload === 'string' ? payload : `@${payload}`}) #${line}`;
+            if (deps.length > 0) {
+                s += ` <- [${deps.join(', ')}]`;
+            }
+        }
+        vec.push(s);
+        line += 1;
+    }
+    return vec;
+};
+const loadHandlers = (handlers, handlerMem, globalMem) => {
+    const vec = [];
+    for (let i = 0; i < handlers.length; i++) {
+        const handler = handlers[i];
+        const eventName = handler.VARNAME().getText().trim();
+        const memSize = handlerMem[i].memSize;
+        const localMem = handlerMem[i].addressMap;
+        let h = `handler for ${eventName} with size ${memSize}\n`;
+        const statements = loadStatements(handler.functions().functionbody().statements(), localMem, globalMem);
+        statements.forEach(s => h += `  ${s}\n`);
+        vec.push(h);
+    }
+    return vec;
+};
+const loadClosures = (closures, globalMem) => {
+    const vec = [];
+    for (let i = 0; i < closures.length; i++) {
+        const closure = closures[i];
+        const eventName = closure.name;
+        const memSize = closure.closureMem.memSize;
+        const localMem = closure.closureMem.addressMap;
+        let c = `handler for ${eventName} with size ${memSize}\n`;
+        const statements = loadStatements(closure.statements, localMem, globalMem);
+        statements.forEach(s => c += `  ${s}\n`);
+        vec.push(c);
+    }
+    return vec;
+};
+const ammToAga = (amm) => {
+    // Declare the AGA header
+    let outStr = 'Alan Graphcode Assembler v0.0.1\n\n';
+    // Get the global memory and the memory address map (var name to address ID)
+    const addressMap = {};
+    const globalMem = loadGlobalMem(amm.constdeclaration(), addressMap);
+    // Output the global memory
+    outStr += 'globalMem\n';
+    Object.keys(globalMem).forEach(addr => outStr += `  ${addr}: ${globalMem[addr]}\n`);
+    outStr += '\n';
+    // Load the events, get the event id offset (for reuse with closures) and the event declarations
+    let eventDecs = loadEventDecs(amm.events());
+    // Skipping types for now as exactly how we deal with them and what metadata the runtime needs is
+    // not yet decided.
+    // Determine the amount of memory to allocate per handler and map declarations to addresses
+    const handlerMem = getHandlersMem(amm.handlers());
+    const closures = extractClosures(amm.handlers(), handlerMem, eventDecs);
+    // Then output the custom events, which may include closures, if needed
+    if (Object.keys(eventDecs).length > 0) {
+        outStr += 'customEvents\n';
+        Object.keys(eventDecs).forEach(evt => outStr += `  ${evt}: ${eventDecs[evt]}\n`);
+        outStr += '\n';
+    }
+    // Load the handlers
+    const handlerVec = loadHandlers(amm.handlers(), handlerMem, addressMap);
+    outStr += handlerVec.join('\n');
+    // And load the closures (as handlers) if present
+    const closureVec = loadClosures(closures, addressMap);
+    if (closureVec.length > 0) {
+        outStr += '\n';
+        outStr += closureVec.join('\n');
+    }
+    return outStr;
+};
+module.exports = {
+    fromFile: (filename) => ammToAga(Ast.fromFile(filename)),
+    fromString: (str) => ammToAga(Ast.fromString(str)),
+};
+
+}).call(this,require('_process'))
+},{"../amm/Ast":6,"_process":86}],9:[function(require,module,exports){
 const Ast = require('../amm/Ast');
 const AsyncOpcodes = require('alan-js-runtime').asyncopcodes;
 const callToJsText = (call) => {
@@ -4372,7 +4772,6 @@ const functionbodyToJsText = (fnbody, indent) => {
 const assignableToJsText = (assignable, indent) => {
     let outText = "";
     if (assignable.functions()) {
-        const fn = assignable.functions();
         outText += '() => {\n'; // All assignable functions/closures take no arguments
         outText += functionbodyToJsText(assignable.functions().functionbody(), indent + "  ");
         outText += indent + '  }'; // End this closure
@@ -4411,10 +4810,12 @@ const ammToJsText = (amm) => {
     outFile += "r.emit('_start', undefined)\n"; // Let's get it started in here
     return outFile;
 };
-module.exports = (filename) => ammToJsText(Ast.fromFile(filename));
-module.exports.ammTextToJs = (str) => ammToJsText(Ast.fromString(str));
+module.exports = {
+    fromFile: (filename) => ammToJsText(Ast.fromFile(filename)),
+    fromString: (str) => ammToJsText(Ast.fromString(str)),
+};
 
-},{"../amm/Ast":6,"alan-js-runtime":"alan-js-runtime"}],9:[function(require,module,exports){
+},{"../amm/Ast":6,"alan-js-runtime":"alan-js-runtime"}],10:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -4757,7 +5158,7 @@ LnLexer.prototype.ruleNames = ["IMPORT", "FROM", "TYPE", "FN", "EVENT",
 LnLexer.prototype.grammarFileName = "Ln.g4";
 exports.LnLexer = LnLexer;
 
-},{"antlr4/index":76}],10:[function(require,module,exports){
+},{"antlr4/index":77}],11:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -5160,7 +5561,7 @@ LnListener.prototype.exitArrayaccess = function (ctx) {
 };
 exports.LnListener = LnListener;
 
-},{"antlr4/index":76}],11:[function(require,module,exports){
+},{"antlr4/index":77}],12:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -13107,13 +13508,13 @@ LnParser.prototype.arrayaccess = function () {
 };
 exports.LnParser = LnParser;
 
-},{"./LnListener":10,"antlr4/index":76}],12:[function(require,module,exports){
+},{"./LnListener":11,"antlr4/index":77}],13:[function(require,module,exports){
 module.exports = {
     LnLexer: require('./LnLexer').LnLexer,
     LnParser: require('./LnParser').LnParser,
 };
 
-},{"./LnLexer":9,"./LnParser":11}],13:[function(require,module,exports){
+},{"./LnLexer":10,"./LnParser":12}],14:[function(require,module,exports){
 (function (process){
 const fs = require('fs');
 const path = require('path');
@@ -13328,7 +13729,7 @@ const Ast = {
 module.exports = Ast;
 
 }).call(this,require('_process'))
-},{"../ln":12,"_process":85,"antlr4":76,"fs":82,"path":84}],14:[function(require,module,exports){
+},{"../ln":13,"_process":86,"antlr4":77,"fs":83,"path":85}],15:[function(require,module,exports){
 (function (process){
 const Type = require('./Type');
 const Int8 = require('./Int8');
@@ -13760,7 +14161,7 @@ Box.builtinTypes = {
 module.exports = Box;
 
 }).call(this,require('_process'))
-},{"./Event":15,"./Float32":16,"./Float64":17,"./Int16":19,"./Int32":20,"./Int64":21,"./Int8":22,"./Microstatement":24,"./Scope":27,"./Type":30,"_process":85}],15:[function(require,module,exports){
+},{"./Event":16,"./Float32":17,"./Float64":18,"./Int16":20,"./Int32":21,"./Int64":22,"./Int8":23,"./Microstatement":25,"./Scope":28,"./Type":31,"_process":86}],16:[function(require,module,exports){
 (function (process){
 class Event {
     constructor(name, type, builtIn) {
@@ -13792,7 +14193,7 @@ Event.allEvents = [];
 module.exports = Event;
 
 }).call(this,require('_process'))
-},{"_process":85}],16:[function(require,module,exports){
+},{"_process":86}],17:[function(require,module,exports){
 class Float32 {
     constructor(val) {
         this.val = val;
@@ -13803,7 +14204,7 @@ class Float32 {
 }
 module.exports = Float32;
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 class Float64 {
     constructor(val) {
         this.val = val;
@@ -13814,7 +14215,7 @@ class Float64 {
 }
 module.exports = Float64;
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 class FunctionType {
     constructor(...args) {
         if (args.length === 1) {
@@ -13843,7 +14244,7 @@ class FunctionType {
 }
 module.exports = FunctionType;
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 class Int16 {
     constructor(val) {
         this.val = val;
@@ -13854,7 +14255,7 @@ class Int16 {
 }
 module.exports = Int16;
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 class Int32 {
     constructor(val) {
         this.val = val;
@@ -13865,7 +14266,7 @@ class Int32 {
 }
 module.exports = Int32;
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 class Int64 {
     constructor(val) {
         this.val = val;
@@ -13876,7 +14277,7 @@ class Int64 {
 }
 module.exports = Int64;
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 class Int8 {
     constructor(val) {
         this.val = val;
@@ -13887,7 +14288,7 @@ class Int8 {
 }
 module.exports = Int8;
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 (function (process){
 const Type = require('./Type');
 const FunctionType = require('./FunctionType');
@@ -14016,7 +14417,7 @@ class Interface {
 module.exports = Interface;
 
 }).call(this,require('_process'))
-},{"./Box":14,"./FunctionType":18,"./Type":30,"_process":85}],24:[function(require,module,exports){
+},{"./Box":15,"./FunctionType":19,"./Type":31,"_process":86}],25:[function(require,module,exports){
 (function (process){
 const { v4: uuid, } = require('uuid');
 const { LnParser, } = require('../ln');
@@ -14859,7 +15260,7 @@ class Microstatement {
 module.exports = Microstatement;
 
 }).call(this,require('_process'))
-},{"../ln":12,"./Box":14,"./StatementType":29,"./UserFunction":31,"_process":85,"uuid":90}],25:[function(require,module,exports){
+},{"../ln":13,"./Box":15,"./StatementType":30,"./UserFunction":32,"_process":86,"uuid":91}],26:[function(require,module,exports){
 (function (process){
 const Ast = require('./Ast');
 const Box = require('./Box');
@@ -15259,7 +15660,7 @@ class Module {
 module.exports = Module;
 
 }).call(this,require('_process'))
-},{"./Ast":13,"./Box":14,"./Event":15,"./Interface":23,"./Operator":26,"./Scope":27,"./Type":30,"./UserFunction":31,"_process":85}],26:[function(require,module,exports){
+},{"./Ast":14,"./Box":15,"./Event":16,"./Interface":24,"./Operator":27,"./Scope":28,"./Type":31,"./UserFunction":32,"_process":86}],27:[function(require,module,exports){
 class Operator {
     constructor(name, precedence, isPrefix, isCommutative, isAssociative, potentialFunctions) {
         this.name = name;
@@ -15320,7 +15721,7 @@ class Operator {
 }
 module.exports = Operator;
 
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 (function (process){
 const Box = require('./Box');
 const { LnParser, } = require('../ln');
@@ -15500,7 +15901,7 @@ class Scope {
 module.exports = Scope;
 
 }).call(this,require('_process'))
-},{"../ln":12,"./Box":14,"./opcodes":33,"_process":85}],28:[function(require,module,exports){
+},{"../ln":13,"./Box":15,"./opcodes":34,"_process":86}],29:[function(require,module,exports){
 (function (process){
 const Box = require('./Box');
 const { LnParser, } = require('../ln');
@@ -15659,7 +16060,7 @@ class Statement {
 module.exports = Statement;
 
 }).call(this,require('_process'))
-},{"../ln":12,"./Box":14,"_process":85}],29:[function(require,module,exports){
+},{"../ln":13,"./Box":15,"_process":86}],30:[function(require,module,exports){
 module.exports = {
     CONSTDEC: 'CONSTDEC',
     LETDEC: 'LETDEC',
@@ -15671,7 +16072,7 @@ module.exports = {
     ARG: 'ARG',
 };
 
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 (function (process){
 class Type {
     constructor(...args) {
@@ -15902,7 +16303,7 @@ class Type {
 module.exports = Type;
 
 }).call(this,require('_process'))
-},{"./Box":14,"./Interface":23,"_process":85}],31:[function(require,module,exports){
+},{"./Box":15,"./Interface":24,"_process":86}],32:[function(require,module,exports){
 (function (process){
 const { v4: uuid, } = require('uuid');
 const Ast = require('./Ast');
@@ -16293,7 +16694,7 @@ class UserFunction {
 module.exports = UserFunction;
 
 }).call(this,require('_process'))
-},{"../ln":12,"./Ast":13,"./Box":14,"./Microstatement":24,"./Statement":28,"./StatementType":29,"_process":85,"uuid":90}],32:[function(require,module,exports){
+},{"../ln":13,"./Ast":14,"./Box":15,"./Microstatement":25,"./Statement":29,"./StatementType":30,"_process":86,"uuid":91}],33:[function(require,module,exports){
 const fs = require('fs');
 const path = require('path');
 const { v4: uuid, } = require('uuid');
@@ -16525,10 +16926,12 @@ const ammFromModuleAsts = (moduleAsts) => {
     }
     return outStr;
 };
-module.exports = (filename) => ammFromModuleAsts(moduleAstsFromFile(filename));
-module.exports.lnTextToAmm = (str) => ammFromModuleAsts(moduleAstsFromString(str));
+module.exports = {
+    fromFile: (filename) => ammFromModuleAsts(moduleAstsFromFile(filename)),
+    fromString: (str) => ammFromModuleAsts(moduleAstsFromString(str)),
+};
 
-},{"./Ast":13,"./Event":15,"./Microstatement":24,"./Module":25,"./StatementType":29,"./Std":1,"./UserFunction":31,"./opcodes":33,"fs":82,"path":84,"uuid":90}],33:[function(require,module,exports){
+},{"./Ast":14,"./Event":16,"./Microstatement":25,"./Module":26,"./StatementType":30,"./Std":1,"./UserFunction":32,"./opcodes":34,"fs":83,"path":85,"uuid":91}],34:[function(require,module,exports){
 const { v4: uuid, } = require('uuid');
 const Box = require('./Box'); // TODO: Eliminate Box
 const Module = require('./Module');
@@ -16795,13 +17198,136 @@ addopcodes({
 });
 module.exports = opcodeModule;
 
-},{"./Box":14,"./Event":15,"./Interface":23,"./Microstatement":24,"./Module":25,"./Scope":27,"./StatementType":29,"./Type":30,"uuid":90}],34:[function(require,module,exports){
-const lntoamm = require('../lntoamm');
-const { ammTextToJs, } = require('../ammtojs');
-module.exports = (filename) => ammTextToJs(lntoamm(filename));
-module.exports.lnTextToJs = (str) => ammTextToJs(lntoamm.lnTextToAmm(str));
+},{"./Box":15,"./Event":16,"./Interface":24,"./Microstatement":25,"./Module":26,"./Scope":28,"./StatementType":30,"./Type":31,"uuid":91}],35:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const buildPipeline = (converters) => {
+    // Get a unique set of inputs and outputs, and index the converters by their input and output
+    const inputs = new Set();
+    const outputs = new Set();
+    const both = new Set();
+    const byInput = new Map();
+    const byOutput = new Map();
+    const byBoth = new Map();
+    converters.forEach(converter => {
+        inputs.add(converter[0]);
+        outputs.add(converter[1]);
+        both.add(converter[0]);
+        both.add(converter[1]);
+        if (!byInput.has(converter[0])) {
+            byInput.set(converter[0], []);
+        }
+        byInput.get(converter[0]).push(converter);
+        if (!byOutput.has(converter[1])) {
+            byOutput.set(converter[1], []);
+        }
+        byOutput.get(converter[1]).push(converter);
+        byBoth.set(converter[0] + converter[1], converter[2]);
+    });
+    // Compute the shortest path from every input to every output, or drop it if not possible
+    const paths = {};
+    inputs.forEach((input) => {
+        outputs.forEach((output) => {
+            // Skip identical inputs and outputs
+            if (input === output)
+                return;
+            // Short-circuit if a direct conversion is possible
+            if (byBoth.has(input + output)) {
+                if (!paths[input])
+                    paths[input] = {};
+                paths[input][output] = [input, output];
+                return;
+            }
+            // Otherwise, scan through the graph using Djikstra's Algorithm
+            const nodes = new Set();
+            const dist = new Map();
+            const prev = new Map();
+            both.forEach(n => {
+                nodes.add(n);
+                dist.set(n, Infinity);
+                prev.set(n, undefined);
+            });
+            dist.set(input, 0);
+            let minDist = 0;
+            let minNode = input;
+            while (nodes.size > 0) {
+                const n = minNode;
+                if (n === output)
+                    break;
+                nodes.delete(n);
+                minNode = undefined;
+                minDist = Infinity;
+                // Find the smallest remaining distance node to continue the search
+                nodes.forEach((node) => {
+                    if (dist.get(node) < minDist || minDist === Infinity) {
+                        minDist = dist.get(node);
+                        minNode = node;
+                    }
+                });
+                if (byInput.has(n)) {
+                    byInput.get(n).map((r) => r[1]).forEach((neighbor) => {
+                        const newDist = dist.get(n) + 1;
+                        if (newDist < dist.get(neighbor)) {
+                            dist.set(neighbor, newDist);
+                            prev.set(neighbor, n);
+                        }
+                        if (newDist < minDist) {
+                            minDist = newDist;
+                            minNode = neighbor;
+                        }
+                    });
+                }
+            }
+            const path = [];
+            let node = output;
+            while (node) {
+                path.unshift(node);
+                node = prev.get(node);
+            }
+            if (path.length < 2)
+                return; // Invalid/impossible path, skip it
+            if (!paths[input])
+                paths[input] = {};
+            paths[input][output] = path;
+        });
+    });
+    const lookup = {};
+    Object.keys(paths).forEach(i => {
+        Object.keys(paths[i]).forEach(o => {
+            if (!lookup[i])
+                lookup[i] = {};
+            const c = paths[i][o].reduce((cumu, curr) => {
+                if (!cumu.prev)
+                    return {
+                        prev: curr,
+                        fromFile: undefined,
+                        fromString: undefined,
+                    };
+                const converter = byBoth.get(cumu.prev + curr);
+                if (!cumu.fromFile) {
+                    return {
+                        prev: curr,
+                        fromFile: converter.fromFile,
+                        fromString: converter.fromString,
+                    };
+                }
+                return {
+                    prev: curr,
+                    fromFile: (filename) => converter.fromString(cumu.fromFile(filename)),
+                    fromString: (str) => converter.fromString(cumu.fromString(str)),
+                };
+            }, { prev: undefined, fromFile: undefined, fromString: undefined, });
+            lookup[i][o] = {
+                fromFile: c.fromFile,
+                fromString: c.fromString,
+            };
+        });
+    });
+    return lookup;
+};
+exports.default = buildPipeline;
 
-},{"../ammtojs":8,"../lntoamm":32}],35:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -17178,7 +17704,7 @@ BufferedTokenStream.prototype.fill = function() {
 
 exports.BufferedTokenStream = BufferedTokenStream;
 
-},{"./IntervalSet":41,"./Lexer":43,"./Token":49}],36:[function(require,module,exports){
+},{"./IntervalSet":42,"./Lexer":44,"./Token":50}],37:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -17251,7 +17777,7 @@ var CharStreams = {
 
 exports.CharStreams = CharStreams;
 
-},{"./InputStream":40,"fs":82}],37:[function(require,module,exports){
+},{"./InputStream":41,"fs":83}],38:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -17322,7 +17848,7 @@ CommonTokenFactory.prototype.createThin = function(type, text) {
 
 exports.CommonTokenFactory = CommonTokenFactory;
 
-},{"./Token":49}],38:[function(require,module,exports){
+},{"./Token":50}],39:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -17427,7 +17953,7 @@ CommonTokenStream.prototype.getNumberOfOnChannelTokens = function() {
 };
 
 exports.CommonTokenStream = CommonTokenStream;
-},{"./BufferedTokenStream":35,"./Token":49}],39:[function(require,module,exports){
+},{"./BufferedTokenStream":36,"./Token":50}],40:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -17455,7 +17981,7 @@ FileStream.prototype.constructor = FileStream;
 
 exports.FileStream = FileStream;
 
-},{"./InputStream":40,"fs":82}],40:[function(require,module,exports){
+},{"./InputStream":41,"fs":83}],41:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -17592,7 +18118,7 @@ InputStream.prototype.toString = function() {
 
 exports.InputStream = InputStream;
 
-},{"./Token":49,"./polyfills/codepointat":77,"./polyfills/fromcodepoint":78}],41:[function(require,module,exports){
+},{"./Token":50,"./polyfills/codepointat":78,"./polyfills/fromcodepoint":79}],42:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -17892,7 +18418,7 @@ IntervalSet.prototype.elementName = function(literalNames, symbolicNames, a) {
 exports.Interval = Interval;
 exports.IntervalSet = IntervalSet;
 
-},{"./Token":49}],42:[function(require,module,exports){
+},{"./Token":50}],43:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -18093,7 +18619,7 @@ LL1Analyzer.prototype._LOOK = function(s, stopState , ctx, look, lookBusy, calle
 exports.LL1Analyzer = LL1Analyzer;
 
 
-},{"./IntervalSet":41,"./PredictionContext":46,"./Token":49,"./Utils":50,"./atn/ATNConfig":52,"./atn/ATNState":57,"./atn/Transition":65}],43:[function(require,module,exports){
+},{"./IntervalSet":42,"./PredictionContext":47,"./Token":50,"./Utils":51,"./atn/ATNConfig":53,"./atn/ATNState":58,"./atn/Transition":66}],44:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -18466,7 +18992,7 @@ Lexer.prototype.recover = function(re) {
 
 exports.Lexer = Lexer;
 
-},{"./CommonTokenFactory":37,"./Recognizer":47,"./Token":49,"./error/Errors":74}],44:[function(require,module,exports){
+},{"./CommonTokenFactory":38,"./Recognizer":48,"./Token":50,"./error/Errors":75}],45:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -19141,7 +19667,7 @@ Parser.prototype.setTrace = function(trace) {
 };
 
 exports.Parser = Parser;
-},{"./Lexer":43,"./Recognizer":47,"./Token":49,"./atn/ATNDeserializationOptions":54,"./atn/ATNDeserializer":55,"./error/ErrorStrategy":73,"./tree/Tree":79}],45:[function(require,module,exports){
+},{"./Lexer":44,"./Recognizer":48,"./Token":50,"./atn/ATNDeserializationOptions":55,"./atn/ATNDeserializer":56,"./error/ErrorStrategy":74,"./tree/Tree":80}],46:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -19367,7 +19893,7 @@ InterpreterRuleContext.prototype = Object.create(ParserRuleContext.prototype);
 InterpreterRuleContext.prototype.constructor = InterpreterRuleContext;
 
 exports.ParserRuleContext = ParserRuleContext;
-},{"./IntervalSet":41,"./RuleContext":48,"./tree/Tree":79}],46:[function(require,module,exports){
+},{"./IntervalSet":42,"./RuleContext":49,"./tree/Tree":80}],47:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -20103,7 +20629,7 @@ exports.SingletonPredictionContext = SingletonPredictionContext;
 exports.predictionContextFromRuleContext = predictionContextFromRuleContext;
 exports.getCachedPredictionContext = getCachedPredictionContext;
 
-},{"./RuleContext":48,"./Utils":50}],47:[function(require,module,exports){
+},{"./RuleContext":49,"./Utils":51}],48:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -20252,7 +20778,7 @@ Object.defineProperty(Recognizer.prototype, "state", {
 
 exports.Recognizer = Recognizer;
 
-},{"./Token":49,"./error/ErrorListener":72}],48:[function(require,module,exports){
+},{"./Token":50,"./error/ErrorListener":73}],49:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -20411,7 +20937,7 @@ RuleContext.prototype.toString = function(ruleNames, stop) {
 };
 
 
-},{"./atn/ATN":51,"./tree/Tree":79,"./tree/Trees":80}],49:[function(require,module,exports){
+},{"./atn/ATN":52,"./tree/Tree":80,"./tree/Trees":81}],50:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -20564,7 +21090,7 @@ CommonToken.prototype.toString = function() {
 exports.Token = Token;
 exports.CommonToken = CommonToken;
 
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -21017,7 +21543,7 @@ exports.arrayToString = arrayToString;
 exports.titleCase = titleCase;
 exports.equalArrays = equalArrays;
 
-},{}],51:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -21160,7 +21686,7 @@ ATN.prototype.getExpectedTokens = function( stateNumber, ctx ) {
 ATN.INVALID_ALT_NUMBER = 0;
 
 exports.ATN = ATN;
-},{"./../IntervalSet":41,"./../LL1Analyzer":42,"./../Token":49}],52:[function(require,module,exports){
+},{"./../IntervalSet":42,"./../LL1Analyzer":43,"./../Token":50}],53:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -21337,7 +21863,7 @@ LexerATNConfig.prototype.checkNonGreedyDecision = function(source, target) {
 
 exports.ATNConfig = ATNConfig;
 exports.LexerATNConfig = LexerATNConfig;
-},{"../Utils":50,"./ATNState":57,"./SemanticContext":64}],53:[function(require,module,exports){
+},{"../Utils":51,"./ATNState":58,"./SemanticContext":65}],54:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -21592,7 +22118,7 @@ OrderedATNConfigSet.prototype.constructor = OrderedATNConfigSet;
 exports.ATNConfigSet = ATNConfigSet;
 exports.OrderedATNConfigSet = OrderedATNConfigSet;
 
-},{"./../PredictionContext":46,"./../Utils":50,"./ATN":51,"./SemanticContext":64}],54:[function(require,module,exports){
+},{"./../PredictionContext":47,"./../Utils":51,"./ATN":52,"./SemanticContext":65}],55:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -21619,7 +22145,7 @@ ATNDeserializationOptions.defaultOptions.readOnly = true;
 
 exports.ATNDeserializationOptions = ATNDeserializationOptions;
 
-},{}],55:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -22298,7 +22824,7 @@ ATNDeserializer.prototype.lexerActionFactory = function(type, data1, data2) {
 
 
 exports.ATNDeserializer = ATNDeserializer;
-},{"./../IntervalSet":41,"./../Token":49,"./ATN":51,"./ATNDeserializationOptions":54,"./ATNState":57,"./ATNType":58,"./LexerAction":60,"./Transition":65}],56:[function(require,module,exports){
+},{"./../IntervalSet":42,"./../Token":50,"./ATN":52,"./ATNDeserializationOptions":55,"./ATNState":58,"./ATNType":59,"./LexerAction":61,"./Transition":66}],57:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -22352,7 +22878,7 @@ ATNSimulator.prototype.getCachedContext = function(context) {
 
 exports.ATNSimulator = ATNSimulator;
 
-},{"./../PredictionContext":46,"./../Utils":50,"./../dfa/DFAState":69,"./ATNConfigSet":53}],57:[function(require,module,exports){
+},{"./../PredictionContext":47,"./../Utils":51,"./../dfa/DFAState":70,"./ATNConfigSet":54}],58:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -22680,7 +23206,7 @@ exports.PlusBlockStartState = PlusBlockStartState;
 exports.StarBlockStartState = StarBlockStartState;
 exports.BasicBlockStartState = BasicBlockStartState;
 
-},{}],58:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -22699,7 +23225,7 @@ ATNType.PARSER = 1;
 exports.ATNType = ATNType;
 
 
-},{}],59:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -23337,7 +23863,7 @@ LexerATNSimulator.prototype.getTokenName = function(tt) {
 
 exports.LexerATNSimulator = LexerATNSimulator;
 
-},{"./../Lexer":43,"./../PredictionContext":46,"./../Token":49,"./../dfa/DFAState":69,"./../error/Errors":74,"./ATN":51,"./ATNConfig":52,"./ATNConfigSet":53,"./ATNSimulator":56,"./ATNState":57,"./LexerActionExecutor":61,"./Transition":65}],60:[function(require,module,exports){
+},{"./../Lexer":44,"./../PredictionContext":47,"./../Token":50,"./../dfa/DFAState":70,"./../error/Errors":75,"./ATN":52,"./ATNConfig":53,"./ATNConfigSet":54,"./ATNSimulator":57,"./ATNState":58,"./LexerActionExecutor":62,"./Transition":66}],61:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -23704,7 +24230,7 @@ exports.LexerTypeAction = LexerTypeAction;
 exports.LexerPushModeAction = LexerPushModeAction;
 exports.LexerPopModeAction = LexerPopModeAction;
 exports.LexerModeAction = LexerModeAction;
-},{}],61:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -23872,7 +24398,7 @@ LexerActionExecutor.prototype.equals = function(other) {
 
 exports.LexerActionExecutor = LexerActionExecutor;
 
-},{"../Utils":50,"./LexerAction":60}],62:[function(require,module,exports){
+},{"../Utils":51,"./LexerAction":61}],63:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -25601,7 +26127,7 @@ ParserATNSimulator.prototype.reportAmbiguity = function(dfa, D, startIndex, stop
 };
 
 exports.ParserATNSimulator = ParserATNSimulator;
-},{"./../IntervalSet":41,"./../ParserRuleContext":45,"./../PredictionContext":46,"./../RuleContext":48,"./../Token":49,"./../Utils":50,"./../dfa/DFAState":69,"./../error/Errors":74,"./ATN":51,"./ATNConfig":52,"./ATNConfigSet":53,"./ATNSimulator":56,"./ATNState":57,"./PredictionMode":63,"./SemanticContext":64,"./Transition":65}],63:[function(require,module,exports){
+},{"./../IntervalSet":42,"./../ParserRuleContext":46,"./../PredictionContext":47,"./../RuleContext":49,"./../Token":50,"./../Utils":51,"./../dfa/DFAState":70,"./../error/Errors":75,"./ATN":52,"./ATNConfig":53,"./ATNConfigSet":54,"./ATNSimulator":57,"./ATNState":58,"./PredictionMode":64,"./SemanticContext":65,"./Transition":66}],64:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -26162,7 +26688,7 @@ PredictionMode.getSingleViableAlt = function(altsets) {
 
 exports.PredictionMode = PredictionMode;
 
-},{"../Utils":50,"./../Utils":50,"./ATN":51,"./ATNConfig":52,"./ATNConfigSet":53,"./ATNState":57,"./SemanticContext":64}],64:[function(require,module,exports){
+},{"../Utils":51,"./../Utils":51,"./ATN":52,"./ATNConfig":53,"./ATNConfigSet":54,"./ATNState":58,"./SemanticContext":65}],65:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -26568,7 +27094,7 @@ exports.SemanticContext = SemanticContext;
 exports.PrecedencePredicate = PrecedencePredicate;
 exports.Predicate = Predicate;
 
-},{"./../Utils":50}],65:[function(require,module,exports){
+},{"./../Utils":51}],66:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26885,7 +27411,7 @@ exports.WildcardTransition = WildcardTransition;
 exports.PredicateTransition = PredicateTransition;
 exports.PrecedencePredicateTransition = PrecedencePredicateTransition;
 exports.AbstractPredicateTransition = AbstractPredicateTransition;
-},{"./../IntervalSet":41,"./../Token":49,"./SemanticContext":64}],66:[function(require,module,exports){
+},{"./../IntervalSet":42,"./../Token":50,"./SemanticContext":65}],67:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26897,7 +27423,7 @@ exports.LexerATNSimulator = require('./LexerATNSimulator').LexerATNSimulator;
 exports.ParserATNSimulator = require('./ParserATNSimulator').ParserATNSimulator;
 exports.PredictionMode = require('./PredictionMode').PredictionMode;
 
-},{"./ATN":51,"./ATNDeserializer":55,"./LexerATNSimulator":59,"./ParserATNSimulator":62,"./PredictionMode":63}],67:[function(require,module,exports){
+},{"./ATN":52,"./ATNDeserializer":56,"./LexerATNSimulator":60,"./ParserATNSimulator":63,"./PredictionMode":64}],68:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -27052,7 +27578,7 @@ DFA.prototype.toLexerString = function() {
 
 exports.DFA = DFA;
 
-},{"../Utils":50,"../atn/ATNState":57,"./../atn/ATNConfigSet":53,"./DFASerializer":68,"./DFAState":69}],68:[function(require,module,exports){
+},{"../Utils":51,"../atn/ATNState":58,"./../atn/ATNConfigSet":54,"./DFASerializer":69,"./DFAState":70}],69:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -27133,7 +27659,7 @@ exports.DFASerializer = DFASerializer;
 exports.LexerDFASerializer = LexerDFASerializer;
 
 
-},{}],69:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -27281,7 +27807,7 @@ DFAState.prototype.hashCode = function() {
 exports.DFAState = DFAState;
 exports.PredPrediction = PredPrediction;
 
-},{"./../Utils":50,"./../atn/ATNConfigSet":53}],70:[function(require,module,exports){
+},{"./../Utils":51,"./../atn/ATNConfigSet":54}],71:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -27292,7 +27818,7 @@ exports.DFASerializer = require('./DFASerializer').DFASerializer;
 exports.LexerDFASerializer = require('./DFASerializer').LexerDFASerializer;
 exports.PredPrediction = require('./DFAState').PredPrediction;
 
-},{"./DFA":67,"./DFASerializer":68,"./DFAState":69}],71:[function(require,module,exports){
+},{"./DFA":68,"./DFASerializer":69,"./DFAState":70}],72:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -27404,7 +27930,7 @@ DiagnosticErrorListener.prototype.getConflictingAlts = function(reportedAlts, co
 };
 
 exports.DiagnosticErrorListener = DiagnosticErrorListener;
-},{"./../IntervalSet":41,"./../Utils":50,"./ErrorListener":72}],72:[function(require,module,exports){
+},{"./../IntervalSet":42,"./../Utils":51,"./ErrorListener":73}],73:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -27493,7 +28019,7 @@ exports.ConsoleErrorListener = ConsoleErrorListener;
 exports.ProxyErrorListener = ProxyErrorListener;
 
 
-},{}],73:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -28251,7 +28777,7 @@ BailErrorStrategy.prototype.sync = function(recognizer) {
 exports.BailErrorStrategy = BailErrorStrategy;
 exports.DefaultErrorStrategy = DefaultErrorStrategy;
 
-},{"./../IntervalSet":41,"./../Token":49,"./../atn/ATNState":57,"./Errors":74}],74:[function(require,module,exports){
+},{"./../IntervalSet":42,"./../Token":50,"./../atn/ATNState":58,"./Errors":75}],75:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -28422,7 +28948,7 @@ exports.InputMismatchException = InputMismatchException;
 exports.FailedPredicateException = FailedPredicateException;
 exports.ParseCancellationException = ParseCancellationException;
 
-},{"./../atn/Transition":65}],75:[function(require,module,exports){
+},{"./../atn/Transition":66}],76:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -28437,7 +28963,7 @@ exports.DiagnosticErrorListener = require('./DiagnosticErrorListener').Diagnosti
 exports.BailErrorStrategy = require('./ErrorStrategy').BailErrorStrategy;
 exports.ErrorListener = require('./ErrorListener').ErrorListener;
 
-},{"./DiagnosticErrorListener":71,"./ErrorListener":72,"./ErrorStrategy":73,"./Errors":74}],76:[function(require,module,exports){
+},{"./DiagnosticErrorListener":72,"./ErrorListener":73,"./ErrorStrategy":74,"./Errors":75}],77:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -28462,7 +28988,7 @@ exports.ParserRuleContext = require('./ParserRuleContext').ParserRuleContext;
 exports.Interval = require('./IntervalSet').Interval;
 exports.Utils = require('./Utils');
 
-},{"./CharStreams":36,"./CommonTokenStream":38,"./FileStream":39,"./InputStream":40,"./IntervalSet":41,"./Lexer":43,"./Parser":44,"./ParserRuleContext":45,"./PredictionContext":46,"./Token":49,"./Utils":50,"./atn/index":66,"./dfa/index":70,"./error/index":75,"./polyfills/codepointat":77,"./polyfills/fromcodepoint":78,"./tree/index":81}],77:[function(require,module,exports){
+},{"./CharStreams":37,"./CommonTokenStream":39,"./FileStream":40,"./InputStream":41,"./IntervalSet":42,"./Lexer":44,"./Parser":45,"./ParserRuleContext":46,"./PredictionContext":47,"./Token":50,"./Utils":51,"./atn/index":67,"./dfa/index":71,"./error/index":76,"./polyfills/codepointat":78,"./polyfills/fromcodepoint":79,"./tree/index":82}],78:[function(require,module,exports){
 /*! https://mths.be/codepointat v0.2.0 by @mathias */
 if (!String.prototype.codePointAt) {
 	(function() {
@@ -28518,7 +29044,7 @@ if (!String.prototype.codePointAt) {
 	}());
 }
 
-},{}],78:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 /*! https://mths.be/fromcodepoint v0.2.1 by @mathias */
 if (!String.fromCodePoint) {
 	(function() {
@@ -28582,7 +29108,7 @@ if (!String.fromCodePoint) {
 	}());
 }
 
-},{}],79:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -28814,7 +29340,7 @@ exports.ParseTreeVisitor = ParseTreeVisitor;
 exports.ParseTreeWalker = ParseTreeWalker;
 exports.INVALID_INTERVAL = INVALID_INTERVAL;
 
-},{"../Utils.js":50,"./../IntervalSet":41,"./../Token":49}],80:[function(require,module,exports){
+},{"../Utils.js":51,"./../IntervalSet":42,"./../Token":50}],81:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -28955,7 +29481,7 @@ Trees.descendants = function(t) {
 
 
 exports.Trees = Trees;
-},{"./../ParserRuleContext":45,"./../RuleContext":48,"./../Token":49,"./../Utils":50,"./../atn/ATN":51,"./Tree":79}],81:[function(require,module,exports){
+},{"./../ParserRuleContext":46,"./../RuleContext":49,"./../Token":50,"./../Utils":51,"./../atn/ATN":52,"./Tree":80}],82:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -28968,9 +29494,9 @@ exports.ParseTreeListener = Tree.ParseTreeListener;
 exports.ParseTreeVisitor = Tree.ParseTreeVisitor;
 exports.ParseTreeWalker = Tree.ParseTreeWalker;
 
-},{"./Tree":79,"./Trees":80}],82:[function(require,module,exports){
+},{"./Tree":80,"./Trees":81}],83:[function(require,module,exports){
 
-},{}],83:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -29495,7 +30021,7 @@ function functionBindPolyfill(context) {
   };
 }
 
-},{}],84:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 (function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
@@ -29801,7 +30327,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":85}],85:[function(require,module,exports){
+},{"_process":86}],86:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -29987,7 +30513,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],86:[function(require,module,exports){
+},{}],87:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -30012,14 +30538,14 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],87:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],88:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -30609,7 +31135,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":87,"_process":85,"inherits":86}],89:[function(require,module,exports){
+},{"./support/isBuffer":88,"_process":86,"inherits":87}],90:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -30637,7 +31163,7 @@ function bytesToUuid(buf, offset) {
 
 var _default = bytesToUuid;
 exports.default = _default;
-},{}],90:[function(require,module,exports){
+},{}],91:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -30677,7 +31203,7 @@ var _v3 = _interopRequireDefault(require("./v4.js"));
 var _v4 = _interopRequireDefault(require("./v5.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-},{"./v1.js":94,"./v3.js":95,"./v4.js":97,"./v5.js":98}],91:[function(require,module,exports){
+},{"./v1.js":95,"./v3.js":96,"./v4.js":98,"./v5.js":99}],92:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -30901,7 +31427,7 @@ function md5ii(a, b, c, d, x, s, t) {
 
 var _default = md5;
 exports.default = _default;
-},{}],92:[function(require,module,exports){
+},{}],93:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -30923,7 +31449,7 @@ function rng() {
 
   return getRandomValues(rnds8);
 }
-},{}],93:[function(require,module,exports){
+},{}],94:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31025,7 +31551,7 @@ function sha1(bytes) {
 
 var _default = sha1;
 exports.default = _default;
-},{}],94:[function(require,module,exports){
+},{}],95:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31133,7 +31659,7 @@ function v1(options, buf, offset) {
 
 var _default = v1;
 exports.default = _default;
-},{"./bytesToUuid.js":89,"./rng.js":92}],95:[function(require,module,exports){
+},{"./bytesToUuid.js":90,"./rng.js":93}],96:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31150,7 +31676,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const v3 = (0, _v.default)('v3', 0x30, _md.default);
 var _default = v3;
 exports.default = _default;
-},{"./md5.js":91,"./v35.js":96}],96:[function(require,module,exports){
+},{"./md5.js":92,"./v35.js":97}],97:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31227,7 +31753,7 @@ function _default(name, version, hashfunc) {
   generateUUID.URL = URL;
   return generateUUID;
 }
-},{"./bytesToUuid.js":89}],97:[function(require,module,exports){
+},{"./bytesToUuid.js":90}],98:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31270,7 +31796,7 @@ function v4(options, buf, offset) {
 
 var _default = v4;
 exports.default = _default;
-},{"./bytesToUuid.js":89,"./rng.js":92}],98:[function(require,module,exports){
+},{"./bytesToUuid.js":90,"./rng.js":93}],99:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31287,35 +31813,32 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const v5 = (0, _v.default)('v5', 0x50, _sha.default);
 var _default = v5;
 exports.default = _default;
-},{"./sha1.js":93,"./v35.js":96}],"alan-compiler":[function(require,module,exports){
-const ammtojs = require('./dist/ammtojs').ammTextToJs
-const lntoamm = require('./dist/lntoamm').lnTextToAmm
-const lntojs = require('./dist/lntojs').lnTextToJs
+},{"./sha1.js":94,"./v35.js":97}],"alan-compiler":[function(require,module,exports){
+const { default: buildPipeline, } = require('./dist/pipeline')
+const ammtojs = require('./dist/ammtojs')
+const lntoamm = require('./dist/lntoamm')
+const ammtoaga = require('./dist/ammtoaga')
 
 // We won't support AGC for now because of the complexities of moving off the Buffer API
-const convert = {
-  ln: {
-    amm: lntoamm,
-    js: (text) => { // Hackery for browserify for now, will clean this up later after some thought
-      return lntojs(text).replace(/alan-js-runtime/g, 'alan-runtime')
-    },
-  },
-  amm: {
-    js: (text) => { // Similar hackery
-      return ammtojs(text).repalce(/alan-js-runtime/g, 'alan-runtime')
-    },
-  }
-}
+const convert = buildPipeline([
+  ['ln', 'amm', lntoamm],
+  ['amm', 'aga', ammtoaga],
+  ['amm', 'js', ammtojs],
+])
 
 module.exports = (inFormat, outFormat, text) => {
   if (convert[inFormat] && convert[inFormat][outFormat]) {
-    return convert[inFormat][outFormat](text)
+    const out = convert[inFormat][outFormat].fromString(text)
+    if (outFormat === 'js') { // Hackery for browserify for now, will clean this up later
+      return out.replace(/alan-js-runtime/g, 'alan-runtime')
+    }
+    return out
   } else {
     throw new Error(`${inFormat} to ${outFormat} is not supported`)
   }
 }
 
-},{"./dist/ammtojs":8,"./dist/lntoamm":32,"./dist/lntojs":34}],"alan-js-runtime":[function(require,module,exports){
+},{"./dist/ammtoaga":8,"./dist/ammtojs":9,"./dist/lntoamm":33,"./dist/pipeline":35}],"alan-js-runtime":[function(require,module,exports){
 (function (process){
 const EventEmitter = require('events')
 const util = require('util')
@@ -31569,7 +32092,7 @@ module.exports = {
 }
 
 }).call(this,require('_process'))
-},{"_process":85,"child_process":82,"events":83,"util":88}],"alan-runtime":[function(require,module,exports){
+},{"_process":86,"child_process":83,"events":84,"util":89}],"alan-runtime":[function(require,module,exports){
 const r = require('alan-js-runtime')
 
 // Redefined stdoutp and exitop to work in the browser

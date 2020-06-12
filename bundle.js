@@ -4495,7 +4495,7 @@ const loadStatements = (statements, localMem, globalMem) => {
         let s = '';
         if (statement.declarations()) {
             const dec = statement.declarations().constdeclaration() || statement.declarations().letdeclaration();
-            const resultAddress = localMem[dec.decname().getText().trim()];
+            let resultAddress = localMem[dec.decname().getText().trim()];
             localMemToLine[dec.decname().getText().trim()] = line;
             const assignables = dec.assignables();
             if (assignables.functions()) {
@@ -4505,6 +4505,29 @@ const loadStatements = (statements, localMem, globalMem) => {
             else if (assignables.calls()) {
                 const call = assignables.calls();
                 const fn = call.VARNAME().getText().trim();
+                // TODO: Absolute hackery that must be removed soon
+                if (fn === 'pusharr') {
+                    switch (dec.fulltypename().getText().trim()) {
+                        case 'int8':
+                        case 'bool':
+                            resultAddress = 1;
+                            break;
+                        case 'int16':
+                            resultAddress = 2;
+                            break;
+                        case 'int32':
+                        case 'float32':
+                            resultAddress = 4;
+                            break;
+                        case 'int64':
+                        case 'float64':
+                            resultAddress = 8;
+                            break;
+                        default:
+                            resultAddress = 0;
+                            break;
+                    }
+                }
                 const vars = (call.calllist() ? call.calllist().VARNAME() : []).map(v => v.getText().trim());
                 const args = vars.map(v => localMem.hasOwnProperty(v) ?
                     localMem[v] :
@@ -14701,7 +14724,6 @@ class Microstatement {
         // stage they're just passed through as-is. TODO: This is assuming everything inside of them are
         // constants. That is not a valid assumption and should be revisited.
         if (basicAssignablesAst.objectliterals() != null) {
-            const constName = "_" + uuid().replace(/-/g, "_");
             let typeBox = scope.deepGet(basicAssignablesAst.objectliterals().othertype().getText());
             if (typeBox === null) {
                 // Try to define it if it's a generic type
@@ -14729,7 +14751,45 @@ class Microstatement {
                     basicAssignablesAst.start.column);
                 process.exit(-106);
             }
-            microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, constName, typeBox.typeval, [basicAssignablesAst.objectliterals().getText()], []));
+            // For now only, support array literals, work on map and user-defined type literals later
+            if (!basicAssignablesAst.objectliterals().arrayliteral()) {
+                console.error(`${basicAssignablesAst.objectliterals().othertype().getText()} not yet supported`);
+                console.error(basicAssignablesAst.getText() +
+                    " on line " +
+                    basicAssignablesAst.start.line +
+                    ":" +
+                    basicAssignablesAst.start.column);
+                process.exit(-107);
+            }
+            // Array literals first need all of the microstatements of the array contents defined, then
+            // a `newarr` opcode call is inserted for the object literal itself, then `pusharr` opcode
+            // calls are emitted to insert the relevant data into the array, and finally the array itself
+            // is REREFed for the outer microstatement generation call.
+            const arrayLiteralContents = [];
+            const assignablelist = basicAssignablesAst.objectliterals().arrayliteral().assignablelist();
+            for (let i = 0; i < assignablelist.assignables().length; i++) {
+                Microstatement.fromAssignablesAst(assignablelist.assignables(i), scope, microstatements);
+                arrayLiteralContents.push(microstatements[microstatements.length - 1]);
+            }
+            // Create a new variable to hold the size of the array literal
+            const lenName = "_" + uuid().replace(/-/g, "_");
+            microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, lenName, Box.builtinTypes['int64'], [`${arrayLiteralContents.length}`], []));
+            const opcodeScope = require('./opcodes').exportScope; // Unfortunate circular dep issue
+            // Add the opcode to create a new array with the specified size
+            opcodeScope.get('newarr').functionval[0].microstatementInlining([lenName], scope, microstatements);
+            // Get the array microstatement and extract the name and insert the correct type
+            const array = microstatements[microstatements.length - 1];
+            array.outputType = typeBox.typeval;
+            const arrayName = array.outputName;
+            // Push the values into the array
+            for (let i = 0; i < arrayLiteralContents.length; i++) {
+                opcodeScope.get('pusharr').functionval[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName], scope, microstatements);
+                // Update the push output argument type to be the original input type so the type is not
+                // erased
+                microstatements[microstatements.length - 1].outputType = arrayLiteralContents[i].outputType;
+            }
+            // REREF the array
+            microstatements.push(new Microstatement(StatementType.REREF, scope, true, arrayName, array.outputType, [], []));
             return;
         }
     }
@@ -14865,7 +14925,7 @@ class Microstatement {
                 Microstatement.fromStatementsAst(s.statementOrAssignableAst, scope, microstatements);
             }
             else {
-                Microstatemnt.fromAssignablesAst(s.statementOrAssignableAst, scope, microstatements);
+                Microstatement.fromAssignablesAst(s.statementOrAssignableAst, scope, microstatements);
             }
         }
         let newlen = microstatements.length;
@@ -17261,6 +17321,7 @@ addopcodes({
     every: [{ arr: t('Array<any>'), cb: t('function'), }, t('bool')],
     some: [{ arr: t('Array<any>'), cb: t('function'), }, t('bool')],
     join: [{ arr: t('Array<string>'), sep: t('string'), }, t('string')],
+    newarr: [{ size: t('int64'), }, t('Array<any>')],
     keyVal: [{ map: t('Map<any, any>'), }, t('Array<KeyVal<any, any>>')],
     keys: [{ map: t('Map<any, any>'), }, t('Array<any>')],
     values: [{ map: t('Map<any, any>'), }, t('Array<any>')],
@@ -32139,6 +32200,8 @@ module.exports = {
   lenstr:  a => a.length,
   trim:    a => a.trim(),
   copyfrom:(arr, ind) => arr[ind],
+  newarr:  size => new Array(), // Ignored because JS push doesn't behave as desired
+  pusharr: (arr, val) => arr.push(val),
 
   // Array opcodes TODO after arrays are figured out
   

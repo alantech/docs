@@ -16047,6 +16047,10 @@ class Statement {
         return this.statementOrAssignableAst instanceof LnParser.StatementsContext &&
             this.statementOrAssignableAst.conditionals() !== null;
     }
+    isReturnStatement() {
+        return this.statementOrAssignableAst instanceof LnParser.AssignablesContext ||
+            this.statementOrAssignableAst.exits() !== null;
+    }
     static isCallPure(callAst, scope) {
         // TODO: Add purity checking for chained method-style calls
         const functionBox = scope.deepGet(callAst.varn(0));
@@ -16449,6 +16453,18 @@ class UserFunction {
         this.args = args;
         this.returnType = returnType;
         this.closureScope = closureScope;
+        for (let i = 0; i < statements.length - 1; i++) {
+            if (statements[i].isReturnStatement()) {
+                // There are unreachable statements after this line, abort
+                console.error(`Unreachable code in function '${name}' after:`);
+                console.error(statements[i].statementOrAssignableAst.getText().trim() +
+                    " on line " +
+                    statements[i].statementOrAssignableAst.start.line +
+                    ":" +
+                    statements[i].statementOrAssignableAst.start.column);
+                process.exit(-201);
+            }
+        }
         this.statements = statements;
         this.pure = pure;
     }

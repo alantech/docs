@@ -36,10 +36,10 @@ module.exports = {
 }
 
 },{"../dist/lntoamm/Ast":14,"../dist/lntoamm/Module":26,"../dist/lntoamm/Scope":28,"../dist/lntoamm/opcodes":34,"./stdlibs.json":2}],2:[function(require,module,exports){
-module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out)\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\"\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status)\n\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n)","deps.ln":"import @std/app\nimport @std/cmd\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\n// export fn add(remote: string) {\n  // TODO implement once we have arrays and proper error handling\n  // const parts = remote.split('/')\n  // const repo = parts[length(parts)-1]\n  // const repoParts = repo.split('.git')\n  // const repoName = repoParts[0]\n  // const dest = '/dependencies/' + repoName\n  // cmd.exec('rm -rf .' + dest)\n  // cmd.exec('git clone ' + remote + ' .' + dest)\n  // cmd.exec('rm -rf .' + dest + '/.git')\n// }\n\n// Emit the `install` event on app `start`\non app.start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  cmd.exec('rm -rf dependencies')\n  cmd.exec('mkdir dependencies')\n  emit install\n}\n","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Special _ variable\nexport const _: void\n\n// Default Interfaces\nexport interface any {}\nexport interface Stringifiable {\n  toString(Stringifiable): string\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n)\nexport fn toFloat64(n: int16) = i16f64(n)\nexport fn toFloat64(n: int32) = i32f64(n)\nexport fn toFloat64(n: int64) = i64f64(n)\nexport fn toFloat64(n: float32) = f32f64(n)\nexport fn toFloat64(n: float64) = n\nexport fn toFloat64(n: string) = strf64(n)\nexport fn toFloat64(n: bool) = boolf64(n)\n\nexport fn toFloat32(n: int8) = i8f32(n)\nexport fn toFloat32(n: int16) = i16f32(n)\nexport fn toFloat32(n: int32) = i32f32(n)\nexport fn toFloat32(n: int64) = i64f32(n)\nexport fn toFloat32(n: float32) = n\nexport fn toFloat32(n: float64) = f64f32(n)\nexport fn toFloat32(n: string) = strf32(n)\nexport fn toFloat32(n: bool) = boolf32(n)\n\nexport fn toInt64(n: int8) = i8i64(n)\nexport fn toInt64(n: int16) = i16i64(n)\nexport fn toInt64(n: int32) = i32i64(n)\nexport fn toInt64(n: int64) = n\nexport fn toInt64(n: float32) = f32i64(n)\nexport fn toInt64(n: float64) = f64i64(n)\nexport fn toInt64(n: string) = stri64(n)\nexport fn toInt64(n: bool) = booli64(n)\n\nexport fn toInt32(n: int8) = i8i32(n)\nexport fn toInt32(n: int16) = i16i32(n)\nexport fn toInt32(n: int32) = n\nexport fn toInt32(n: int64) = i64i32(n)\nexport fn toInt32(n: float32) = f32i32(n)\nexport fn toInt32(n: float64) = f64i32(n)\nexport fn toInt32(n: string) = stri32(n)\nexport fn toInt32(n: bool) = booli32(n)\n\nexport fn toInt16(n: int8) = i8i16(n)\nexport fn toInt16(n: int16) = n\nexport fn toInt16(n: int32) = i32i16(n)\nexport fn toInt16(n: int64) = i64i16(n)\nexport fn toInt16(n: float32) = f32i16(n)\nexport fn toInt16(n: float64) = f64i16(n)\nexport fn toInt16(n: string) = stri16(n)\nexport fn toInt16(n: bool) = booli16(n)\n\nexport fn toInt8(n: int8) = n\nexport fn toInt8(n: int16) = i16i8(n)\nexport fn toInt8(n: int32) = i32i8(n)\nexport fn toInt8(n: int64) = i64i8(n)\nexport fn toInt8(n: float32) = f32i8(n)\nexport fn toInt8(n: float64) = f64i8(n)\nexport fn toInt8(n: string) = stri8(n)\nexport fn toInt8(n: bool) = booli8(n)\n\nexport fn toBool(n: int8) = i8bool(n)\nexport fn toBool(n: int16) = i16bool(n)\nexport fn toBool(n: int32) = i32bool(n)\nexport fn toBool(n: int64) = i64bool(n)\nexport fn toBool(n: float32) = f32bool(n)\nexport fn toBool(n: float64) = f64bool(n)\nexport fn toBool(n: string) = strbool(n)\nexport fn toBool(n: bool) = n\n\nexport fn toString(n: int8) = i8str(n)\nexport fn toString(n: int16) = i16str(n)\nexport fn toString(n: int32) = i32str(n)\nexport fn toString(n: int64) = i64str(n)\nexport fn toString(n: float32) = f32str(n)\nexport fn toString(n: float64) = f64str(n)\nexport fn toString(n: string) = n\nexport fn toString(n: bool) = boolstr(n)\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b)\nexport fn add(a: int16, b: int16) = addi16(a, b)\nexport fn add(a: int32, b: int32) = addi32(a, b)\nexport fn add(a: int64, b: int64) = addi64(a, b)\nexport fn add(a: float32, b: float32) = addf32(a, b)\nexport fn add(a: float64, b: float64) = addf64(a, b)\n\nexport fn sub(a: int8, b: int8) = subi8(a, b)\nexport fn sub(a: int16, b: int16) = subi16(a, b)\nexport fn sub(a: int32, b: int32) = subi32(a, b)\nexport fn sub(a: int64, b: int64) = subi64(a, b)\nexport fn sub(a: float32, b: float32) = subf32(a, b)\nexport fn sub(a: float64, b: float64) = subf64(a, b)\n\nexport fn negate(n: int8) = negi8(n)\nexport fn negate(n: int16) = negi16(n)\nexport fn negate(n: int32) = negi32(n)\nexport fn negate(n: int64) = negi64(n)\nexport fn negate(n: float32) = negf32(n)\nexport fn negate(n: float64) = negf64(n)\n\nexport fn mul(a: int8, b: int8) = muli8(a, b)\nexport fn mul(a: int16, b: int16) = muli16(a, b)\nexport fn mul(a: int32, b: int32) = muli32(a, b)\nexport fn mul(a: int64, b: int64) = muli64(a, b)\nexport fn mul(a: float32, b: float32) = mulf32(a, b)\nexport fn mul(a: float64, b: float64) = mulf64(a, b)\n\nexport fn div(a: int8, b: int8) = divi8(a, b)\nexport fn div(a: int16, b: int16) = divi16(a, b)\nexport fn div(a: int32, b: int32) = divi32(a, b)\nexport fn div(a: int64, b: int64) = divi64(a, b)\nexport fn div(a: float32, b: float32) = divf32(a, b)\nexport fn div(a: float64, b: float64) = divf64(a, b)\n\nexport fn mod(a: int8, b: int8) = modi8(a, b)\nexport fn mod(a: int16, b: int16) = modi16(a, b)\nexport fn mod(a: int32, b: int32) = modi32(a, b)\nexport fn mod(a: int64, b: int64) = modi64(a, b)\n\nexport fn pow(a: int8, b: int8) = powi8(a, b)\nexport fn pow(a: int16, b: int16) = powi16(a, b)\nexport fn pow(a: int32, b: int32) = powi32(a, b)\nexport fn pow(a: int64, b: int64) = powi64(a, b)\nexport fn pow(a: float32, b: float32) = powf32(a, b)\nexport fn pow(a: float64, b: float64) = powf64(a, b)\n\nexport fn sqrt(n: float32) = sqrtf32(n)\nexport fn sqrt(n: float64) = sqrtf64(n)\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b)\nexport fn and(a: int16, b: int16) = andi16(a, b)\nexport fn and(a: int32, b: int32) = andi32(a, b)\nexport fn and(a: int64, b: int64) = andi64(a, b)\nexport fn and(a: bool, b: bool) = andbool(a, b)\n\nexport fn or(a: int8, b: int8) = ori8(a, b)\nexport fn or(a: int16, b: int16) = ori16(a, b)\nexport fn or(a: int32, b: int32) = ori32(a, b)\nexport fn or(a: int64, b: int64) = ori64(a, b)\nexport fn or(a: bool, b: bool) = orbool(a, b)\n\nexport fn xor(a: int8, b: int8) = xori8(a, b)\nexport fn xor(a: int16, b: int16) = xori16(a, b)\nexport fn xor(a: int32, b: int32) = xori32(a, b)\nexport fn xor(a: int64, b: int64) = xori64(a, b)\nexport fn xor(a: bool, b: bool) = xorbool(a, b)\n\nexport fn not(n: int8) = noti8(n)\nexport fn not(n: int16) = noti16(n)\nexport fn not(n: int32) = noti32(n)\nexport fn not(n: int64) = noti64(n)\nexport fn not(n: bool) = notbool(n)\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b)\nexport fn nand(a: int16, b: int16) = nandi16(a, b)\nexport fn nand(a: int32, b: int32) = nandi32(a, b)\nexport fn nand(a: int64, b: int64) = nandi64(a, b)\nexport fn nand(a: bool, b: bool) = nandboo(a, b)\n\nexport fn nor(a: int8, b: int8) = nori8(a, b)\nexport fn nor(a: int16, b: int16) = nori16(a, b)\nexport fn nor(a: int32, b: int32) = nori32(a, b)\nexport fn nor(a: int64, b: int64) = nori64(a, b)\nexport fn nor(a: bool, b: bool) = norbool(a, b)\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b)\nexport fn xnor(a: int16, b: int16) = xnori16(a, b)\nexport fn xnor(a: int32, b: int32) = xnori32(a, b)\nexport fn xnor(a: int64, b: int64) = xnori64(a, b)\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b)\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b)\nexport fn eq(a: int16, b: int16) = eqi16(a, b)\nexport fn eq(a: int32, b: int32) = eqi32(a, b)\nexport fn eq(a: int64, b: int64) = eqi64(a, b)\nexport fn eq(a: float32, b: float32) = eqf32(a, b)\nexport fn eq(a: float64, b: float64) = eqf64(a, b)\nexport fn eq(a: string, b: string) = eqstr(a, b)\nexport fn eq(a: bool, b: bool) = eqbool(a, b)\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b)\nexport fn neq(a: int16, b: int16) = neqi16(a, b)\nexport fn neq(a: int32, b: int32) = neqi32(a, b)\nexport fn neq(a: int64, b: int64) = neqi64(a, b)\nexport fn neq(a: float32, b: float32) = neqf32(a, b)\nexport fn neq(a: float64, b: float64) = neqf64(a, b)\nexport fn neq(a: string, b: string) = neqstr(a, b)\nexport fn neq(a: bool, b: bool) = neqbool(a, b)\n\nexport fn lt(a: int8, b: int8) = lti8(a, b)\nexport fn lt(a: int16, b: int16) = lti16(a, b)\nexport fn lt(a: int32, b: int32) = lti32(a, b)\nexport fn lt(a: int64, b: int64) = lti64(a, b)\nexport fn lt(a: float32, b: float32) = ltf32(a, b)\nexport fn lt(a: float64, b: float64) = ltf64(a, b)\nexport fn lt(a: string, b: string) = ltstr(a, b)\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b)\nexport fn lte(a: int16, b: int16) = ltei16(a, b)\nexport fn lte(a: int32, b: int32) = ltei32(a, b)\nexport fn lte(a: int64, b: int64) = ltei64(a, b)\nexport fn lte(a: float32, b: float32) = ltef32(a, b)\nexport fn lte(a: float64, b: float64) = ltef64(a, b)\nexport fn lte(a: string, b: string) = ltestr(a, b)\n\nexport fn gt(a: int8, b: int8) = gti8(a, b)\nexport fn gt(a: int16, b: int16) = gti16(a, b)\nexport fn gt(a: int32, b: int32) = gti32(a, b)\nexport fn gt(a: int64, b: int64) = gti64(a, b)\nexport fn gt(a: float32, b: float32) = gtf32(a, b)\nexport fn gt(a: float64, b: float64) = gtf64(a, b)\nexport fn gt(a: string, b: string) = gtstr(a, b)\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b)\nexport fn gte(a: int16, b: int16) = gtei16(a, b)\nexport fn gte(a: int32, b: int32) = gtei32(a, b)\nexport fn gte(a: int64, b: int64) = gtei64(a, b)\nexport fn gte(a: float32, b: float32) = gtef32(a, b)\nexport fn gte(a: float64, b: float64) = gtef64(a, b)\nexport fn gte(a: string, b: string) = gtestr(a, b)\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n))\nexport fn wait(n: int16) = waitop(i16i64(n))\nexport fn wait(n: int32) = waitop(i32i64(n))\nexport fn wait(n: int64) = waitop(n)\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b)\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n)\nexport fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t)\nexport fn length(s: string) = lenstr(s)\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b)\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n)\nexport fn index(arr: Array<any>, val: any) = indarr(arr, val)\nexport fn length(arr: Array<any>) = lenarr(arr)\nexport fn push(arr: Array<any>, val: any) = pusharr(arr, val)\nexport fn pop(arr: Array<any>): any = poparr(arr, val)\nexport each // opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport map // opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport reduce // opcode with signature `fn reduce(arr: Array<any>, cb: function): any`\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): any`\nexport every // opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport some // opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\n\n// Map functions\nexport keyVal // opcode with signature `fn keyVal(map: Map<any, any>): Array<KeyVal<any, any>>`\nexport keys // opcode with signature `fn keys(map: Map<any, any>): Array<any>`\nexport values // opcode with signature `fn values(map: Map<any, any>): Array<any>`\n\n// Ternary functions\nexport pair // opcode with signature `fn pair(trueval: any, falseval: any): Array<any>`\nexport fn cond(c: bool, options: Array<any>): any = condarr(c, options)\nexport fn cond(c: bool, optional: function): void = condfn(c, optional)\n\n// Operator declarations\nexport infix commutative associative + 2 add\nexport infix associative + 2 concat\nexport infix - 2 sub\nexport prefix - 1 negate\nexport infix commutative associative * 3 mul\nexport infix * 3 repeat\nexport infix / 3 div\nexport infix / 3 split\nexport infix % 3 mod\nexport infix % 3 template\nexport infix ** 4 pow\nexport infix commutative associative & 3 and\nexport infix commutative associative && 3 and\nexport infix commutative associative | 2 or\nexport infix commutative associative || 2 or\nexport infix commutative associative ^ 2 xor\nexport prefix ! 4 not\nexport infix commutative associative !& 3 nand\nexport infix commutative associative !| 2 nor\nexport infix commutative associative !^ 2 xnor\nexport infix commutative associative == 1 eq\nexport infix commutative associative != 1 neq\nexport infix < 1 lt\nexport infix <= 1 lte\nexport infix > 1 gt\nexport infix >= 1 gte\nexport infix ~ 1 matches\nexport infix @ 1 index\nexport prefix # 4 length\nexport prefix ` 4 trim\nexport infix : 5 pair\nexport infix ? 0 cond\n\n"}
+module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out)\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\"\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status)\n\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n)","deps.ln":"from @std/app import start, print\nfrom @std/cmd import exec\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\nexport fn add(remote: string) {\n  // TODO implement proper error handling\n  const parts = remote.split(':')\n  const repo = parts[length(parts)-1]\n  const repoParts = repo.split('.git')\n  const repoName = repoParts[0]\n  const dest = '/dependencies/' + repoName\n  exec('rm -rf .' + dest)\n  exec('git clone ' + remote + ' .' + dest)\n  exec('rm -rf .' + dest + '/.git')\n}\n\n// Emit the `install` event on app `start`\non start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  exec('rm -rf dependencies')\n  exec('mkdir dependencies')\n  emit install\n}\n","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Special _ variable\nexport const _: void\n\n// Default Interfaces\nexport interface any {}\nexport interface Stringifiable {\n  toString(Stringifiable): string\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n)\nexport fn toFloat64(n: int16) = i16f64(n)\nexport fn toFloat64(n: int32) = i32f64(n)\nexport fn toFloat64(n: int64) = i64f64(n)\nexport fn toFloat64(n: float32) = f32f64(n)\nexport fn toFloat64(n: float64) = n\nexport fn toFloat64(n: string) = strf64(n)\nexport fn toFloat64(n: bool) = boolf64(n)\n\nexport fn toFloat32(n: int8) = i8f32(n)\nexport fn toFloat32(n: int16) = i16f32(n)\nexport fn toFloat32(n: int32) = i32f32(n)\nexport fn toFloat32(n: int64) = i64f32(n)\nexport fn toFloat32(n: float32) = n\nexport fn toFloat32(n: float64) = f64f32(n)\nexport fn toFloat32(n: string) = strf32(n)\nexport fn toFloat32(n: bool) = boolf32(n)\n\nexport fn toInt64(n: int8) = i8i64(n)\nexport fn toInt64(n: int16) = i16i64(n)\nexport fn toInt64(n: int32) = i32i64(n)\nexport fn toInt64(n: int64) = n\nexport fn toInt64(n: float32) = f32i64(n)\nexport fn toInt64(n: float64) = f64i64(n)\nexport fn toInt64(n: string) = stri64(n)\nexport fn toInt64(n: bool) = booli64(n)\n\nexport fn toInt32(n: int8) = i8i32(n)\nexport fn toInt32(n: int16) = i16i32(n)\nexport fn toInt32(n: int32) = n\nexport fn toInt32(n: int64) = i64i32(n)\nexport fn toInt32(n: float32) = f32i32(n)\nexport fn toInt32(n: float64) = f64i32(n)\nexport fn toInt32(n: string) = stri32(n)\nexport fn toInt32(n: bool) = booli32(n)\n\nexport fn toInt16(n: int8) = i8i16(n)\nexport fn toInt16(n: int16) = n\nexport fn toInt16(n: int32) = i32i16(n)\nexport fn toInt16(n: int64) = i64i16(n)\nexport fn toInt16(n: float32) = f32i16(n)\nexport fn toInt16(n: float64) = f64i16(n)\nexport fn toInt16(n: string) = stri16(n)\nexport fn toInt16(n: bool) = booli16(n)\n\nexport fn toInt8(n: int8) = n\nexport fn toInt8(n: int16) = i16i8(n)\nexport fn toInt8(n: int32) = i32i8(n)\nexport fn toInt8(n: int64) = i64i8(n)\nexport fn toInt8(n: float32) = f32i8(n)\nexport fn toInt8(n: float64) = f64i8(n)\nexport fn toInt8(n: string) = stri8(n)\nexport fn toInt8(n: bool) = booli8(n)\n\nexport fn toBool(n: int8) = i8bool(n)\nexport fn toBool(n: int16) = i16bool(n)\nexport fn toBool(n: int32) = i32bool(n)\nexport fn toBool(n: int64) = i64bool(n)\nexport fn toBool(n: float32) = f32bool(n)\nexport fn toBool(n: float64) = f64bool(n)\nexport fn toBool(n: string) = strbool(n)\nexport fn toBool(n: bool) = n\n\nexport fn toString(n: int8) = i8str(n)\nexport fn toString(n: int16) = i16str(n)\nexport fn toString(n: int32) = i32str(n)\nexport fn toString(n: int64) = i64str(n)\nexport fn toString(n: float32) = f32str(n)\nexport fn toString(n: float64) = f64str(n)\nexport fn toString(n: string) = n\nexport fn toString(n: bool) = boolstr(n)\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b)\nexport fn add(a: int16, b: int16) = addi16(a, b)\nexport fn add(a: int32, b: int32) = addi32(a, b)\nexport fn add(a: int64, b: int64) = addi64(a, b)\nexport fn add(a: float32, b: float32) = addf32(a, b)\nexport fn add(a: float64, b: float64) = addf64(a, b)\n\nexport fn sub(a: int8, b: int8) = subi8(a, b)\nexport fn sub(a: int16, b: int16) = subi16(a, b)\nexport fn sub(a: int32, b: int32) = subi32(a, b)\nexport fn sub(a: int64, b: int64) = subi64(a, b)\nexport fn sub(a: float32, b: float32) = subf32(a, b)\nexport fn sub(a: float64, b: float64) = subf64(a, b)\n\nexport fn negate(n: int8) = negi8(n)\nexport fn negate(n: int16) = negi16(n)\nexport fn negate(n: int32) = negi32(n)\nexport fn negate(n: int64) = negi64(n)\nexport fn negate(n: float32) = negf32(n)\nexport fn negate(n: float64) = negf64(n)\n\nexport fn mul(a: int8, b: int8) = muli8(a, b)\nexport fn mul(a: int16, b: int16) = muli16(a, b)\nexport fn mul(a: int32, b: int32) = muli32(a, b)\nexport fn mul(a: int64, b: int64) = muli64(a, b)\nexport fn mul(a: float32, b: float32) = mulf32(a, b)\nexport fn mul(a: float64, b: float64) = mulf64(a, b)\n\nexport fn div(a: int8, b: int8) = divi8(a, b)\nexport fn div(a: int16, b: int16) = divi16(a, b)\nexport fn div(a: int32, b: int32) = divi32(a, b)\nexport fn div(a: int64, b: int64) = divi64(a, b)\nexport fn div(a: float32, b: float32) = divf32(a, b)\nexport fn div(a: float64, b: float64) = divf64(a, b)\n\nexport fn mod(a: int8, b: int8) = modi8(a, b)\nexport fn mod(a: int16, b: int16) = modi16(a, b)\nexport fn mod(a: int32, b: int32) = modi32(a, b)\nexport fn mod(a: int64, b: int64) = modi64(a, b)\n\nexport fn pow(a: int8, b: int8) = powi8(a, b)\nexport fn pow(a: int16, b: int16) = powi16(a, b)\nexport fn pow(a: int32, b: int32) = powi32(a, b)\nexport fn pow(a: int64, b: int64) = powi64(a, b)\nexport fn pow(a: float32, b: float32) = powf32(a, b)\nexport fn pow(a: float64, b: float64) = powf64(a, b)\n\nexport fn sqrt(n: float32) = sqrtf32(n)\nexport fn sqrt(n: float64) = sqrtf64(n)\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b)\nexport fn and(a: int16, b: int16) = andi16(a, b)\nexport fn and(a: int32, b: int32) = andi32(a, b)\nexport fn and(a: int64, b: int64) = andi64(a, b)\nexport fn and(a: bool, b: bool) = andbool(a, b)\n\nexport fn or(a: int8, b: int8) = ori8(a, b)\nexport fn or(a: int16, b: int16) = ori16(a, b)\nexport fn or(a: int32, b: int32) = ori32(a, b)\nexport fn or(a: int64, b: int64) = ori64(a, b)\nexport fn or(a: bool, b: bool) = orbool(a, b)\n\nexport fn xor(a: int8, b: int8) = xori8(a, b)\nexport fn xor(a: int16, b: int16) = xori16(a, b)\nexport fn xor(a: int32, b: int32) = xori32(a, b)\nexport fn xor(a: int64, b: int64) = xori64(a, b)\nexport fn xor(a: bool, b: bool) = xorbool(a, b)\n\nexport fn not(n: int8) = noti8(n)\nexport fn not(n: int16) = noti16(n)\nexport fn not(n: int32) = noti32(n)\nexport fn not(n: int64) = noti64(n)\nexport fn not(n: bool) = notbool(n)\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b)\nexport fn nand(a: int16, b: int16) = nandi16(a, b)\nexport fn nand(a: int32, b: int32) = nandi32(a, b)\nexport fn nand(a: int64, b: int64) = nandi64(a, b)\nexport fn nand(a: bool, b: bool) = nandboo(a, b)\n\nexport fn nor(a: int8, b: int8) = nori8(a, b)\nexport fn nor(a: int16, b: int16) = nori16(a, b)\nexport fn nor(a: int32, b: int32) = nori32(a, b)\nexport fn nor(a: int64, b: int64) = nori64(a, b)\nexport fn nor(a: bool, b: bool) = norbool(a, b)\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b)\nexport fn xnor(a: int16, b: int16) = xnori16(a, b)\nexport fn xnor(a: int32, b: int32) = xnori32(a, b)\nexport fn xnor(a: int64, b: int64) = xnori64(a, b)\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b)\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b)\nexport fn eq(a: int16, b: int16) = eqi16(a, b)\nexport fn eq(a: int32, b: int32) = eqi32(a, b)\nexport fn eq(a: int64, b: int64) = eqi64(a, b)\nexport fn eq(a: float32, b: float32) = eqf32(a, b)\nexport fn eq(a: float64, b: float64) = eqf64(a, b)\nexport fn eq(a: string, b: string) = eqstr(a, b)\nexport fn eq(a: bool, b: bool) = eqbool(a, b)\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b)\nexport fn neq(a: int16, b: int16) = neqi16(a, b)\nexport fn neq(a: int32, b: int32) = neqi32(a, b)\nexport fn neq(a: int64, b: int64) = neqi64(a, b)\nexport fn neq(a: float32, b: float32) = neqf32(a, b)\nexport fn neq(a: float64, b: float64) = neqf64(a, b)\nexport fn neq(a: string, b: string) = neqstr(a, b)\nexport fn neq(a: bool, b: bool) = neqbool(a, b)\n\nexport fn lt(a: int8, b: int8) = lti8(a, b)\nexport fn lt(a: int16, b: int16) = lti16(a, b)\nexport fn lt(a: int32, b: int32) = lti32(a, b)\nexport fn lt(a: int64, b: int64) = lti64(a, b)\nexport fn lt(a: float32, b: float32) = ltf32(a, b)\nexport fn lt(a: float64, b: float64) = ltf64(a, b)\nexport fn lt(a: string, b: string) = ltstr(a, b)\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b)\nexport fn lte(a: int16, b: int16) = ltei16(a, b)\nexport fn lte(a: int32, b: int32) = ltei32(a, b)\nexport fn lte(a: int64, b: int64) = ltei64(a, b)\nexport fn lte(a: float32, b: float32) = ltef32(a, b)\nexport fn lte(a: float64, b: float64) = ltef64(a, b)\nexport fn lte(a: string, b: string) = ltestr(a, b)\n\nexport fn gt(a: int8, b: int8) = gti8(a, b)\nexport fn gt(a: int16, b: int16) = gti16(a, b)\nexport fn gt(a: int32, b: int32) = gti32(a, b)\nexport fn gt(a: int64, b: int64) = gti64(a, b)\nexport fn gt(a: float32, b: float32) = gtf32(a, b)\nexport fn gt(a: float64, b: float64) = gtf64(a, b)\nexport fn gt(a: string, b: string) = gtstr(a, b)\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b)\nexport fn gte(a: int16, b: int16) = gtei16(a, b)\nexport fn gte(a: int32, b: int32) = gtei32(a, b)\nexport fn gte(a: int64, b: int64) = gtei64(a, b)\nexport fn gte(a: float32, b: float32) = gtef32(a, b)\nexport fn gte(a: float64, b: float64) = gtef64(a, b)\nexport fn gte(a: string, b: string) = gtestr(a, b)\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n))\nexport fn wait(n: int16) = waitop(i16i64(n))\nexport fn wait(n: int32) = waitop(i32i64(n))\nexport fn wait(n: int64) = waitop(n)\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b)\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n)\nexport fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t)\nexport fn length(s: string) = lenstr(s)\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b)\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n)\nexport fn index(arr: Array<any>, val: any) = indarr(arr, val)\nexport fn length(arr: Array<any>) = lenarr(arr)\nexport fn push(arr: Array<any>, val: any) = pusharr(arr, val)\nexport fn pop(arr: Array<any>): any = poparr(arr, val)\nexport each // opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport map // opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport reduce // opcode with signature `fn reduce(arr: Array<any>, cb: function): any`\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): any`\nexport every // opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport some // opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\n\n// Map functions\nexport keyVal // opcode with signature `fn keyVal(map: Map<any, any>): Array<KeyVal<any, any>>`\nexport keys // opcode with signature `fn keys(map: Map<any, any>): Array<any>`\nexport values // opcode with signature `fn values(map: Map<any, any>): Array<any>`\n\n// Ternary functions\nexport pair // opcode with signature `fn pair(trueval: any, falseval: any): Array<any>`\nexport fn cond(c: bool, options: Array<any>): any = condarr(c, options)\nexport fn cond(c: bool, optional: function): void = condfn(c, optional)\n\n// \"assign\" function useful for hoisting assignments\nexport fn assign(a: int8) = copyi8(a)\nexport fn assign(a: int16) = copyi16(a)\nexport fn assign(a: int32) = copyi32(a)\nexport fn assign(a: int64) = copyi64(a)\nexport fn assign(a: float32) = copyf32(a)\nexport fn assign(a: float64) = copyf64(a)\nexport fn assign(a: bool) = copybool(a)\nexport fn assign(a: string) = copystr(a)\nexport fn assign(a: Array<any>) = copyarr(a)\n\n// Operator declarations\nexport infix commutative associative + 2 add\nexport infix associative + 2 concat\nexport infix - 2 sub\nexport prefix - 1 negate\nexport infix commutative associative * 3 mul\nexport infix * 3 repeat\nexport infix / 3 div\nexport infix / 3 split\nexport infix % 3 mod\nexport infix % 3 template\nexport infix ** 4 pow\nexport infix commutative associative & 3 and\nexport infix commutative associative && 3 and\nexport infix commutative associative | 2 or\nexport infix commutative associative || 2 or\nexport infix commutative associative ^ 2 xor\nexport prefix ! 4 not\nexport infix commutative associative !& 3 nand\nexport infix commutative associative !| 2 nor\nexport infix commutative associative !^ 2 xnor\nexport infix commutative associative == 1 eq\nexport infix commutative associative != 1 neq\nexport infix < 1 lt\nexport infix <= 1 lte\nexport infix > 1 gt\nexport infix >= 1 gte\nexport infix ~ 1 matches\nexport infix @ 1 index\nexport prefix # 4 length\nexport prefix ` 4 trim\nexport infix : 5 pair\nexport infix ? 0 cond\n\n"}
 
 },{}],3:[function(require,module,exports){
-// Generated from Amm.g4 by ANTLR 4.7.2
+// Generated from Amm.g4 by ANTLR 4.8
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
 var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
@@ -252,7 +252,7 @@ AmmLexer.prototype.grammarFileName = "Amm.g4";
 exports.AmmLexer = AmmLexer;
 
 },{"antlr4/index":77}],4:[function(require,module,exports){
-// Generated from Amm.g4 by ANTLR 4.7.2
+// Generated from Amm.g4 by ANTLR 4.8
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
 // This class defines a complete listener for a parse tree produced by AmmParser.
@@ -445,13 +445,13 @@ AmmListener.prototype.exitHandlers = function (ctx) {
 exports.AmmListener = AmmListener;
 
 },{"antlr4/index":77}],5:[function(require,module,exports){
-// Generated from Amm.g4 by ANTLR 4.7.2
+// Generated from Amm.g4 by ANTLR 4.8
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
 var AmmListener = require('./AmmListener').AmmListener;
 var grammarFileName = "Amm.g4";
 var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
-    "\u0003\u001e\u0275\u0004\u0002\t\u0002\u0004\u0003\t\u0003\u0004\u0004",
+    "\u0003\u001e\u0277\u0004\u0002\t\u0002\u0004\u0003\t\u0003\u0004\u0004",
     "\t\u0004\u0004\u0005\t\u0005\u0004\u0006\t\u0006\u0004\u0007\t\u0007",
     "\u0004\b\t\b\u0004\t\t\t\u0004\n\t\n\u0004\u000b\t\u000b\u0004\f\t\f",
     "\u0004\r\t\r\u0004\u000e\t\u000e\u0004\u000f\t\u000f\u0004\u0010\t\u0010",
@@ -552,353 +552,355 @@ var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
     "\f\u001c\u000e\u001c\u0254\u000b\u001c\u0003\u001c\u0005\u001c\u0257",
     "\n\u001c\u0003\u001d\u0003\u001d\u0003\u001e\u0003\u001e\u0003\u001e",
     "\u0003\u001e\u0007\u001e\u025f\n\u001e\f\u001e\u000e\u001e\u0262\u000b",
-    "\u001e\u0003\u001e\u0003\u001e\u0003\u001e\u0003\u001f\u0003\u001f\u0006",
-    "\u001f\u0269\n\u001f\r\u001f\u000e\u001f\u026a\u0003\u001f\u0003\u001f",
-    "\u0006\u001f\u026f\n\u001f\r\u001f\u000e\u001f\u0270\u0003\u001f\u0003",
-    "\u001f\u0003\u001f\u0002\u0002 \u0002\u0004\u0006\b\n\f\u000e\u0010",
-    "\u0012\u0014\u0016\u0018\u001a\u001c\u001e \"$&(*,.02468:<\u0002\u0004",
-    "\u0003\u0002\u001a\u001b\u0004\u0002\n\n\u001c\u001d\u0002\u02b7\u0002",
-    "p\u0003\u0002\u0002\u0002\u0004r\u0003\u0002\u0002\u0002\u0006t\u0003",
-    "\u0002\u0002\u0002\b\u00a7\u0003\u0002\u0002\u0002\n\u00b1\u0003\u0002",
-    "\u0002\u0002\f\u00b3\u0003\u0002\u0002\u0002\u000e\u00e1\u0003\u0002",
-    "\u0002\u0002\u0010\u00e3\u0003\u0002\u0002\u0002\u0012\u00fa\u0003\u0002",
-    "\u0002\u0002\u0014\u0103\u0003\u0002\u0002\u0002\u0016\u0126\u0003\u0002",
-    "\u0002\u0002\u0018\u013e\u0003\u0002\u0002\u0002\u001a\u0147\u0003\u0002",
-    "\u0002\u0002\u001c\u0149\u0003\u0002\u0002\u0002\u001e\u014b\u0003\u0002",
-    "\u0002\u0002 \u0170\u0003\u0002\u0002\u0002\"\u0195\u0003\u0002\u0002",
-    "\u0002$\u01aa\u0003\u0002\u0002\u0002&\u01ac\u0003\u0002\u0002\u0002",
-    "(\u01bf\u0003\u0002\u0002\u0002*\u01cf\u0003\u0002\u0002\u0002,\u01e2",
-    "\u0003\u0002\u0002\u0002.\u01f6\u0003\u0002\u0002\u00020\u0209\u0003",
-    "\u0002\u0002\u00022\u0223\u0003\u0002\u0002\u00024\u023a\u0003\u0002",
-    "\u0002\u00026\u0247\u0003\u0002\u0002\u00028\u0258\u0003\u0002\u0002",
-    "\u0002:\u025a\u0003\u0002\u0002\u0002<\u0266\u0003\u0002\u0002\u0002",
-    ">@\u0005\u0004\u0003\u0002?>\u0003\u0002\u0002\u0002@C\u0003\u0002\u0002",
-    "\u0002A?\u0003\u0002\u0002\u0002AB\u0003\u0002\u0002\u0002BL\u0003\u0002",
-    "\u0002\u0002CA\u0003\u0002\u0002\u0002DK\u0005\u0006\u0004\u0002EG\u0005",
-    "\u0004\u0003\u0002FE\u0003\u0002\u0002\u0002GH\u0003\u0002\u0002\u0002",
-    "HF\u0003\u0002\u0002\u0002HI\u0003\u0002\u0002\u0002IK\u0003\u0002\u0002",
-    "\u0002JD\u0003\u0002\u0002\u0002JF\u0003\u0002\u0002\u0002KN\u0003\u0002",
-    "\u0002\u0002LJ\u0003\u0002\u0002\u0002LM\u0003\u0002\u0002\u0002MW\u0003",
-    "\u0002\u0002\u0002NL\u0003\u0002\u0002\u0002OV\u0005\u001e\u0010\u0002",
-    "PR\u0005\u0004\u0003\u0002QP\u0003\u0002\u0002\u0002RS\u0003\u0002\u0002",
-    "\u0002SQ\u0003\u0002\u0002\u0002ST\u0003\u0002\u0002\u0002TV\u0003\u0002",
-    "\u0002\u0002UO\u0003\u0002\u0002\u0002UQ\u0003\u0002\u0002\u0002VY\u0003",
-    "\u0002\u0002\u0002WU\u0003\u0002\u0002\u0002WX\u0003\u0002\u0002\u0002",
-    "Xb\u0003\u0002\u0002\u0002YW\u0003\u0002\u0002\u0002Za\u0005:\u001e",
-    "\u0002[]\u0005\u0004\u0003\u0002\\[\u0003\u0002\u0002\u0002]^\u0003",
-    "\u0002\u0002\u0002^\\\u0003\u0002\u0002\u0002^_\u0003\u0002\u0002\u0002",
-    "_a\u0003\u0002\u0002\u0002`Z\u0003\u0002\u0002\u0002`\\\u0003\u0002",
-    "\u0002\u0002ad\u0003\u0002\u0002\u0002b`\u0003\u0002\u0002\u0002bc\u0003",
-    "\u0002\u0002\u0002ck\u0003\u0002\u0002\u0002db\u0003\u0002\u0002\u0002",
-    "el\u0005<\u001f\u0002fh\u0005\u0004\u0003\u0002gf\u0003\u0002\u0002",
-    "\u0002hi\u0003\u0002\u0002\u0002ig\u0003\u0002\u0002\u0002ij\u0003\u0002",
-    "\u0002\u0002jl\u0003\u0002\u0002\u0002ke\u0003\u0002\u0002\u0002kg\u0003",
-    "\u0002\u0002\u0002lm\u0003\u0002\u0002\u0002mk\u0003\u0002\u0002\u0002",
-    "mn\u0003\u0002\u0002\u0002nq\u0003\u0002\u0002\u0002oq\u0007\u0002\u0002",
-    "\u0003pA\u0003\u0002\u0002\u0002po\u0003\u0002\u0002\u0002q\u0003\u0003",
-    "\u0002\u0002\u0002rs\t\u0002\u0002\u0002s\u0005\u0003\u0002\u0002\u0002",
-    "tv\u0007\u0003\u0002\u0002uw\u0005\u0004\u0003\u0002vu\u0003\u0002\u0002",
-    "\u0002wx\u0003\u0002\u0002\u0002xv\u0003\u0002\u0002\u0002xy\u0003\u0002",
-    "\u0002\u0002yz\u0003\u0002\u0002\u0002z~\u0005\n\u0006\u0002{}\u0005",
-    "\u0004\u0003\u0002|{\u0003\u0002\u0002\u0002}\u0080\u0003\u0002\u0002",
-    "\u0002~|\u0003\u0002\u0002\u0002~\u007f\u0003\u0002\u0002\u0002\u007f",
-    "\u0082\u0003\u0002\u0002\u0002\u0080~\u0003\u0002\u0002\u0002\u0081",
-    "\u0083\u0005\f\u0007\u0002\u0082\u0081\u0003\u0002\u0002\u0002\u0082",
-    "\u0083\u0003\u0002\u0002\u0002\u0083\u0085\u0003\u0002\u0002\u0002\u0084",
-    "\u0086\u0005\u0004\u0003\u0002\u0085\u0084\u0003\u0002\u0002\u0002\u0086",
-    "\u0087\u0003\u0002\u0002\u0002\u0087\u0085\u0003\u0002\u0002\u0002\u0087",
-    "\u0088\u0003\u0002\u0002\u0002\u0088\u00a5\u0003\u0002\u0002\u0002\u0089",
-    "\u00a6\u0005\u0010\t\u0002\u008a\u008e\u0007\u0016\u0002\u0002\u008b",
-    "\u008d\u0005\u0004\u0003\u0002\u008c\u008b\u0003\u0002\u0002\u0002\u008d",
-    "\u0090\u0003\u0002\u0002\u0002\u008e\u008c\u0003\u0002\u0002\u0002\u008e",
-    "\u008f\u0003\u0002\u0002\u0002\u008f\u0091\u0003\u0002\u0002\u0002\u0090",
-    "\u008e\u0003\u0002\u0002\u0002\u0091\u00a2\u0005\b\u0005\u0002\u0092",
-    "\u0094\u0005\u0004\u0003\u0002\u0093\u0092\u0003\u0002\u0002\u0002\u0094",
-    "\u0097\u0003\u0002\u0002\u0002\u0095\u0093\u0003\u0002\u0002\u0002\u0095",
-    "\u0096\u0003\u0002\u0002\u0002\u0096\u0098\u0003\u0002\u0002\u0002\u0097",
-    "\u0095\u0003\u0002\u0002\u0002\u0098\u009c\u0007\u0017\u0002\u0002\u0099",
-    "\u009b\u0005\u0004\u0003\u0002\u009a\u0099\u0003\u0002\u0002\u0002\u009b",
-    "\u009e\u0003\u0002\u0002\u0002\u009c\u009a\u0003\u0002\u0002\u0002\u009c",
-    "\u009d\u0003\u0002\u0002\u0002\u009d\u009f\u0003\u0002\u0002\u0002\u009e",
-    "\u009c\u0003\u0002\u0002\u0002\u009f\u00a1\u0005\b\u0005\u0002\u00a0",
-    "\u0095\u0003\u0002\u0002\u0002\u00a1\u00a4\u0003\u0002\u0002\u0002\u00a2",
-    "\u00a0\u0003\u0002\u0002\u0002\u00a2\u00a3\u0003\u0002\u0002\u0002\u00a3",
-    "\u00a6\u0003\u0002\u0002\u0002\u00a4\u00a2\u0003\u0002\u0002\u0002\u00a5",
-    "\u0089\u0003\u0002\u0002\u0002\u00a5\u008a\u0003\u0002\u0002\u0002\u00a6",
-    "\u0007\u0003\u0002\u0002\u0002\u00a7\u00ab\u0005\n\u0006\u0002\u00a8",
-    "\u00aa\u0005\u0004\u0003\u0002\u00a9\u00a8\u0003\u0002\u0002\u0002\u00aa",
-    "\u00ad\u0003\u0002\u0002\u0002\u00ab\u00a9\u0003\u0002\u0002\u0002\u00ab",
-    "\u00ac\u0003\u0002\u0002\u0002\u00ac\u00af\u0003\u0002\u0002\u0002\u00ad",
-    "\u00ab\u0003\u0002\u0002\u0002\u00ae\u00b0\u0005\f\u0007\u0002\u00af",
-    "\u00ae\u0003\u0002\u0002\u0002\u00af\u00b0\u0003\u0002\u0002\u0002\u00b0",
-    "\t\u0003\u0002\u0002\u0002\u00b1\u00b2\u0007\u001e\u0002\u0002\u00b2",
-    "\u000b\u0003\u0002\u0002\u0002\u00b3\u00b7\u0007\u0011\u0002\u0002\u00b4",
-    "\u00b6\u0005\u0004\u0003\u0002\u00b5\u00b4\u0003\u0002\u0002\u0002\u00b6",
-    "\u00b9\u0003\u0002\u0002\u0002\u00b7\u00b5\u0003\u0002\u0002\u0002\u00b7",
-    "\u00b8\u0003\u0002\u0002\u0002\u00b8\u00ba\u0003\u0002\u0002\u0002\u00b9",
-    "\u00b7\u0003\u0002\u0002\u0002\u00ba\u00be\u0005\u000e\b\u0002\u00bb",
-    "\u00bd\u0005\u0004\u0003\u0002\u00bc\u00bb\u0003\u0002\u0002\u0002\u00bd",
-    "\u00c0\u0003\u0002\u0002\u0002\u00be\u00bc\u0003\u0002\u0002\u0002\u00be",
-    "\u00bf\u0003\u0002\u0002\u0002\u00bf\u00d1\u0003\u0002\u0002\u0002\u00c0",
-    "\u00be\u0003\u0002\u0002\u0002\u00c1\u00c5\u0007\f\u0002\u0002\u00c2",
-    "\u00c4\u0005\u0004\u0003\u0002\u00c3\u00c2\u0003\u0002\u0002\u0002\u00c4",
-    "\u00c7\u0003\u0002\u0002\u0002\u00c5\u00c3\u0003\u0002\u0002\u0002\u00c5",
-    "\u00c6\u0003\u0002\u0002\u0002\u00c6\u00c8\u0003\u0002\u0002\u0002\u00c7",
-    "\u00c5\u0003\u0002\u0002\u0002\u00c8\u00cc\u0005\u000e\b\u0002\u00c9",
-    "\u00cb\u0005\u0004\u0003\u0002\u00ca\u00c9\u0003\u0002\u0002\u0002\u00cb",
-    "\u00ce\u0003\u0002\u0002\u0002\u00cc\u00ca\u0003\u0002\u0002\u0002\u00cc",
-    "\u00cd\u0003\u0002\u0002\u0002\u00cd\u00d0\u0003\u0002\u0002\u0002\u00ce",
-    "\u00cc\u0003\u0002\u0002\u0002\u00cf\u00c1\u0003\u0002\u0002\u0002\u00d0",
-    "\u00d3\u0003\u0002\u0002\u0002\u00d1\u00cf\u0003\u0002\u0002\u0002\u00d1",
-    "\u00d2\u0003\u0002\u0002\u0002\u00d2\u00d4\u0003\u0002\u0002\u0002\u00d3",
-    "\u00d1\u0003\u0002\u0002\u0002\u00d4\u00d5\u0007\u0012\u0002\u0002\u00d5",
-    "\r\u0003\u0002\u0002\u0002\u00d6\u00da\u0005\n\u0006\u0002\u00d7\u00d9",
-    "\u0005\u0004\u0003\u0002\u00d8\u00d7\u0003\u0002\u0002\u0002\u00d9\u00dc",
-    "\u0003\u0002\u0002\u0002\u00da\u00d8\u0003\u0002\u0002\u0002\u00da\u00db",
-    "\u0003\u0002\u0002\u0002\u00db\u00de\u0003\u0002\u0002\u0002\u00dc\u00da",
-    "\u0003\u0002\u0002\u0002\u00dd\u00df\u0005\f\u0007\u0002\u00de\u00dd",
-    "\u0003\u0002\u0002\u0002\u00de\u00df\u0003\u0002\u0002\u0002\u00df\u00e2",
-    "\u0003\u0002\u0002\u0002\u00e0\u00e2\u0007\u0018\u0002\u0002\u00e1\u00d6",
-    "\u0003\u0002\u0002\u0002\u00e1\u00e0\u0003\u0002\u0002\u0002\u00e2\u000f",
-    "\u0003\u0002\u0002\u0002\u00e3\u00e7\u0007\r\u0002\u0002\u00e4\u00e6",
-    "\u0005\u0004\u0003\u0002\u00e5\u00e4\u0003\u0002\u0002\u0002\u00e6\u00e9",
-    "\u0003\u0002\u0002\u0002\u00e7\u00e5\u0003\u0002\u0002\u0002\u00e7\u00e8",
-    "\u0003\u0002\u0002\u0002\u00e8\u00f1\u0003\u0002\u0002\u0002\u00e9\u00e7",
-    "\u0003\u0002\u0002\u0002\u00ea\u00ec\u0007\u001b\u0002\u0002\u00eb\u00ea",
-    "\u0003\u0002\u0002\u0002\u00ec\u00ef\u0003\u0002\u0002\u0002\u00ed\u00eb",
-    "\u0003\u0002\u0002\u0002\u00ed\u00ee\u0003\u0002\u0002\u0002\u00ee\u00f0",
-    "\u0003\u0002\u0002\u0002\u00ef\u00ed\u0003\u0002\u0002\u0002\u00f0\u00f2",
-    "\u0005\u0012\n\u0002\u00f1\u00ed\u0003\u0002\u0002\u0002\u00f2\u00f3",
-    "\u0003\u0002\u0002\u0002\u00f3\u00f1\u0003\u0002\u0002\u0002\u00f3\u00f4",
-    "\u0003\u0002\u0002\u0002\u00f4\u00f6\u0003\u0002\u0002\u0002\u00f5\u00f7",
-    "\u0005\u0004\u0003\u0002\u00f6\u00f5\u0003\u0002\u0002\u0002\u00f6\u00f7",
-    "\u0003\u0002\u0002\u0002\u00f7\u00f8\u0003\u0002\u0002\u0002\u00f8\u00f9",
-    "\u0007\u000e\u0002\u0002\u00f9\u0011\u0003\u0002\u0002\u0002\u00fa\u00fb",
-    "\u0007\u001e\u0002\u0002\u00fb\u00fc\u0007\u0019\u0002\u0002\u00fc\u0100",
-    "\u0005\n\u0006\u0002\u00fd\u00ff\u0007\u001a\u0002\u0002\u00fe\u00fd",
-    "\u0003\u0002\u0002\u0002\u00ff\u0102\u0003\u0002\u0002\u0002\u0100\u00fe",
-    "\u0003\u0002\u0002\u0002\u0100\u0101\u0003\u0002\u0002\u0002\u0101\u0013",
-    "\u0003\u0002\u0002\u0002\u0102\u0100\u0003\u0002\u0002\u0002\u0103\u0105",
-    "\u0007\u0004\u0002\u0002\u0104\u0106\u0005\u0004\u0003\u0002\u0105\u0104",
-    "\u0003\u0002\u0002\u0002\u0106\u0107\u0003\u0002\u0002\u0002\u0107\u0105",
-    "\u0003\u0002\u0002\u0002\u0107\u0108\u0003\u0002\u0002\u0002\u0108\u0109",
-    "\u0003\u0002\u0002\u0002\u0109\u010d\u0007\u000f\u0002\u0002\u010a\u010b",
-    "\u0007\u001e\u0002\u0002\u010b\u010c\u0007\u0019\u0002\u0002\u010c\u010e",
-    "\u0005\u000e\b\u0002\u010d\u010a\u0003\u0002\u0002\u0002\u010d\u010e",
-    "\u0003\u0002\u0002\u0002\u010e\u010f\u0003\u0002\u0002\u0002\u010f\u0113",
-    "\u0007\u0010\u0002\u0002\u0110\u0112\u0005\u0004\u0003\u0002\u0111\u0110",
-    "\u0003\u0002\u0002\u0002\u0112\u0115\u0003\u0002\u0002\u0002\u0113\u0111",
-    "\u0003\u0002\u0002\u0002\u0113\u0114\u0003\u0002\u0002\u0002\u0114\u0116",
-    "\u0003\u0002\u0002\u0002\u0115\u0113\u0003\u0002\u0002\u0002\u0116\u011a",
-    "\u0007\u0019\u0002\u0002\u0117\u0119\u0005\u0004\u0003\u0002\u0118\u0117",
-    "\u0003\u0002\u0002\u0002\u0119\u011c\u0003\u0002\u0002\u0002\u011a\u0118",
-    "\u0003\u0002\u0002\u0002\u011a\u011b\u0003\u0002\u0002\u0002\u011b\u011d",
-    "\u0003\u0002\u0002\u0002\u011c\u011a\u0003\u0002\u0002\u0002\u011d\u0121",
-    "\u0007\u0018\u0002\u0002\u011e\u0120\u0005\u0004\u0003\u0002\u011f\u011e",
-    "\u0003\u0002\u0002\u0002\u0120\u0123\u0003\u0002\u0002\u0002\u0121\u011f",
-    "\u0003\u0002\u0002\u0002\u0121\u0122\u0003\u0002\u0002\u0002\u0122\u0124",
-    "\u0003\u0002\u0002\u0002\u0123\u0121\u0003\u0002\u0002\u0002\u0124\u0125",
-    "\u0005\u0016\f\u0002\u0125\u0015\u0003\u0002\u0002\u0002\u0126\u012a",
-    "\u0007\r\u0002\u0002\u0127\u0129\u0005\u0004\u0003\u0002\u0128\u0127",
-    "\u0003\u0002\u0002\u0002\u0129\u012c\u0003\u0002\u0002\u0002\u012a\u0128",
-    "\u0003\u0002\u0002\u0002\u012a\u012b\u0003\u0002\u0002\u0002\u012b\u012e",
-    "\u0003\u0002\u0002\u0002\u012c\u012a\u0003\u0002\u0002\u0002\u012d\u012f",
-    "\u0005\u0018\r\u0002\u012e\u012d\u0003\u0002\u0002\u0002\u012f\u0130",
-    "\u0003\u0002\u0002\u0002\u0130\u012e\u0003\u0002\u0002\u0002\u0130\u0131",
-    "\u0003\u0002\u0002\u0002\u0131\u0135\u0003\u0002\u0002\u0002\u0132\u0134",
-    "\u0005\u0004\u0003\u0002\u0133\u0132\u0003\u0002\u0002\u0002\u0134\u0137",
-    "\u0003\u0002\u0002\u0002\u0135\u0133\u0003\u0002\u0002\u0002\u0135\u0136",
-    "\u0003\u0002\u0002\u0002\u0136\u0138\u0003\u0002\u0002\u0002\u0137\u0135",
-    "\u0003\u0002\u0002\u0002\u0138\u0139\u0007\u000e\u0002\u0002\u0139\u0017",
-    "\u0003\u0002\u0002\u0002\u013a\u013f\u0005\u001a\u000e\u0002\u013b\u013f",
-    "\u0005\"\u0012\u0002\u013c\u013f\u00054\u001b\u0002\u013d\u013f\u0005",
-    "6\u001c\u0002\u013e\u013a\u0003\u0002\u0002\u0002\u013e\u013b\u0003",
-    "\u0002\u0002\u0002\u013e\u013c\u0003\u0002\u0002\u0002\u013e\u013d\u0003",
-    "\u0002\u0002\u0002\u013f\u0141\u0003\u0002\u0002\u0002\u0140\u0142\u0005",
-    "\u0004\u0003\u0002\u0141\u0140\u0003\u0002\u0002\u0002\u0142\u0143\u0003",
-    "\u0002\u0002\u0002\u0143\u0141\u0003\u0002\u0002\u0002\u0143\u0144\u0003",
-    "\u0002\u0002\u0002\u0144\u0019\u0003\u0002\u0002\u0002\u0145\u0148\u0005",
-    "\u001e\u0010\u0002\u0146\u0148\u0005 \u0011\u0002\u0147\u0145\u0003",
-    "\u0002\u0002\u0002\u0147\u0146\u0003\u0002\u0002\u0002\u0148\u001b\u0003",
-    "\u0002\u0002\u0002\u0149\u014a\u0007\u001e\u0002\u0002\u014a\u001d\u0003",
-    "\u0002\u0002\u0002\u014b\u014f\u0007\u0007\u0002\u0002\u014c\u014e\u0005",
-    "\u0004\u0003\u0002\u014d\u014c\u0003\u0002\u0002\u0002\u014e\u0151\u0003",
-    "\u0002\u0002\u0002\u014f\u014d\u0003\u0002\u0002\u0002\u014f\u0150\u0003",
-    "\u0002\u0002\u0002\u0150\u0152\u0003\u0002\u0002\u0002\u0151\u014f\u0003",
-    "\u0002\u0002\u0002\u0152\u0156\u0005\u001c\u000f\u0002\u0153\u0155\u0005",
-    "\u0004\u0003\u0002\u0154\u0153\u0003\u0002\u0002\u0002\u0155\u0158\u0003",
-    "\u0002\u0002\u0002\u0156\u0154\u0003\u0002\u0002\u0002\u0156\u0157\u0003",
-    "\u0002\u0002\u0002\u0157\u0159\u0003\u0002\u0002\u0002\u0158\u0156\u0003",
-    "\u0002\u0002\u0002\u0159\u015d\u0007\u0019\u0002\u0002\u015a\u015c\u0005",
-    "\u0004\u0003\u0002\u015b\u015a\u0003\u0002\u0002\u0002\u015c\u015f\u0003",
-    "\u0002\u0002\u0002\u015d\u015b\u0003\u0002\u0002\u0002\u015d\u015e\u0003",
-    "\u0002\u0002\u0002\u015e\u0160\u0003\u0002\u0002\u0002\u015f\u015d\u0003",
-    "\u0002\u0002\u0002\u0160\u0164\u0005\u000e\b\u0002\u0161\u0163\u0005",
-    "\u0004\u0003\u0002\u0162\u0161\u0003\u0002\u0002\u0002\u0163\u0166\u0003",
-    "\u0002\u0002\u0002\u0164\u0162\u0003\u0002\u0002\u0002\u0164\u0165\u0003",
-    "\u0002\u0002\u0002\u0165\u0167\u0003\u0002\u0002\u0002\u0166\u0164\u0003",
-    "\u0002\u0002\u0002\u0167\u016b\u0007\u0016\u0002\u0002\u0168\u016a\u0005",
-    "\u0004\u0003\u0002\u0169\u0168\u0003\u0002\u0002\u0002\u016a\u016d\u0003",
-    "\u0002\u0002\u0002\u016b\u0169\u0003\u0002\u0002\u0002\u016b\u016c\u0003",
-    "\u0002\u0002\u0002\u016c\u016e\u0003\u0002\u0002\u0002\u016d\u016b\u0003",
-    "\u0002\u0002\u0002\u016e\u016f\u0005$\u0013\u0002\u016f\u001f\u0003",
-    "\u0002\u0002\u0002\u0170\u0174\u0007\b\u0002\u0002\u0171\u0173\u0005",
-    "\u0004\u0003\u0002\u0172\u0171\u0003\u0002\u0002\u0002\u0173\u0176\u0003",
-    "\u0002\u0002\u0002\u0174\u0172\u0003\u0002\u0002\u0002\u0174\u0175\u0003",
-    "\u0002\u0002\u0002\u0175\u0177\u0003\u0002\u0002\u0002\u0176\u0174\u0003",
-    "\u0002\u0002\u0002\u0177\u017b\u0005\u001c\u000f\u0002\u0178\u017a\u0005",
-    "\u0004\u0003\u0002\u0179\u0178\u0003\u0002\u0002\u0002\u017a\u017d\u0003",
-    "\u0002\u0002\u0002\u017b\u0179\u0003\u0002\u0002\u0002\u017b\u017c\u0003",
-    "\u0002\u0002\u0002\u017c\u017e\u0003\u0002\u0002\u0002\u017d\u017b\u0003",
-    "\u0002\u0002\u0002\u017e\u0182\u0007\u0019\u0002\u0002\u017f\u0181\u0005",
-    "\u0004\u0003\u0002\u0180\u017f\u0003\u0002\u0002\u0002\u0181\u0184\u0003",
-    "\u0002\u0002\u0002\u0182\u0180\u0003\u0002\u0002\u0002\u0182\u0183\u0003",
-    "\u0002\u0002\u0002\u0183\u0185\u0003\u0002\u0002\u0002\u0184\u0182\u0003",
-    "\u0002\u0002\u0002\u0185\u0189\u0005\u000e\b\u0002\u0186\u0188\u0005",
-    "\u0004\u0003\u0002\u0187\u0186\u0003\u0002\u0002\u0002\u0188\u018b\u0003",
-    "\u0002\u0002\u0002\u0189\u0187\u0003\u0002\u0002\u0002\u0189\u018a\u0003",
-    "\u0002\u0002\u0002\u018a\u018c\u0003\u0002\u0002\u0002\u018b\u0189\u0003",
-    "\u0002\u0002\u0002\u018c\u0190\u0007\u0016\u0002\u0002\u018d\u018f\u0005",
-    "\u0004\u0003\u0002\u018e\u018d\u0003\u0002\u0002\u0002\u018f\u0192\u0003",
-    "\u0002\u0002\u0002\u0190\u018e\u0003\u0002\u0002\u0002\u0190\u0191\u0003",
-    "\u0002\u0002\u0002\u0191\u0193\u0003\u0002\u0002\u0002\u0192\u0190\u0003",
-    "\u0002\u0002\u0002\u0193\u0194\u0005$\u0013\u0002\u0194!\u0003\u0002",
-    "\u0002\u0002\u0195\u0199\u0005\u001c\u000f\u0002\u0196\u0198\u0005\u0004",
-    "\u0003\u0002\u0197\u0196\u0003\u0002\u0002\u0002\u0198\u019b\u0003\u0002",
-    "\u0002\u0002\u0199\u0197\u0003\u0002\u0002\u0002\u0199\u019a\u0003\u0002",
-    "\u0002\u0002\u019a\u019c\u0003\u0002\u0002\u0002\u019b\u0199\u0003\u0002",
-    "\u0002\u0002\u019c\u01a0\u0007\u0016\u0002\u0002\u019d\u019f\u0005\u0004",
-    "\u0003\u0002\u019e\u019d\u0003\u0002\u0002\u0002\u019f\u01a2\u0003\u0002",
-    "\u0002\u0002\u01a0\u019e\u0003\u0002\u0002\u0002\u01a0\u01a1\u0003\u0002",
-    "\u0002\u0002\u01a1\u01a3\u0003\u0002\u0002\u0002\u01a2\u01a0\u0003\u0002",
-    "\u0002\u0002\u01a3\u01a4\u0005$\u0013\u0002\u01a4#\u0003\u0002\u0002",
-    "\u0002\u01a5\u01ab\u0005\u0014\u000b\u0002\u01a6\u01ab\u00054\u001b",
-    "\u0002\u01a7\u01ab\u00058\u001d\u0002\u01a8\u01ab\u0005&\u0014\u0002",
-    "\u01a9\u01ab\u0007\u001e\u0002\u0002\u01aa\u01a5\u0003\u0002\u0002\u0002",
-    "\u01aa\u01a6\u0003\u0002\u0002\u0002\u01aa\u01a7\u0003\u0002\u0002\u0002",
-    "\u01aa\u01a8\u0003\u0002\u0002\u0002\u01aa\u01a9\u0003\u0002\u0002\u0002",
-    "\u01ab%\u0003\u0002\u0002\u0002\u01ac\u01b0\u0007\u000b\u0002\u0002",
-    "\u01ad\u01af\u0007\u001b\u0002\u0002\u01ae\u01ad\u0003\u0002\u0002\u0002",
-    "\u01af\u01b2\u0003\u0002\u0002\u0002\u01b0\u01ae\u0003\u0002\u0002\u0002",
-    "\u01b0\u01b1\u0003\u0002\u0002\u0002\u01b1\u01b3\u0003\u0002\u0002\u0002",
-    "\u01b2\u01b0\u0003\u0002\u0002\u0002\u01b3\u01b7\u0005\b\u0005\u0002",
-    "\u01b4\u01b6\u0007\u001b\u0002\u0002\u01b5\u01b4\u0003\u0002\u0002\u0002",
-    "\u01b6\u01b9\u0003\u0002\u0002\u0002\u01b7\u01b5\u0003\u0002\u0002\u0002",
-    "\u01b7\u01b8\u0003\u0002\u0002\u0002\u01b8\u01bd\u0003\u0002\u0002\u0002",
-    "\u01b9\u01b7\u0003\u0002\u0002\u0002\u01ba\u01be\u0005(\u0015\u0002",
-    "\u01bb\u01be\u0005*\u0016\u0002\u01bc\u01be\u0005,\u0017\u0002\u01bd",
-    "\u01ba\u0003\u0002\u0002\u0002\u01bd\u01bb\u0003\u0002\u0002\u0002\u01bd",
-    "\u01bc\u0003\u0002\u0002\u0002\u01be\'\u0003\u0002\u0002\u0002\u01bf",
-    "\u01c3\u0007\u0013\u0002\u0002\u01c0\u01c2\u0005\u0004\u0003\u0002\u01c1",
-    "\u01c0\u0003\u0002\u0002\u0002\u01c2\u01c5\u0003\u0002\u0002\u0002\u01c3",
-    "\u01c1\u0003\u0002\u0002\u0002\u01c3\u01c4\u0003\u0002\u0002\u0002\u01c4",
-    "\u01c6\u0003\u0002\u0002\u0002\u01c5\u01c3\u0003\u0002\u0002\u0002\u01c6",
-    "\u01ca\u00050\u0019\u0002\u01c7\u01c9\u0005\u0004\u0003\u0002\u01c8",
-    "\u01c7\u0003\u0002\u0002\u0002\u01c9\u01cc\u0003\u0002\u0002\u0002\u01ca",
-    "\u01c8\u0003\u0002\u0002\u0002\u01ca\u01cb\u0003\u0002\u0002\u0002\u01cb",
-    "\u01cd\u0003\u0002\u0002\u0002\u01cc\u01ca\u0003\u0002\u0002\u0002\u01cd",
-    "\u01ce\u0007\u0014\u0002\u0002\u01ce)\u0003\u0002\u0002\u0002\u01cf",
-    "\u01d3\u0007\r\u0002\u0002\u01d0\u01d2\u0005\u0004\u0003\u0002\u01d1",
-    "\u01d0\u0003\u0002\u0002\u0002\u01d2\u01d5\u0003\u0002\u0002\u0002\u01d3",
-    "\u01d1\u0003\u0002\u0002\u0002\u01d3\u01d4\u0003\u0002\u0002\u0002\u01d4",
-    "\u01dc\u0003\u0002\u0002\u0002\u01d5\u01d3\u0003\u0002\u0002\u0002\u01d6",
-    "\u01d8\u0005\"\u0012\u0002\u01d7\u01d9\u0005\u0004\u0003\u0002\u01d8",
-    "\u01d7\u0003\u0002\u0002\u0002\u01d9\u01da\u0003\u0002\u0002\u0002\u01da",
-    "\u01d8\u0003\u0002\u0002\u0002\u01da\u01db\u0003\u0002\u0002\u0002\u01db",
-    "\u01dd\u0003\u0002\u0002\u0002\u01dc\u01d6\u0003\u0002\u0002\u0002\u01dd",
-    "\u01de\u0003\u0002\u0002\u0002\u01de\u01dc\u0003\u0002\u0002\u0002\u01de",
-    "\u01df\u0003\u0002\u0002\u0002\u01df\u01e0\u0003\u0002\u0002\u0002\u01e0",
-    "\u01e1\u0007\u000e\u0002\u0002\u01e1+\u0003\u0002\u0002\u0002\u01e2",
-    "\u01e6\u0007\r\u0002\u0002\u01e3\u01e5\u0005\u0004\u0003\u0002\u01e4",
-    "\u01e3\u0003\u0002\u0002\u0002\u01e5\u01e8\u0003\u0002\u0002\u0002\u01e6",
-    "\u01e4\u0003\u0002\u0002\u0002\u01e6\u01e7\u0003\u0002\u0002\u0002\u01e7",
-    "\u01f1\u0003\u0002\u0002\u0002\u01e8\u01e6\u0003\u0002\u0002\u0002\u01e9",
-    "\u01eb\u0005.\u0018\u0002\u01ea\u01ec\u0005\u0004\u0003\u0002\u01eb",
-    "\u01ea\u0003\u0002\u0002\u0002\u01ec\u01ed\u0003\u0002\u0002\u0002\u01ed",
-    "\u01eb\u0003\u0002\u0002\u0002\u01ed\u01ee\u0003\u0002\u0002\u0002\u01ee",
-    "\u01f0\u0003\u0002\u0002\u0002\u01ef\u01e9\u0003\u0002\u0002\u0002\u01f0",
-    "\u01f3\u0003\u0002\u0002\u0002\u01f1\u01ef\u0003\u0002\u0002\u0002\u01f1",
-    "\u01f2\u0003\u0002\u0002\u0002\u01f2\u01f4\u0003\u0002\u0002\u0002\u01f3",
-    "\u01f1\u0003\u0002\u0002\u0002\u01f4\u01f5\u0007\u000e\u0002\u0002\u01f5",
-    "-\u0003\u0002\u0002\u0002\u01f6\u01fa\u0005$\u0013\u0002\u01f7\u01f9",
-    "\u0007\u001b\u0002\u0002\u01f8\u01f7\u0003\u0002\u0002\u0002\u01f9\u01fc",
-    "\u0003\u0002\u0002\u0002\u01fa\u01f8\u0003\u0002\u0002\u0002\u01fa\u01fb",
-    "\u0003\u0002\u0002\u0002\u01fb\u01fd\u0003\u0002\u0002\u0002\u01fc\u01fa",
-    "\u0003\u0002\u0002\u0002\u01fd\u0201\u0007\u0019\u0002\u0002\u01fe\u0200",
-    "\u0007\u001b\u0002\u0002\u01ff\u01fe\u0003\u0002\u0002\u0002\u0200\u0203",
-    "\u0003\u0002\u0002\u0002\u0201\u01ff\u0003\u0002\u0002\u0002\u0201\u0202",
-    "\u0003\u0002\u0002\u0002\u0202\u0204\u0003\u0002\u0002\u0002\u0203\u0201",
-    "\u0003\u0002\u0002\u0002\u0204\u0205\u0005$\u0013\u0002\u0205/\u0003",
-    "\u0002\u0002\u0002\u0206\u0208\u0005\u0004\u0003\u0002\u0207\u0206\u0003",
-    "\u0002\u0002\u0002\u0208\u020b\u0003\u0002\u0002\u0002\u0209\u0207\u0003",
-    "\u0002\u0002\u0002\u0209\u020a\u0003\u0002\u0002\u0002\u020a\u020c\u0003",
-    "\u0002\u0002\u0002\u020b\u0209\u0003\u0002\u0002\u0002\u020c\u0217\u0005",
-    "$\u0013\u0002\u020d\u0211\u0007\f\u0002\u0002\u020e\u0210\u0005\u0004",
-    "\u0003\u0002\u020f\u020e\u0003\u0002\u0002\u0002\u0210\u0213\u0003\u0002",
-    "\u0002\u0002\u0211\u020f\u0003\u0002\u0002\u0002\u0211\u0212\u0003\u0002",
-    "\u0002\u0002\u0212\u0214\u0003\u0002\u0002\u0002\u0213\u0211\u0003\u0002",
-    "\u0002\u0002\u0214\u0216\u0005$\u0013\u0002\u0215\u020d\u0003\u0002",
-    "\u0002\u0002\u0216\u0219\u0003\u0002\u0002\u0002\u0217\u0215\u0003\u0002",
-    "\u0002\u0002\u0217\u0218\u0003\u0002\u0002\u0002\u0218\u021d\u0003\u0002",
-    "\u0002\u0002\u0219\u0217\u0003\u0002\u0002\u0002\u021a\u021c\u0005\u0004",
-    "\u0003\u0002\u021b\u021a\u0003\u0002\u0002\u0002\u021c\u021f\u0003\u0002",
-    "\u0002\u0002\u021d\u021b\u0003\u0002\u0002\u0002\u021d\u021e\u0003\u0002",
-    "\u0002\u0002\u021e1\u0003\u0002\u0002\u0002\u021f\u021d\u0003\u0002",
-    "\u0002\u0002\u0220\u0222\u0005\u0004\u0003\u0002\u0221\u0220\u0003\u0002",
-    "\u0002\u0002\u0222\u0225\u0003\u0002\u0002\u0002\u0223\u0221\u0003\u0002",
-    "\u0002\u0002\u0223\u0224\u0003\u0002\u0002\u0002\u0224\u0226\u0003\u0002",
-    "\u0002\u0002\u0225\u0223\u0003\u0002\u0002\u0002\u0226\u0231\u0007\u001e",
-    "\u0002\u0002\u0227\u022b\u0007\f\u0002\u0002\u0228\u022a\u0005\u0004",
-    "\u0003\u0002\u0229\u0228\u0003\u0002\u0002\u0002\u022a\u022d\u0003\u0002",
-    "\u0002\u0002\u022b\u0229\u0003\u0002\u0002\u0002\u022b\u022c\u0003\u0002",
-    "\u0002\u0002\u022c\u022e\u0003\u0002\u0002\u0002\u022d\u022b\u0003\u0002",
-    "\u0002\u0002\u022e\u0230\u0007\u001e\u0002\u0002\u022f\u0227\u0003\u0002",
-    "\u0002\u0002\u0230\u0233\u0003\u0002\u0002\u0002\u0231\u022f\u0003\u0002",
-    "\u0002\u0002\u0231\u0232\u0003\u0002\u0002\u0002\u0232\u0237\u0003\u0002",
-    "\u0002\u0002\u0233\u0231\u0003\u0002\u0002\u0002\u0234\u0236\u0005\u0004",
-    "\u0003\u0002\u0235\u0234\u0003\u0002\u0002\u0002\u0236\u0239\u0003\u0002",
-    "\u0002\u0002\u0237\u0235\u0003\u0002\u0002\u0002\u0237\u0238\u0003\u0002",
-    "\u0002\u0002\u02383\u0003\u0002\u0002\u0002\u0239\u0237\u0003\u0002",
-    "\u0002\u0002\u023a\u023e\u0007\u001e\u0002\u0002\u023b\u023d\u0007\u001b",
-    "\u0002\u0002\u023c\u023b\u0003\u0002\u0002\u0002\u023d\u0240\u0003\u0002",
-    "\u0002\u0002\u023e\u023c\u0003\u0002\u0002\u0002\u023e\u023f\u0003\u0002",
-    "\u0002\u0002\u023f\u0241\u0003\u0002\u0002\u0002\u0240\u023e\u0003\u0002",
-    "\u0002\u0002\u0241\u0243\u0007\u000f\u0002\u0002\u0242\u0244\u00052",
-    "\u001a\u0002\u0243\u0242\u0003\u0002\u0002\u0002\u0243\u0244\u0003\u0002",
-    "\u0002\u0002\u0244\u0245\u0003\u0002\u0002\u0002\u0245\u0246\u0007\u0010",
-    "\u0002\u0002\u02465\u0003\u0002\u0002\u0002\u0247\u024b\u0007\t\u0002",
-    "\u0002\u0248\u024a\u0005\u0004\u0003\u0002\u0249\u0248\u0003\u0002\u0002",
-    "\u0002\u024a\u024d\u0003\u0002\u0002\u0002\u024b\u0249\u0003\u0002\u0002",
-    "\u0002\u024b\u024c\u0003\u0002\u0002\u0002\u024c\u024e\u0003\u0002\u0002",
-    "\u0002\u024d\u024b\u0003\u0002\u0002\u0002\u024e\u0256\u0007\u001e\u0002",
-    "\u0002\u024f\u0251\u0005\u0004\u0003\u0002\u0250\u024f\u0003\u0002\u0002",
-    "\u0002\u0251\u0254\u0003\u0002\u0002\u0002\u0252\u0250\u0003\u0002\u0002",
-    "\u0002\u0252\u0253\u0003\u0002\u0002\u0002\u0253\u0255\u0003\u0002\u0002",
-    "\u0002\u0254\u0252\u0003\u0002\u0002\u0002\u0255\u0257\u0007\u001e\u0002",
-    "\u0002\u0256\u0252\u0003\u0002\u0002\u0002\u0256\u0257\u0003\u0002\u0002",
-    "\u0002\u02577\u0003\u0002\u0002\u0002\u0258\u0259\t\u0003\u0002\u0002",
-    "\u02599\u0003\u0002\u0002\u0002\u025a\u025b\u0007\u0005\u0002\u0002",
-    "\u025b\u025c\u0005\u0004\u0003\u0002\u025c\u0260\u0007\u001e\u0002\u0002",
-    "\u025d\u025f\u0005\u0004\u0003\u0002\u025e\u025d\u0003\u0002\u0002\u0002",
-    "\u025f\u0262\u0003\u0002\u0002\u0002\u0260\u025e\u0003\u0002\u0002\u0002",
-    "\u0260\u0261\u0003\u0002\u0002\u0002\u0261\u0263\u0003\u0002\u0002\u0002",
-    "\u0262\u0260\u0003\u0002\u0002\u0002\u0263\u0264\u0007\u0019\u0002\u0002",
-    "\u0264\u0265\u0005\n\u0006\u0002\u0265;\u0003\u0002\u0002\u0002\u0266",
-    "\u0268\u0007\u0006\u0002\u0002\u0267\u0269\u0005\u0004\u0003\u0002\u0268",
-    "\u0267\u0003\u0002\u0002\u0002\u0269\u026a\u0003\u0002\u0002\u0002\u026a",
-    "\u0268\u0003\u0002\u0002\u0002\u026a\u026b\u0003\u0002\u0002\u0002\u026b",
-    "\u026c\u0003\u0002\u0002\u0002\u026c\u026e\u0007\u001e\u0002\u0002\u026d",
-    "\u026f\u0005\u0004\u0003\u0002\u026e\u026d\u0003\u0002\u0002\u0002\u026f",
-    "\u0270\u0003\u0002\u0002\u0002\u0270\u026e\u0003\u0002\u0002\u0002\u0270",
-    "\u0271\u0003\u0002\u0002\u0002\u0271\u0272\u0003\u0002\u0002\u0002\u0272",
-    "\u0273\u0005\u0014\u000b\u0002\u0273=\u0003\u0002\u0002\u0002]AHJLS",
-    "UW^`bikmpx~\u0082\u0087\u008e\u0095\u009c\u00a2\u00a5\u00ab\u00af\u00b7",
-    "\u00be\u00c5\u00cc\u00d1\u00da\u00de\u00e1\u00e7\u00ed\u00f3\u00f6\u0100",
-    "\u0107\u010d\u0113\u011a\u0121\u012a\u0130\u0135\u013e\u0143\u0147\u014f",
-    "\u0156\u015d\u0164\u016b\u0174\u017b\u0182\u0189\u0190\u0199\u01a0\u01aa",
-    "\u01b0\u01b7\u01bd\u01c3\u01ca\u01d3\u01da\u01de\u01e6\u01ed\u01f1\u01fa",
-    "\u0201\u0209\u0211\u0217\u021d\u0223\u022b\u0231\u0237\u023e\u0243\u024b",
-    "\u0252\u0256\u0260\u026a\u0270"].join("");
+    "\u001e\u0003\u001e\u0003\u001e\u0003\u001e\u0005\u001e\u0267\n\u001e",
+    "\u0003\u001f\u0003\u001f\u0006\u001f\u026b\n\u001f\r\u001f\u000e\u001f",
+    "\u026c\u0003\u001f\u0003\u001f\u0006\u001f\u0271\n\u001f\r\u001f\u000e",
+    "\u001f\u0272\u0003\u001f\u0003\u001f\u0003\u001f\u0002\u0002 \u0002",
+    "\u0004\u0006\b\n\f\u000e\u0010\u0012\u0014\u0016\u0018\u001a\u001c\u001e",
+    " \"$&(*,.02468:<\u0002\u0004\u0003\u0002\u001a\u001b\u0004\u0002\n\n",
+    "\u001c\u001d\u0002\u02ba\u0002p\u0003\u0002\u0002\u0002\u0004r\u0003",
+    "\u0002\u0002\u0002\u0006t\u0003\u0002\u0002\u0002\b\u00a7\u0003\u0002",
+    "\u0002\u0002\n\u00b1\u0003\u0002\u0002\u0002\f\u00b3\u0003\u0002\u0002",
+    "\u0002\u000e\u00e1\u0003\u0002\u0002\u0002\u0010\u00e3\u0003\u0002\u0002",
+    "\u0002\u0012\u00fa\u0003\u0002\u0002\u0002\u0014\u0103\u0003\u0002\u0002",
+    "\u0002\u0016\u0126\u0003\u0002\u0002\u0002\u0018\u013e\u0003\u0002\u0002",
+    "\u0002\u001a\u0147\u0003\u0002\u0002\u0002\u001c\u0149\u0003\u0002\u0002",
+    "\u0002\u001e\u014b\u0003\u0002\u0002\u0002 \u0170\u0003\u0002\u0002",
+    "\u0002\"\u0195\u0003\u0002\u0002\u0002$\u01aa\u0003\u0002\u0002\u0002",
+    "&\u01ac\u0003\u0002\u0002\u0002(\u01bf\u0003\u0002\u0002\u0002*\u01cf",
+    "\u0003\u0002\u0002\u0002,\u01e2\u0003\u0002\u0002\u0002.\u01f6\u0003",
+    "\u0002\u0002\u00020\u0209\u0003\u0002\u0002\u00022\u0223\u0003\u0002",
+    "\u0002\u00024\u023a\u0003\u0002\u0002\u00026\u0247\u0003\u0002\u0002",
+    "\u00028\u0258\u0003\u0002\u0002\u0002:\u025a\u0003\u0002\u0002\u0002",
+    "<\u0268\u0003\u0002\u0002\u0002>@\u0005\u0004\u0003\u0002?>\u0003\u0002",
+    "\u0002\u0002@C\u0003\u0002\u0002\u0002A?\u0003\u0002\u0002\u0002AB\u0003",
+    "\u0002\u0002\u0002BL\u0003\u0002\u0002\u0002CA\u0003\u0002\u0002\u0002",
+    "DK\u0005\u0006\u0004\u0002EG\u0005\u0004\u0003\u0002FE\u0003\u0002\u0002",
+    "\u0002GH\u0003\u0002\u0002\u0002HF\u0003\u0002\u0002\u0002HI\u0003\u0002",
+    "\u0002\u0002IK\u0003\u0002\u0002\u0002JD\u0003\u0002\u0002\u0002JF\u0003",
+    "\u0002\u0002\u0002KN\u0003\u0002\u0002\u0002LJ\u0003\u0002\u0002\u0002",
+    "LM\u0003\u0002\u0002\u0002MW\u0003\u0002\u0002\u0002NL\u0003\u0002\u0002",
+    "\u0002OV\u0005\u001e\u0010\u0002PR\u0005\u0004\u0003\u0002QP\u0003\u0002",
+    "\u0002\u0002RS\u0003\u0002\u0002\u0002SQ\u0003\u0002\u0002\u0002ST\u0003",
+    "\u0002\u0002\u0002TV\u0003\u0002\u0002\u0002UO\u0003\u0002\u0002\u0002",
+    "UQ\u0003\u0002\u0002\u0002VY\u0003\u0002\u0002\u0002WU\u0003\u0002\u0002",
+    "\u0002WX\u0003\u0002\u0002\u0002Xb\u0003\u0002\u0002\u0002YW\u0003\u0002",
+    "\u0002\u0002Za\u0005:\u001e\u0002[]\u0005\u0004\u0003\u0002\\[\u0003",
+    "\u0002\u0002\u0002]^\u0003\u0002\u0002\u0002^\\\u0003\u0002\u0002\u0002",
+    "^_\u0003\u0002\u0002\u0002_a\u0003\u0002\u0002\u0002`Z\u0003\u0002\u0002",
+    "\u0002`\\\u0003\u0002\u0002\u0002ad\u0003\u0002\u0002\u0002b`\u0003",
+    "\u0002\u0002\u0002bc\u0003\u0002\u0002\u0002ck\u0003\u0002\u0002\u0002",
+    "db\u0003\u0002\u0002\u0002el\u0005<\u001f\u0002fh\u0005\u0004\u0003",
+    "\u0002gf\u0003\u0002\u0002\u0002hi\u0003\u0002\u0002\u0002ig\u0003\u0002",
+    "\u0002\u0002ij\u0003\u0002\u0002\u0002jl\u0003\u0002\u0002\u0002ke\u0003",
+    "\u0002\u0002\u0002kg\u0003\u0002\u0002\u0002lm\u0003\u0002\u0002\u0002",
+    "mk\u0003\u0002\u0002\u0002mn\u0003\u0002\u0002\u0002nq\u0003\u0002\u0002",
+    "\u0002oq\u0007\u0002\u0002\u0003pA\u0003\u0002\u0002\u0002po\u0003\u0002",
+    "\u0002\u0002q\u0003\u0003\u0002\u0002\u0002rs\t\u0002\u0002\u0002s\u0005",
+    "\u0003\u0002\u0002\u0002tv\u0007\u0003\u0002\u0002uw\u0005\u0004\u0003",
+    "\u0002vu\u0003\u0002\u0002\u0002wx\u0003\u0002\u0002\u0002xv\u0003\u0002",
+    "\u0002\u0002xy\u0003\u0002\u0002\u0002yz\u0003\u0002\u0002\u0002z~\u0005",
+    "\n\u0006\u0002{}\u0005\u0004\u0003\u0002|{\u0003\u0002\u0002\u0002}",
+    "\u0080\u0003\u0002\u0002\u0002~|\u0003\u0002\u0002\u0002~\u007f\u0003",
+    "\u0002\u0002\u0002\u007f\u0082\u0003\u0002\u0002\u0002\u0080~\u0003",
+    "\u0002\u0002\u0002\u0081\u0083\u0005\f\u0007\u0002\u0082\u0081\u0003",
+    "\u0002\u0002\u0002\u0082\u0083\u0003\u0002\u0002\u0002\u0083\u0085\u0003",
+    "\u0002\u0002\u0002\u0084\u0086\u0005\u0004\u0003\u0002\u0085\u0084\u0003",
+    "\u0002\u0002\u0002\u0086\u0087\u0003\u0002\u0002\u0002\u0087\u0085\u0003",
+    "\u0002\u0002\u0002\u0087\u0088\u0003\u0002\u0002\u0002\u0088\u00a5\u0003",
+    "\u0002\u0002\u0002\u0089\u00a6\u0005\u0010\t\u0002\u008a\u008e\u0007",
+    "\u0016\u0002\u0002\u008b\u008d\u0005\u0004\u0003\u0002\u008c\u008b\u0003",
+    "\u0002\u0002\u0002\u008d\u0090\u0003\u0002\u0002\u0002\u008e\u008c\u0003",
+    "\u0002\u0002\u0002\u008e\u008f\u0003\u0002\u0002\u0002\u008f\u0091\u0003",
+    "\u0002\u0002\u0002\u0090\u008e\u0003\u0002\u0002\u0002\u0091\u00a2\u0005",
+    "\b\u0005\u0002\u0092\u0094\u0005\u0004\u0003\u0002\u0093\u0092\u0003",
+    "\u0002\u0002\u0002\u0094\u0097\u0003\u0002\u0002\u0002\u0095\u0093\u0003",
+    "\u0002\u0002\u0002\u0095\u0096\u0003\u0002\u0002\u0002\u0096\u0098\u0003",
+    "\u0002\u0002\u0002\u0097\u0095\u0003\u0002\u0002\u0002\u0098\u009c\u0007",
+    "\u0017\u0002\u0002\u0099\u009b\u0005\u0004\u0003\u0002\u009a\u0099\u0003",
+    "\u0002\u0002\u0002\u009b\u009e\u0003\u0002\u0002\u0002\u009c\u009a\u0003",
+    "\u0002\u0002\u0002\u009c\u009d\u0003\u0002\u0002\u0002\u009d\u009f\u0003",
+    "\u0002\u0002\u0002\u009e\u009c\u0003\u0002\u0002\u0002\u009f\u00a1\u0005",
+    "\b\u0005\u0002\u00a0\u0095\u0003\u0002\u0002\u0002\u00a1\u00a4\u0003",
+    "\u0002\u0002\u0002\u00a2\u00a0\u0003\u0002\u0002\u0002\u00a2\u00a3\u0003",
+    "\u0002\u0002\u0002\u00a3\u00a6\u0003\u0002\u0002\u0002\u00a4\u00a2\u0003",
+    "\u0002\u0002\u0002\u00a5\u0089\u0003\u0002\u0002\u0002\u00a5\u008a\u0003",
+    "\u0002\u0002\u0002\u00a6\u0007\u0003\u0002\u0002\u0002\u00a7\u00ab\u0005",
+    "\n\u0006\u0002\u00a8\u00aa\u0005\u0004\u0003\u0002\u00a9\u00a8\u0003",
+    "\u0002\u0002\u0002\u00aa\u00ad\u0003\u0002\u0002\u0002\u00ab\u00a9\u0003",
+    "\u0002\u0002\u0002\u00ab\u00ac\u0003\u0002\u0002\u0002\u00ac\u00af\u0003",
+    "\u0002\u0002\u0002\u00ad\u00ab\u0003\u0002\u0002\u0002\u00ae\u00b0\u0005",
+    "\f\u0007\u0002\u00af\u00ae\u0003\u0002\u0002\u0002\u00af\u00b0\u0003",
+    "\u0002\u0002\u0002\u00b0\t\u0003\u0002\u0002\u0002\u00b1\u00b2\u0007",
+    "\u001e\u0002\u0002\u00b2\u000b\u0003\u0002\u0002\u0002\u00b3\u00b7\u0007",
+    "\u0011\u0002\u0002\u00b4\u00b6\u0005\u0004\u0003\u0002\u00b5\u00b4\u0003",
+    "\u0002\u0002\u0002\u00b6\u00b9\u0003\u0002\u0002\u0002\u00b7\u00b5\u0003",
+    "\u0002\u0002\u0002\u00b7\u00b8\u0003\u0002\u0002\u0002\u00b8\u00ba\u0003",
+    "\u0002\u0002\u0002\u00b9\u00b7\u0003\u0002\u0002\u0002\u00ba\u00be\u0005",
+    "\u000e\b\u0002\u00bb\u00bd\u0005\u0004\u0003\u0002\u00bc\u00bb\u0003",
+    "\u0002\u0002\u0002\u00bd\u00c0\u0003\u0002\u0002\u0002\u00be\u00bc\u0003",
+    "\u0002\u0002\u0002\u00be\u00bf\u0003\u0002\u0002\u0002\u00bf\u00d1\u0003",
+    "\u0002\u0002\u0002\u00c0\u00be\u0003\u0002\u0002\u0002\u00c1\u00c5\u0007",
+    "\f\u0002\u0002\u00c2\u00c4\u0005\u0004\u0003\u0002\u00c3\u00c2\u0003",
+    "\u0002\u0002\u0002\u00c4\u00c7\u0003\u0002\u0002\u0002\u00c5\u00c3\u0003",
+    "\u0002\u0002\u0002\u00c5\u00c6\u0003\u0002\u0002\u0002\u00c6\u00c8\u0003",
+    "\u0002\u0002\u0002\u00c7\u00c5\u0003\u0002\u0002\u0002\u00c8\u00cc\u0005",
+    "\u000e\b\u0002\u00c9\u00cb\u0005\u0004\u0003\u0002\u00ca\u00c9\u0003",
+    "\u0002\u0002\u0002\u00cb\u00ce\u0003\u0002\u0002\u0002\u00cc\u00ca\u0003",
+    "\u0002\u0002\u0002\u00cc\u00cd\u0003\u0002\u0002\u0002\u00cd\u00d0\u0003",
+    "\u0002\u0002\u0002\u00ce\u00cc\u0003\u0002\u0002\u0002\u00cf\u00c1\u0003",
+    "\u0002\u0002\u0002\u00d0\u00d3\u0003\u0002\u0002\u0002\u00d1\u00cf\u0003",
+    "\u0002\u0002\u0002\u00d1\u00d2\u0003\u0002\u0002\u0002\u00d2\u00d4\u0003",
+    "\u0002\u0002\u0002\u00d3\u00d1\u0003\u0002\u0002\u0002\u00d4\u00d5\u0007",
+    "\u0012\u0002\u0002\u00d5\r\u0003\u0002\u0002\u0002\u00d6\u00da\u0005",
+    "\n\u0006\u0002\u00d7\u00d9\u0005\u0004\u0003\u0002\u00d8\u00d7\u0003",
+    "\u0002\u0002\u0002\u00d9\u00dc\u0003\u0002\u0002\u0002\u00da\u00d8\u0003",
+    "\u0002\u0002\u0002\u00da\u00db\u0003\u0002\u0002\u0002\u00db\u00de\u0003",
+    "\u0002\u0002\u0002\u00dc\u00da\u0003\u0002\u0002\u0002\u00dd\u00df\u0005",
+    "\f\u0007\u0002\u00de\u00dd\u0003\u0002\u0002\u0002\u00de\u00df\u0003",
+    "\u0002\u0002\u0002\u00df\u00e2\u0003\u0002\u0002\u0002\u00e0\u00e2\u0007",
+    "\u0018\u0002\u0002\u00e1\u00d6\u0003\u0002\u0002\u0002\u00e1\u00e0\u0003",
+    "\u0002\u0002\u0002\u00e2\u000f\u0003\u0002\u0002\u0002\u00e3\u00e7\u0007",
+    "\r\u0002\u0002\u00e4\u00e6\u0005\u0004\u0003\u0002\u00e5\u00e4\u0003",
+    "\u0002\u0002\u0002\u00e6\u00e9\u0003\u0002\u0002\u0002\u00e7\u00e5\u0003",
+    "\u0002\u0002\u0002\u00e7\u00e8\u0003\u0002\u0002\u0002\u00e8\u00f1\u0003",
+    "\u0002\u0002\u0002\u00e9\u00e7\u0003\u0002\u0002\u0002\u00ea\u00ec\u0007",
+    "\u001b\u0002\u0002\u00eb\u00ea\u0003\u0002\u0002\u0002\u00ec\u00ef\u0003",
+    "\u0002\u0002\u0002\u00ed\u00eb\u0003\u0002\u0002\u0002\u00ed\u00ee\u0003",
+    "\u0002\u0002\u0002\u00ee\u00f0\u0003\u0002\u0002\u0002\u00ef\u00ed\u0003",
+    "\u0002\u0002\u0002\u00f0\u00f2\u0005\u0012\n\u0002\u00f1\u00ed\u0003",
+    "\u0002\u0002\u0002\u00f2\u00f3\u0003\u0002\u0002\u0002\u00f3\u00f1\u0003",
+    "\u0002\u0002\u0002\u00f3\u00f4\u0003\u0002\u0002\u0002\u00f4\u00f6\u0003",
+    "\u0002\u0002\u0002\u00f5\u00f7\u0005\u0004\u0003\u0002\u00f6\u00f5\u0003",
+    "\u0002\u0002\u0002\u00f6\u00f7\u0003\u0002\u0002\u0002\u00f7\u00f8\u0003",
+    "\u0002\u0002\u0002\u00f8\u00f9\u0007\u000e\u0002\u0002\u00f9\u0011\u0003",
+    "\u0002\u0002\u0002\u00fa\u00fb\u0007\u001e\u0002\u0002\u00fb\u00fc\u0007",
+    "\u0019\u0002\u0002\u00fc\u0100\u0005\n\u0006\u0002\u00fd\u00ff\u0007",
+    "\u001a\u0002\u0002\u00fe\u00fd\u0003\u0002\u0002\u0002\u00ff\u0102\u0003",
+    "\u0002\u0002\u0002\u0100\u00fe\u0003\u0002\u0002\u0002\u0100\u0101\u0003",
+    "\u0002\u0002\u0002\u0101\u0013\u0003\u0002\u0002\u0002\u0102\u0100\u0003",
+    "\u0002\u0002\u0002\u0103\u0105\u0007\u0004\u0002\u0002\u0104\u0106\u0005",
+    "\u0004\u0003\u0002\u0105\u0104\u0003\u0002\u0002\u0002\u0106\u0107\u0003",
+    "\u0002\u0002\u0002\u0107\u0105\u0003\u0002\u0002\u0002\u0107\u0108\u0003",
+    "\u0002\u0002\u0002\u0108\u0109\u0003\u0002\u0002\u0002\u0109\u010d\u0007",
+    "\u000f\u0002\u0002\u010a\u010b\u0007\u001e\u0002\u0002\u010b\u010c\u0007",
+    "\u0019\u0002\u0002\u010c\u010e\u0005\u000e\b\u0002\u010d\u010a\u0003",
+    "\u0002\u0002\u0002\u010d\u010e\u0003\u0002\u0002\u0002\u010e\u010f\u0003",
+    "\u0002\u0002\u0002\u010f\u0113\u0007\u0010\u0002\u0002\u0110\u0112\u0005",
+    "\u0004\u0003\u0002\u0111\u0110\u0003\u0002\u0002\u0002\u0112\u0115\u0003",
+    "\u0002\u0002\u0002\u0113\u0111\u0003\u0002\u0002\u0002\u0113\u0114\u0003",
+    "\u0002\u0002\u0002\u0114\u0116\u0003\u0002\u0002\u0002\u0115\u0113\u0003",
+    "\u0002\u0002\u0002\u0116\u011a\u0007\u0019\u0002\u0002\u0117\u0119\u0005",
+    "\u0004\u0003\u0002\u0118\u0117\u0003\u0002\u0002\u0002\u0119\u011c\u0003",
+    "\u0002\u0002\u0002\u011a\u0118\u0003\u0002\u0002\u0002\u011a\u011b\u0003",
+    "\u0002\u0002\u0002\u011b\u011d\u0003\u0002\u0002\u0002\u011c\u011a\u0003",
+    "\u0002\u0002\u0002\u011d\u0121\u0007\u0018\u0002\u0002\u011e\u0120\u0005",
+    "\u0004\u0003\u0002\u011f\u011e\u0003\u0002\u0002\u0002\u0120\u0123\u0003",
+    "\u0002\u0002\u0002\u0121\u011f\u0003\u0002\u0002\u0002\u0121\u0122\u0003",
+    "\u0002\u0002\u0002\u0122\u0124\u0003\u0002\u0002\u0002\u0123\u0121\u0003",
+    "\u0002\u0002\u0002\u0124\u0125\u0005\u0016\f\u0002\u0125\u0015\u0003",
+    "\u0002\u0002\u0002\u0126\u012a\u0007\r\u0002\u0002\u0127\u0129\u0005",
+    "\u0004\u0003\u0002\u0128\u0127\u0003\u0002\u0002\u0002\u0129\u012c\u0003",
+    "\u0002\u0002\u0002\u012a\u0128\u0003\u0002\u0002\u0002\u012a\u012b\u0003",
+    "\u0002\u0002\u0002\u012b\u012e\u0003\u0002\u0002\u0002\u012c\u012a\u0003",
+    "\u0002\u0002\u0002\u012d\u012f\u0005\u0018\r\u0002\u012e\u012d\u0003",
+    "\u0002\u0002\u0002\u012f\u0130\u0003\u0002\u0002\u0002\u0130\u012e\u0003",
+    "\u0002\u0002\u0002\u0130\u0131\u0003\u0002\u0002\u0002\u0131\u0135\u0003",
+    "\u0002\u0002\u0002\u0132\u0134\u0005\u0004\u0003\u0002\u0133\u0132\u0003",
+    "\u0002\u0002\u0002\u0134\u0137\u0003\u0002\u0002\u0002\u0135\u0133\u0003",
+    "\u0002\u0002\u0002\u0135\u0136\u0003\u0002\u0002\u0002\u0136\u0138\u0003",
+    "\u0002\u0002\u0002\u0137\u0135\u0003\u0002\u0002\u0002\u0138\u0139\u0007",
+    "\u000e\u0002\u0002\u0139\u0017\u0003\u0002\u0002\u0002\u013a\u013f\u0005",
+    "\u001a\u000e\u0002\u013b\u013f\u0005\"\u0012\u0002\u013c\u013f\u0005",
+    "4\u001b\u0002\u013d\u013f\u00056\u001c\u0002\u013e\u013a\u0003\u0002",
+    "\u0002\u0002\u013e\u013b\u0003\u0002\u0002\u0002\u013e\u013c\u0003\u0002",
+    "\u0002\u0002\u013e\u013d\u0003\u0002\u0002\u0002\u013f\u0141\u0003\u0002",
+    "\u0002\u0002\u0140\u0142\u0005\u0004\u0003\u0002\u0141\u0140\u0003\u0002",
+    "\u0002\u0002\u0142\u0143\u0003\u0002\u0002\u0002\u0143\u0141\u0003\u0002",
+    "\u0002\u0002\u0143\u0144\u0003\u0002\u0002\u0002\u0144\u0019\u0003\u0002",
+    "\u0002\u0002\u0145\u0148\u0005\u001e\u0010\u0002\u0146\u0148\u0005 ",
+    "\u0011\u0002\u0147\u0145\u0003\u0002\u0002\u0002\u0147\u0146\u0003\u0002",
+    "\u0002\u0002\u0148\u001b\u0003\u0002\u0002\u0002\u0149\u014a\u0007\u001e",
+    "\u0002\u0002\u014a\u001d\u0003\u0002\u0002\u0002\u014b\u014f\u0007\u0007",
+    "\u0002\u0002\u014c\u014e\u0005\u0004\u0003\u0002\u014d\u014c\u0003\u0002",
+    "\u0002\u0002\u014e\u0151\u0003\u0002\u0002\u0002\u014f\u014d\u0003\u0002",
+    "\u0002\u0002\u014f\u0150\u0003\u0002\u0002\u0002\u0150\u0152\u0003\u0002",
+    "\u0002\u0002\u0151\u014f\u0003\u0002\u0002\u0002\u0152\u0156\u0005\u001c",
+    "\u000f\u0002\u0153\u0155\u0005\u0004\u0003\u0002\u0154\u0153\u0003\u0002",
+    "\u0002\u0002\u0155\u0158\u0003\u0002\u0002\u0002\u0156\u0154\u0003\u0002",
+    "\u0002\u0002\u0156\u0157\u0003\u0002\u0002\u0002\u0157\u0159\u0003\u0002",
+    "\u0002\u0002\u0158\u0156\u0003\u0002\u0002\u0002\u0159\u015d\u0007\u0019",
+    "\u0002\u0002\u015a\u015c\u0005\u0004\u0003\u0002\u015b\u015a\u0003\u0002",
+    "\u0002\u0002\u015c\u015f\u0003\u0002\u0002\u0002\u015d\u015b\u0003\u0002",
+    "\u0002\u0002\u015d\u015e\u0003\u0002\u0002\u0002\u015e\u0160\u0003\u0002",
+    "\u0002\u0002\u015f\u015d\u0003\u0002\u0002\u0002\u0160\u0164\u0005\u000e",
+    "\b\u0002\u0161\u0163\u0005\u0004\u0003\u0002\u0162\u0161\u0003\u0002",
+    "\u0002\u0002\u0163\u0166\u0003\u0002\u0002\u0002\u0164\u0162\u0003\u0002",
+    "\u0002\u0002\u0164\u0165\u0003\u0002\u0002\u0002\u0165\u0167\u0003\u0002",
+    "\u0002\u0002\u0166\u0164\u0003\u0002\u0002\u0002\u0167\u016b\u0007\u0016",
+    "\u0002\u0002\u0168\u016a\u0005\u0004\u0003\u0002\u0169\u0168\u0003\u0002",
+    "\u0002\u0002\u016a\u016d\u0003\u0002\u0002\u0002\u016b\u0169\u0003\u0002",
+    "\u0002\u0002\u016b\u016c\u0003\u0002\u0002\u0002\u016c\u016e\u0003\u0002",
+    "\u0002\u0002\u016d\u016b\u0003\u0002\u0002\u0002\u016e\u016f\u0005$",
+    "\u0013\u0002\u016f\u001f\u0003\u0002\u0002\u0002\u0170\u0174\u0007\b",
+    "\u0002\u0002\u0171\u0173\u0005\u0004\u0003\u0002\u0172\u0171\u0003\u0002",
+    "\u0002\u0002\u0173\u0176\u0003\u0002\u0002\u0002\u0174\u0172\u0003\u0002",
+    "\u0002\u0002\u0174\u0175\u0003\u0002\u0002\u0002\u0175\u0177\u0003\u0002",
+    "\u0002\u0002\u0176\u0174\u0003\u0002\u0002\u0002\u0177\u017b\u0005\u001c",
+    "\u000f\u0002\u0178\u017a\u0005\u0004\u0003\u0002\u0179\u0178\u0003\u0002",
+    "\u0002\u0002\u017a\u017d\u0003\u0002\u0002\u0002\u017b\u0179\u0003\u0002",
+    "\u0002\u0002\u017b\u017c\u0003\u0002\u0002\u0002\u017c\u017e\u0003\u0002",
+    "\u0002\u0002\u017d\u017b\u0003\u0002\u0002\u0002\u017e\u0182\u0007\u0019",
+    "\u0002\u0002\u017f\u0181\u0005\u0004\u0003\u0002\u0180\u017f\u0003\u0002",
+    "\u0002\u0002\u0181\u0184\u0003\u0002\u0002\u0002\u0182\u0180\u0003\u0002",
+    "\u0002\u0002\u0182\u0183\u0003\u0002\u0002\u0002\u0183\u0185\u0003\u0002",
+    "\u0002\u0002\u0184\u0182\u0003\u0002\u0002\u0002\u0185\u0189\u0005\u000e",
+    "\b\u0002\u0186\u0188\u0005\u0004\u0003\u0002\u0187\u0186\u0003\u0002",
+    "\u0002\u0002\u0188\u018b\u0003\u0002\u0002\u0002\u0189\u0187\u0003\u0002",
+    "\u0002\u0002\u0189\u018a\u0003\u0002\u0002\u0002\u018a\u018c\u0003\u0002",
+    "\u0002\u0002\u018b\u0189\u0003\u0002\u0002\u0002\u018c\u0190\u0007\u0016",
+    "\u0002\u0002\u018d\u018f\u0005\u0004\u0003\u0002\u018e\u018d\u0003\u0002",
+    "\u0002\u0002\u018f\u0192\u0003\u0002\u0002\u0002\u0190\u018e\u0003\u0002",
+    "\u0002\u0002\u0190\u0191\u0003\u0002\u0002\u0002\u0191\u0193\u0003\u0002",
+    "\u0002\u0002\u0192\u0190\u0003\u0002\u0002\u0002\u0193\u0194\u0005$",
+    "\u0013\u0002\u0194!\u0003\u0002\u0002\u0002\u0195\u0199\u0005\u001c",
+    "\u000f\u0002\u0196\u0198\u0005\u0004\u0003\u0002\u0197\u0196\u0003\u0002",
+    "\u0002\u0002\u0198\u019b\u0003\u0002\u0002\u0002\u0199\u0197\u0003\u0002",
+    "\u0002\u0002\u0199\u019a\u0003\u0002\u0002\u0002\u019a\u019c\u0003\u0002",
+    "\u0002\u0002\u019b\u0199\u0003\u0002\u0002\u0002\u019c\u01a0\u0007\u0016",
+    "\u0002\u0002\u019d\u019f\u0005\u0004\u0003\u0002\u019e\u019d\u0003\u0002",
+    "\u0002\u0002\u019f\u01a2\u0003\u0002\u0002\u0002\u01a0\u019e\u0003\u0002",
+    "\u0002\u0002\u01a0\u01a1\u0003\u0002\u0002\u0002\u01a1\u01a3\u0003\u0002",
+    "\u0002\u0002\u01a2\u01a0\u0003\u0002\u0002\u0002\u01a3\u01a4\u0005$",
+    "\u0013\u0002\u01a4#\u0003\u0002\u0002\u0002\u01a5\u01ab\u0005\u0014",
+    "\u000b\u0002\u01a6\u01ab\u00054\u001b\u0002\u01a7\u01ab\u00058\u001d",
+    "\u0002\u01a8\u01ab\u0005&\u0014\u0002\u01a9\u01ab\u0007\u001e\u0002",
+    "\u0002\u01aa\u01a5\u0003\u0002\u0002\u0002\u01aa\u01a6\u0003\u0002\u0002",
+    "\u0002\u01aa\u01a7\u0003\u0002\u0002\u0002\u01aa\u01a8\u0003\u0002\u0002",
+    "\u0002\u01aa\u01a9\u0003\u0002\u0002\u0002\u01ab%\u0003\u0002\u0002",
+    "\u0002\u01ac\u01b0\u0007\u000b\u0002\u0002\u01ad\u01af\u0007\u001b\u0002",
+    "\u0002\u01ae\u01ad\u0003\u0002\u0002\u0002\u01af\u01b2\u0003\u0002\u0002",
+    "\u0002\u01b0\u01ae\u0003\u0002\u0002\u0002\u01b0\u01b1\u0003\u0002\u0002",
+    "\u0002\u01b1\u01b3\u0003\u0002\u0002\u0002\u01b2\u01b0\u0003\u0002\u0002",
+    "\u0002\u01b3\u01b7\u0005\b\u0005\u0002\u01b4\u01b6\u0007\u001b\u0002",
+    "\u0002\u01b5\u01b4\u0003\u0002\u0002\u0002\u01b6\u01b9\u0003\u0002\u0002",
+    "\u0002\u01b7\u01b5\u0003\u0002\u0002\u0002\u01b7\u01b8\u0003\u0002\u0002",
+    "\u0002\u01b8\u01bd\u0003\u0002\u0002\u0002\u01b9\u01b7\u0003\u0002\u0002",
+    "\u0002\u01ba\u01be\u0005(\u0015\u0002\u01bb\u01be\u0005*\u0016\u0002",
+    "\u01bc\u01be\u0005,\u0017\u0002\u01bd\u01ba\u0003\u0002\u0002\u0002",
+    "\u01bd\u01bb\u0003\u0002\u0002\u0002\u01bd\u01bc\u0003\u0002\u0002\u0002",
+    "\u01be\'\u0003\u0002\u0002\u0002\u01bf\u01c3\u0007\u0013\u0002\u0002",
+    "\u01c0\u01c2\u0005\u0004\u0003\u0002\u01c1\u01c0\u0003\u0002\u0002\u0002",
+    "\u01c2\u01c5\u0003\u0002\u0002\u0002\u01c3\u01c1\u0003\u0002\u0002\u0002",
+    "\u01c3\u01c4\u0003\u0002\u0002\u0002\u01c4\u01c6\u0003\u0002\u0002\u0002",
+    "\u01c5\u01c3\u0003\u0002\u0002\u0002\u01c6\u01ca\u00050\u0019\u0002",
+    "\u01c7\u01c9\u0005\u0004\u0003\u0002\u01c8\u01c7\u0003\u0002\u0002\u0002",
+    "\u01c9\u01cc\u0003\u0002\u0002\u0002\u01ca\u01c8\u0003\u0002\u0002\u0002",
+    "\u01ca\u01cb\u0003\u0002\u0002\u0002\u01cb\u01cd\u0003\u0002\u0002\u0002",
+    "\u01cc\u01ca\u0003\u0002\u0002\u0002\u01cd\u01ce\u0007\u0014\u0002\u0002",
+    "\u01ce)\u0003\u0002\u0002\u0002\u01cf\u01d3\u0007\r\u0002\u0002\u01d0",
+    "\u01d2\u0005\u0004\u0003\u0002\u01d1\u01d0\u0003\u0002\u0002\u0002\u01d2",
+    "\u01d5\u0003\u0002\u0002\u0002\u01d3\u01d1\u0003\u0002\u0002\u0002\u01d3",
+    "\u01d4\u0003\u0002\u0002\u0002\u01d4\u01dc\u0003\u0002\u0002\u0002\u01d5",
+    "\u01d3\u0003\u0002\u0002\u0002\u01d6\u01d8\u0005\"\u0012\u0002\u01d7",
+    "\u01d9\u0005\u0004\u0003\u0002\u01d8\u01d7\u0003\u0002\u0002\u0002\u01d9",
+    "\u01da\u0003\u0002\u0002\u0002\u01da\u01d8\u0003\u0002\u0002\u0002\u01da",
+    "\u01db\u0003\u0002\u0002\u0002\u01db\u01dd\u0003\u0002\u0002\u0002\u01dc",
+    "\u01d6\u0003\u0002\u0002\u0002\u01dd\u01de\u0003\u0002\u0002\u0002\u01de",
+    "\u01dc\u0003\u0002\u0002\u0002\u01de\u01df\u0003\u0002\u0002\u0002\u01df",
+    "\u01e0\u0003\u0002\u0002\u0002\u01e0\u01e1\u0007\u000e\u0002\u0002\u01e1",
+    "+\u0003\u0002\u0002\u0002\u01e2\u01e6\u0007\r\u0002\u0002\u01e3\u01e5",
+    "\u0005\u0004\u0003\u0002\u01e4\u01e3\u0003\u0002\u0002\u0002\u01e5\u01e8",
+    "\u0003\u0002\u0002\u0002\u01e6\u01e4\u0003\u0002\u0002\u0002\u01e6\u01e7",
+    "\u0003\u0002\u0002\u0002\u01e7\u01f1\u0003\u0002\u0002\u0002\u01e8\u01e6",
+    "\u0003\u0002\u0002\u0002\u01e9\u01eb\u0005.\u0018\u0002\u01ea\u01ec",
+    "\u0005\u0004\u0003\u0002\u01eb\u01ea\u0003\u0002\u0002\u0002\u01ec\u01ed",
+    "\u0003\u0002\u0002\u0002\u01ed\u01eb\u0003\u0002\u0002\u0002\u01ed\u01ee",
+    "\u0003\u0002\u0002\u0002\u01ee\u01f0\u0003\u0002\u0002\u0002\u01ef\u01e9",
+    "\u0003\u0002\u0002\u0002\u01f0\u01f3\u0003\u0002\u0002\u0002\u01f1\u01ef",
+    "\u0003\u0002\u0002\u0002\u01f1\u01f2\u0003\u0002\u0002\u0002\u01f2\u01f4",
+    "\u0003\u0002\u0002\u0002\u01f3\u01f1\u0003\u0002\u0002\u0002\u01f4\u01f5",
+    "\u0007\u000e\u0002\u0002\u01f5-\u0003\u0002\u0002\u0002\u01f6\u01fa",
+    "\u0005$\u0013\u0002\u01f7\u01f9\u0007\u001b\u0002\u0002\u01f8\u01f7",
+    "\u0003\u0002\u0002\u0002\u01f9\u01fc\u0003\u0002\u0002\u0002\u01fa\u01f8",
+    "\u0003\u0002\u0002\u0002\u01fa\u01fb\u0003\u0002\u0002\u0002\u01fb\u01fd",
+    "\u0003\u0002\u0002\u0002\u01fc\u01fa\u0003\u0002\u0002\u0002\u01fd\u0201",
+    "\u0007\u0019\u0002\u0002\u01fe\u0200\u0007\u001b\u0002\u0002\u01ff\u01fe",
+    "\u0003\u0002\u0002\u0002\u0200\u0203\u0003\u0002\u0002\u0002\u0201\u01ff",
+    "\u0003\u0002\u0002\u0002\u0201\u0202\u0003\u0002\u0002\u0002\u0202\u0204",
+    "\u0003\u0002\u0002\u0002\u0203\u0201\u0003\u0002\u0002\u0002\u0204\u0205",
+    "\u0005$\u0013\u0002\u0205/\u0003\u0002\u0002\u0002\u0206\u0208\u0005",
+    "\u0004\u0003\u0002\u0207\u0206\u0003\u0002\u0002\u0002\u0208\u020b\u0003",
+    "\u0002\u0002\u0002\u0209\u0207\u0003\u0002\u0002\u0002\u0209\u020a\u0003",
+    "\u0002\u0002\u0002\u020a\u020c\u0003\u0002\u0002\u0002\u020b\u0209\u0003",
+    "\u0002\u0002\u0002\u020c\u0217\u0005$\u0013\u0002\u020d\u0211\u0007",
+    "\f\u0002\u0002\u020e\u0210\u0005\u0004\u0003\u0002\u020f\u020e\u0003",
+    "\u0002\u0002\u0002\u0210\u0213\u0003\u0002\u0002\u0002\u0211\u020f\u0003",
+    "\u0002\u0002\u0002\u0211\u0212\u0003\u0002\u0002\u0002\u0212\u0214\u0003",
+    "\u0002\u0002\u0002\u0213\u0211\u0003\u0002\u0002\u0002\u0214\u0216\u0005",
+    "$\u0013\u0002\u0215\u020d\u0003\u0002\u0002\u0002\u0216\u0219\u0003",
+    "\u0002\u0002\u0002\u0217\u0215\u0003\u0002\u0002\u0002\u0217\u0218\u0003",
+    "\u0002\u0002\u0002\u0218\u021d\u0003\u0002\u0002\u0002\u0219\u0217\u0003",
+    "\u0002\u0002\u0002\u021a\u021c\u0005\u0004\u0003\u0002\u021b\u021a\u0003",
+    "\u0002\u0002\u0002\u021c\u021f\u0003\u0002\u0002\u0002\u021d\u021b\u0003",
+    "\u0002\u0002\u0002\u021d\u021e\u0003\u0002\u0002\u0002\u021e1\u0003",
+    "\u0002\u0002\u0002\u021f\u021d\u0003\u0002\u0002\u0002\u0220\u0222\u0005",
+    "\u0004\u0003\u0002\u0221\u0220\u0003\u0002\u0002\u0002\u0222\u0225\u0003",
+    "\u0002\u0002\u0002\u0223\u0221\u0003\u0002\u0002\u0002\u0223\u0224\u0003",
+    "\u0002\u0002\u0002\u0224\u0226\u0003\u0002\u0002\u0002\u0225\u0223\u0003",
+    "\u0002\u0002\u0002\u0226\u0231\u0007\u001e\u0002\u0002\u0227\u022b\u0007",
+    "\f\u0002\u0002\u0228\u022a\u0005\u0004\u0003\u0002\u0229\u0228\u0003",
+    "\u0002\u0002\u0002\u022a\u022d\u0003\u0002\u0002\u0002\u022b\u0229\u0003",
+    "\u0002\u0002\u0002\u022b\u022c\u0003\u0002\u0002\u0002\u022c\u022e\u0003",
+    "\u0002\u0002\u0002\u022d\u022b\u0003\u0002\u0002\u0002\u022e\u0230\u0007",
+    "\u001e\u0002\u0002\u022f\u0227\u0003\u0002\u0002\u0002\u0230\u0233\u0003",
+    "\u0002\u0002\u0002\u0231\u022f\u0003\u0002\u0002\u0002\u0231\u0232\u0003",
+    "\u0002\u0002\u0002\u0232\u0237\u0003\u0002\u0002\u0002\u0233\u0231\u0003",
+    "\u0002\u0002\u0002\u0234\u0236\u0005\u0004\u0003\u0002\u0235\u0234\u0003",
+    "\u0002\u0002\u0002\u0236\u0239\u0003\u0002\u0002\u0002\u0237\u0235\u0003",
+    "\u0002\u0002\u0002\u0237\u0238\u0003\u0002\u0002\u0002\u02383\u0003",
+    "\u0002\u0002\u0002\u0239\u0237\u0003\u0002\u0002\u0002\u023a\u023e\u0007",
+    "\u001e\u0002\u0002\u023b\u023d\u0007\u001b\u0002\u0002\u023c\u023b\u0003",
+    "\u0002\u0002\u0002\u023d\u0240\u0003\u0002\u0002\u0002\u023e\u023c\u0003",
+    "\u0002\u0002\u0002\u023e\u023f\u0003\u0002\u0002\u0002\u023f\u0241\u0003",
+    "\u0002\u0002\u0002\u0240\u023e\u0003\u0002\u0002\u0002\u0241\u0243\u0007",
+    "\u000f\u0002\u0002\u0242\u0244\u00052\u001a\u0002\u0243\u0242\u0003",
+    "\u0002\u0002\u0002\u0243\u0244\u0003\u0002\u0002\u0002\u0244\u0245\u0003",
+    "\u0002\u0002\u0002\u0245\u0246\u0007\u0010\u0002\u0002\u02465\u0003",
+    "\u0002\u0002\u0002\u0247\u024b\u0007\t\u0002\u0002\u0248\u024a\u0005",
+    "\u0004\u0003\u0002\u0249\u0248\u0003\u0002\u0002\u0002\u024a\u024d\u0003",
+    "\u0002\u0002\u0002\u024b\u0249\u0003\u0002\u0002\u0002\u024b\u024c\u0003",
+    "\u0002\u0002\u0002\u024c\u024e\u0003\u0002\u0002\u0002\u024d\u024b\u0003",
+    "\u0002\u0002\u0002\u024e\u0256\u0007\u001e\u0002\u0002\u024f\u0251\u0005",
+    "\u0004\u0003\u0002\u0250\u024f\u0003\u0002\u0002\u0002\u0251\u0254\u0003",
+    "\u0002\u0002\u0002\u0252\u0250\u0003\u0002\u0002\u0002\u0252\u0253\u0003",
+    "\u0002\u0002\u0002\u0253\u0255\u0003\u0002\u0002\u0002\u0254\u0252\u0003",
+    "\u0002\u0002\u0002\u0255\u0257\u0007\u001e\u0002\u0002\u0256\u0252\u0003",
+    "\u0002\u0002\u0002\u0256\u0257\u0003\u0002\u0002\u0002\u02577\u0003",
+    "\u0002\u0002\u0002\u0258\u0259\t\u0003\u0002\u0002\u02599\u0003\u0002",
+    "\u0002\u0002\u025a\u025b\u0007\u0005\u0002\u0002\u025b\u025c\u0005\u0004",
+    "\u0003\u0002\u025c\u0260\u0007\u001e\u0002\u0002\u025d\u025f\u0005\u0004",
+    "\u0003\u0002\u025e\u025d\u0003\u0002\u0002\u0002\u025f\u0262\u0003\u0002",
+    "\u0002\u0002\u0260\u025e\u0003\u0002\u0002\u0002\u0260\u0261\u0003\u0002",
+    "\u0002\u0002\u0261\u0263\u0003\u0002\u0002\u0002\u0262\u0260\u0003\u0002",
+    "\u0002\u0002\u0263\u0266\u0007\u0019\u0002\u0002\u0264\u0267\u0005\n",
+    "\u0006\u0002\u0265\u0267\u0007\u0018\u0002\u0002\u0266\u0264\u0003\u0002",
+    "\u0002\u0002\u0266\u0265\u0003\u0002\u0002\u0002\u0267;\u0003\u0002",
+    "\u0002\u0002\u0268\u026a\u0007\u0006\u0002\u0002\u0269\u026b\u0005\u0004",
+    "\u0003\u0002\u026a\u0269\u0003\u0002\u0002\u0002\u026b\u026c\u0003\u0002",
+    "\u0002\u0002\u026c\u026a\u0003\u0002\u0002\u0002\u026c\u026d\u0003\u0002",
+    "\u0002\u0002\u026d\u026e\u0003\u0002\u0002\u0002\u026e\u0270\u0007\u001e",
+    "\u0002\u0002\u026f\u0271\u0005\u0004\u0003\u0002\u0270\u026f\u0003\u0002",
+    "\u0002\u0002\u0271\u0272\u0003\u0002\u0002\u0002\u0272\u0270\u0003\u0002",
+    "\u0002\u0002\u0272\u0273\u0003\u0002\u0002\u0002\u0273\u0274\u0003\u0002",
+    "\u0002\u0002\u0274\u0275\u0005\u0014\u000b\u0002\u0275=\u0003\u0002",
+    "\u0002\u0002^AHJLSUW^`bikmpx~\u0082\u0087\u008e\u0095\u009c\u00a2\u00a5",
+    "\u00ab\u00af\u00b7\u00be\u00c5\u00cc\u00d1\u00da\u00de\u00e1\u00e7\u00ed",
+    "\u00f3\u00f6\u0100\u0107\u010d\u0113\u011a\u0121\u012a\u0130\u0135\u013e",
+    "\u0143\u0147\u014f\u0156\u015d\u0164\u016b\u0174\u017b\u0182\u0189\u0190",
+    "\u0199\u01a0\u01aa\u01b0\u01b7\u01bd\u01c3\u01ca\u01d3\u01da\u01de\u01e6",
+    "\u01ed\u01f1\u01fa\u0201\u0209\u0211\u0217\u021d\u0223\u022b\u0231\u0237",
+    "\u023e\u0243\u024b\u0252\u0256\u0260\u0266\u026c\u0272"].join("");
 var atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
 var decisionsToDFA = atn.decisionToState.map(function (ds, index) { return new antlr4.dfa.DFA(ds, index); });
 var sharedContextCache = new antlr4.PredictionContextCache();
@@ -4159,6 +4161,9 @@ EventsContext.prototype.TYPESEP = function () {
 EventsContext.prototype.typename = function () {
     return this.getTypedRuleContext(TypenameContext, 0);
 };
+EventsContext.prototype.VOID = function () {
+    return this.getToken(AmmParser.VOID, 0);
+};
 EventsContext.prototype.enterRule = function (listener) {
     if (listener instanceof AmmListener) {
         listener.enterEvents(this);
@@ -4194,8 +4199,20 @@ AmmParser.prototype.events = function () {
         }
         this.state = 609;
         this.match(AmmParser.TYPESEP);
-        this.state = 610;
-        this.typename();
+        this.state = 612;
+        this._errHandler.sync(this);
+        switch (this._input.LA(1)) {
+            case AmmParser.VARNAME:
+                this.state = 610;
+                this.typename();
+                break;
+            case AmmParser.VOID:
+                this.state = 611;
+                this.match(AmmParser.VOID);
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
+        }
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -4263,31 +4280,31 @@ AmmParser.prototype.handlers = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 612;
-        this.match(AmmParser.ON);
         this.state = 614;
+        this.match(AmmParser.ON);
+        this.state = 616;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
-            this.state = 613;
+            this.state = 615;
             this.blank();
-            this.state = 616;
+            this.state = 618;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
-        this.state = 618;
-        this.match(AmmParser.VARNAME);
         this.state = 620;
+        this.match(AmmParser.VARNAME);
+        this.state = 622;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
-            this.state = 619;
+            this.state = 621;
             this.blank();
-            this.state = 622;
+            this.state = 624;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
-        this.state = 624;
+        this.state = 626;
         this.functions();
     }
     catch (re) {
@@ -4389,8 +4406,7 @@ const loadEventDecs = (eventAst) => {
     const eventMem = {};
     for (const evt of eventAst) {
         const evtName = evt.VARNAME().getText().trim();
-        const evtType = evt.typename().getText().trim();
-        const evtSize = evtType === "void" ? 0 : (evtType === "string" ? -1 : 8);
+        const evtSize = evt.VOID() !== null ? 0 : (evt.typename().getText().trim() === "string" ? -1 : 8);
         eventMem[evtName] = evtSize;
     }
     return eventMem;
@@ -4577,14 +4593,14 @@ const loadStatements = (statements, localMem, globalMem) => {
                         break;
                     case 'bool':
                         fn = 'setbool';
-                        val = assignables.getText() + 'i8'; // Bools are just bytes in the runtime
+                        val = assignables.getText() === 'true' ? '1i8' : '0i8'; // Bools are bytes in the runtime
                         break;
                     case 'string':
-                        throw new Error('TODO: Decide if this is the responsibility of first or second stage');
+                        fn = 'setestr';
+                        val = '0i64';
                         break;
                     default:
                         throw new Error(`Unsupported variable type ${dec.fulltypename().getText()}`);
-                        break;
                 }
                 s += `@${resultAddress} = ${fn}(${val}, @0) #${line}`;
             }
@@ -4664,7 +4680,7 @@ const loadStatements = (statements, localMem, globalMem) => {
         else if (statement.emits()) {
             const emit = statement.emits();
             const evtName = emit.VARNAME(0).getText().trim();
-            const payloadVar = emit.VARNAME(1).getText().trim();
+            const payloadVar = emit.VARNAME(1) === null ? undefined : emit.VARNAME(1).getText().trim();
             const payload = !payloadVar ?
                 0 :
                 localMem.hasOwnProperty(payloadVar) ?
@@ -14910,6 +14926,10 @@ class Microstatement {
                 .dispatchFn(op.potentialFunctions, realArgTypes, scope)
                 .microstatementInlining(realArgNames, scope, microstatements);
             const last = microstatements[microstatements.length - 1];
+            // TODO: Temporary hack until 3-arg 0-return opcode support added
+            if (last.fns[0].getName() === 'pusharr') {
+                last.outputType = realArgTypes[1];
+            }
             withOperatorsList[maxOperatorLoc] = new Box(last);
             withOperatorsList.splice(maxOperatorLoc + 1, 1);
             if (!op.isPrefix) {
@@ -15178,6 +15198,10 @@ class Microstatement {
                 .dispatchFn(fnBox.functionval, realArgTypes, scope)
                 .microstatementInlining(realArgNames, scope, microstatements);
             firstArg = microstatements[microstatements.length - 1];
+            // TODO: Temporary hack until 3-arg 0-return opcode support added
+            if (firstArg.fns.length > 0 && firstArg.fns[0].getName() === 'pusharr') {
+                firstArg.outputType = realArgTypes[1];
+            }
         }
     }
     static fromAssignmentsAst(assignmentsAst, scope, microstatements) {
@@ -15257,18 +15281,53 @@ class Microstatement {
             if (letdeclarationAst.assignments().typegenerics() != null) {
                 letTypeHint += letdeclarationAst.assignments().typegenerics().getText();
             }
+            const typeBox = scope.deepGet(letTypeHint);
+            if (typeBox === null) {
+                // Try to define it if it's a generic type
+                if (letdeclarationAst.assignments().typegenerics()) {
+                    const outerTypeBox = scope.deepGet(letdeclarationAst.assignments().varn().getText());
+                    if (outerTypeBox === null) {
+                        console.error(`${letdeclarationAst.assignments().varn().getText()}  is not defined`);
+                        console.error(letdeclarationAst.getText() +
+                            " on line " +
+                            letdeclarationAst.start.line +
+                            ":" +
+                            letdeclarationAst.start.column);
+                        process.exit(-105);
+                    }
+                    outerTypeBox.typeval.solidify(letdeclarationAst.assignments().typegenerics().fulltypename().map(t => t.getText()), scope);
+                }
+            }
         }
         else {
             letAlias = letdeclarationAst.assignments().varn().getText();
             // We don't know the type ahead of time and will have to rely on inference in this case
         }
         if (letdeclarationAst.assignments().assignables() == null) {
-            // This is the situation where a variable is declared but no value is yet assigned. This can
-            // be (and the interpreter currently behaves) as if this was a `type | void` situation, but
-            // perhaps that should be required to be explicit?
-            const blankLet = new Microstatement(StatementType.LETDEC, scope, true, letName, scope.deepGet("void").typeval, ["void"], null);
-            // This is a terminating condition for the microstatements, though
-            microstatements.push(blankLet);
+            // This is the situation where a variable is declared but no value is yet assigned.
+            // An automatic replacement with a "default" value (false, 0, "") is performed, similar to
+            // C.
+            const type = (scope.deepGet(letTypeHint) && scope.deepGet(letTypeHint).typeval) || Box.builtinTypes.void;
+            if (type.originalType && type.originalType.typename === 'Array') {
+                const opcodeScope = require('./opcodes').exportScope; // Unfortunate circular dep issue
+                const constName = "_" + uuid().replace(/-/g, "_");
+                microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, constName, Box.builtinTypes.int64, ["0"], []));
+                opcodeScope.get('newarr').functionval[0].microstatementInlining([constName], scope, microstatements);
+                const blankArr = microstatements[microstatements.length - 1];
+                blankArr.statementType = StatementType.LETDEC,
+                    blankArr.outputName = letName;
+                blankArr.outputType = type;
+            }
+            else {
+                let val = "0";
+                if (type.typename === "bool")
+                    val = "false";
+                if (type.typename === "string")
+                    val = '""';
+                const blankLet = new Microstatement(StatementType.LETDEC, scope, true, letName, type, [val], []);
+                // This is a terminating condition for the microstatements, though
+                microstatements.push(blankLet);
+            }
             microstatements.push(new Microstatement(StatementType.REREF, scope, true, letName, letAlias, Box.builtinTypes.void, [], []));
             return;
         }
@@ -15309,6 +15368,23 @@ class Microstatement {
             if (constdeclarationAst.assignments().typegenerics() != null) {
                 constTypeHint += constdeclarationAst.assignments().typegenerics().getText();
             }
+            const typeBox = scope.deepGet(constTypeHint);
+            if (typeBox === null) {
+                // Try to define it if it's a generic type
+                if (constdeclarationAst.assignments().typegenerics()) {
+                    const outerTypeBox = scope.deepGet(constdeclarationAst.assignments().varn().getText());
+                    if (outerTypeBox === null) {
+                        console.error(`${constdeclarationAst.assignments().varn().getText()}  is not defined`);
+                        console.error(constdeclarationAst.getText() +
+                            " on line " +
+                            constdeclarationAst.start.line +
+                            ":" +
+                            constdeclarationAst.start.column);
+                        process.exit(-105);
+                    }
+                    outerTypeBox.typeval.solidify(constdeclarationAst.assignments().typegenerics().fulltypename().map(t => t.getText()), scope);
+                }
+            }
         }
         else {
             constAlias = constdeclarationAst.assignments().varn().getText();
@@ -15317,7 +15393,7 @@ class Microstatement {
         if (constdeclarationAst.assignments().assignables() == null) {
             // This is a weird edge case where a constant with no assignment was declared. Should this
             // even be legal?
-            const weirdConst = new Microstatement(StatementType.CONSTDEC, scope, true, constName, Box.builtinTypes.void, ["void"], null);
+            const weirdConst = new Microstatement(StatementType.CONSTDEC, scope, true, constName, Box.builtinTypes.void, ["void"], []);
             // This is a terminating condition for the microstatements, though
             microstatements.push(weirdConst);
             microstatements.push(new Microstatement(StatementType.REREF, scope, true, constName, constAlias, Box.builtinTypes.void, [], []));
@@ -15703,7 +15779,7 @@ class Module {
                 console.error("Could not find specified event: " + handlerAst.eventref().getText());
                 process.exit(-20);
             }
-            if (eventBox.type != Box.builtinTypes["Event"]) {
+            if (eventBox.type !== Box.builtinTypes["Event"]) {
                 console.error(eventBox);
                 console.error(handlerAst.eventref().getText() + " is not an event");
                 process.exit(-21);
@@ -15717,7 +15793,7 @@ class Module {
                     console.error("Could not find specified function: " + fnName);
                     process.exit(-22);
                 }
-                if (fnBox.type != Box.builtinTypes["function"]) {
+                if (fnBox.type !== Box.builtinTypes["function"]) {
                     console.error(fnName + " is not a function");
                     process.exit(-23);
                 }
@@ -15752,7 +15828,7 @@ class Module {
                 process.exit(-24);
             }
             if (Object.keys(fn.getArguments()).length > 1 ||
-                (evt.type == Box.builtinTypes["void"] && Object.keys(fn.getArguments()).length != 0)) {
+                (evt.type === Box.builtinTypes["void"] && Object.keys(fn.getArguments()).length !== 0)) {
                 console.error("Function provided for " + handlerAst.eventref().getText() + " has invalid argument signature");
                 process.exit(-25);
             }
@@ -16696,33 +16772,45 @@ class UserFunction {
     }
     static conditionalToCond(cond, scope) {
         let newStatements = [];
+        let hasConditionalReturn = false; // Flag for potential second pass
         const condName = "_" + uuid().replace(/-/g, "_");
         const condStatement = Ast.statementAstFromString(`
       const ${condName}: bool = ${cond.withoperators().getText()}
     `.trim() + '\n');
-        const condBlock = (cond.blocklikes(0).functionbody() ?
+        const condBlockFn = (cond.blocklikes(0).functionbody() ?
             UserFunction.fromFunctionbodyAst(cond.blocklikes(0).functionbody(), scope) :
             cond.blocklikes(0).varn() ?
                 scope.deepGet(cond.blocklikes(0).varn()).functionval[0] :
-                UserFunction.fromFunctionsAst(cond.blocklikes(0).functions(), scope)).maybeTransform().toFnStr();
+                UserFunction.fromFunctionsAst(cond.blocklikes(0).functions(), scope)).maybeTransform();
+        if (condBlockFn.statements[condBlockFn.statements.length - 1].isReturnStatement()) {
+            hasConditionalReturn = true;
+        }
+        const condBlock = condBlockFn.toFnStr();
         const condCall = Ast.statementAstFromString(`
       cond(${condName}, ${condBlock})
     `.trim() + '\n'); // TODO: If the blocklike is a reference, grab it and inline it
         newStatements.push(condStatement, condCall);
         if (!!cond.ELSE()) {
             if (!!cond.blocklikes(1)) {
-                const elseBlock = (cond.blocklikes(1).functionbody() ?
+                const elseBlockFn = (cond.blocklikes(1).functionbody() ?
                     UserFunction.fromFunctionbodyAst(cond.blocklikes(1).functionbody(), scope) :
                     cond.blocklikes(1).varn() ?
                         scope.deepGet(cond.blocklikes(1).varn()).functionval[0] :
-                        UserFunction.fromFunctionsAst(cond.blocklikes(1).functions(), scope)).maybeTransform().toFnStr();
+                        UserFunction.fromFunctionsAst(cond.blocklikes(1).functions(), scope)).maybeTransform();
+                if (elseBlockFn.statements[elseBlockFn.statements.length - 1].isReturnStatement()) {
+                    hasConditionalReturn = true;
+                }
+                const elseBlock = elseBlockFn.toFnStr();
                 const elseStatement = Ast.statementAstFromString(`
           cond(!${condName}, ${elseBlock})
         `.trim() + '\n');
                 newStatements.push(elseStatement);
             }
             else {
-                const innerCondStatements = UserFunction.conditionalToCond(cond.conditionals(), scope);
+                const res = UserFunction.conditionalToCond(cond.conditionals(), scope);
+                const innerCondStatements = res[0];
+                if (res[1])
+                    hasConditionalReturn = true;
                 const elseStatement = Ast.statementAstFromString(`
           cond(!${condName}, fn {
             ${innerCondStatements.map(s => s.getText()).join('\n')}
@@ -16731,29 +16819,144 @@ class UserFunction {
                 newStatements.push(elseStatement);
             }
         }
-        return newStatements;
+        return [newStatements, hasConditionalReturn];
+    }
+    static earlyReturnRewrite(retVal, retNotSet, statements, scope) {
+        let replacementStatements = [];
+        while (statements.length > 0) {
+            const s = statements.shift();
+            if (s.calls() && s.calls().varn(0).getText().trim() === 'cond') {
+                // Potentially need to rewrite
+                const args = s.calls().fncall(0).assignablelist();
+                if (args && args.assignables().length == 2) {
+                    const block = args.assignables(1).basicassignables().functions();
+                    const blockFn = UserFunction.fromAst(block, scope);
+                    if (blockFn.statements[blockFn.statements.length - 1].isReturnStatement()) {
+                        const innerStatements = blockFn.statements.map(s => s.statementOrAssignableAst);
+                        const newBlockStatements = UserFunction.earlyReturnRewrite(retVal, retNotSet, innerStatements, scope);
+                        const cond = args.assignables(0).getText().trim();
+                        const newBlock = Ast.statementAstFromString(`
+              cond(${cond}, fn {
+                ${newBlockStatements.map(s => s.getText()).join('\n')}
+              })
+            `.trim() + '\n');
+                        replacementStatements.push(newBlock);
+                        if (statements.length > 0) {
+                            const remainingStatements = UserFunction.earlyReturnRewrite(retVal, retNotSet, statements, scope);
+                            const remainingBlock = Ast.statementAstFromString(`
+                cond(${retNotSet}, fn {
+                  ${remainingStatements.map(s => s.getText()).join('\n')}
+                })
+              `.trim() + '\n');
+                            replacementStatements.push(remainingBlock);
+                        }
+                    }
+                }
+            }
+            else {
+                replacementStatements.push(s);
+            }
+        }
+        // If no inner conditional was found in this branch, check if there's a final return
+        if (replacementStatements[replacementStatements.length - 1].exits()) {
+            const retStatement = replacementStatements.pop();
+            if (retStatement.exits().assignables()) {
+                const newAssign = Ast.statementAstFromString(`
+          ${retVal} = assign(${retStatement.exits().assignables().getText()})
+        `.trim() + '\n');
+                replacementStatements.push(newAssign);
+            }
+            replacementStatements.push(Ast.statementAstFromString(`
+        ${retNotSet} = assign(false)
+      `.trim() + '\n'));
+        }
+        return replacementStatements;
     }
     maybeTransform() {
         if (this.statements.some(s => s.isConditionalStatement())) {
-            // First pass, convert conditionals to `cond` fn calls
+            // First pass, convert conditionals to `cond` fn calls and wrap assignment statements
             let statementAsts = [];
+            let hasConditionalReturn = false; // Flag for potential second pass
             for (let i = 0; i < this.statements.length; i++) {
                 const s = this.statements[i];
                 if (s.isConditionalStatement()) {
                     const cond = s.statementOrAssignableAst.conditionals();
-                    const newStatements = UserFunction.conditionalToCond(cond, this.closureScope);
+                    const res = UserFunction.conditionalToCond(cond, this.closureScope);
+                    const newStatements = res[0];
+                    if (res[1])
+                        hasConditionalReturn = true;
                     statementAsts.push(...newStatements);
+                }
+                else if (s.statementOrAssignableAst instanceof LnParser.AssignmentsContext) {
+                    // TODO: Clean up the const/let/assignment grammar mistakes.
+                    const a = s.statementOrAssignableAst;
+                    if (a.assignables()) {
+                        const wrappedAst = Ast.statementAstFromString(`
+              ${a.varn().getText()} = assign(${a.assignables().getText()})
+            `.trim() + '\n');
+                        statementAsts.push(wrappedAst);
+                    }
+                    else {
+                        statementAsts.push(s.statementOrAssignableAst);
+                    }
+                }
+                else if (s.statementOrAssignableAst instanceof LnParser.LetdeclarationContext) {
+                    const l = s.statementOrAssignableAst;
+                    // TODO: More cleanup of const/let/assignment here, too
+                    let name = "";
+                    let type = undefined;
+                    if (l.VARNAME()) {
+                        name = l.VARNAME().getText();
+                        type = l.assignments().varn().getText();
+                        if (l.assignments().typegenerics()) {
+                            type += l.assignments().typegenerics().getText();
+                        }
+                    }
+                    else {
+                        name = l.assignments().varn().getText();
+                    }
+                    if (l.assignments().assignables()) {
+                        const v = l.assignments().assignables().getText();
+                        const wrappedAst = Ast.statementAstFromString(`
+              let ${name}${type ? `: ${type}` : ''} = assign(${v})
+            `.trim() + '\n');
+                        statementAsts.push(wrappedAst);
+                    }
+                    else {
+                        statementAsts.push(s.statementOrAssignableAst);
+                    }
                 }
                 else {
                     statementAsts.push(s.statementOrAssignableAst);
                 }
+            }
+            // Second pass, there was a conditional return, mutate everything *again* so the return is
+            // instead hoisted into writing a closure variable
+            if (hasConditionalReturn) {
+                // Need the UUID to make sure this is unique if there's multiple layers of nested returns
+                const retNamePostfix = "_" + uuid().replace(/-/g, "_");
+                const retVal = "retVal" + retNamePostfix;
+                const retNotSet = "retNotSet" + retNamePostfix;
+                const retValStatement = Ast.statementAstFromString(`
+          let ${retVal}: ${this.returnType.typename}
+        `.trim() + '\n');
+                const retNotSetStatement = Ast.statementAstFromString(`
+          let ${retNotSet}: bool = assign(true)
+        `.trim() + '\n');
+                let replacementStatements = [retValStatement, retNotSetStatement];
+                replacementStatements.push(...UserFunction.earlyReturnRewrite(retVal, retNotSet, statementAsts, this.closureScope));
+                replacementStatements.push(Ast.statementAstFromString(`
+          return ${retVal}
+        `.trim() + '\n'));
+                statementAsts = replacementStatements;
             }
             const fnStr = `
         fn ${this.name || ''} (${Object.keys(this.args).map(argName => `${argName}: ${this.args[argName].typename}`)}): ${this.returnType.typename} {
           ${statementAsts.map(s => s.getText()).join('\n')}
         }
       `.trim();
-            return UserFunction.fromAst(Ast.functionAstFromString(fnStr), this.closureScope);
+            const fn = UserFunction.fromAst(Ast.functionAstFromString(fnStr), this.closureScope);
+            return fn;
         }
         return this;
     }
@@ -16843,9 +17046,7 @@ module.exports = UserFunction;
 }).call(this,require('_process'))
 },{"../ln":13,"./Ast":14,"./Box":15,"./Microstatement":25,"./Statement":29,"./StatementType":30,"_process":86,"uuid":91}],33:[function(require,module,exports){
 const fs = require('fs');
-const path = require('path');
 const { v4: uuid, } = require('uuid');
-const opcodes = require('./opcodes');
 const Ast = require('./Ast');
 const Std = require('./Std');
 const Module = require('./Module');
@@ -16940,10 +17141,18 @@ const moduleAstsFromString = (str) => {
 };
 const ammFromModuleAsts = (moduleAsts) => {
     // Load the standard library
-    Std.loadStdModules(Module.getAllModules());
+    let stdFiles = new Set();
+    for (const [modulePath, module] of Object.entries(moduleAsts)) {
+        for (const importt of Ast.resolveImports(modulePath, module)) {
+            if (importt.substring(0, 5) === "@std/") {
+                stdFiles.add(importt.substring(5, importt.length) + '.ln');
+            }
+        }
+    }
+    Std.loadStdModules(stdFiles);
     const rootScope = Module.getAllModules()['<root>'].exportScope;
     // Load all modules
-    const modules = Module.modulesFromAsts(moduleAsts, rootScope);
+    Module.modulesFromAsts(moduleAsts, rootScope);
     // This implicitly populates the `allEvents` static property on the `Event` type, which we can
     // use to serialize out the definitions, skipping the built-in events. In the process we're need
     // to check a hashset for duplicate event names and rename as necessary. We also need to get the
@@ -17038,7 +17247,7 @@ const ammFromModuleAsts = (moduleAsts) => {
                 // Pull the constants out of the microstatements into the constants set.
                 hoistConst(microstatements, constantDedupeLookup, constants);
                 // Register the handler and remaining statements
-                handlers[handlerDec] = microstatements;
+                handlers.hasOwnProperty(handlerDec) ? handlers[handlerDec].push(microstatements) : handlers[handlerDec] = [microstatements];
             }
         }
     }
@@ -17055,21 +17264,20 @@ const ammFromModuleAsts = (moduleAsts) => {
     for (const evt of Event.allEvents) {
         if (evt.builtIn)
             continue; // Skip built-in events
-        if (evt.handlers.length == 0)
-            continue; // Skip events that are never handled
         outStr += evt.toString() + "\n";
     }
     // Print the user-defined event handlers
-    for (const handlerDec of Object.keys(handlers)) {
-        outStr += handlerDec + "\n";
-        const microstatements = handlers[handlerDec];
-        for (const m of microstatements) {
-            const mString = m.toString();
-            if (mString === "")
-                continue;
-            outStr += "  " + mString + "\n";
+    for (const [handlerDec, handlersList] of Object.entries(handlers)) {
+        for (const microstatements of handlersList) {
+            outStr += handlerDec + "\n";
+            for (const m of microstatements) {
+                const mString = m.toString();
+                if (mString === "")
+                    continue;
+                outStr += "  " + mString + "\n";
+            }
+            outStr += "}\n";
         }
-        outStr += "}\n";
     }
     return outStr;
 };
@@ -17078,7 +17286,7 @@ module.exports = {
     fromString: (str) => ammFromModuleAsts(moduleAstsFromString(str)),
 };
 
-},{"./Ast":14,"./Event":16,"./Microstatement":25,"./Module":26,"./StatementType":30,"./Std":1,"./UserFunction":32,"./opcodes":34,"fs":83,"path":85,"uuid":91}],34:[function(require,module,exports){
+},{"./Ast":14,"./Event":16,"./Microstatement":25,"./Module":26,"./StatementType":30,"./Std":1,"./UserFunction":32,"fs":83,"uuid":91}],34:[function(require,module,exports){
 const { v4: uuid, } = require('uuid');
 const Box = require('./Box'); // TODO: Eliminate Box
 const Module = require('./Module');
@@ -17344,6 +17552,15 @@ addopcodes({
     stdoutp: [{ out: t('string'), }, t('void')],
     exitop: [{ code: t('int8'), }, t('void')],
     copyfrom: [{ arr: t('Array<any>'), addr: t('int64') }, t('any')],
+    copyi8: [{ a: t('int8'), }, t('int8')],
+    copyi16: [{ a: t('int16'), }, t('int16')],
+    copyi32: [{ a: t('int32'), }, t('int32')],
+    copyi64: [{ a: t('int64'), }, t('int64')],
+    copyf32: [{ a: t('float32'), }, t('float32')],
+    copyf64: [{ a: t('float64'), }, t('float64')],
+    copybool: [{ a: t('bool'), }, t('bool')],
+    copystr: [{ a: t('string'), }, t('string')],
+    copyarr: [{ a: t('Array<any>'), }, t('Array<any>')],
 });
 module.exports = opcodeModule;
 
@@ -32216,22 +32433,34 @@ module.exports = {
   lenstr:  a => a.length,
   trim:    a => a.trim(),
   copyfrom:(arr, ind) => arr[ind],
+
+  // Array opcodes TODO more to come
   newarr:  size => new Array(), // Ignored because JS push doesn't behave as desired
   pusharr: (arr, val) => arr.push(val),
+  lenarr: arr => arr.length,
 
-  // Array opcodes TODO after arrays are figured out
-  
   // Map opcodes TODO after maps are figured out
 
   // Ternary functions
   // TODO: pair and condarr after arrays are figured out
   condfn:  (cond, fn) => cond ? fn() : undefined,
 
+  // Copy opcodes (for let reassignment)
+  copyi8:   a => a,
+  copyi16:  a => a,
+  copyi32:  a => a,
+  copyi64:  a => a,
+  copyf32:  a => a,
+  copyf64:  a => a,
+  copybool: a => a,
+  copystr:  a => a,
+  // Actually the recommended deep clone mechanism: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Deep_Clone
+  copyarr:  a => JSON.parse(JSON.stringify(a)),
+
   // IO opcodes
   asyncopcodes: ['waitop', 'execop'],
   waitop: a => new Promise(resolve => setTimeout(resolve, a)),
   execop: a => exec(a),
-
 
   // "Special" opcodes
   stdoutp: out => process.stdout.write(out),

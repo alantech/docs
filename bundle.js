@@ -35,4368 +35,217 @@ module.exports = {
   },
 }
 
-},{"../dist/lntoamm/Ast":14,"../dist/lntoamm/Module":26,"../dist/lntoamm/Scope":28,"../dist/lntoamm/opcodes":34,"./stdlibs.json":2}],2:[function(require,module,exports){
+},{"../dist/lntoamm/Ast":10,"../dist/lntoamm/Module":22,"../dist/lntoamm/Scope":24,"../dist/lntoamm/opcodes":30,"./stdlibs.json":2}],2:[function(require,module,exports){
 module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out)\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\"\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status)\n\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n)","deps.ln":"from @std/app import start, print\nfrom @std/cmd import exec\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\nexport fn add(remote: string) {\n  // TODO implement proper error handling\n  const parts = remote.split(':')\n  const repo = parts[length(parts)-1]\n  const repoParts = repo.split('.git')\n  const repoName = repoParts[0]\n  const dest = '/dependencies/' + repoName\n  exec('rm -rf .' + dest)\n  exec('git clone ' + remote + ' .' + dest)\n  exec('rm -rf .' + dest + '/.git')\n}\n\n// Emit the `install` event on app `start`\non start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  exec('rm -rf dependencies')\n  exec('mkdir dependencies')\n  emit install\n}\n","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Special _ variable\nexport const _: void\n\n// Default Interfaces\nexport interface any {}\nexport interface Stringifiable {\n  toString(Stringifiable): string\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n)\nexport fn toFloat64(n: int16) = i16f64(n)\nexport fn toFloat64(n: int32) = i32f64(n)\nexport fn toFloat64(n: int64) = i64f64(n)\nexport fn toFloat64(n: float32) = f32f64(n)\nexport fn toFloat64(n: float64) = n\nexport fn toFloat64(n: string) = strf64(n)\nexport fn toFloat64(n: bool) = boolf64(n)\n\nexport fn toFloat32(n: int8) = i8f32(n)\nexport fn toFloat32(n: int16) = i16f32(n)\nexport fn toFloat32(n: int32) = i32f32(n)\nexport fn toFloat32(n: int64) = i64f32(n)\nexport fn toFloat32(n: float32) = n\nexport fn toFloat32(n: float64) = f64f32(n)\nexport fn toFloat32(n: string) = strf32(n)\nexport fn toFloat32(n: bool) = boolf32(n)\n\nexport fn toInt64(n: int8) = i8i64(n)\nexport fn toInt64(n: int16) = i16i64(n)\nexport fn toInt64(n: int32) = i32i64(n)\nexport fn toInt64(n: int64) = n\nexport fn toInt64(n: float32) = f32i64(n)\nexport fn toInt64(n: float64) = f64i64(n)\nexport fn toInt64(n: string) = stri64(n)\nexport fn toInt64(n: bool) = booli64(n)\n\nexport fn toInt32(n: int8) = i8i32(n)\nexport fn toInt32(n: int16) = i16i32(n)\nexport fn toInt32(n: int32) = n\nexport fn toInt32(n: int64) = i64i32(n)\nexport fn toInt32(n: float32) = f32i32(n)\nexport fn toInt32(n: float64) = f64i32(n)\nexport fn toInt32(n: string) = stri32(n)\nexport fn toInt32(n: bool) = booli32(n)\n\nexport fn toInt16(n: int8) = i8i16(n)\nexport fn toInt16(n: int16) = n\nexport fn toInt16(n: int32) = i32i16(n)\nexport fn toInt16(n: int64) = i64i16(n)\nexport fn toInt16(n: float32) = f32i16(n)\nexport fn toInt16(n: float64) = f64i16(n)\nexport fn toInt16(n: string) = stri16(n)\nexport fn toInt16(n: bool) = booli16(n)\n\nexport fn toInt8(n: int8) = n\nexport fn toInt8(n: int16) = i16i8(n)\nexport fn toInt8(n: int32) = i32i8(n)\nexport fn toInt8(n: int64) = i64i8(n)\nexport fn toInt8(n: float32) = f32i8(n)\nexport fn toInt8(n: float64) = f64i8(n)\nexport fn toInt8(n: string) = stri8(n)\nexport fn toInt8(n: bool) = booli8(n)\n\nexport fn toBool(n: int8) = i8bool(n)\nexport fn toBool(n: int16) = i16bool(n)\nexport fn toBool(n: int32) = i32bool(n)\nexport fn toBool(n: int64) = i64bool(n)\nexport fn toBool(n: float32) = f32bool(n)\nexport fn toBool(n: float64) = f64bool(n)\nexport fn toBool(n: string) = strbool(n)\nexport fn toBool(n: bool) = n\n\nexport fn toString(n: int8) = i8str(n)\nexport fn toString(n: int16) = i16str(n)\nexport fn toString(n: int32) = i32str(n)\nexport fn toString(n: int64) = i64str(n)\nexport fn toString(n: float32) = f32str(n)\nexport fn toString(n: float64) = f64str(n)\nexport fn toString(n: string) = n\nexport fn toString(n: bool) = boolstr(n)\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b)\nexport fn add(a: int16, b: int16) = addi16(a, b)\nexport fn add(a: int32, b: int32) = addi32(a, b)\nexport fn add(a: int64, b: int64) = addi64(a, b)\nexport fn add(a: float32, b: float32) = addf32(a, b)\nexport fn add(a: float64, b: float64) = addf64(a, b)\n\nexport fn sub(a: int8, b: int8) = subi8(a, b)\nexport fn sub(a: int16, b: int16) = subi16(a, b)\nexport fn sub(a: int32, b: int32) = subi32(a, b)\nexport fn sub(a: int64, b: int64) = subi64(a, b)\nexport fn sub(a: float32, b: float32) = subf32(a, b)\nexport fn sub(a: float64, b: float64) = subf64(a, b)\n\nexport fn negate(n: int8) = negi8(n)\nexport fn negate(n: int16) = negi16(n)\nexport fn negate(n: int32) = negi32(n)\nexport fn negate(n: int64) = negi64(n)\nexport fn negate(n: float32) = negf32(n)\nexport fn negate(n: float64) = negf64(n)\n\nexport fn mul(a: int8, b: int8) = muli8(a, b)\nexport fn mul(a: int16, b: int16) = muli16(a, b)\nexport fn mul(a: int32, b: int32) = muli32(a, b)\nexport fn mul(a: int64, b: int64) = muli64(a, b)\nexport fn mul(a: float32, b: float32) = mulf32(a, b)\nexport fn mul(a: float64, b: float64) = mulf64(a, b)\n\nexport fn div(a: int8, b: int8) = divi8(a, b)\nexport fn div(a: int16, b: int16) = divi16(a, b)\nexport fn div(a: int32, b: int32) = divi32(a, b)\nexport fn div(a: int64, b: int64) = divi64(a, b)\nexport fn div(a: float32, b: float32) = divf32(a, b)\nexport fn div(a: float64, b: float64) = divf64(a, b)\n\nexport fn mod(a: int8, b: int8) = modi8(a, b)\nexport fn mod(a: int16, b: int16) = modi16(a, b)\nexport fn mod(a: int32, b: int32) = modi32(a, b)\nexport fn mod(a: int64, b: int64) = modi64(a, b)\n\nexport fn pow(a: int8, b: int8) = powi8(a, b)\nexport fn pow(a: int16, b: int16) = powi16(a, b)\nexport fn pow(a: int32, b: int32) = powi32(a, b)\nexport fn pow(a: int64, b: int64) = powi64(a, b)\nexport fn pow(a: float32, b: float32) = powf32(a, b)\nexport fn pow(a: float64, b: float64) = powf64(a, b)\n\nexport fn sqrt(n: float32) = sqrtf32(n)\nexport fn sqrt(n: float64) = sqrtf64(n)\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b)\nexport fn and(a: int16, b: int16) = andi16(a, b)\nexport fn and(a: int32, b: int32) = andi32(a, b)\nexport fn and(a: int64, b: int64) = andi64(a, b)\nexport fn and(a: bool, b: bool) = andbool(a, b)\n\nexport fn or(a: int8, b: int8) = ori8(a, b)\nexport fn or(a: int16, b: int16) = ori16(a, b)\nexport fn or(a: int32, b: int32) = ori32(a, b)\nexport fn or(a: int64, b: int64) = ori64(a, b)\nexport fn or(a: bool, b: bool) = orbool(a, b)\n\nexport fn xor(a: int8, b: int8) = xori8(a, b)\nexport fn xor(a: int16, b: int16) = xori16(a, b)\nexport fn xor(a: int32, b: int32) = xori32(a, b)\nexport fn xor(a: int64, b: int64) = xori64(a, b)\nexport fn xor(a: bool, b: bool) = xorbool(a, b)\n\nexport fn not(n: int8) = noti8(n)\nexport fn not(n: int16) = noti16(n)\nexport fn not(n: int32) = noti32(n)\nexport fn not(n: int64) = noti64(n)\nexport fn not(n: bool) = notbool(n)\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b)\nexport fn nand(a: int16, b: int16) = nandi16(a, b)\nexport fn nand(a: int32, b: int32) = nandi32(a, b)\nexport fn nand(a: int64, b: int64) = nandi64(a, b)\nexport fn nand(a: bool, b: bool) = nandboo(a, b)\n\nexport fn nor(a: int8, b: int8) = nori8(a, b)\nexport fn nor(a: int16, b: int16) = nori16(a, b)\nexport fn nor(a: int32, b: int32) = nori32(a, b)\nexport fn nor(a: int64, b: int64) = nori64(a, b)\nexport fn nor(a: bool, b: bool) = norbool(a, b)\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b)\nexport fn xnor(a: int16, b: int16) = xnori16(a, b)\nexport fn xnor(a: int32, b: int32) = xnori32(a, b)\nexport fn xnor(a: int64, b: int64) = xnori64(a, b)\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b)\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b)\nexport fn eq(a: int16, b: int16) = eqi16(a, b)\nexport fn eq(a: int32, b: int32) = eqi32(a, b)\nexport fn eq(a: int64, b: int64) = eqi64(a, b)\nexport fn eq(a: float32, b: float32) = eqf32(a, b)\nexport fn eq(a: float64, b: float64) = eqf64(a, b)\nexport fn eq(a: string, b: string) = eqstr(a, b)\nexport fn eq(a: bool, b: bool) = eqbool(a, b)\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b)\nexport fn neq(a: int16, b: int16) = neqi16(a, b)\nexport fn neq(a: int32, b: int32) = neqi32(a, b)\nexport fn neq(a: int64, b: int64) = neqi64(a, b)\nexport fn neq(a: float32, b: float32) = neqf32(a, b)\nexport fn neq(a: float64, b: float64) = neqf64(a, b)\nexport fn neq(a: string, b: string) = neqstr(a, b)\nexport fn neq(a: bool, b: bool) = neqbool(a, b)\n\nexport fn lt(a: int8, b: int8) = lti8(a, b)\nexport fn lt(a: int16, b: int16) = lti16(a, b)\nexport fn lt(a: int32, b: int32) = lti32(a, b)\nexport fn lt(a: int64, b: int64) = lti64(a, b)\nexport fn lt(a: float32, b: float32) = ltf32(a, b)\nexport fn lt(a: float64, b: float64) = ltf64(a, b)\nexport fn lt(a: string, b: string) = ltstr(a, b)\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b)\nexport fn lte(a: int16, b: int16) = ltei16(a, b)\nexport fn lte(a: int32, b: int32) = ltei32(a, b)\nexport fn lte(a: int64, b: int64) = ltei64(a, b)\nexport fn lte(a: float32, b: float32) = ltef32(a, b)\nexport fn lte(a: float64, b: float64) = ltef64(a, b)\nexport fn lte(a: string, b: string) = ltestr(a, b)\n\nexport fn gt(a: int8, b: int8) = gti8(a, b)\nexport fn gt(a: int16, b: int16) = gti16(a, b)\nexport fn gt(a: int32, b: int32) = gti32(a, b)\nexport fn gt(a: int64, b: int64) = gti64(a, b)\nexport fn gt(a: float32, b: float32) = gtf32(a, b)\nexport fn gt(a: float64, b: float64) = gtf64(a, b)\nexport fn gt(a: string, b: string) = gtstr(a, b)\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b)\nexport fn gte(a: int16, b: int16) = gtei16(a, b)\nexport fn gte(a: int32, b: int32) = gtei32(a, b)\nexport fn gte(a: int64, b: int64) = gtei64(a, b)\nexport fn gte(a: float32, b: float32) = gtef32(a, b)\nexport fn gte(a: float64, b: float64) = gtef64(a, b)\nexport fn gte(a: string, b: string) = gtestr(a, b)\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n))\nexport fn wait(n: int16) = waitop(i16i64(n))\nexport fn wait(n: int32) = waitop(i32i64(n))\nexport fn wait(n: int64) = waitop(n)\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b)\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n)\nexport fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t)\nexport fn length(s: string) = lenstr(s)\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b)\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n)\nexport fn index(arr: Array<any>, val: any) = indarr(arr, val)\nexport fn length(arr: Array<any>) = lenarr(arr)\nexport fn push(arr: Array<any>, val: any) = pusharr(arr, val)\nexport fn pop(arr: Array<any>): any = poparr(arr, val)\nexport each // opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport map // opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport reduce // opcode with signature `fn reduce(arr: Array<any>, cb: function): any`\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): any`\nexport every // opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport some // opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\n\n// Map functions\nexport keyVal // opcode with signature `fn keyVal(map: Map<any, any>): Array<KeyVal<any, any>>`\nexport keys // opcode with signature `fn keys(map: Map<any, any>): Array<any>`\nexport values // opcode with signature `fn values(map: Map<any, any>): Array<any>`\n\n// Ternary functions\nexport pair // opcode with signature `fn pair(trueval: any, falseval: any): Array<any>`\nexport fn cond(c: bool, options: Array<any>): any = condarr(c, options)\nexport fn cond(c: bool, optional: function): void = condfn(c, optional)\n\n// \"assign\" function useful for hoisting assignments\nexport fn assign(a: int8) = copyi8(a)\nexport fn assign(a: int16) = copyi16(a)\nexport fn assign(a: int32) = copyi32(a)\nexport fn assign(a: int64) = copyi64(a)\nexport fn assign(a: float32) = copyf32(a)\nexport fn assign(a: float64) = copyf64(a)\nexport fn assign(a: bool) = copybool(a)\nexport fn assign(a: string) = copystr(a)\nexport fn assign(a: Array<any>) = copyarr(a)\n\n// Operator declarations\nexport infix commutative associative + 2 add\nexport infix associative + 2 concat\nexport infix - 2 sub\nexport prefix - 1 negate\nexport infix commutative associative * 3 mul\nexport infix * 3 repeat\nexport infix / 3 div\nexport infix / 3 split\nexport infix % 3 mod\nexport infix % 3 template\nexport infix ** 4 pow\nexport infix commutative associative & 3 and\nexport infix commutative associative && 3 and\nexport infix commutative associative | 2 or\nexport infix commutative associative || 2 or\nexport infix commutative associative ^ 2 xor\nexport prefix ! 4 not\nexport infix commutative associative !& 3 nand\nexport infix commutative associative !| 2 nor\nexport infix commutative associative !^ 2 xnor\nexport infix commutative associative == 1 eq\nexport infix commutative associative != 1 neq\nexport infix < 1 lt\nexport infix <= 1 lte\nexport infix > 1 gt\nexport infix >= 1 gte\nexport infix ~ 1 matches\nexport infix @ 1 index\nexport prefix # 4 length\nexport prefix ` 4 trim\nexport infix : 5 pair\nexport infix ? 0 cond\n\n"}
 
 },{}],3:[function(require,module,exports){
-// Generated from Amm.g4 by ANTLR 4.8
-// jshint ignore: start
-var antlr4 = require('antlr4/index');
-var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
-    "\u0002\u001e\u00d3\b\u0001\u0004\u0002\t\u0002\u0004\u0003\t\u0003\u0004",
-    "\u0004\t\u0004\u0004\u0005\t\u0005\u0004\u0006\t\u0006\u0004\u0007\t",
-    "\u0007\u0004\b\t\b\u0004\t\t\t\u0004\n\t\n\u0004\u000b\t\u000b\u0004",
-    "\f\t\f\u0004\r\t\r\u0004\u000e\t\u000e\u0004\u000f\t\u000f\u0004\u0010",
-    "\t\u0010\u0004\u0011\t\u0011\u0004\u0012\t\u0012\u0004\u0013\t\u0013",
-    "\u0004\u0014\t\u0014\u0004\u0015\t\u0015\u0004\u0016\t\u0016\u0004\u0017",
-    "\t\u0017\u0004\u0018\t\u0018\u0004\u0019\t\u0019\u0004\u001a\t\u001a",
-    "\u0004\u001b\t\u001b\u0004\u001c\t\u001c\u0004\u001d\t\u001d\u0003\u0002",
-    "\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0003\u0003\u0003",
-    "\u0003\u0003\u0003\u0004\u0003\u0004\u0003\u0004\u0003\u0004\u0003\u0004",
-    "\u0003\u0004\u0003\u0005\u0003\u0005\u0003\u0005\u0003\u0006\u0003\u0006",
-    "\u0003\u0006\u0003\u0006\u0003\u0006\u0003\u0006\u0003\u0007\u0003\u0007",
-    "\u0003\u0007\u0003\u0007\u0003\b\u0003\b\u0003\b\u0003\b\u0003\b\u0003",
-    "\t\u0003\t\u0003\t\u0003\t\u0003\t\u0003\t\u0003\t\u0003\t\u0003\t\u0005",
-    "\te\n\t\u0003\n\u0003\n\u0003\n\u0003\n\u0003\u000b\u0003\u000b\u0007",
-    "\u000bm\n\u000b\f\u000b\u000e\u000bp\u000b\u000b\u0003\f\u0003\f\u0003",
-    "\r\u0003\r\u0003\u000e\u0003\u000e\u0003\u000f\u0003\u000f\u0003\u0010",
-    "\u0003\u0010\u0003\u0011\u0003\u0011\u0003\u0012\u0003\u0012\u0003\u0013",
-    "\u0003\u0013\u0003\u0014\u0003\u0014\u0003\u0015\u0003\u0015\u0003\u0016",
-    "\u0003\u0016\u0003\u0017\u0003\u0017\u0003\u0017\u0003\u0017\u0003\u0017",
-    "\u0003\u0018\u0003\u0018\u0005\u0018\u008f\n\u0018\u0003\u0018\u0003",
-    "\u0018\u0003\u0018\u0005\u0018\u0094\n\u0018\u0003\u0019\u0003\u0019",
-    "\u0003\u0019\u0005\u0019\u0099\n\u0019\u0003\u001a\u0006\u001a\u009c",
-    "\n\u001a\r\u001a\u000e\u001a\u009d\u0003\u001b\u0003\u001b\u0007\u001b",
-    "\u00a2\n\u001b\f\u001b\u000e\u001b\u00a5\u000b\u001b\u0003\u001b\u0003",
-    "\u001b\u0003\u001b\u0007\u001b\u00aa\n\u001b\f\u001b\u000e\u001b\u00ad",
-    "\u000b\u001b\u0003\u001b\u0005\u001b\u00b0\n\u001b\u0003\u001c\u0003",
-    "\u001c\u0003\u001c\u0003\u001c\u0006\u001c\u00b6\n\u001c\r\u001c\u000e",
-    "\u001c\u00b7\u0003\u001c\u0006\u001c\u00bb\n\u001c\r\u001c\u000e\u001c",
-    "\u00bc\u0003\u001c\u0003\u001c\u0006\u001c\u00c1\n\u001c\r\u001c\u000e",
-    "\u001c\u00c2\u0005\u001c\u00c5\n\u001c\u0005\u001c\u00c7\n\u001c\u0003",
-    "\u001d\u0006\u001d\u00ca\n\u001d\r\u001d\u000e\u001d\u00cb\u0003\u001d",
-    "\u0007\u001d\u00cf\n\u001d\f\u001d\u000e\u001d\u00d2\u000b\u001d\u0002",
-    "\u0002\u001e\u0003\u0003\u0005\u0004\u0007\u0005\t\u0006\u000b\u0007",
-    "\r\b\u000f\t\u0011\n\u0013\u000b\u0015\f\u0017\r\u0019\u000e\u001b\u000f",
-    "\u001d\u0010\u001f\u0011!\u0012#\u0013%\u0014\'\u0015)\u0016+\u0017",
-    "-\u0018/\u00191\u001a3\u001b5\u001c7\u001d9\u001e\u0003\u0002\u000b",
-    "\u0004\u0002\f\f\u000f\u000f\u0004\u0002\u000b\u000b\"\"\u0003\u0002",
-    "$$\u0003\u0002))\u0005\u00022;CHch\u0003\u00022;\u0003\u000200\u0005",
-    "\u0002C\\aac|\u0006\u00022;C\\aac|\u0002\u00e4\u0002\u0003\u0003\u0002",
-    "\u0002\u0002\u0002\u0005\u0003\u0002\u0002\u0002\u0002\u0007\u0003\u0002",
-    "\u0002\u0002\u0002\t\u0003\u0002\u0002\u0002\u0002\u000b\u0003\u0002",
-    "\u0002\u0002\u0002\r\u0003\u0002\u0002\u0002\u0002\u000f\u0003\u0002",
-    "\u0002\u0002\u0002\u0011\u0003\u0002\u0002\u0002\u0002\u0013\u0003\u0002",
-    "\u0002\u0002\u0002\u0015\u0003\u0002\u0002\u0002\u0002\u0017\u0003\u0002",
-    "\u0002\u0002\u0002\u0019\u0003\u0002\u0002\u0002\u0002\u001b\u0003\u0002",
-    "\u0002\u0002\u0002\u001d\u0003\u0002\u0002\u0002\u0002\u001f\u0003\u0002",
-    "\u0002\u0002\u0002!\u0003\u0002\u0002\u0002\u0002#\u0003\u0002\u0002",
-    "\u0002\u0002%\u0003\u0002\u0002\u0002\u0002\'\u0003\u0002\u0002\u0002",
-    "\u0002)\u0003\u0002\u0002\u0002\u0002+\u0003\u0002\u0002\u0002\u0002",
-    "-\u0003\u0002\u0002\u0002\u0002/\u0003\u0002\u0002\u0002\u00021\u0003",
-    "\u0002\u0002\u0002\u00023\u0003\u0002\u0002\u0002\u00025\u0003\u0002",
-    "\u0002\u0002\u00027\u0003\u0002\u0002\u0002\u00029\u0003\u0002\u0002",
-    "\u0002\u0003;\u0003\u0002\u0002\u0002\u0005@\u0003\u0002\u0002\u0002",
-    "\u0007C\u0003\u0002\u0002\u0002\tI\u0003\u0002\u0002\u0002\u000bL\u0003",
-    "\u0002\u0002\u0002\rR\u0003\u0002\u0002\u0002\u000fV\u0003\u0002\u0002",
-    "\u0002\u0011d\u0003\u0002\u0002\u0002\u0013f\u0003\u0002\u0002\u0002",
-    "\u0015j\u0003\u0002\u0002\u0002\u0017q\u0003\u0002\u0002\u0002\u0019",
-    "s\u0003\u0002\u0002\u0002\u001bu\u0003\u0002\u0002\u0002\u001dw\u0003",
-    "\u0002\u0002\u0002\u001fy\u0003\u0002\u0002\u0002!{\u0003\u0002\u0002",
-    "\u0002#}\u0003\u0002\u0002\u0002%\u007f\u0003\u0002\u0002\u0002\'\u0081",
-    "\u0003\u0002\u0002\u0002)\u0083\u0003\u0002\u0002\u0002+\u0085\u0003",
-    "\u0002\u0002\u0002-\u0087\u0003\u0002\u0002\u0002/\u008e\u0003\u0002",
-    "\u0002\u00021\u0098\u0003\u0002\u0002\u00023\u009b\u0003\u0002\u0002",
-    "\u00025\u00af\u0003\u0002\u0002\u00027\u00c6\u0003\u0002\u0002\u0002",
-    "9\u00c9\u0003\u0002\u0002\u0002;<\u0007v\u0002\u0002<=\u0007{\u0002",
-    "\u0002=>\u0007r\u0002\u0002>?\u0007g\u0002\u0002?\u0004\u0003\u0002",
-    "\u0002\u0002@A\u0007h\u0002\u0002AB\u0007p\u0002\u0002B\u0006\u0003",
-    "\u0002\u0002\u0002CD\u0007g\u0002\u0002DE\u0007x\u0002\u0002EF\u0007",
-    "g\u0002\u0002FG\u0007p\u0002\u0002GH\u0007v\u0002\u0002H\b\u0003\u0002",
-    "\u0002\u0002IJ\u0007q\u0002\u0002JK\u0007p\u0002\u0002K\n\u0003\u0002",
-    "\u0002\u0002LM\u0007e\u0002\u0002MN\u0007q\u0002\u0002NO\u0007p\u0002",
-    "\u0002OP\u0007u\u0002\u0002PQ\u0007v\u0002\u0002Q\f\u0003\u0002\u0002",
-    "\u0002RS\u0007n\u0002\u0002ST\u0007g\u0002\u0002TU\u0007v\u0002\u0002",
-    "U\u000e\u0003\u0002\u0002\u0002VW\u0007g\u0002\u0002WX\u0007o\u0002",
-    "\u0002XY\u0007k\u0002\u0002YZ\u0007v\u0002\u0002Z\u0010\u0003\u0002",
-    "\u0002\u0002[\\\u0007v\u0002\u0002\\]\u0007t\u0002\u0002]^\u0007w\u0002",
-    "\u0002^e\u0007g\u0002\u0002_`\u0007h\u0002\u0002`a\u0007c\u0002\u0002",
-    "ab\u0007n\u0002\u0002bc\u0007u\u0002\u0002ce\u0007g\u0002\u0002d[\u0003",
-    "\u0002\u0002\u0002d_\u0003\u0002\u0002\u0002e\u0012\u0003\u0002\u0002",
-    "\u0002fg\u0007p\u0002\u0002gh\u0007g\u0002\u0002hi\u0007y\u0002\u0002",
-    "i\u0014\u0003\u0002\u0002\u0002jn\u0007.\u0002\u0002km\u00053\u001a",
-    "\u0002lk\u0003\u0002\u0002\u0002mp\u0003\u0002\u0002\u0002nl\u0003\u0002",
-    "\u0002\u0002no\u0003\u0002\u0002\u0002o\u0016\u0003\u0002\u0002\u0002",
-    "pn\u0003\u0002\u0002\u0002qr\u0007}\u0002\u0002r\u0018\u0003\u0002\u0002",
-    "\u0002st\u0007\u007f\u0002\u0002t\u001a\u0003\u0002\u0002\u0002uv\u0007",
-    "*\u0002\u0002v\u001c\u0003\u0002\u0002\u0002wx\u0007+\u0002\u0002x\u001e",
-    "\u0003\u0002\u0002\u0002yz\u0007>\u0002\u0002z \u0003\u0002\u0002\u0002",
-    "{|\u0007@\u0002\u0002|\"\u0003\u0002\u0002\u0002}~\u0007]\u0002\u0002",
-    "~$\u0003\u0002\u0002\u0002\u007f\u0080\u0007_\u0002\u0002\u0080&\u0003",
-    "\u0002\u0002\u0002\u0081\u0082\u00070\u0002\u0002\u0082(\u0003\u0002",
-    "\u0002\u0002\u0083\u0084\u0007?\u0002\u0002\u0084*\u0003\u0002\u0002",
-    "\u0002\u0085\u0086\u0007~\u0002\u0002\u0086,\u0003\u0002\u0002\u0002",
-    "\u0087\u0088\u0007x\u0002\u0002\u0088\u0089\u0007q\u0002\u0002\u0089",
-    "\u008a\u0007k\u0002\u0002\u008a\u008b\u0007f\u0002\u0002\u008b.\u0003",
-    "\u0002\u0002\u0002\u008c\u008f\u00053\u001a\u0002\u008d\u008f\u0005",
-    "1\u0019\u0002\u008e\u008c\u0003\u0002\u0002\u0002\u008e\u008d\u0003",
-    "\u0002\u0002\u0002\u008e\u008f\u0003\u0002\u0002\u0002\u008f\u0090\u0003",
-    "\u0002\u0002\u0002\u0090\u0093\u0007<\u0002\u0002\u0091\u0094\u0005",
-    "3\u001a\u0002\u0092\u0094\u00051\u0019\u0002\u0093\u0091\u0003\u0002",
-    "\u0002\u0002\u0093\u0092\u0003\u0002\u0002\u0002\u0093\u0094\u0003\u0002",
-    "\u0002\u0002\u00940\u0003\u0002\u0002\u0002\u0095\u0099\t\u0002\u0002",
-    "\u0002\u0096\u0097\u0007\u000f\u0002\u0002\u0097\u0099\u0007\f\u0002",
-    "\u0002\u0098\u0095\u0003\u0002\u0002\u0002\u0098\u0096\u0003\u0002\u0002",
-    "\u0002\u00992\u0003\u0002\u0002\u0002\u009a\u009c\t\u0003\u0002\u0002",
-    "\u009b\u009a\u0003\u0002\u0002\u0002\u009c\u009d\u0003\u0002\u0002\u0002",
-    "\u009d\u009b\u0003\u0002\u0002\u0002\u009d\u009e\u0003\u0002\u0002\u0002",
-    "\u009e4\u0003\u0002\u0002\u0002\u009f\u00a3\u0007$\u0002\u0002\u00a0",
-    "\u00a2\n\u0004\u0002\u0002\u00a1\u00a0\u0003\u0002\u0002\u0002\u00a2",
-    "\u00a5\u0003\u0002\u0002\u0002\u00a3\u00a1\u0003\u0002\u0002\u0002\u00a3",
-    "\u00a4\u0003\u0002\u0002\u0002\u00a4\u00a6\u0003\u0002\u0002\u0002\u00a5",
-    "\u00a3\u0003\u0002\u0002\u0002\u00a6\u00b0\u0007$\u0002\u0002\u00a7",
-    "\u00ab\u0007)\u0002\u0002\u00a8\u00aa\n\u0005\u0002\u0002\u00a9\u00a8",
-    "\u0003\u0002\u0002\u0002\u00aa\u00ad\u0003\u0002\u0002\u0002\u00ab\u00a9",
-    "\u0003\u0002\u0002\u0002\u00ab\u00ac\u0003\u0002\u0002\u0002\u00ac\u00ae",
-    "\u0003\u0002\u0002\u0002\u00ad\u00ab\u0003\u0002\u0002\u0002\u00ae\u00b0",
-    "\u0007)\u0002\u0002\u00af\u009f\u0003\u0002\u0002\u0002\u00af\u00a7",
-    "\u0003\u0002\u0002\u0002\u00b06\u0003\u0002\u0002\u0002\u00b1\u00b2",
-    "\u00072\u0002\u0002\u00b2\u00b3\u0007z\u0002\u0002\u00b3\u00b5\u0003",
-    "\u0002\u0002\u0002\u00b4\u00b6\t\u0006\u0002\u0002\u00b5\u00b4\u0003",
-    "\u0002\u0002\u0002\u00b6\u00b7\u0003\u0002\u0002\u0002\u00b7\u00b5\u0003",
-    "\u0002\u0002\u0002\u00b7\u00b8\u0003\u0002\u0002\u0002\u00b8\u00c7\u0003",
-    "\u0002\u0002\u0002\u00b9\u00bb\t\u0007\u0002\u0002\u00ba\u00b9\u0003",
-    "\u0002\u0002\u0002\u00bb\u00bc\u0003\u0002\u0002\u0002\u00bc\u00ba\u0003",
-    "\u0002\u0002\u0002\u00bc\u00bd\u0003\u0002\u0002\u0002\u00bd\u00c4\u0003",
-    "\u0002\u0002\u0002\u00be\u00c0\t\b\u0002\u0002\u00bf\u00c1\t\u0007\u0002",
-    "\u0002\u00c0\u00bf\u0003\u0002\u0002\u0002\u00c1\u00c2\u0003\u0002\u0002",
-    "\u0002\u00c2\u00c0\u0003\u0002\u0002\u0002\u00c2\u00c3\u0003\u0002\u0002",
-    "\u0002\u00c3\u00c5\u0003\u0002\u0002\u0002\u00c4\u00be\u0003\u0002\u0002",
-    "\u0002\u00c4\u00c5\u0003\u0002\u0002\u0002\u00c5\u00c7\u0003\u0002\u0002",
-    "\u0002\u00c6\u00b1\u0003\u0002\u0002\u0002\u00c6\u00ba\u0003\u0002\u0002",
-    "\u0002\u00c78\u0003\u0002\u0002\u0002\u00c8\u00ca\t\t\u0002\u0002\u00c9",
-    "\u00c8\u0003\u0002\u0002\u0002\u00ca\u00cb\u0003\u0002\u0002\u0002\u00cb",
-    "\u00c9\u0003\u0002\u0002\u0002\u00cb\u00cc\u0003\u0002\u0002\u0002\u00cc",
-    "\u00d0\u0003\u0002\u0002\u0002\u00cd\u00cf\t\n\u0002\u0002\u00ce\u00cd",
-    "\u0003\u0002\u0002\u0002\u00cf\u00d2\u0003\u0002\u0002\u0002\u00d0\u00ce",
-    "\u0003\u0002\u0002\u0002\u00d0\u00d1\u0003\u0002\u0002\u0002\u00d1:",
-    "\u0003\u0002\u0002\u0002\u00d2\u00d0\u0003\u0002\u0002\u0002\u0013\u0002",
-    "dn\u008e\u0093\u0098\u009d\u00a3\u00ab\u00af\u00b7\u00bc\u00c2\u00c4",
-    "\u00c6\u00cb\u00d0\u0002"].join("");
-var atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
-var decisionsToDFA = atn.decisionToState.map(function (ds, index) { return new antlr4.dfa.DFA(ds, index); });
-function AmmLexer(input) {
-    antlr4.Lexer.call(this, input);
-    this._interp = new antlr4.atn.LexerATNSimulator(this, atn, decisionsToDFA, new antlr4.PredictionContextCache());
-    return this;
-}
-AmmLexer.prototype = Object.create(antlr4.Lexer.prototype);
-AmmLexer.prototype.constructor = AmmLexer;
-Object.defineProperty(AmmLexer.prototype, "atn", {
-    get: function () {
-        return atn;
-    }
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const lp_1 = require("../lp");
+// Defining AMM Tokens
+const space = lp_1.Token.build(' ');
+const blank = lp_1.OneOrMore.build(space);
+const optblank = lp_1.ZeroOrOne.build(blank);
+const newline = lp_1.Token.build('\n');
+const whitespace = lp_1.OneOrMore.build(lp_1.Or.build([space, newline]));
+const colon = lp_1.Token.build(':');
+const under = lp_1.Token.build('_');
+const negate = lp_1.Token.build('-');
+const dot = lp_1.Token.build('.');
+const eq = lp_1.Token.build('=');
+const openParen = lp_1.Token.build('(');
+const closeParen = lp_1.Token.build(')');
+const openCurly = lp_1.Token.build('{');
+const closeCurly = lp_1.Token.build('}');
+const openCaret = lp_1.Token.build('<');
+const closeCaret = lp_1.Token.build('>');
+const comma = lp_1.Token.build(',');
+const optcomma = lp_1.ZeroOrOne.build(comma);
+const base10 = lp_1.CharSet.build('0', '9');
+const natural = lp_1.OneOrMore.build(base10);
+const integer = lp_1.And.build([lp_1.ZeroOrOne.build(negate), natural]);
+const real = lp_1.And.build([integer, lp_1.ZeroOrOne.build(lp_1.And.build([dot, natural]))]);
+const lower = lp_1.CharSet.build('a', 'z');
+const upper = lp_1.CharSet.build('A', 'Z');
+const variable = lp_1.And.build([
+    lp_1.OneOrMore.build(lp_1.Or.build([under, lower, upper])),
+    lp_1.ZeroOrMore.build(lp_1.Or.build([under, lower, upper, natural])),
+]);
+const t = lp_1.Token.build('true');
+const f = lp_1.Token.build('false');
+const bool = lp_1.Or.build([t, f]);
+const voidn = lp_1.Token.build('void');
+const emit = lp_1.Token.build('emit');
+const letn = lp_1.Token.build('let');
+const constn = lp_1.Token.build('const');
+const on = lp_1.Token.build('on');
+const event = lp_1.Token.build('event');
+const fn = lp_1.Token.build('fn');
+const quote = lp_1.Token.build('"');
+const escapeQuote = lp_1.Token.build('\\"');
+const notQuote = lp_1.Not.build('"');
+const str = lp_1.And.build([quote, lp_1.ZeroOrMore.build(lp_1.Or.build([escapeQuote, notQuote])), quote]);
+const value = lp_1.NamedOr.build({ str, bool, real, integer, });
+const decname = variable;
+const typename = variable;
+const typegenerics = lp_1.NamedAnd.build({
+    openCaret,
+    generics: lp_1.OneOrMore.build(lp_1.NamedAnd.build({
+        a: optblank,
+        fulltypename: new lp_1.NulLP(),
+        optcomma,
+        b: optblank,
+    })),
+    closeCaret,
 });
-AmmLexer.EOF = antlr4.Token.EOF;
-AmmLexer.TYPE = 1;
-AmmLexer.FN = 2;
-AmmLexer.EVENT = 3;
-AmmLexer.ON = 4;
-AmmLexer.CONST = 5;
-AmmLexer.LET = 6;
-AmmLexer.EMIT = 7;
-AmmLexer.BOOLCONSTANT = 8;
-AmmLexer.NEW = 9;
-AmmLexer.SEP = 10;
-AmmLexer.OPENBODY = 11;
-AmmLexer.CLOSEBODY = 12;
-AmmLexer.OPENARGS = 13;
-AmmLexer.CLOSEARGS = 14;
-AmmLexer.OPENGENERIC = 15;
-AmmLexer.CLOSEGENERIC = 16;
-AmmLexer.OPENARRAY = 17;
-AmmLexer.CLOSEARRAY = 18;
-AmmLexer.METHODSEP = 19;
-AmmLexer.EQUALS = 20;
-AmmLexer.OR = 21;
-AmmLexer.VOID = 22;
-AmmLexer.TYPESEP = 23;
-AmmLexer.NEWLINE = 24;
-AmmLexer.WS = 25;
-AmmLexer.STRINGCONSTANT = 26;
-AmmLexer.NUMBERCONSTANT = 27;
-AmmLexer.VARNAME = 28;
-AmmLexer.prototype.channelNames = ["DEFAULT_TOKEN_CHANNEL", "HIDDEN"];
-AmmLexer.prototype.modeNames = ["DEFAULT_MODE"];
-AmmLexer.prototype.literalNames = [null, "'type'", "'fn'", "'event'", "'on'",
-    "'const'", "'let'", "'emit'", null,
-    "'new'", null, "'{'", "'}'", "'('",
-    "')'", "'<'", "'>'", "'['", "']'", "'.'",
-    "'='", "'|'", "'void'"];
-AmmLexer.prototype.symbolicNames = [null, "TYPE", "FN", "EVENT", "ON",
-    "CONST", "LET", "EMIT", "BOOLCONSTANT",
-    "NEW", "SEP", "OPENBODY", "CLOSEBODY",
-    "OPENARGS", "CLOSEARGS", "OPENGENERIC",
-    "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY",
-    "METHODSEP", "EQUALS", "OR", "VOID",
-    "TYPESEP", "NEWLINE", "WS", "STRINGCONSTANT",
-    "NUMBERCONSTANT", "VARNAME"];
-AmmLexer.prototype.ruleNames = ["TYPE", "FN", "EVENT", "ON", "CONST", "LET",
-    "EMIT", "BOOLCONSTANT", "NEW", "SEP", "OPENBODY",
-    "CLOSEBODY", "OPENARGS", "CLOSEARGS", "OPENGENERIC",
-    "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY",
-    "METHODSEP", "EQUALS", "OR", "VOID", "TYPESEP",
-    "NEWLINE", "WS", "STRINGCONSTANT", "NUMBERCONSTANT",
-    "VARNAME"];
-AmmLexer.prototype.grammarFileName = "Amm.g4";
-exports.AmmLexer = AmmLexer;
-
-},{"antlr4/index":77}],4:[function(require,module,exports){
-// Generated from Amm.g4 by ANTLR 4.8
-// jshint ignore: start
-var antlr4 = require('antlr4/index');
-// This class defines a complete listener for a parse tree produced by AmmParser.
-function AmmListener() {
-    antlr4.tree.ParseTreeListener.call(this);
-    return this;
-}
-AmmListener.prototype = Object.create(antlr4.tree.ParseTreeListener.prototype);
-AmmListener.prototype.constructor = AmmListener;
-// Enter a parse tree produced by AmmParser#module.
-AmmListener.prototype.enterModule = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#module.
-AmmListener.prototype.exitModule = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#blank.
-AmmListener.prototype.enterBlank = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#blank.
-AmmListener.prototype.exitBlank = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#types.
-AmmListener.prototype.enterTypes = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#types.
-AmmListener.prototype.exitTypes = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#othertype.
-AmmListener.prototype.enterOthertype = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#othertype.
-AmmListener.prototype.exitOthertype = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#typename.
-AmmListener.prototype.enterTypename = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#typename.
-AmmListener.prototype.exitTypename = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#typegenerics.
-AmmListener.prototype.enterTypegenerics = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#typegenerics.
-AmmListener.prototype.exitTypegenerics = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#fulltypename.
-AmmListener.prototype.enterFulltypename = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#fulltypename.
-AmmListener.prototype.exitFulltypename = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#typebody.
-AmmListener.prototype.enterTypebody = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#typebody.
-AmmListener.prototype.exitTypebody = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#typeline.
-AmmListener.prototype.enterTypeline = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#typeline.
-AmmListener.prototype.exitTypeline = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#functions.
-AmmListener.prototype.enterFunctions = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#functions.
-AmmListener.prototype.exitFunctions = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#functionbody.
-AmmListener.prototype.enterFunctionbody = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#functionbody.
-AmmListener.prototype.exitFunctionbody = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#statements.
-AmmListener.prototype.enterStatements = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#statements.
-AmmListener.prototype.exitStatements = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#declarations.
-AmmListener.prototype.enterDeclarations = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#declarations.
-AmmListener.prototype.exitDeclarations = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#decname.
-AmmListener.prototype.enterDecname = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#decname.
-AmmListener.prototype.exitDecname = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#constdeclaration.
-AmmListener.prototype.enterConstdeclaration = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#constdeclaration.
-AmmListener.prototype.exitConstdeclaration = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#letdeclaration.
-AmmListener.prototype.enterLetdeclaration = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#letdeclaration.
-AmmListener.prototype.exitLetdeclaration = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#assignments.
-AmmListener.prototype.enterAssignments = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#assignments.
-AmmListener.prototype.exitAssignments = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#assignables.
-AmmListener.prototype.enterAssignables = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#assignables.
-AmmListener.prototype.exitAssignables = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#objectliterals.
-AmmListener.prototype.enterObjectliterals = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#objectliterals.
-AmmListener.prototype.exitObjectliterals = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#arrayliteral.
-AmmListener.prototype.enterArrayliteral = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#arrayliteral.
-AmmListener.prototype.exitArrayliteral = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#typeliteral.
-AmmListener.prototype.enterTypeliteral = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#typeliteral.
-AmmListener.prototype.exitTypeliteral = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#mapliteral.
-AmmListener.prototype.enterMapliteral = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#mapliteral.
-AmmListener.prototype.exitMapliteral = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#mapline.
-AmmListener.prototype.enterMapline = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#mapline.
-AmmListener.prototype.exitMapline = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#assignablelist.
-AmmListener.prototype.enterAssignablelist = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#assignablelist.
-AmmListener.prototype.exitAssignablelist = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#calllist.
-AmmListener.prototype.enterCalllist = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#calllist.
-AmmListener.prototype.exitCalllist = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#calls.
-AmmListener.prototype.enterCalls = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#calls.
-AmmListener.prototype.exitCalls = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#emits.
-AmmListener.prototype.enterEmits = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#emits.
-AmmListener.prototype.exitEmits = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#constants.
-AmmListener.prototype.enterConstants = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#constants.
-AmmListener.prototype.exitConstants = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#events.
-AmmListener.prototype.enterEvents = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#events.
-AmmListener.prototype.exitEvents = function (ctx) {
-};
-// Enter a parse tree produced by AmmParser#handlers.
-AmmListener.prototype.enterHandlers = function (ctx) {
-};
-// Exit a parse tree produced by AmmParser#handlers.
-AmmListener.prototype.exitHandlers = function (ctx) {
-};
-exports.AmmListener = AmmListener;
-
-},{"antlr4/index":77}],5:[function(require,module,exports){
-// Generated from Amm.g4 by ANTLR 4.8
-// jshint ignore: start
-var antlr4 = require('antlr4/index');
-var AmmListener = require('./AmmListener').AmmListener;
-var grammarFileName = "Amm.g4";
-var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
-    "\u0003\u001e\u0277\u0004\u0002\t\u0002\u0004\u0003\t\u0003\u0004\u0004",
-    "\t\u0004\u0004\u0005\t\u0005\u0004\u0006\t\u0006\u0004\u0007\t\u0007",
-    "\u0004\b\t\b\u0004\t\t\t\u0004\n\t\n\u0004\u000b\t\u000b\u0004\f\t\f",
-    "\u0004\r\t\r\u0004\u000e\t\u000e\u0004\u000f\t\u000f\u0004\u0010\t\u0010",
-    "\u0004\u0011\t\u0011\u0004\u0012\t\u0012\u0004\u0013\t\u0013\u0004\u0014",
-    "\t\u0014\u0004\u0015\t\u0015\u0004\u0016\t\u0016\u0004\u0017\t\u0017",
-    "\u0004\u0018\t\u0018\u0004\u0019\t\u0019\u0004\u001a\t\u001a\u0004\u001b",
-    "\t\u001b\u0004\u001c\t\u001c\u0004\u001d\t\u001d\u0004\u001e\t\u001e",
-    "\u0004\u001f\t\u001f\u0003\u0002\u0007\u0002@\n\u0002\f\u0002\u000e",
-    "\u0002C\u000b\u0002\u0003\u0002\u0003\u0002\u0006\u0002G\n\u0002\r\u0002",
-    "\u000e\u0002H\u0007\u0002K\n\u0002\f\u0002\u000e\u0002N\u000b\u0002",
-    "\u0003\u0002\u0003\u0002\u0006\u0002R\n\u0002\r\u0002\u000e\u0002S\u0007",
-    "\u0002V\n\u0002\f\u0002\u000e\u0002Y\u000b\u0002\u0003\u0002\u0003\u0002",
-    "\u0006\u0002]\n\u0002\r\u0002\u000e\u0002^\u0007\u0002a\n\u0002\f\u0002",
-    "\u000e\u0002d\u000b\u0002\u0003\u0002\u0003\u0002\u0006\u0002h\n\u0002",
-    "\r\u0002\u000e\u0002i\u0006\u0002l\n\u0002\r\u0002\u000e\u0002m\u0003",
-    "\u0002\u0005\u0002q\n\u0002\u0003\u0003\u0003\u0003\u0003\u0004\u0003",
-    "\u0004\u0006\u0004w\n\u0004\r\u0004\u000e\u0004x\u0003\u0004\u0003\u0004",
-    "\u0007\u0004}\n\u0004\f\u0004\u000e\u0004\u0080\u000b\u0004\u0003\u0004",
-    "\u0005\u0004\u0083\n\u0004\u0003\u0004\u0006\u0004\u0086\n\u0004\r\u0004",
-    "\u000e\u0004\u0087\u0003\u0004\u0003\u0004\u0003\u0004\u0007\u0004\u008d",
-    "\n\u0004\f\u0004\u000e\u0004\u0090\u000b\u0004\u0003\u0004\u0003\u0004",
-    "\u0007\u0004\u0094\n\u0004\f\u0004\u000e\u0004\u0097\u000b\u0004\u0003",
-    "\u0004\u0003\u0004\u0007\u0004\u009b\n\u0004\f\u0004\u000e\u0004\u009e",
-    "\u000b\u0004\u0003\u0004\u0007\u0004\u00a1\n\u0004\f\u0004\u000e\u0004",
-    "\u00a4\u000b\u0004\u0005\u0004\u00a6\n\u0004\u0003\u0005\u0003\u0005",
-    "\u0007\u0005\u00aa\n\u0005\f\u0005\u000e\u0005\u00ad\u000b\u0005\u0003",
-    "\u0005\u0005\u0005\u00b0\n\u0005\u0003\u0006\u0003\u0006\u0003\u0007",
-    "\u0003\u0007\u0007\u0007\u00b6\n\u0007\f\u0007\u000e\u0007\u00b9\u000b",
-    "\u0007\u0003\u0007\u0003\u0007\u0007\u0007\u00bd\n\u0007\f\u0007\u000e",
-    "\u0007\u00c0\u000b\u0007\u0003\u0007\u0003\u0007\u0007\u0007\u00c4\n",
-    "\u0007\f\u0007\u000e\u0007\u00c7\u000b\u0007\u0003\u0007\u0003\u0007",
-    "\u0007\u0007\u00cb\n\u0007\f\u0007\u000e\u0007\u00ce\u000b\u0007\u0007",
-    "\u0007\u00d0\n\u0007\f\u0007\u000e\u0007\u00d3\u000b\u0007\u0003\u0007",
-    "\u0003\u0007\u0003\b\u0003\b\u0007\b\u00d9\n\b\f\b\u000e\b\u00dc\u000b",
-    "\b\u0003\b\u0005\b\u00df\n\b\u0003\b\u0005\b\u00e2\n\b\u0003\t\u0003",
-    "\t\u0007\t\u00e6\n\t\f\t\u000e\t\u00e9\u000b\t\u0003\t\u0007\t\u00ec",
-    "\n\t\f\t\u000e\t\u00ef\u000b\t\u0003\t\u0006\t\u00f2\n\t\r\t\u000e\t",
-    "\u00f3\u0003\t\u0005\t\u00f7\n\t\u0003\t\u0003\t\u0003\n\u0003\n\u0003",
-    "\n\u0003\n\u0007\n\u00ff\n\n\f\n\u000e\n\u0102\u000b\n\u0003\u000b\u0003",
-    "\u000b\u0006\u000b\u0106\n\u000b\r\u000b\u000e\u000b\u0107\u0003\u000b",
-    "\u0003\u000b\u0003\u000b\u0003\u000b\u0005\u000b\u010e\n\u000b\u0003",
-    "\u000b\u0003\u000b\u0007\u000b\u0112\n\u000b\f\u000b\u000e\u000b\u0115",
-    "\u000b\u000b\u0003\u000b\u0003\u000b\u0007\u000b\u0119\n\u000b\f\u000b",
-    "\u000e\u000b\u011c\u000b\u000b\u0003\u000b\u0003\u000b\u0007\u000b\u0120",
-    "\n\u000b\f\u000b\u000e\u000b\u0123\u000b\u000b\u0003\u000b\u0003\u000b",
-    "\u0003\f\u0003\f\u0007\f\u0129\n\f\f\f\u000e\f\u012c\u000b\f\u0003\f",
-    "\u0006\f\u012f\n\f\r\f\u000e\f\u0130\u0003\f\u0007\f\u0134\n\f\f\f\u000e",
-    "\f\u0137\u000b\f\u0003\f\u0003\f\u0003\r\u0003\r\u0003\r\u0003\r\u0005",
-    "\r\u013f\n\r\u0003\r\u0006\r\u0142\n\r\r\r\u000e\r\u0143\u0003\u000e",
-    "\u0003\u000e\u0005\u000e\u0148\n\u000e\u0003\u000f\u0003\u000f\u0003",
-    "\u0010\u0003\u0010\u0007\u0010\u014e\n\u0010\f\u0010\u000e\u0010\u0151",
-    "\u000b\u0010\u0003\u0010\u0003\u0010\u0007\u0010\u0155\n\u0010\f\u0010",
-    "\u000e\u0010\u0158\u000b\u0010\u0003\u0010\u0003\u0010\u0007\u0010\u015c",
-    "\n\u0010\f\u0010\u000e\u0010\u015f\u000b\u0010\u0003\u0010\u0003\u0010",
-    "\u0007\u0010\u0163\n\u0010\f\u0010\u000e\u0010\u0166\u000b\u0010\u0003",
-    "\u0010\u0003\u0010\u0007\u0010\u016a\n\u0010\f\u0010\u000e\u0010\u016d",
-    "\u000b\u0010\u0003\u0010\u0003\u0010\u0003\u0011\u0003\u0011\u0007\u0011",
-    "\u0173\n\u0011\f\u0011\u000e\u0011\u0176\u000b\u0011\u0003\u0011\u0003",
-    "\u0011\u0007\u0011\u017a\n\u0011\f\u0011\u000e\u0011\u017d\u000b\u0011",
-    "\u0003\u0011\u0003\u0011\u0007\u0011\u0181\n\u0011\f\u0011\u000e\u0011",
-    "\u0184\u000b\u0011\u0003\u0011\u0003\u0011\u0007\u0011\u0188\n\u0011",
-    "\f\u0011\u000e\u0011\u018b\u000b\u0011\u0003\u0011\u0003\u0011\u0007",
-    "\u0011\u018f\n\u0011\f\u0011\u000e\u0011\u0192\u000b\u0011\u0003\u0011",
-    "\u0003\u0011\u0003\u0012\u0003\u0012\u0007\u0012\u0198\n\u0012\f\u0012",
-    "\u000e\u0012\u019b\u000b\u0012\u0003\u0012\u0003\u0012\u0007\u0012\u019f",
-    "\n\u0012\f\u0012\u000e\u0012\u01a2\u000b\u0012\u0003\u0012\u0003\u0012",
-    "\u0003\u0013\u0003\u0013\u0003\u0013\u0003\u0013\u0003\u0013\u0005\u0013",
-    "\u01ab\n\u0013\u0003\u0014\u0003\u0014\u0007\u0014\u01af\n\u0014\f\u0014",
-    "\u000e\u0014\u01b2\u000b\u0014\u0003\u0014\u0003\u0014\u0007\u0014\u01b6",
-    "\n\u0014\f\u0014\u000e\u0014\u01b9\u000b\u0014\u0003\u0014\u0003\u0014",
-    "\u0003\u0014\u0005\u0014\u01be\n\u0014\u0003\u0015\u0003\u0015\u0007",
-    "\u0015\u01c2\n\u0015\f\u0015\u000e\u0015\u01c5\u000b\u0015\u0003\u0015",
-    "\u0003\u0015\u0007\u0015\u01c9\n\u0015\f\u0015\u000e\u0015\u01cc\u000b",
-    "\u0015\u0003\u0015\u0003\u0015\u0003\u0016\u0003\u0016\u0007\u0016\u01d2",
-    "\n\u0016\f\u0016\u000e\u0016\u01d5\u000b\u0016\u0003\u0016\u0003\u0016",
-    "\u0006\u0016\u01d9\n\u0016\r\u0016\u000e\u0016\u01da\u0006\u0016\u01dd",
-    "\n\u0016\r\u0016\u000e\u0016\u01de\u0003\u0016\u0003\u0016\u0003\u0017",
-    "\u0003\u0017\u0007\u0017\u01e5\n\u0017\f\u0017\u000e\u0017\u01e8\u000b",
-    "\u0017\u0003\u0017\u0003\u0017\u0006\u0017\u01ec\n\u0017\r\u0017\u000e",
-    "\u0017\u01ed\u0007\u0017\u01f0\n\u0017\f\u0017\u000e\u0017\u01f3\u000b",
-    "\u0017\u0003\u0017\u0003\u0017\u0003\u0018\u0003\u0018\u0007\u0018\u01f9",
-    "\n\u0018\f\u0018\u000e\u0018\u01fc\u000b\u0018\u0003\u0018\u0003\u0018",
-    "\u0007\u0018\u0200\n\u0018\f\u0018\u000e\u0018\u0203\u000b\u0018\u0003",
-    "\u0018\u0003\u0018\u0003\u0019\u0007\u0019\u0208\n\u0019\f\u0019\u000e",
-    "\u0019\u020b\u000b\u0019\u0003\u0019\u0003\u0019\u0003\u0019\u0007\u0019",
-    "\u0210\n\u0019\f\u0019\u000e\u0019\u0213\u000b\u0019\u0003\u0019\u0007",
-    "\u0019\u0216\n\u0019\f\u0019\u000e\u0019\u0219\u000b\u0019\u0003\u0019",
-    "\u0007\u0019\u021c\n\u0019\f\u0019\u000e\u0019\u021f\u000b\u0019\u0003",
-    "\u001a\u0007\u001a\u0222\n\u001a\f\u001a\u000e\u001a\u0225\u000b\u001a",
-    "\u0003\u001a\u0003\u001a\u0003\u001a\u0007\u001a\u022a\n\u001a\f\u001a",
-    "\u000e\u001a\u022d\u000b\u001a\u0003\u001a\u0007\u001a\u0230\n\u001a",
-    "\f\u001a\u000e\u001a\u0233\u000b\u001a\u0003\u001a\u0007\u001a\u0236",
-    "\n\u001a\f\u001a\u000e\u001a\u0239\u000b\u001a\u0003\u001b\u0003\u001b",
-    "\u0007\u001b\u023d\n\u001b\f\u001b\u000e\u001b\u0240\u000b\u001b\u0003",
-    "\u001b\u0003\u001b\u0005\u001b\u0244\n\u001b\u0003\u001b\u0003\u001b",
-    "\u0003\u001c\u0003\u001c\u0007\u001c\u024a\n\u001c\f\u001c\u000e\u001c",
-    "\u024d\u000b\u001c\u0003\u001c\u0003\u001c\u0007\u001c\u0251\n\u001c",
-    "\f\u001c\u000e\u001c\u0254\u000b\u001c\u0003\u001c\u0005\u001c\u0257",
-    "\n\u001c\u0003\u001d\u0003\u001d\u0003\u001e\u0003\u001e\u0003\u001e",
-    "\u0003\u001e\u0007\u001e\u025f\n\u001e\f\u001e\u000e\u001e\u0262\u000b",
-    "\u001e\u0003\u001e\u0003\u001e\u0003\u001e\u0005\u001e\u0267\n\u001e",
-    "\u0003\u001f\u0003\u001f\u0006\u001f\u026b\n\u001f\r\u001f\u000e\u001f",
-    "\u026c\u0003\u001f\u0003\u001f\u0006\u001f\u0271\n\u001f\r\u001f\u000e",
-    "\u001f\u0272\u0003\u001f\u0003\u001f\u0003\u001f\u0002\u0002 \u0002",
-    "\u0004\u0006\b\n\f\u000e\u0010\u0012\u0014\u0016\u0018\u001a\u001c\u001e",
-    " \"$&(*,.02468:<\u0002\u0004\u0003\u0002\u001a\u001b\u0004\u0002\n\n",
-    "\u001c\u001d\u0002\u02ba\u0002p\u0003\u0002\u0002\u0002\u0004r\u0003",
-    "\u0002\u0002\u0002\u0006t\u0003\u0002\u0002\u0002\b\u00a7\u0003\u0002",
-    "\u0002\u0002\n\u00b1\u0003\u0002\u0002\u0002\f\u00b3\u0003\u0002\u0002",
-    "\u0002\u000e\u00e1\u0003\u0002\u0002\u0002\u0010\u00e3\u0003\u0002\u0002",
-    "\u0002\u0012\u00fa\u0003\u0002\u0002\u0002\u0014\u0103\u0003\u0002\u0002",
-    "\u0002\u0016\u0126\u0003\u0002\u0002\u0002\u0018\u013e\u0003\u0002\u0002",
-    "\u0002\u001a\u0147\u0003\u0002\u0002\u0002\u001c\u0149\u0003\u0002\u0002",
-    "\u0002\u001e\u014b\u0003\u0002\u0002\u0002 \u0170\u0003\u0002\u0002",
-    "\u0002\"\u0195\u0003\u0002\u0002\u0002$\u01aa\u0003\u0002\u0002\u0002",
-    "&\u01ac\u0003\u0002\u0002\u0002(\u01bf\u0003\u0002\u0002\u0002*\u01cf",
-    "\u0003\u0002\u0002\u0002,\u01e2\u0003\u0002\u0002\u0002.\u01f6\u0003",
-    "\u0002\u0002\u00020\u0209\u0003\u0002\u0002\u00022\u0223\u0003\u0002",
-    "\u0002\u00024\u023a\u0003\u0002\u0002\u00026\u0247\u0003\u0002\u0002",
-    "\u00028\u0258\u0003\u0002\u0002\u0002:\u025a\u0003\u0002\u0002\u0002",
-    "<\u0268\u0003\u0002\u0002\u0002>@\u0005\u0004\u0003\u0002?>\u0003\u0002",
-    "\u0002\u0002@C\u0003\u0002\u0002\u0002A?\u0003\u0002\u0002\u0002AB\u0003",
-    "\u0002\u0002\u0002BL\u0003\u0002\u0002\u0002CA\u0003\u0002\u0002\u0002",
-    "DK\u0005\u0006\u0004\u0002EG\u0005\u0004\u0003\u0002FE\u0003\u0002\u0002",
-    "\u0002GH\u0003\u0002\u0002\u0002HF\u0003\u0002\u0002\u0002HI\u0003\u0002",
-    "\u0002\u0002IK\u0003\u0002\u0002\u0002JD\u0003\u0002\u0002\u0002JF\u0003",
-    "\u0002\u0002\u0002KN\u0003\u0002\u0002\u0002LJ\u0003\u0002\u0002\u0002",
-    "LM\u0003\u0002\u0002\u0002MW\u0003\u0002\u0002\u0002NL\u0003\u0002\u0002",
-    "\u0002OV\u0005\u001e\u0010\u0002PR\u0005\u0004\u0003\u0002QP\u0003\u0002",
-    "\u0002\u0002RS\u0003\u0002\u0002\u0002SQ\u0003\u0002\u0002\u0002ST\u0003",
-    "\u0002\u0002\u0002TV\u0003\u0002\u0002\u0002UO\u0003\u0002\u0002\u0002",
-    "UQ\u0003\u0002\u0002\u0002VY\u0003\u0002\u0002\u0002WU\u0003\u0002\u0002",
-    "\u0002WX\u0003\u0002\u0002\u0002Xb\u0003\u0002\u0002\u0002YW\u0003\u0002",
-    "\u0002\u0002Za\u0005:\u001e\u0002[]\u0005\u0004\u0003\u0002\\[\u0003",
-    "\u0002\u0002\u0002]^\u0003\u0002\u0002\u0002^\\\u0003\u0002\u0002\u0002",
-    "^_\u0003\u0002\u0002\u0002_a\u0003\u0002\u0002\u0002`Z\u0003\u0002\u0002",
-    "\u0002`\\\u0003\u0002\u0002\u0002ad\u0003\u0002\u0002\u0002b`\u0003",
-    "\u0002\u0002\u0002bc\u0003\u0002\u0002\u0002ck\u0003\u0002\u0002\u0002",
-    "db\u0003\u0002\u0002\u0002el\u0005<\u001f\u0002fh\u0005\u0004\u0003",
-    "\u0002gf\u0003\u0002\u0002\u0002hi\u0003\u0002\u0002\u0002ig\u0003\u0002",
-    "\u0002\u0002ij\u0003\u0002\u0002\u0002jl\u0003\u0002\u0002\u0002ke\u0003",
-    "\u0002\u0002\u0002kg\u0003\u0002\u0002\u0002lm\u0003\u0002\u0002\u0002",
-    "mk\u0003\u0002\u0002\u0002mn\u0003\u0002\u0002\u0002nq\u0003\u0002\u0002",
-    "\u0002oq\u0007\u0002\u0002\u0003pA\u0003\u0002\u0002\u0002po\u0003\u0002",
-    "\u0002\u0002q\u0003\u0003\u0002\u0002\u0002rs\t\u0002\u0002\u0002s\u0005",
-    "\u0003\u0002\u0002\u0002tv\u0007\u0003\u0002\u0002uw\u0005\u0004\u0003",
-    "\u0002vu\u0003\u0002\u0002\u0002wx\u0003\u0002\u0002\u0002xv\u0003\u0002",
-    "\u0002\u0002xy\u0003\u0002\u0002\u0002yz\u0003\u0002\u0002\u0002z~\u0005",
-    "\n\u0006\u0002{}\u0005\u0004\u0003\u0002|{\u0003\u0002\u0002\u0002}",
-    "\u0080\u0003\u0002\u0002\u0002~|\u0003\u0002\u0002\u0002~\u007f\u0003",
-    "\u0002\u0002\u0002\u007f\u0082\u0003\u0002\u0002\u0002\u0080~\u0003",
-    "\u0002\u0002\u0002\u0081\u0083\u0005\f\u0007\u0002\u0082\u0081\u0003",
-    "\u0002\u0002\u0002\u0082\u0083\u0003\u0002\u0002\u0002\u0083\u0085\u0003",
-    "\u0002\u0002\u0002\u0084\u0086\u0005\u0004\u0003\u0002\u0085\u0084\u0003",
-    "\u0002\u0002\u0002\u0086\u0087\u0003\u0002\u0002\u0002\u0087\u0085\u0003",
-    "\u0002\u0002\u0002\u0087\u0088\u0003\u0002\u0002\u0002\u0088\u00a5\u0003",
-    "\u0002\u0002\u0002\u0089\u00a6\u0005\u0010\t\u0002\u008a\u008e\u0007",
-    "\u0016\u0002\u0002\u008b\u008d\u0005\u0004\u0003\u0002\u008c\u008b\u0003",
-    "\u0002\u0002\u0002\u008d\u0090\u0003\u0002\u0002\u0002\u008e\u008c\u0003",
-    "\u0002\u0002\u0002\u008e\u008f\u0003\u0002\u0002\u0002\u008f\u0091\u0003",
-    "\u0002\u0002\u0002\u0090\u008e\u0003\u0002\u0002\u0002\u0091\u00a2\u0005",
-    "\b\u0005\u0002\u0092\u0094\u0005\u0004\u0003\u0002\u0093\u0092\u0003",
-    "\u0002\u0002\u0002\u0094\u0097\u0003\u0002\u0002\u0002\u0095\u0093\u0003",
-    "\u0002\u0002\u0002\u0095\u0096\u0003\u0002\u0002\u0002\u0096\u0098\u0003",
-    "\u0002\u0002\u0002\u0097\u0095\u0003\u0002\u0002\u0002\u0098\u009c\u0007",
-    "\u0017\u0002\u0002\u0099\u009b\u0005\u0004\u0003\u0002\u009a\u0099\u0003",
-    "\u0002\u0002\u0002\u009b\u009e\u0003\u0002\u0002\u0002\u009c\u009a\u0003",
-    "\u0002\u0002\u0002\u009c\u009d\u0003\u0002\u0002\u0002\u009d\u009f\u0003",
-    "\u0002\u0002\u0002\u009e\u009c\u0003\u0002\u0002\u0002\u009f\u00a1\u0005",
-    "\b\u0005\u0002\u00a0\u0095\u0003\u0002\u0002\u0002\u00a1\u00a4\u0003",
-    "\u0002\u0002\u0002\u00a2\u00a0\u0003\u0002\u0002\u0002\u00a2\u00a3\u0003",
-    "\u0002\u0002\u0002\u00a3\u00a6\u0003\u0002\u0002\u0002\u00a4\u00a2\u0003",
-    "\u0002\u0002\u0002\u00a5\u0089\u0003\u0002\u0002\u0002\u00a5\u008a\u0003",
-    "\u0002\u0002\u0002\u00a6\u0007\u0003\u0002\u0002\u0002\u00a7\u00ab\u0005",
-    "\n\u0006\u0002\u00a8\u00aa\u0005\u0004\u0003\u0002\u00a9\u00a8\u0003",
-    "\u0002\u0002\u0002\u00aa\u00ad\u0003\u0002\u0002\u0002\u00ab\u00a9\u0003",
-    "\u0002\u0002\u0002\u00ab\u00ac\u0003\u0002\u0002\u0002\u00ac\u00af\u0003",
-    "\u0002\u0002\u0002\u00ad\u00ab\u0003\u0002\u0002\u0002\u00ae\u00b0\u0005",
-    "\f\u0007\u0002\u00af\u00ae\u0003\u0002\u0002\u0002\u00af\u00b0\u0003",
-    "\u0002\u0002\u0002\u00b0\t\u0003\u0002\u0002\u0002\u00b1\u00b2\u0007",
-    "\u001e\u0002\u0002\u00b2\u000b\u0003\u0002\u0002\u0002\u00b3\u00b7\u0007",
-    "\u0011\u0002\u0002\u00b4\u00b6\u0005\u0004\u0003\u0002\u00b5\u00b4\u0003",
-    "\u0002\u0002\u0002\u00b6\u00b9\u0003\u0002\u0002\u0002\u00b7\u00b5\u0003",
-    "\u0002\u0002\u0002\u00b7\u00b8\u0003\u0002\u0002\u0002\u00b8\u00ba\u0003",
-    "\u0002\u0002\u0002\u00b9\u00b7\u0003\u0002\u0002\u0002\u00ba\u00be\u0005",
-    "\u000e\b\u0002\u00bb\u00bd\u0005\u0004\u0003\u0002\u00bc\u00bb\u0003",
-    "\u0002\u0002\u0002\u00bd\u00c0\u0003\u0002\u0002\u0002\u00be\u00bc\u0003",
-    "\u0002\u0002\u0002\u00be\u00bf\u0003\u0002\u0002\u0002\u00bf\u00d1\u0003",
-    "\u0002\u0002\u0002\u00c0\u00be\u0003\u0002\u0002\u0002\u00c1\u00c5\u0007",
-    "\f\u0002\u0002\u00c2\u00c4\u0005\u0004\u0003\u0002\u00c3\u00c2\u0003",
-    "\u0002\u0002\u0002\u00c4\u00c7\u0003\u0002\u0002\u0002\u00c5\u00c3\u0003",
-    "\u0002\u0002\u0002\u00c5\u00c6\u0003\u0002\u0002\u0002\u00c6\u00c8\u0003",
-    "\u0002\u0002\u0002\u00c7\u00c5\u0003\u0002\u0002\u0002\u00c8\u00cc\u0005",
-    "\u000e\b\u0002\u00c9\u00cb\u0005\u0004\u0003\u0002\u00ca\u00c9\u0003",
-    "\u0002\u0002\u0002\u00cb\u00ce\u0003\u0002\u0002\u0002\u00cc\u00ca\u0003",
-    "\u0002\u0002\u0002\u00cc\u00cd\u0003\u0002\u0002\u0002\u00cd\u00d0\u0003",
-    "\u0002\u0002\u0002\u00ce\u00cc\u0003\u0002\u0002\u0002\u00cf\u00c1\u0003",
-    "\u0002\u0002\u0002\u00d0\u00d3\u0003\u0002\u0002\u0002\u00d1\u00cf\u0003",
-    "\u0002\u0002\u0002\u00d1\u00d2\u0003\u0002\u0002\u0002\u00d2\u00d4\u0003",
-    "\u0002\u0002\u0002\u00d3\u00d1\u0003\u0002\u0002\u0002\u00d4\u00d5\u0007",
-    "\u0012\u0002\u0002\u00d5\r\u0003\u0002\u0002\u0002\u00d6\u00da\u0005",
-    "\n\u0006\u0002\u00d7\u00d9\u0005\u0004\u0003\u0002\u00d8\u00d7\u0003",
-    "\u0002\u0002\u0002\u00d9\u00dc\u0003\u0002\u0002\u0002\u00da\u00d8\u0003",
-    "\u0002\u0002\u0002\u00da\u00db\u0003\u0002\u0002\u0002\u00db\u00de\u0003",
-    "\u0002\u0002\u0002\u00dc\u00da\u0003\u0002\u0002\u0002\u00dd\u00df\u0005",
-    "\f\u0007\u0002\u00de\u00dd\u0003\u0002\u0002\u0002\u00de\u00df\u0003",
-    "\u0002\u0002\u0002\u00df\u00e2\u0003\u0002\u0002\u0002\u00e0\u00e2\u0007",
-    "\u0018\u0002\u0002\u00e1\u00d6\u0003\u0002\u0002\u0002\u00e1\u00e0\u0003",
-    "\u0002\u0002\u0002\u00e2\u000f\u0003\u0002\u0002\u0002\u00e3\u00e7\u0007",
-    "\r\u0002\u0002\u00e4\u00e6\u0005\u0004\u0003\u0002\u00e5\u00e4\u0003",
-    "\u0002\u0002\u0002\u00e6\u00e9\u0003\u0002\u0002\u0002\u00e7\u00e5\u0003",
-    "\u0002\u0002\u0002\u00e7\u00e8\u0003\u0002\u0002\u0002\u00e8\u00f1\u0003",
-    "\u0002\u0002\u0002\u00e9\u00e7\u0003\u0002\u0002\u0002\u00ea\u00ec\u0007",
-    "\u001b\u0002\u0002\u00eb\u00ea\u0003\u0002\u0002\u0002\u00ec\u00ef\u0003",
-    "\u0002\u0002\u0002\u00ed\u00eb\u0003\u0002\u0002\u0002\u00ed\u00ee\u0003",
-    "\u0002\u0002\u0002\u00ee\u00f0\u0003\u0002\u0002\u0002\u00ef\u00ed\u0003",
-    "\u0002\u0002\u0002\u00f0\u00f2\u0005\u0012\n\u0002\u00f1\u00ed\u0003",
-    "\u0002\u0002\u0002\u00f2\u00f3\u0003\u0002\u0002\u0002\u00f3\u00f1\u0003",
-    "\u0002\u0002\u0002\u00f3\u00f4\u0003\u0002\u0002\u0002\u00f4\u00f6\u0003",
-    "\u0002\u0002\u0002\u00f5\u00f7\u0005\u0004\u0003\u0002\u00f6\u00f5\u0003",
-    "\u0002\u0002\u0002\u00f6\u00f7\u0003\u0002\u0002\u0002\u00f7\u00f8\u0003",
-    "\u0002\u0002\u0002\u00f8\u00f9\u0007\u000e\u0002\u0002\u00f9\u0011\u0003",
-    "\u0002\u0002\u0002\u00fa\u00fb\u0007\u001e\u0002\u0002\u00fb\u00fc\u0007",
-    "\u0019\u0002\u0002\u00fc\u0100\u0005\n\u0006\u0002\u00fd\u00ff\u0007",
-    "\u001a\u0002\u0002\u00fe\u00fd\u0003\u0002\u0002\u0002\u00ff\u0102\u0003",
-    "\u0002\u0002\u0002\u0100\u00fe\u0003\u0002\u0002\u0002\u0100\u0101\u0003",
-    "\u0002\u0002\u0002\u0101\u0013\u0003\u0002\u0002\u0002\u0102\u0100\u0003",
-    "\u0002\u0002\u0002\u0103\u0105\u0007\u0004\u0002\u0002\u0104\u0106\u0005",
-    "\u0004\u0003\u0002\u0105\u0104\u0003\u0002\u0002\u0002\u0106\u0107\u0003",
-    "\u0002\u0002\u0002\u0107\u0105\u0003\u0002\u0002\u0002\u0107\u0108\u0003",
-    "\u0002\u0002\u0002\u0108\u0109\u0003\u0002\u0002\u0002\u0109\u010d\u0007",
-    "\u000f\u0002\u0002\u010a\u010b\u0007\u001e\u0002\u0002\u010b\u010c\u0007",
-    "\u0019\u0002\u0002\u010c\u010e\u0005\u000e\b\u0002\u010d\u010a\u0003",
-    "\u0002\u0002\u0002\u010d\u010e\u0003\u0002\u0002\u0002\u010e\u010f\u0003",
-    "\u0002\u0002\u0002\u010f\u0113\u0007\u0010\u0002\u0002\u0110\u0112\u0005",
-    "\u0004\u0003\u0002\u0111\u0110\u0003\u0002\u0002\u0002\u0112\u0115\u0003",
-    "\u0002\u0002\u0002\u0113\u0111\u0003\u0002\u0002\u0002\u0113\u0114\u0003",
-    "\u0002\u0002\u0002\u0114\u0116\u0003\u0002\u0002\u0002\u0115\u0113\u0003",
-    "\u0002\u0002\u0002\u0116\u011a\u0007\u0019\u0002\u0002\u0117\u0119\u0005",
-    "\u0004\u0003\u0002\u0118\u0117\u0003\u0002\u0002\u0002\u0119\u011c\u0003",
-    "\u0002\u0002\u0002\u011a\u0118\u0003\u0002\u0002\u0002\u011a\u011b\u0003",
-    "\u0002\u0002\u0002\u011b\u011d\u0003\u0002\u0002\u0002\u011c\u011a\u0003",
-    "\u0002\u0002\u0002\u011d\u0121\u0007\u0018\u0002\u0002\u011e\u0120\u0005",
-    "\u0004\u0003\u0002\u011f\u011e\u0003\u0002\u0002\u0002\u0120\u0123\u0003",
-    "\u0002\u0002\u0002\u0121\u011f\u0003\u0002\u0002\u0002\u0121\u0122\u0003",
-    "\u0002\u0002\u0002\u0122\u0124\u0003\u0002\u0002\u0002\u0123\u0121\u0003",
-    "\u0002\u0002\u0002\u0124\u0125\u0005\u0016\f\u0002\u0125\u0015\u0003",
-    "\u0002\u0002\u0002\u0126\u012a\u0007\r\u0002\u0002\u0127\u0129\u0005",
-    "\u0004\u0003\u0002\u0128\u0127\u0003\u0002\u0002\u0002\u0129\u012c\u0003",
-    "\u0002\u0002\u0002\u012a\u0128\u0003\u0002\u0002\u0002\u012a\u012b\u0003",
-    "\u0002\u0002\u0002\u012b\u012e\u0003\u0002\u0002\u0002\u012c\u012a\u0003",
-    "\u0002\u0002\u0002\u012d\u012f\u0005\u0018\r\u0002\u012e\u012d\u0003",
-    "\u0002\u0002\u0002\u012f\u0130\u0003\u0002\u0002\u0002\u0130\u012e\u0003",
-    "\u0002\u0002\u0002\u0130\u0131\u0003\u0002\u0002\u0002\u0131\u0135\u0003",
-    "\u0002\u0002\u0002\u0132\u0134\u0005\u0004\u0003\u0002\u0133\u0132\u0003",
-    "\u0002\u0002\u0002\u0134\u0137\u0003\u0002\u0002\u0002\u0135\u0133\u0003",
-    "\u0002\u0002\u0002\u0135\u0136\u0003\u0002\u0002\u0002\u0136\u0138\u0003",
-    "\u0002\u0002\u0002\u0137\u0135\u0003\u0002\u0002\u0002\u0138\u0139\u0007",
-    "\u000e\u0002\u0002\u0139\u0017\u0003\u0002\u0002\u0002\u013a\u013f\u0005",
-    "\u001a\u000e\u0002\u013b\u013f\u0005\"\u0012\u0002\u013c\u013f\u0005",
-    "4\u001b\u0002\u013d\u013f\u00056\u001c\u0002\u013e\u013a\u0003\u0002",
-    "\u0002\u0002\u013e\u013b\u0003\u0002\u0002\u0002\u013e\u013c\u0003\u0002",
-    "\u0002\u0002\u013e\u013d\u0003\u0002\u0002\u0002\u013f\u0141\u0003\u0002",
-    "\u0002\u0002\u0140\u0142\u0005\u0004\u0003\u0002\u0141\u0140\u0003\u0002",
-    "\u0002\u0002\u0142\u0143\u0003\u0002\u0002\u0002\u0143\u0141\u0003\u0002",
-    "\u0002\u0002\u0143\u0144\u0003\u0002\u0002\u0002\u0144\u0019\u0003\u0002",
-    "\u0002\u0002\u0145\u0148\u0005\u001e\u0010\u0002\u0146\u0148\u0005 ",
-    "\u0011\u0002\u0147\u0145\u0003\u0002\u0002\u0002\u0147\u0146\u0003\u0002",
-    "\u0002\u0002\u0148\u001b\u0003\u0002\u0002\u0002\u0149\u014a\u0007\u001e",
-    "\u0002\u0002\u014a\u001d\u0003\u0002\u0002\u0002\u014b\u014f\u0007\u0007",
-    "\u0002\u0002\u014c\u014e\u0005\u0004\u0003\u0002\u014d\u014c\u0003\u0002",
-    "\u0002\u0002\u014e\u0151\u0003\u0002\u0002\u0002\u014f\u014d\u0003\u0002",
-    "\u0002\u0002\u014f\u0150\u0003\u0002\u0002\u0002\u0150\u0152\u0003\u0002",
-    "\u0002\u0002\u0151\u014f\u0003\u0002\u0002\u0002\u0152\u0156\u0005\u001c",
-    "\u000f\u0002\u0153\u0155\u0005\u0004\u0003\u0002\u0154\u0153\u0003\u0002",
-    "\u0002\u0002\u0155\u0158\u0003\u0002\u0002\u0002\u0156\u0154\u0003\u0002",
-    "\u0002\u0002\u0156\u0157\u0003\u0002\u0002\u0002\u0157\u0159\u0003\u0002",
-    "\u0002\u0002\u0158\u0156\u0003\u0002\u0002\u0002\u0159\u015d\u0007\u0019",
-    "\u0002\u0002\u015a\u015c\u0005\u0004\u0003\u0002\u015b\u015a\u0003\u0002",
-    "\u0002\u0002\u015c\u015f\u0003\u0002\u0002\u0002\u015d\u015b\u0003\u0002",
-    "\u0002\u0002\u015d\u015e\u0003\u0002\u0002\u0002\u015e\u0160\u0003\u0002",
-    "\u0002\u0002\u015f\u015d\u0003\u0002\u0002\u0002\u0160\u0164\u0005\u000e",
-    "\b\u0002\u0161\u0163\u0005\u0004\u0003\u0002\u0162\u0161\u0003\u0002",
-    "\u0002\u0002\u0163\u0166\u0003\u0002\u0002\u0002\u0164\u0162\u0003\u0002",
-    "\u0002\u0002\u0164\u0165\u0003\u0002\u0002\u0002\u0165\u0167\u0003\u0002",
-    "\u0002\u0002\u0166\u0164\u0003\u0002\u0002\u0002\u0167\u016b\u0007\u0016",
-    "\u0002\u0002\u0168\u016a\u0005\u0004\u0003\u0002\u0169\u0168\u0003\u0002",
-    "\u0002\u0002\u016a\u016d\u0003\u0002\u0002\u0002\u016b\u0169\u0003\u0002",
-    "\u0002\u0002\u016b\u016c\u0003\u0002\u0002\u0002\u016c\u016e\u0003\u0002",
-    "\u0002\u0002\u016d\u016b\u0003\u0002\u0002\u0002\u016e\u016f\u0005$",
-    "\u0013\u0002\u016f\u001f\u0003\u0002\u0002\u0002\u0170\u0174\u0007\b",
-    "\u0002\u0002\u0171\u0173\u0005\u0004\u0003\u0002\u0172\u0171\u0003\u0002",
-    "\u0002\u0002\u0173\u0176\u0003\u0002\u0002\u0002\u0174\u0172\u0003\u0002",
-    "\u0002\u0002\u0174\u0175\u0003\u0002\u0002\u0002\u0175\u0177\u0003\u0002",
-    "\u0002\u0002\u0176\u0174\u0003\u0002\u0002\u0002\u0177\u017b\u0005\u001c",
-    "\u000f\u0002\u0178\u017a\u0005\u0004\u0003\u0002\u0179\u0178\u0003\u0002",
-    "\u0002\u0002\u017a\u017d\u0003\u0002\u0002\u0002\u017b\u0179\u0003\u0002",
-    "\u0002\u0002\u017b\u017c\u0003\u0002\u0002\u0002\u017c\u017e\u0003\u0002",
-    "\u0002\u0002\u017d\u017b\u0003\u0002\u0002\u0002\u017e\u0182\u0007\u0019",
-    "\u0002\u0002\u017f\u0181\u0005\u0004\u0003\u0002\u0180\u017f\u0003\u0002",
-    "\u0002\u0002\u0181\u0184\u0003\u0002\u0002\u0002\u0182\u0180\u0003\u0002",
-    "\u0002\u0002\u0182\u0183\u0003\u0002\u0002\u0002\u0183\u0185\u0003\u0002",
-    "\u0002\u0002\u0184\u0182\u0003\u0002\u0002\u0002\u0185\u0189\u0005\u000e",
-    "\b\u0002\u0186\u0188\u0005\u0004\u0003\u0002\u0187\u0186\u0003\u0002",
-    "\u0002\u0002\u0188\u018b\u0003\u0002\u0002\u0002\u0189\u0187\u0003\u0002",
-    "\u0002\u0002\u0189\u018a\u0003\u0002\u0002\u0002\u018a\u018c\u0003\u0002",
-    "\u0002\u0002\u018b\u0189\u0003\u0002\u0002\u0002\u018c\u0190\u0007\u0016",
-    "\u0002\u0002\u018d\u018f\u0005\u0004\u0003\u0002\u018e\u018d\u0003\u0002",
-    "\u0002\u0002\u018f\u0192\u0003\u0002\u0002\u0002\u0190\u018e\u0003\u0002",
-    "\u0002\u0002\u0190\u0191\u0003\u0002\u0002\u0002\u0191\u0193\u0003\u0002",
-    "\u0002\u0002\u0192\u0190\u0003\u0002\u0002\u0002\u0193\u0194\u0005$",
-    "\u0013\u0002\u0194!\u0003\u0002\u0002\u0002\u0195\u0199\u0005\u001c",
-    "\u000f\u0002\u0196\u0198\u0005\u0004\u0003\u0002\u0197\u0196\u0003\u0002",
-    "\u0002\u0002\u0198\u019b\u0003\u0002\u0002\u0002\u0199\u0197\u0003\u0002",
-    "\u0002\u0002\u0199\u019a\u0003\u0002\u0002\u0002\u019a\u019c\u0003\u0002",
-    "\u0002\u0002\u019b\u0199\u0003\u0002\u0002\u0002\u019c\u01a0\u0007\u0016",
-    "\u0002\u0002\u019d\u019f\u0005\u0004\u0003\u0002\u019e\u019d\u0003\u0002",
-    "\u0002\u0002\u019f\u01a2\u0003\u0002\u0002\u0002\u01a0\u019e\u0003\u0002",
-    "\u0002\u0002\u01a0\u01a1\u0003\u0002\u0002\u0002\u01a1\u01a3\u0003\u0002",
-    "\u0002\u0002\u01a2\u01a0\u0003\u0002\u0002\u0002\u01a3\u01a4\u0005$",
-    "\u0013\u0002\u01a4#\u0003\u0002\u0002\u0002\u01a5\u01ab\u0005\u0014",
-    "\u000b\u0002\u01a6\u01ab\u00054\u001b\u0002\u01a7\u01ab\u00058\u001d",
-    "\u0002\u01a8\u01ab\u0005&\u0014\u0002\u01a9\u01ab\u0007\u001e\u0002",
-    "\u0002\u01aa\u01a5\u0003\u0002\u0002\u0002\u01aa\u01a6\u0003\u0002\u0002",
-    "\u0002\u01aa\u01a7\u0003\u0002\u0002\u0002\u01aa\u01a8\u0003\u0002\u0002",
-    "\u0002\u01aa\u01a9\u0003\u0002\u0002\u0002\u01ab%\u0003\u0002\u0002",
-    "\u0002\u01ac\u01b0\u0007\u000b\u0002\u0002\u01ad\u01af\u0007\u001b\u0002",
-    "\u0002\u01ae\u01ad\u0003\u0002\u0002\u0002\u01af\u01b2\u0003\u0002\u0002",
-    "\u0002\u01b0\u01ae\u0003\u0002\u0002\u0002\u01b0\u01b1\u0003\u0002\u0002",
-    "\u0002\u01b1\u01b3\u0003\u0002\u0002\u0002\u01b2\u01b0\u0003\u0002\u0002",
-    "\u0002\u01b3\u01b7\u0005\b\u0005\u0002\u01b4\u01b6\u0007\u001b\u0002",
-    "\u0002\u01b5\u01b4\u0003\u0002\u0002\u0002\u01b6\u01b9\u0003\u0002\u0002",
-    "\u0002\u01b7\u01b5\u0003\u0002\u0002\u0002\u01b7\u01b8\u0003\u0002\u0002",
-    "\u0002\u01b8\u01bd\u0003\u0002\u0002\u0002\u01b9\u01b7\u0003\u0002\u0002",
-    "\u0002\u01ba\u01be\u0005(\u0015\u0002\u01bb\u01be\u0005*\u0016\u0002",
-    "\u01bc\u01be\u0005,\u0017\u0002\u01bd\u01ba\u0003\u0002\u0002\u0002",
-    "\u01bd\u01bb\u0003\u0002\u0002\u0002\u01bd\u01bc\u0003\u0002\u0002\u0002",
-    "\u01be\'\u0003\u0002\u0002\u0002\u01bf\u01c3\u0007\u0013\u0002\u0002",
-    "\u01c0\u01c2\u0005\u0004\u0003\u0002\u01c1\u01c0\u0003\u0002\u0002\u0002",
-    "\u01c2\u01c5\u0003\u0002\u0002\u0002\u01c3\u01c1\u0003\u0002\u0002\u0002",
-    "\u01c3\u01c4\u0003\u0002\u0002\u0002\u01c4\u01c6\u0003\u0002\u0002\u0002",
-    "\u01c5\u01c3\u0003\u0002\u0002\u0002\u01c6\u01ca\u00050\u0019\u0002",
-    "\u01c7\u01c9\u0005\u0004\u0003\u0002\u01c8\u01c7\u0003\u0002\u0002\u0002",
-    "\u01c9\u01cc\u0003\u0002\u0002\u0002\u01ca\u01c8\u0003\u0002\u0002\u0002",
-    "\u01ca\u01cb\u0003\u0002\u0002\u0002\u01cb\u01cd\u0003\u0002\u0002\u0002",
-    "\u01cc\u01ca\u0003\u0002\u0002\u0002\u01cd\u01ce\u0007\u0014\u0002\u0002",
-    "\u01ce)\u0003\u0002\u0002\u0002\u01cf\u01d3\u0007\r\u0002\u0002\u01d0",
-    "\u01d2\u0005\u0004\u0003\u0002\u01d1\u01d0\u0003\u0002\u0002\u0002\u01d2",
-    "\u01d5\u0003\u0002\u0002\u0002\u01d3\u01d1\u0003\u0002\u0002\u0002\u01d3",
-    "\u01d4\u0003\u0002\u0002\u0002\u01d4\u01dc\u0003\u0002\u0002\u0002\u01d5",
-    "\u01d3\u0003\u0002\u0002\u0002\u01d6\u01d8\u0005\"\u0012\u0002\u01d7",
-    "\u01d9\u0005\u0004\u0003\u0002\u01d8\u01d7\u0003\u0002\u0002\u0002\u01d9",
-    "\u01da\u0003\u0002\u0002\u0002\u01da\u01d8\u0003\u0002\u0002\u0002\u01da",
-    "\u01db\u0003\u0002\u0002\u0002\u01db\u01dd\u0003\u0002\u0002\u0002\u01dc",
-    "\u01d6\u0003\u0002\u0002\u0002\u01dd\u01de\u0003\u0002\u0002\u0002\u01de",
-    "\u01dc\u0003\u0002\u0002\u0002\u01de\u01df\u0003\u0002\u0002\u0002\u01df",
-    "\u01e0\u0003\u0002\u0002\u0002\u01e0\u01e1\u0007\u000e\u0002\u0002\u01e1",
-    "+\u0003\u0002\u0002\u0002\u01e2\u01e6\u0007\r\u0002\u0002\u01e3\u01e5",
-    "\u0005\u0004\u0003\u0002\u01e4\u01e3\u0003\u0002\u0002\u0002\u01e5\u01e8",
-    "\u0003\u0002\u0002\u0002\u01e6\u01e4\u0003\u0002\u0002\u0002\u01e6\u01e7",
-    "\u0003\u0002\u0002\u0002\u01e7\u01f1\u0003\u0002\u0002\u0002\u01e8\u01e6",
-    "\u0003\u0002\u0002\u0002\u01e9\u01eb\u0005.\u0018\u0002\u01ea\u01ec",
-    "\u0005\u0004\u0003\u0002\u01eb\u01ea\u0003\u0002\u0002\u0002\u01ec\u01ed",
-    "\u0003\u0002\u0002\u0002\u01ed\u01eb\u0003\u0002\u0002\u0002\u01ed\u01ee",
-    "\u0003\u0002\u0002\u0002\u01ee\u01f0\u0003\u0002\u0002\u0002\u01ef\u01e9",
-    "\u0003\u0002\u0002\u0002\u01f0\u01f3\u0003\u0002\u0002\u0002\u01f1\u01ef",
-    "\u0003\u0002\u0002\u0002\u01f1\u01f2\u0003\u0002\u0002\u0002\u01f2\u01f4",
-    "\u0003\u0002\u0002\u0002\u01f3\u01f1\u0003\u0002\u0002\u0002\u01f4\u01f5",
-    "\u0007\u000e\u0002\u0002\u01f5-\u0003\u0002\u0002\u0002\u01f6\u01fa",
-    "\u0005$\u0013\u0002\u01f7\u01f9\u0007\u001b\u0002\u0002\u01f8\u01f7",
-    "\u0003\u0002\u0002\u0002\u01f9\u01fc\u0003\u0002\u0002\u0002\u01fa\u01f8",
-    "\u0003\u0002\u0002\u0002\u01fa\u01fb\u0003\u0002\u0002\u0002\u01fb\u01fd",
-    "\u0003\u0002\u0002\u0002\u01fc\u01fa\u0003\u0002\u0002\u0002\u01fd\u0201",
-    "\u0007\u0019\u0002\u0002\u01fe\u0200\u0007\u001b\u0002\u0002\u01ff\u01fe",
-    "\u0003\u0002\u0002\u0002\u0200\u0203\u0003\u0002\u0002\u0002\u0201\u01ff",
-    "\u0003\u0002\u0002\u0002\u0201\u0202\u0003\u0002\u0002\u0002\u0202\u0204",
-    "\u0003\u0002\u0002\u0002\u0203\u0201\u0003\u0002\u0002\u0002\u0204\u0205",
-    "\u0005$\u0013\u0002\u0205/\u0003\u0002\u0002\u0002\u0206\u0208\u0005",
-    "\u0004\u0003\u0002\u0207\u0206\u0003\u0002\u0002\u0002\u0208\u020b\u0003",
-    "\u0002\u0002\u0002\u0209\u0207\u0003\u0002\u0002\u0002\u0209\u020a\u0003",
-    "\u0002\u0002\u0002\u020a\u020c\u0003\u0002\u0002\u0002\u020b\u0209\u0003",
-    "\u0002\u0002\u0002\u020c\u0217\u0005$\u0013\u0002\u020d\u0211\u0007",
-    "\f\u0002\u0002\u020e\u0210\u0005\u0004\u0003\u0002\u020f\u020e\u0003",
-    "\u0002\u0002\u0002\u0210\u0213\u0003\u0002\u0002\u0002\u0211\u020f\u0003",
-    "\u0002\u0002\u0002\u0211\u0212\u0003\u0002\u0002\u0002\u0212\u0214\u0003",
-    "\u0002\u0002\u0002\u0213\u0211\u0003\u0002\u0002\u0002\u0214\u0216\u0005",
-    "$\u0013\u0002\u0215\u020d\u0003\u0002\u0002\u0002\u0216\u0219\u0003",
-    "\u0002\u0002\u0002\u0217\u0215\u0003\u0002\u0002\u0002\u0217\u0218\u0003",
-    "\u0002\u0002\u0002\u0218\u021d\u0003\u0002\u0002\u0002\u0219\u0217\u0003",
-    "\u0002\u0002\u0002\u021a\u021c\u0005\u0004\u0003\u0002\u021b\u021a\u0003",
-    "\u0002\u0002\u0002\u021c\u021f\u0003\u0002\u0002\u0002\u021d\u021b\u0003",
-    "\u0002\u0002\u0002\u021d\u021e\u0003\u0002\u0002\u0002\u021e1\u0003",
-    "\u0002\u0002\u0002\u021f\u021d\u0003\u0002\u0002\u0002\u0220\u0222\u0005",
-    "\u0004\u0003\u0002\u0221\u0220\u0003\u0002\u0002\u0002\u0222\u0225\u0003",
-    "\u0002\u0002\u0002\u0223\u0221\u0003\u0002\u0002\u0002\u0223\u0224\u0003",
-    "\u0002\u0002\u0002\u0224\u0226\u0003\u0002\u0002\u0002\u0225\u0223\u0003",
-    "\u0002\u0002\u0002\u0226\u0231\u0007\u001e\u0002\u0002\u0227\u022b\u0007",
-    "\f\u0002\u0002\u0228\u022a\u0005\u0004\u0003\u0002\u0229\u0228\u0003",
-    "\u0002\u0002\u0002\u022a\u022d\u0003\u0002\u0002\u0002\u022b\u0229\u0003",
-    "\u0002\u0002\u0002\u022b\u022c\u0003\u0002\u0002\u0002\u022c\u022e\u0003",
-    "\u0002\u0002\u0002\u022d\u022b\u0003\u0002\u0002\u0002\u022e\u0230\u0007",
-    "\u001e\u0002\u0002\u022f\u0227\u0003\u0002\u0002\u0002\u0230\u0233\u0003",
-    "\u0002\u0002\u0002\u0231\u022f\u0003\u0002\u0002\u0002\u0231\u0232\u0003",
-    "\u0002\u0002\u0002\u0232\u0237\u0003\u0002\u0002\u0002\u0233\u0231\u0003",
-    "\u0002\u0002\u0002\u0234\u0236\u0005\u0004\u0003\u0002\u0235\u0234\u0003",
-    "\u0002\u0002\u0002\u0236\u0239\u0003\u0002\u0002\u0002\u0237\u0235\u0003",
-    "\u0002\u0002\u0002\u0237\u0238\u0003\u0002\u0002\u0002\u02383\u0003",
-    "\u0002\u0002\u0002\u0239\u0237\u0003\u0002\u0002\u0002\u023a\u023e\u0007",
-    "\u001e\u0002\u0002\u023b\u023d\u0007\u001b\u0002\u0002\u023c\u023b\u0003",
-    "\u0002\u0002\u0002\u023d\u0240\u0003\u0002\u0002\u0002\u023e\u023c\u0003",
-    "\u0002\u0002\u0002\u023e\u023f\u0003\u0002\u0002\u0002\u023f\u0241\u0003",
-    "\u0002\u0002\u0002\u0240\u023e\u0003\u0002\u0002\u0002\u0241\u0243\u0007",
-    "\u000f\u0002\u0002\u0242\u0244\u00052\u001a\u0002\u0243\u0242\u0003",
-    "\u0002\u0002\u0002\u0243\u0244\u0003\u0002\u0002\u0002\u0244\u0245\u0003",
-    "\u0002\u0002\u0002\u0245\u0246\u0007\u0010\u0002\u0002\u02465\u0003",
-    "\u0002\u0002\u0002\u0247\u024b\u0007\t\u0002\u0002\u0248\u024a\u0005",
-    "\u0004\u0003\u0002\u0249\u0248\u0003\u0002\u0002\u0002\u024a\u024d\u0003",
-    "\u0002\u0002\u0002\u024b\u0249\u0003\u0002\u0002\u0002\u024b\u024c\u0003",
-    "\u0002\u0002\u0002\u024c\u024e\u0003\u0002\u0002\u0002\u024d\u024b\u0003",
-    "\u0002\u0002\u0002\u024e\u0256\u0007\u001e\u0002\u0002\u024f\u0251\u0005",
-    "\u0004\u0003\u0002\u0250\u024f\u0003\u0002\u0002\u0002\u0251\u0254\u0003",
-    "\u0002\u0002\u0002\u0252\u0250\u0003\u0002\u0002\u0002\u0252\u0253\u0003",
-    "\u0002\u0002\u0002\u0253\u0255\u0003\u0002\u0002\u0002\u0254\u0252\u0003",
-    "\u0002\u0002\u0002\u0255\u0257\u0007\u001e\u0002\u0002\u0256\u0252\u0003",
-    "\u0002\u0002\u0002\u0256\u0257\u0003\u0002\u0002\u0002\u02577\u0003",
-    "\u0002\u0002\u0002\u0258\u0259\t\u0003\u0002\u0002\u02599\u0003\u0002",
-    "\u0002\u0002\u025a\u025b\u0007\u0005\u0002\u0002\u025b\u025c\u0005\u0004",
-    "\u0003\u0002\u025c\u0260\u0007\u001e\u0002\u0002\u025d\u025f\u0005\u0004",
-    "\u0003\u0002\u025e\u025d\u0003\u0002\u0002\u0002\u025f\u0262\u0003\u0002",
-    "\u0002\u0002\u0260\u025e\u0003\u0002\u0002\u0002\u0260\u0261\u0003\u0002",
-    "\u0002\u0002\u0261\u0263\u0003\u0002\u0002\u0002\u0262\u0260\u0003\u0002",
-    "\u0002\u0002\u0263\u0266\u0007\u0019\u0002\u0002\u0264\u0267\u0005\n",
-    "\u0006\u0002\u0265\u0267\u0007\u0018\u0002\u0002\u0266\u0264\u0003\u0002",
-    "\u0002\u0002\u0266\u0265\u0003\u0002\u0002\u0002\u0267;\u0003\u0002",
-    "\u0002\u0002\u0268\u026a\u0007\u0006\u0002\u0002\u0269\u026b\u0005\u0004",
-    "\u0003\u0002\u026a\u0269\u0003\u0002\u0002\u0002\u026b\u026c\u0003\u0002",
-    "\u0002\u0002\u026c\u026a\u0003\u0002\u0002\u0002\u026c\u026d\u0003\u0002",
-    "\u0002\u0002\u026d\u026e\u0003\u0002\u0002\u0002\u026e\u0270\u0007\u001e",
-    "\u0002\u0002\u026f\u0271\u0005\u0004\u0003\u0002\u0270\u026f\u0003\u0002",
-    "\u0002\u0002\u0271\u0272\u0003\u0002\u0002\u0002\u0272\u0270\u0003\u0002",
-    "\u0002\u0002\u0272\u0273\u0003\u0002\u0002\u0002\u0273\u0274\u0003\u0002",
-    "\u0002\u0002\u0274\u0275\u0005\u0014\u000b\u0002\u0275=\u0003\u0002",
-    "\u0002\u0002^AHJLSUW^`bikmpx~\u0082\u0087\u008e\u0095\u009c\u00a2\u00a5",
-    "\u00ab\u00af\u00b7\u00be\u00c5\u00cc\u00d1\u00da\u00de\u00e1\u00e7\u00ed",
-    "\u00f3\u00f6\u0100\u0107\u010d\u0113\u011a\u0121\u012a\u0130\u0135\u013e",
-    "\u0143\u0147\u014f\u0156\u015d\u0164\u016b\u0174\u017b\u0182\u0189\u0190",
-    "\u0199\u01a0\u01aa\u01b0\u01b7\u01bd\u01c3\u01ca\u01d3\u01da\u01de\u01e6",
-    "\u01ed\u01f1\u01fa\u0201\u0209\u0211\u0217\u021d\u0223\u022b\u0231\u0237",
-    "\u023e\u0243\u024b\u0252\u0256\u0260\u0266\u026c\u0272"].join("");
-var atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
-var decisionsToDFA = atn.decisionToState.map(function (ds, index) { return new antlr4.dfa.DFA(ds, index); });
-var sharedContextCache = new antlr4.PredictionContextCache();
-var literalNames = [null, "'type'", "'fn'", "'event'", "'on'", "'const'",
-    "'let'", "'emit'", null, "'new'", null, "'{'", "'}'",
-    "'('", "')'", "'<'", "'>'", "'['", "']'", "'.'", "'='",
-    "'|'", "'void'"];
-var symbolicNames = [null, "TYPE", "FN", "EVENT", "ON", "CONST", "LET",
-    "EMIT", "BOOLCONSTANT", "NEW", "SEP", "OPENBODY",
-    "CLOSEBODY", "OPENARGS", "CLOSEARGS", "OPENGENERIC",
-    "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY", "METHODSEP",
-    "EQUALS", "OR", "VOID", "TYPESEP", "NEWLINE", "WS",
-    "STRINGCONSTANT", "NUMBERCONSTANT", "VARNAME"];
-var ruleNames = ["module", "blank", "types", "othertype", "typename",
-    "typegenerics", "fulltypename", "typebody", "typeline",
-    "functions", "functionbody", "statements", "declarations",
-    "decname", "constdeclaration", "letdeclaration", "assignments",
-    "assignables", "objectliterals", "arrayliteral", "typeliteral",
-    "mapliteral", "mapline", "assignablelist", "calllist",
-    "calls", "emits", "constants", "events", "handlers"];
-function AmmParser(input) {
-    antlr4.Parser.call(this, input);
-    this._interp = new antlr4.atn.ParserATNSimulator(this, atn, decisionsToDFA, sharedContextCache);
-    this.ruleNames = ruleNames;
-    this.literalNames = literalNames;
-    this.symbolicNames = symbolicNames;
-    return this;
-}
-AmmParser.prototype = Object.create(antlr4.Parser.prototype);
-AmmParser.prototype.constructor = AmmParser;
-Object.defineProperty(AmmParser.prototype, "atn", {
-    get: function () {
-        return atn;
-    }
+const fulltypename = lp_1.Or.build([
+    lp_1.NamedAnd.build({
+        typename,
+        opttypegenerics: lp_1.ZeroOrOne.build(lp_1.And.build([optblank, typegenerics])),
+    }),
+    voidn
+]);
+// Ugly hackery around circular dependency
+typegenerics.and.generics.oneOrMore[0].and.fulltypename = fulltypename;
+const emits = lp_1.NamedAnd.build({ emit, blank, variable, value: lp_1.ZeroOrOne.build(lp_1.NamedAnd.build({
+        blank, variable
+    })) });
+const events = lp_1.NamedAnd.build({ event, blank, variable, a: optblank, colon, b: optblank, fulltypename });
+const calllist = lp_1.ZeroOrMore.build(lp_1.NamedAnd.build({ variable, optcomma, optblank }));
+const calls = lp_1.NamedAnd.build({
+    variable,
+    a: optblank,
+    openParen,
+    b: optblank,
+    calllist,
+    c: optblank,
+    closeParen
 });
-AmmParser.EOF = antlr4.Token.EOF;
-AmmParser.TYPE = 1;
-AmmParser.FN = 2;
-AmmParser.EVENT = 3;
-AmmParser.ON = 4;
-AmmParser.CONST = 5;
-AmmParser.LET = 6;
-AmmParser.EMIT = 7;
-AmmParser.BOOLCONSTANT = 8;
-AmmParser.NEW = 9;
-AmmParser.SEP = 10;
-AmmParser.OPENBODY = 11;
-AmmParser.CLOSEBODY = 12;
-AmmParser.OPENARGS = 13;
-AmmParser.CLOSEARGS = 14;
-AmmParser.OPENGENERIC = 15;
-AmmParser.CLOSEGENERIC = 16;
-AmmParser.OPENARRAY = 17;
-AmmParser.CLOSEARRAY = 18;
-AmmParser.METHODSEP = 19;
-AmmParser.EQUALS = 20;
-AmmParser.OR = 21;
-AmmParser.VOID = 22;
-AmmParser.TYPESEP = 23;
-AmmParser.NEWLINE = 24;
-AmmParser.WS = 25;
-AmmParser.STRINGCONSTANT = 26;
-AmmParser.NUMBERCONSTANT = 27;
-AmmParser.VARNAME = 28;
-AmmParser.RULE_module = 0;
-AmmParser.RULE_blank = 1;
-AmmParser.RULE_types = 2;
-AmmParser.RULE_othertype = 3;
-AmmParser.RULE_typename = 4;
-AmmParser.RULE_typegenerics = 5;
-AmmParser.RULE_fulltypename = 6;
-AmmParser.RULE_typebody = 7;
-AmmParser.RULE_typeline = 8;
-AmmParser.RULE_functions = 9;
-AmmParser.RULE_functionbody = 10;
-AmmParser.RULE_statements = 11;
-AmmParser.RULE_declarations = 12;
-AmmParser.RULE_decname = 13;
-AmmParser.RULE_constdeclaration = 14;
-AmmParser.RULE_letdeclaration = 15;
-AmmParser.RULE_assignments = 16;
-AmmParser.RULE_assignables = 17;
-AmmParser.RULE_objectliterals = 18;
-AmmParser.RULE_arrayliteral = 19;
-AmmParser.RULE_typeliteral = 20;
-AmmParser.RULE_mapliteral = 21;
-AmmParser.RULE_mapline = 22;
-AmmParser.RULE_assignablelist = 23;
-AmmParser.RULE_calllist = 24;
-AmmParser.RULE_calls = 25;
-AmmParser.RULE_emits = 26;
-AmmParser.RULE_constants = 27;
-AmmParser.RULE_events = 28;
-AmmParser.RULE_handlers = 29;
-function ModuleContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_module;
-    return this;
-}
-ModuleContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-ModuleContext.prototype.constructor = ModuleContext;
-ModuleContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-ModuleContext.prototype.types = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(TypesContext);
-    }
-    else {
-        return this.getTypedRuleContext(TypesContext, i);
-    }
-};
-ModuleContext.prototype.constdeclaration = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(ConstdeclarationContext);
-    }
-    else {
-        return this.getTypedRuleContext(ConstdeclarationContext, i);
-    }
-};
-ModuleContext.prototype.events = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(EventsContext);
-    }
-    else {
-        return this.getTypedRuleContext(EventsContext, i);
-    }
-};
-ModuleContext.prototype.handlers = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(HandlersContext);
-    }
-    else {
-        return this.getTypedRuleContext(HandlersContext, i);
-    }
-};
-ModuleContext.prototype.EOF = function () {
-    return this.getToken(AmmParser.EOF, 0);
-};
-ModuleContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterModule(this);
-    }
-};
-ModuleContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitModule(this);
-    }
-};
-AmmParser.ModuleContext = ModuleContext;
-AmmParser.prototype.module = function () {
-    var localctx = new ModuleContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 0, AmmParser.RULE_module);
-    var _la = 0; // Token type
-    try {
-        this.state = 110;
-        this._errHandler.sync(this);
-        switch (this._input.LA(1)) {
-            case AmmParser.TYPE:
-            case AmmParser.EVENT:
-            case AmmParser.ON:
-            case AmmParser.CONST:
-            case AmmParser.NEWLINE:
-            case AmmParser.WS:
-                this.enterOuterAlt(localctx, 1);
-                this.state = 63;
-                this._errHandler.sync(this);
-                var _alt = this._interp.adaptivePredict(this._input, 0, this._ctx);
-                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                    if (_alt === 1) {
-                        this.state = 60;
-                        this.blank();
-                    }
-                    this.state = 65;
-                    this._errHandler.sync(this);
-                    _alt = this._interp.adaptivePredict(this._input, 0, this._ctx);
-                }
-                this.state = 74;
-                this._errHandler.sync(this);
-                var _alt = this._interp.adaptivePredict(this._input, 3, this._ctx);
-                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                    if (_alt === 1) {
-                        this.state = 72;
-                        this._errHandler.sync(this);
-                        switch (this._input.LA(1)) {
-                            case AmmParser.TYPE:
-                                this.state = 66;
-                                this.types();
-                                break;
-                            case AmmParser.NEWLINE:
-                            case AmmParser.WS:
-                                this.state = 68;
-                                this._errHandler.sync(this);
-                                var _alt = 1;
-                                do {
-                                    switch (_alt) {
-                                        case 1:
-                                            this.state = 67;
-                                            this.blank();
-                                            break;
-                                        default:
-                                            throw new antlr4.error.NoViableAltException(this);
-                                    }
-                                    this.state = 70;
-                                    this._errHandler.sync(this);
-                                    _alt = this._interp.adaptivePredict(this._input, 1, this._ctx);
-                                } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
-                                break;
-                            default:
-                                throw new antlr4.error.NoViableAltException(this);
-                        }
-                    }
-                    this.state = 76;
-                    this._errHandler.sync(this);
-                    _alt = this._interp.adaptivePredict(this._input, 3, this._ctx);
-                }
-                this.state = 85;
-                this._errHandler.sync(this);
-                var _alt = this._interp.adaptivePredict(this._input, 6, this._ctx);
-                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                    if (_alt === 1) {
-                        this.state = 83;
-                        this._errHandler.sync(this);
-                        switch (this._input.LA(1)) {
-                            case AmmParser.CONST:
-                                this.state = 77;
-                                this.constdeclaration();
-                                break;
-                            case AmmParser.NEWLINE:
-                            case AmmParser.WS:
-                                this.state = 79;
-                                this._errHandler.sync(this);
-                                var _alt = 1;
-                                do {
-                                    switch (_alt) {
-                                        case 1:
-                                            this.state = 78;
-                                            this.blank();
-                                            break;
-                                        default:
-                                            throw new antlr4.error.NoViableAltException(this);
-                                    }
-                                    this.state = 81;
-                                    this._errHandler.sync(this);
-                                    _alt = this._interp.adaptivePredict(this._input, 4, this._ctx);
-                                } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
-                                break;
-                            default:
-                                throw new antlr4.error.NoViableAltException(this);
-                        }
-                    }
-                    this.state = 87;
-                    this._errHandler.sync(this);
-                    _alt = this._interp.adaptivePredict(this._input, 6, this._ctx);
-                }
-                this.state = 96;
-                this._errHandler.sync(this);
-                var _alt = this._interp.adaptivePredict(this._input, 9, this._ctx);
-                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                    if (_alt === 1) {
-                        this.state = 94;
-                        this._errHandler.sync(this);
-                        switch (this._input.LA(1)) {
-                            case AmmParser.EVENT:
-                                this.state = 88;
-                                this.events();
-                                break;
-                            case AmmParser.NEWLINE:
-                            case AmmParser.WS:
-                                this.state = 90;
-                                this._errHandler.sync(this);
-                                var _alt = 1;
-                                do {
-                                    switch (_alt) {
-                                        case 1:
-                                            this.state = 89;
-                                            this.blank();
-                                            break;
-                                        default:
-                                            throw new antlr4.error.NoViableAltException(this);
-                                    }
-                                    this.state = 92;
-                                    this._errHandler.sync(this);
-                                    _alt = this._interp.adaptivePredict(this._input, 7, this._ctx);
-                                } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
-                                break;
-                            default:
-                                throw new antlr4.error.NoViableAltException(this);
-                        }
-                    }
-                    this.state = 98;
-                    this._errHandler.sync(this);
-                    _alt = this._interp.adaptivePredict(this._input, 9, this._ctx);
-                }
-                this.state = 105;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-                do {
-                    this.state = 105;
-                    this._errHandler.sync(this);
-                    switch (this._input.LA(1)) {
-                        case AmmParser.ON:
-                            this.state = 99;
-                            this.handlers();
-                            break;
-                        case AmmParser.NEWLINE:
-                        case AmmParser.WS:
-                            this.state = 101;
-                            this._errHandler.sync(this);
-                            var _alt = 1;
-                            do {
-                                switch (_alt) {
-                                    case 1:
-                                        this.state = 100;
-                                        this.blank();
-                                        break;
-                                    default:
-                                        throw new antlr4.error.NoViableAltException(this);
-                                }
-                                this.state = 103;
-                                this._errHandler.sync(this);
-                                _alt = this._interp.adaptivePredict(this._input, 10, this._ctx);
-                            } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
-                            break;
-                        default:
-                            throw new antlr4.error.NoViableAltException(this);
-                    }
-                    this.state = 107;
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                } while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.ON) | (1 << AmmParser.NEWLINE) | (1 << AmmParser.WS))) !== 0));
-                break;
-            case AmmParser.EOF:
-                this.enterOuterAlt(localctx, 2);
-                this.state = 109;
-                this.match(AmmParser.EOF);
-                break;
-            default:
-                throw new antlr4.error.NoViableAltException(this);
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function BlankContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_blank;
-    return this;
-}
-BlankContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-BlankContext.prototype.constructor = BlankContext;
-BlankContext.prototype.WS = function () {
-    return this.getToken(AmmParser.WS, 0);
-};
-BlankContext.prototype.NEWLINE = function () {
-    return this.getToken(AmmParser.NEWLINE, 0);
-};
-BlankContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterBlank(this);
-    }
-};
-BlankContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitBlank(this);
-    }
-};
-AmmParser.BlankContext = BlankContext;
-AmmParser.prototype.blank = function () {
-    var localctx = new BlankContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 2, AmmParser.RULE_blank);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 112;
-        _la = this._input.LA(1);
-        if (!(_la === AmmParser.NEWLINE || _la === AmmParser.WS)) {
-            this._errHandler.recoverInline(this);
-        }
-        else {
-            this._errHandler.reportMatch(this);
-            this.consume();
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function TypesContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_types;
-    return this;
-}
-TypesContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-TypesContext.prototype.constructor = TypesContext;
-TypesContext.prototype.TYPE = function () {
-    return this.getToken(AmmParser.TYPE, 0);
-};
-TypesContext.prototype.typename = function () {
-    return this.getTypedRuleContext(TypenameContext, 0);
-};
-TypesContext.prototype.typebody = function () {
-    return this.getTypedRuleContext(TypebodyContext, 0);
-};
-TypesContext.prototype.EQUALS = function () {
-    return this.getToken(AmmParser.EQUALS, 0);
-};
-TypesContext.prototype.othertype = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(OthertypeContext);
-    }
-    else {
-        return this.getTypedRuleContext(OthertypeContext, i);
-    }
-};
-TypesContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-TypesContext.prototype.typegenerics = function () {
-    return this.getTypedRuleContext(TypegenericsContext, 0);
-};
-TypesContext.prototype.OR = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(AmmParser.OR);
-    }
-    else {
-        return this.getToken(AmmParser.OR, i);
-    }
-};
-TypesContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterTypes(this);
-    }
-};
-TypesContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitTypes(this);
-    }
-};
-AmmParser.TypesContext = TypesContext;
-AmmParser.prototype.types = function () {
-    var localctx = new TypesContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 4, AmmParser.RULE_types);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 114;
-        this.match(AmmParser.TYPE);
-        this.state = 116;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        do {
-            this.state = 115;
-            this.blank();
-            this.state = 118;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
-        this.state = 120;
-        this.typename();
-        this.state = 124;
-        this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 15, this._ctx);
-        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if (_alt === 1) {
-                this.state = 121;
-                this.blank();
-            }
-            this.state = 126;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 15, this._ctx);
-        }
-        this.state = 128;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        if (_la === AmmParser.OPENGENERIC) {
-            this.state = 127;
-            this.typegenerics();
-        }
-        this.state = 131;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        do {
-            this.state = 130;
-            this.blank();
-            this.state = 133;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
-        this.state = 163;
-        this._errHandler.sync(this);
-        switch (this._input.LA(1)) {
-            case AmmParser.OPENBODY:
-                this.state = 135;
-                this.typebody();
-                break;
-            case AmmParser.EQUALS:
-                this.state = 136;
-                this.match(AmmParser.EQUALS);
-                this.state = 140;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-                while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-                    this.state = 137;
-                    this.blank();
-                    this.state = 142;
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                }
-                this.state = 143;
-                this.othertype();
-                this.state = 160;
-                this._errHandler.sync(this);
-                var _alt = this._interp.adaptivePredict(this._input, 21, this._ctx);
-                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                    if (_alt === 1) {
-                        this.state = 147;
-                        this._errHandler.sync(this);
-                        _la = this._input.LA(1);
-                        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-                            this.state = 144;
-                            this.blank();
-                            this.state = 149;
-                            this._errHandler.sync(this);
-                            _la = this._input.LA(1);
-                        }
-                        this.state = 150;
-                        this.match(AmmParser.OR);
-                        this.state = 154;
-                        this._errHandler.sync(this);
-                        _la = this._input.LA(1);
-                        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-                            this.state = 151;
-                            this.blank();
-                            this.state = 156;
-                            this._errHandler.sync(this);
-                            _la = this._input.LA(1);
-                        }
-                        this.state = 157;
-                        this.othertype();
-                    }
-                    this.state = 162;
-                    this._errHandler.sync(this);
-                    _alt = this._interp.adaptivePredict(this._input, 21, this._ctx);
-                }
-                break;
-            default:
-                throw new antlr4.error.NoViableAltException(this);
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function OthertypeContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_othertype;
-    return this;
-}
-OthertypeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-OthertypeContext.prototype.constructor = OthertypeContext;
-OthertypeContext.prototype.typename = function () {
-    return this.getTypedRuleContext(TypenameContext, 0);
-};
-OthertypeContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-OthertypeContext.prototype.typegenerics = function () {
-    return this.getTypedRuleContext(TypegenericsContext, 0);
-};
-OthertypeContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterOthertype(this);
-    }
-};
-OthertypeContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitOthertype(this);
-    }
-};
-AmmParser.OthertypeContext = OthertypeContext;
-AmmParser.prototype.othertype = function () {
-    var localctx = new OthertypeContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 6, AmmParser.RULE_othertype);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 165;
-        this.typename();
-        this.state = 169;
-        this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 23, this._ctx);
-        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if (_alt === 1) {
-                this.state = 166;
-                this.blank();
-            }
-            this.state = 171;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 23, this._ctx);
-        }
-        this.state = 173;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        if (_la === AmmParser.OPENGENERIC) {
-            this.state = 172;
-            this.typegenerics();
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function TypenameContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_typename;
-    return this;
-}
-TypenameContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-TypenameContext.prototype.constructor = TypenameContext;
-TypenameContext.prototype.VARNAME = function () {
-    return this.getToken(AmmParser.VARNAME, 0);
-};
-TypenameContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterTypename(this);
-    }
-};
-TypenameContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitTypename(this);
-    }
-};
-AmmParser.TypenameContext = TypenameContext;
-AmmParser.prototype.typename = function () {
-    var localctx = new TypenameContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 8, AmmParser.RULE_typename);
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 175;
-        this.match(AmmParser.VARNAME);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function TypegenericsContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_typegenerics;
-    return this;
-}
-TypegenericsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-TypegenericsContext.prototype.constructor = TypegenericsContext;
-TypegenericsContext.prototype.OPENGENERIC = function () {
-    return this.getToken(AmmParser.OPENGENERIC, 0);
-};
-TypegenericsContext.prototype.fulltypename = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(FulltypenameContext);
-    }
-    else {
-        return this.getTypedRuleContext(FulltypenameContext, i);
-    }
-};
-TypegenericsContext.prototype.CLOSEGENERIC = function () {
-    return this.getToken(AmmParser.CLOSEGENERIC, 0);
-};
-TypegenericsContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-TypegenericsContext.prototype.SEP = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(AmmParser.SEP);
-    }
-    else {
-        return this.getToken(AmmParser.SEP, i);
-    }
-};
-TypegenericsContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterTypegenerics(this);
-    }
-};
-TypegenericsContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitTypegenerics(this);
-    }
-};
-AmmParser.TypegenericsContext = TypegenericsContext;
-AmmParser.prototype.typegenerics = function () {
-    var localctx = new TypegenericsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 10, AmmParser.RULE_typegenerics);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 177;
-        this.match(AmmParser.OPENGENERIC);
-        this.state = 181;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 178;
-            this.blank();
-            this.state = 183;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 184;
-        this.fulltypename();
-        this.state = 188;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 185;
-            this.blank();
-            this.state = 190;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 207;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.SEP) {
-            this.state = 191;
-            this.match(AmmParser.SEP);
-            this.state = 195;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-                this.state = 192;
-                this.blank();
-                this.state = 197;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-            }
-            this.state = 198;
-            this.fulltypename();
-            this.state = 202;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-                this.state = 199;
-                this.blank();
-                this.state = 204;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-            }
-            this.state = 209;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 210;
-        this.match(AmmParser.CLOSEGENERIC);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function FulltypenameContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_fulltypename;
-    return this;
-}
-FulltypenameContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-FulltypenameContext.prototype.constructor = FulltypenameContext;
-FulltypenameContext.prototype.typename = function () {
-    return this.getTypedRuleContext(TypenameContext, 0);
-};
-FulltypenameContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-FulltypenameContext.prototype.typegenerics = function () {
-    return this.getTypedRuleContext(TypegenericsContext, 0);
-};
-FulltypenameContext.prototype.VOID = function () {
-    return this.getToken(AmmParser.VOID, 0);
-};
-FulltypenameContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterFulltypename(this);
-    }
-};
-FulltypenameContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitFulltypename(this);
-    }
-};
-AmmParser.FulltypenameContext = FulltypenameContext;
-AmmParser.prototype.fulltypename = function () {
-    var localctx = new FulltypenameContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 12, AmmParser.RULE_fulltypename);
-    var _la = 0; // Token type
-    try {
-        this.state = 223;
-        this._errHandler.sync(this);
-        switch (this._input.LA(1)) {
-            case AmmParser.VARNAME:
-                this.enterOuterAlt(localctx, 1);
-                this.state = 212;
-                this.typename();
-                this.state = 216;
-                this._errHandler.sync(this);
-                var _alt = this._interp.adaptivePredict(this._input, 30, this._ctx);
-                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                    if (_alt === 1) {
-                        this.state = 213;
-                        this.blank();
-                    }
-                    this.state = 218;
-                    this._errHandler.sync(this);
-                    _alt = this._interp.adaptivePredict(this._input, 30, this._ctx);
-                }
-                this.state = 220;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-                if (_la === AmmParser.OPENGENERIC) {
-                    this.state = 219;
-                    this.typegenerics();
-                }
-                break;
-            case AmmParser.VOID:
-                this.enterOuterAlt(localctx, 2);
-                this.state = 222;
-                this.match(AmmParser.VOID);
-                break;
-            default:
-                throw new antlr4.error.NoViableAltException(this);
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function TypebodyContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_typebody;
-    return this;
-}
-TypebodyContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-TypebodyContext.prototype.constructor = TypebodyContext;
-TypebodyContext.prototype.OPENBODY = function () {
-    return this.getToken(AmmParser.OPENBODY, 0);
-};
-TypebodyContext.prototype.CLOSEBODY = function () {
-    return this.getToken(AmmParser.CLOSEBODY, 0);
-};
-TypebodyContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-TypebodyContext.prototype.typeline = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(TypelineContext);
-    }
-    else {
-        return this.getTypedRuleContext(TypelineContext, i);
-    }
-};
-TypebodyContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(AmmParser.WS);
-    }
-    else {
-        return this.getToken(AmmParser.WS, i);
-    }
-};
-TypebodyContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterTypebody(this);
-    }
-};
-TypebodyContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitTypebody(this);
-    }
-};
-AmmParser.TypebodyContext = TypebodyContext;
-AmmParser.prototype.typebody = function () {
-    var localctx = new TypebodyContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 14, AmmParser.RULE_typebody);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 225;
-        this.match(AmmParser.OPENBODY);
-        this.state = 229;
-        this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 33, this._ctx);
-        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if (_alt === 1) {
-                this.state = 226;
-                this.blank();
-            }
-            this.state = 231;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 33, this._ctx);
-        }
-        this.state = 239;
-        this._errHandler.sync(this);
-        var _alt = 1;
-        do {
-            switch (_alt) {
-                case 1:
-                    this.state = 235;
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                    while (_la === AmmParser.WS) {
-                        this.state = 232;
-                        this.match(AmmParser.WS);
-                        this.state = 237;
-                        this._errHandler.sync(this);
-                        _la = this._input.LA(1);
-                    }
-                    this.state = 238;
-                    this.typeline();
-                    break;
-                default:
-                    throw new antlr4.error.NoViableAltException(this);
-            }
-            this.state = 241;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 35, this._ctx);
-        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
-        this.state = 244;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        if (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 243;
-            this.blank();
-        }
-        this.state = 246;
-        this.match(AmmParser.CLOSEBODY);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function TypelineContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_typeline;
-    return this;
-}
-TypelineContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-TypelineContext.prototype.constructor = TypelineContext;
-TypelineContext.prototype.VARNAME = function () {
-    return this.getToken(AmmParser.VARNAME, 0);
-};
-TypelineContext.prototype.TYPESEP = function () {
-    return this.getToken(AmmParser.TYPESEP, 0);
-};
-TypelineContext.prototype.typename = function () {
-    return this.getTypedRuleContext(TypenameContext, 0);
-};
-TypelineContext.prototype.NEWLINE = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(AmmParser.NEWLINE);
-    }
-    else {
-        return this.getToken(AmmParser.NEWLINE, i);
-    }
-};
-TypelineContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterTypeline(this);
-    }
-};
-TypelineContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitTypeline(this);
-    }
-};
-AmmParser.TypelineContext = TypelineContext;
-AmmParser.prototype.typeline = function () {
-    var localctx = new TypelineContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 16, AmmParser.RULE_typeline);
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 248;
-        this.match(AmmParser.VARNAME);
-        this.state = 249;
-        this.match(AmmParser.TYPESEP);
-        this.state = 250;
-        this.typename();
-        this.state = 254;
-        this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 37, this._ctx);
-        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if (_alt === 1) {
-                this.state = 251;
-                this.match(AmmParser.NEWLINE);
-            }
-            this.state = 256;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 37, this._ctx);
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function FunctionsContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_functions;
-    return this;
-}
-FunctionsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-FunctionsContext.prototype.constructor = FunctionsContext;
-FunctionsContext.prototype.FN = function () {
-    return this.getToken(AmmParser.FN, 0);
-};
-FunctionsContext.prototype.OPENARGS = function () {
-    return this.getToken(AmmParser.OPENARGS, 0);
-};
-FunctionsContext.prototype.CLOSEARGS = function () {
-    return this.getToken(AmmParser.CLOSEARGS, 0);
-};
-FunctionsContext.prototype.TYPESEP = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(AmmParser.TYPESEP);
-    }
-    else {
-        return this.getToken(AmmParser.TYPESEP, i);
-    }
-};
-FunctionsContext.prototype.VOID = function () {
-    return this.getToken(AmmParser.VOID, 0);
-};
-FunctionsContext.prototype.functionbody = function () {
-    return this.getTypedRuleContext(FunctionbodyContext, 0);
-};
-FunctionsContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-FunctionsContext.prototype.VARNAME = function () {
-    return this.getToken(AmmParser.VARNAME, 0);
-};
-FunctionsContext.prototype.fulltypename = function () {
-    return this.getTypedRuleContext(FulltypenameContext, 0);
-};
-FunctionsContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterFunctions(this);
-    }
-};
-FunctionsContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitFunctions(this);
-    }
-};
-AmmParser.FunctionsContext = FunctionsContext;
-AmmParser.prototype.functions = function () {
-    var localctx = new FunctionsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 18, AmmParser.RULE_functions);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 257;
-        this.match(AmmParser.FN);
-        this.state = 259;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        do {
-            this.state = 258;
-            this.blank();
-            this.state = 261;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
-        this.state = 263;
-        this.match(AmmParser.OPENARGS);
-        this.state = 267;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        if (_la === AmmParser.VARNAME) {
-            this.state = 264;
-            this.match(AmmParser.VARNAME);
-            this.state = 265;
-            this.match(AmmParser.TYPESEP);
-            this.state = 266;
-            this.fulltypename();
-        }
-        this.state = 269;
-        this.match(AmmParser.CLOSEARGS);
-        this.state = 273;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 270;
-            this.blank();
-            this.state = 275;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 276;
-        this.match(AmmParser.TYPESEP);
-        this.state = 280;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 277;
-            this.blank();
-            this.state = 282;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 283;
-        this.match(AmmParser.VOID);
-        this.state = 287;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 284;
-            this.blank();
-            this.state = 289;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 290;
-        this.functionbody();
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function FunctionbodyContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_functionbody;
-    return this;
-}
-FunctionbodyContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-FunctionbodyContext.prototype.constructor = FunctionbodyContext;
-FunctionbodyContext.prototype.OPENBODY = function () {
-    return this.getToken(AmmParser.OPENBODY, 0);
-};
-FunctionbodyContext.prototype.CLOSEBODY = function () {
-    return this.getToken(AmmParser.CLOSEBODY, 0);
-};
-FunctionbodyContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-FunctionbodyContext.prototype.statements = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(StatementsContext);
-    }
-    else {
-        return this.getTypedRuleContext(StatementsContext, i);
-    }
-};
-FunctionbodyContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterFunctionbody(this);
-    }
-};
-FunctionbodyContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitFunctionbody(this);
-    }
-};
-AmmParser.FunctionbodyContext = FunctionbodyContext;
-AmmParser.prototype.functionbody = function () {
-    var localctx = new FunctionbodyContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 20, AmmParser.RULE_functionbody);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 292;
-        this.match(AmmParser.OPENBODY);
-        this.state = 296;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 293;
-            this.blank();
-            this.state = 298;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 300;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        do {
-            this.state = 299;
-            this.statements();
-            this.state = 302;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        } while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.CONST) | (1 << AmmParser.LET) | (1 << AmmParser.EMIT) | (1 << AmmParser.VARNAME))) !== 0));
-        this.state = 307;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 304;
-            this.blank();
-            this.state = 309;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 310;
-        this.match(AmmParser.CLOSEBODY);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function StatementsContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_statements;
-    return this;
-}
-StatementsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-StatementsContext.prototype.constructor = StatementsContext;
-StatementsContext.prototype.declarations = function () {
-    return this.getTypedRuleContext(DeclarationsContext, 0);
-};
-StatementsContext.prototype.assignments = function () {
-    return this.getTypedRuleContext(AssignmentsContext, 0);
-};
-StatementsContext.prototype.calls = function () {
-    return this.getTypedRuleContext(CallsContext, 0);
-};
-StatementsContext.prototype.emits = function () {
-    return this.getTypedRuleContext(EmitsContext, 0);
-};
-StatementsContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-StatementsContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterStatements(this);
-    }
-};
-StatementsContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitStatements(this);
-    }
-};
-AmmParser.StatementsContext = StatementsContext;
-AmmParser.prototype.statements = function () {
-    var localctx = new StatementsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 22, AmmParser.RULE_statements);
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 316;
-        this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input, 46, this._ctx);
-        switch (la_) {
-            case 1:
-                this.state = 312;
-                this.declarations();
-                break;
-            case 2:
-                this.state = 313;
-                this.assignments();
-                break;
-            case 3:
-                this.state = 314;
-                this.calls();
-                break;
-            case 4:
-                this.state = 315;
-                this.emits();
-                break;
-        }
-        this.state = 319;
-        this._errHandler.sync(this);
-        var _alt = 1;
-        do {
-            switch (_alt) {
-                case 1:
-                    this.state = 318;
-                    this.blank();
-                    break;
-                default:
-                    throw new antlr4.error.NoViableAltException(this);
-            }
-            this.state = 321;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 47, this._ctx);
-        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function DeclarationsContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_declarations;
-    return this;
-}
-DeclarationsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-DeclarationsContext.prototype.constructor = DeclarationsContext;
-DeclarationsContext.prototype.constdeclaration = function () {
-    return this.getTypedRuleContext(ConstdeclarationContext, 0);
-};
-DeclarationsContext.prototype.letdeclaration = function () {
-    return this.getTypedRuleContext(LetdeclarationContext, 0);
-};
-DeclarationsContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterDeclarations(this);
-    }
-};
-DeclarationsContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitDeclarations(this);
-    }
-};
-AmmParser.DeclarationsContext = DeclarationsContext;
-AmmParser.prototype.declarations = function () {
-    var localctx = new DeclarationsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 24, AmmParser.RULE_declarations);
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 325;
-        this._errHandler.sync(this);
-        switch (this._input.LA(1)) {
-            case AmmParser.CONST:
-                this.state = 323;
-                this.constdeclaration();
-                break;
-            case AmmParser.LET:
-                this.state = 324;
-                this.letdeclaration();
-                break;
-            default:
-                throw new antlr4.error.NoViableAltException(this);
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function DecnameContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_decname;
-    return this;
-}
-DecnameContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-DecnameContext.prototype.constructor = DecnameContext;
-DecnameContext.prototype.VARNAME = function () {
-    return this.getToken(AmmParser.VARNAME, 0);
-};
-DecnameContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterDecname(this);
-    }
-};
-DecnameContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitDecname(this);
-    }
-};
-AmmParser.DecnameContext = DecnameContext;
-AmmParser.prototype.decname = function () {
-    var localctx = new DecnameContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 26, AmmParser.RULE_decname);
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 327;
-        this.match(AmmParser.VARNAME);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function ConstdeclarationContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_constdeclaration;
-    return this;
-}
-ConstdeclarationContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-ConstdeclarationContext.prototype.constructor = ConstdeclarationContext;
-ConstdeclarationContext.prototype.CONST = function () {
-    return this.getToken(AmmParser.CONST, 0);
-};
-ConstdeclarationContext.prototype.decname = function () {
-    return this.getTypedRuleContext(DecnameContext, 0);
-};
-ConstdeclarationContext.prototype.TYPESEP = function () {
-    return this.getToken(AmmParser.TYPESEP, 0);
-};
-ConstdeclarationContext.prototype.fulltypename = function () {
-    return this.getTypedRuleContext(FulltypenameContext, 0);
-};
-ConstdeclarationContext.prototype.EQUALS = function () {
-    return this.getToken(AmmParser.EQUALS, 0);
-};
-ConstdeclarationContext.prototype.assignables = function () {
-    return this.getTypedRuleContext(AssignablesContext, 0);
-};
-ConstdeclarationContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-ConstdeclarationContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterConstdeclaration(this);
-    }
-};
-ConstdeclarationContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitConstdeclaration(this);
-    }
-};
-AmmParser.ConstdeclarationContext = ConstdeclarationContext;
-AmmParser.prototype.constdeclaration = function () {
-    var localctx = new ConstdeclarationContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 28, AmmParser.RULE_constdeclaration);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 329;
-        this.match(AmmParser.CONST);
-        this.state = 333;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 330;
-            this.blank();
-            this.state = 335;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 336;
-        this.decname();
-        this.state = 340;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 337;
-            this.blank();
-            this.state = 342;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 343;
-        this.match(AmmParser.TYPESEP);
-        this.state = 347;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 344;
-            this.blank();
-            this.state = 349;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 350;
-        this.fulltypename();
-        this.state = 354;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 351;
-            this.blank();
-            this.state = 356;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 357;
-        this.match(AmmParser.EQUALS);
-        this.state = 361;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 358;
-            this.blank();
-            this.state = 363;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 364;
-        this.assignables();
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function LetdeclarationContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_letdeclaration;
-    return this;
-}
-LetdeclarationContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-LetdeclarationContext.prototype.constructor = LetdeclarationContext;
-LetdeclarationContext.prototype.LET = function () {
-    return this.getToken(AmmParser.LET, 0);
-};
-LetdeclarationContext.prototype.decname = function () {
-    return this.getTypedRuleContext(DecnameContext, 0);
-};
-LetdeclarationContext.prototype.TYPESEP = function () {
-    return this.getToken(AmmParser.TYPESEP, 0);
-};
-LetdeclarationContext.prototype.fulltypename = function () {
-    return this.getTypedRuleContext(FulltypenameContext, 0);
-};
-LetdeclarationContext.prototype.EQUALS = function () {
-    return this.getToken(AmmParser.EQUALS, 0);
-};
-LetdeclarationContext.prototype.assignables = function () {
-    return this.getTypedRuleContext(AssignablesContext, 0);
-};
-LetdeclarationContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-LetdeclarationContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterLetdeclaration(this);
-    }
-};
-LetdeclarationContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitLetdeclaration(this);
-    }
-};
-AmmParser.LetdeclarationContext = LetdeclarationContext;
-AmmParser.prototype.letdeclaration = function () {
-    var localctx = new LetdeclarationContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 30, AmmParser.RULE_letdeclaration);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 366;
-        this.match(AmmParser.LET);
-        this.state = 370;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 367;
-            this.blank();
-            this.state = 372;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 373;
-        this.decname();
-        this.state = 377;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 374;
-            this.blank();
-            this.state = 379;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 380;
-        this.match(AmmParser.TYPESEP);
-        this.state = 384;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 381;
-            this.blank();
-            this.state = 386;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 387;
-        this.fulltypename();
-        this.state = 391;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 388;
-            this.blank();
-            this.state = 393;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 394;
-        this.match(AmmParser.EQUALS);
-        this.state = 398;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 395;
-            this.blank();
-            this.state = 400;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 401;
-        this.assignables();
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function AssignmentsContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_assignments;
-    return this;
-}
-AssignmentsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-AssignmentsContext.prototype.constructor = AssignmentsContext;
-AssignmentsContext.prototype.decname = function () {
-    return this.getTypedRuleContext(DecnameContext, 0);
-};
-AssignmentsContext.prototype.EQUALS = function () {
-    return this.getToken(AmmParser.EQUALS, 0);
-};
-AssignmentsContext.prototype.assignables = function () {
-    return this.getTypedRuleContext(AssignablesContext, 0);
-};
-AssignmentsContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-AssignmentsContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterAssignments(this);
-    }
-};
-AssignmentsContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitAssignments(this);
-    }
-};
-AmmParser.AssignmentsContext = AssignmentsContext;
-AmmParser.prototype.assignments = function () {
-    var localctx = new AssignmentsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 32, AmmParser.RULE_assignments);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 403;
-        this.decname();
-        this.state = 407;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 404;
-            this.blank();
-            this.state = 409;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 410;
-        this.match(AmmParser.EQUALS);
-        this.state = 414;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 411;
-            this.blank();
-            this.state = 416;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 417;
-        this.assignables();
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function AssignablesContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_assignables;
-    return this;
-}
-AssignablesContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-AssignablesContext.prototype.constructor = AssignablesContext;
-AssignablesContext.prototype.functions = function () {
-    return this.getTypedRuleContext(FunctionsContext, 0);
-};
-AssignablesContext.prototype.calls = function () {
-    return this.getTypedRuleContext(CallsContext, 0);
-};
-AssignablesContext.prototype.constants = function () {
-    return this.getTypedRuleContext(ConstantsContext, 0);
-};
-AssignablesContext.prototype.objectliterals = function () {
-    return this.getTypedRuleContext(ObjectliteralsContext, 0);
-};
-AssignablesContext.prototype.VARNAME = function () {
-    return this.getToken(AmmParser.VARNAME, 0);
-};
-AssignablesContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterAssignables(this);
-    }
-};
-AssignablesContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitAssignables(this);
-    }
-};
-AmmParser.AssignablesContext = AssignablesContext;
-AmmParser.prototype.assignables = function () {
-    var localctx = new AssignablesContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 34, AmmParser.RULE_assignables);
-    try {
-        this.state = 424;
-        this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input, 61, this._ctx);
-        switch (la_) {
-            case 1:
-                this.enterOuterAlt(localctx, 1);
-                this.state = 419;
-                this.functions();
-                break;
-            case 2:
-                this.enterOuterAlt(localctx, 2);
-                this.state = 420;
-                this.calls();
-                break;
-            case 3:
-                this.enterOuterAlt(localctx, 3);
-                this.state = 421;
-                this.constants();
-                break;
-            case 4:
-                this.enterOuterAlt(localctx, 4);
-                this.state = 422;
-                this.objectliterals();
-                break;
-            case 5:
-                this.enterOuterAlt(localctx, 5);
-                this.state = 423;
-                this.match(AmmParser.VARNAME);
-                break;
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function ObjectliteralsContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_objectliterals;
-    return this;
-}
-ObjectliteralsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-ObjectliteralsContext.prototype.constructor = ObjectliteralsContext;
-ObjectliteralsContext.prototype.NEW = function () {
-    return this.getToken(AmmParser.NEW, 0);
-};
-ObjectliteralsContext.prototype.othertype = function () {
-    return this.getTypedRuleContext(OthertypeContext, 0);
-};
-ObjectliteralsContext.prototype.arrayliteral = function () {
-    return this.getTypedRuleContext(ArrayliteralContext, 0);
-};
-ObjectliteralsContext.prototype.typeliteral = function () {
-    return this.getTypedRuleContext(TypeliteralContext, 0);
-};
-ObjectliteralsContext.prototype.mapliteral = function () {
-    return this.getTypedRuleContext(MapliteralContext, 0);
-};
-ObjectliteralsContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(AmmParser.WS);
-    }
-    else {
-        return this.getToken(AmmParser.WS, i);
-    }
-};
-ObjectliteralsContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterObjectliterals(this);
-    }
-};
-ObjectliteralsContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitObjectliterals(this);
-    }
-};
-AmmParser.ObjectliteralsContext = ObjectliteralsContext;
-AmmParser.prototype.objectliterals = function () {
-    var localctx = new ObjectliteralsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 36, AmmParser.RULE_objectliterals);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 426;
-        this.match(AmmParser.NEW);
-        this.state = 430;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.WS) {
-            this.state = 427;
-            this.match(AmmParser.WS);
-            this.state = 432;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 433;
-        this.othertype();
-        this.state = 437;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.WS) {
-            this.state = 434;
-            this.match(AmmParser.WS);
-            this.state = 439;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 443;
-        this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input, 64, this._ctx);
-        switch (la_) {
-            case 1:
-                this.state = 440;
-                this.arrayliteral();
-                break;
-            case 2:
-                this.state = 441;
-                this.typeliteral();
-                break;
-            case 3:
-                this.state = 442;
-                this.mapliteral();
-                break;
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function ArrayliteralContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_arrayliteral;
-    return this;
-}
-ArrayliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-ArrayliteralContext.prototype.constructor = ArrayliteralContext;
-ArrayliteralContext.prototype.OPENARRAY = function () {
-    return this.getToken(AmmParser.OPENARRAY, 0);
-};
-ArrayliteralContext.prototype.assignablelist = function () {
-    return this.getTypedRuleContext(AssignablelistContext, 0);
-};
-ArrayliteralContext.prototype.CLOSEARRAY = function () {
-    return this.getToken(AmmParser.CLOSEARRAY, 0);
-};
-ArrayliteralContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-ArrayliteralContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterArrayliteral(this);
-    }
-};
-ArrayliteralContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitArrayliteral(this);
-    }
-};
-AmmParser.ArrayliteralContext = ArrayliteralContext;
-AmmParser.prototype.arrayliteral = function () {
-    var localctx = new ArrayliteralContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 38, AmmParser.RULE_arrayliteral);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 445;
-        this.match(AmmParser.OPENARRAY);
-        this.state = 449;
-        this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 65, this._ctx);
-        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if (_alt === 1) {
-                this.state = 446;
-                this.blank();
-            }
-            this.state = 451;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 65, this._ctx);
-        }
-        this.state = 452;
-        this.assignablelist();
-        this.state = 456;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 453;
-            this.blank();
-            this.state = 458;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 459;
-        this.match(AmmParser.CLOSEARRAY);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function TypeliteralContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_typeliteral;
-    return this;
-}
-TypeliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-TypeliteralContext.prototype.constructor = TypeliteralContext;
-TypeliteralContext.prototype.OPENBODY = function () {
-    return this.getToken(AmmParser.OPENBODY, 0);
-};
-TypeliteralContext.prototype.CLOSEBODY = function () {
-    return this.getToken(AmmParser.CLOSEBODY, 0);
-};
-TypeliteralContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-TypeliteralContext.prototype.assignments = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(AssignmentsContext);
-    }
-    else {
-        return this.getTypedRuleContext(AssignmentsContext, i);
-    }
-};
-TypeliteralContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterTypeliteral(this);
-    }
-};
-TypeliteralContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitTypeliteral(this);
-    }
-};
-AmmParser.TypeliteralContext = TypeliteralContext;
-AmmParser.prototype.typeliteral = function () {
-    var localctx = new TypeliteralContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 40, AmmParser.RULE_typeliteral);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 461;
-        this.match(AmmParser.OPENBODY);
-        this.state = 465;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 462;
-            this.blank();
-            this.state = 467;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 474;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        do {
-            this.state = 468;
-            this.assignments();
-            this.state = 470;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            do {
-                this.state = 469;
-                this.blank();
-                this.state = 472;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-            } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
-            this.state = 476;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        } while (_la === AmmParser.VARNAME);
-        this.state = 478;
-        this.match(AmmParser.CLOSEBODY);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function MapliteralContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_mapliteral;
-    return this;
-}
-MapliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-MapliteralContext.prototype.constructor = MapliteralContext;
-MapliteralContext.prototype.OPENBODY = function () {
-    return this.getToken(AmmParser.OPENBODY, 0);
-};
-MapliteralContext.prototype.CLOSEBODY = function () {
-    return this.getToken(AmmParser.CLOSEBODY, 0);
-};
-MapliteralContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-MapliteralContext.prototype.mapline = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(MaplineContext);
-    }
-    else {
-        return this.getTypedRuleContext(MaplineContext, i);
-    }
-};
-MapliteralContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterMapliteral(this);
-    }
-};
-MapliteralContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitMapliteral(this);
-    }
-};
-AmmParser.MapliteralContext = MapliteralContext;
-AmmParser.prototype.mapliteral = function () {
-    var localctx = new MapliteralContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 42, AmmParser.RULE_mapliteral);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 480;
-        this.match(AmmParser.OPENBODY);
-        this.state = 484;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 481;
-            this.blank();
-            this.state = 486;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 495;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.FN) | (1 << AmmParser.BOOLCONSTANT) | (1 << AmmParser.NEW) | (1 << AmmParser.STRINGCONSTANT) | (1 << AmmParser.NUMBERCONSTANT) | (1 << AmmParser.VARNAME))) !== 0)) {
-            this.state = 487;
-            this.mapline();
-            this.state = 489;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            do {
-                this.state = 488;
-                this.blank();
-                this.state = 491;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-            } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
-            this.state = 497;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 498;
-        this.match(AmmParser.CLOSEBODY);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function MaplineContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_mapline;
-    return this;
-}
-MaplineContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-MaplineContext.prototype.constructor = MaplineContext;
-MaplineContext.prototype.assignables = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(AssignablesContext);
-    }
-    else {
-        return this.getTypedRuleContext(AssignablesContext, i);
-    }
-};
-MaplineContext.prototype.TYPESEP = function () {
-    return this.getToken(AmmParser.TYPESEP, 0);
-};
-MaplineContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(AmmParser.WS);
-    }
-    else {
-        return this.getToken(AmmParser.WS, i);
-    }
-};
-MaplineContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterMapline(this);
-    }
-};
-MaplineContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitMapline(this);
-    }
-};
-AmmParser.MaplineContext = MaplineContext;
-AmmParser.prototype.mapline = function () {
-    var localctx = new MaplineContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 44, AmmParser.RULE_mapline);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 500;
-        this.assignables();
-        this.state = 504;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.WS) {
-            this.state = 501;
-            this.match(AmmParser.WS);
-            this.state = 506;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 507;
-        this.match(AmmParser.TYPESEP);
-        this.state = 511;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.WS) {
-            this.state = 508;
-            this.match(AmmParser.WS);
-            this.state = 513;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 514;
-        this.assignables();
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function AssignablelistContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_assignablelist;
-    return this;
-}
-AssignablelistContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-AssignablelistContext.prototype.constructor = AssignablelistContext;
-AssignablelistContext.prototype.assignables = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(AssignablesContext);
-    }
-    else {
-        return this.getTypedRuleContext(AssignablesContext, i);
-    }
-};
-AssignablelistContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-AssignablelistContext.prototype.SEP = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(AmmParser.SEP);
-    }
-    else {
-        return this.getToken(AmmParser.SEP, i);
-    }
-};
-AssignablelistContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterAssignablelist(this);
-    }
-};
-AssignablelistContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitAssignablelist(this);
-    }
-};
-AmmParser.AssignablelistContext = AssignablelistContext;
-AmmParser.prototype.assignablelist = function () {
-    var localctx = new AssignablelistContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 46, AmmParser.RULE_assignablelist);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 519;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 516;
-            this.blank();
-            this.state = 521;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 522;
-        this.assignables();
-        this.state = 533;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.SEP) {
-            this.state = 523;
-            this.match(AmmParser.SEP);
-            this.state = 527;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-                this.state = 524;
-                this.blank();
-                this.state = 529;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-            }
-            this.state = 530;
-            this.assignables();
-            this.state = 535;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 539;
-        this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 78, this._ctx);
-        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if (_alt === 1) {
-                this.state = 536;
-                this.blank();
-            }
-            this.state = 541;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 78, this._ctx);
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function CalllistContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_calllist;
-    return this;
-}
-CalllistContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-CalllistContext.prototype.constructor = CalllistContext;
-CalllistContext.prototype.VARNAME = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(AmmParser.VARNAME);
-    }
-    else {
-        return this.getToken(AmmParser.VARNAME, i);
-    }
-};
-CalllistContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-CalllistContext.prototype.SEP = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(AmmParser.SEP);
-    }
-    else {
-        return this.getToken(AmmParser.SEP, i);
-    }
-};
-CalllistContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterCalllist(this);
-    }
-};
-CalllistContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitCalllist(this);
-    }
-};
-AmmParser.CalllistContext = CalllistContext;
-AmmParser.prototype.calllist = function () {
-    var localctx = new CalllistContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 48, AmmParser.RULE_calllist);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 545;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 542;
-            this.blank();
-            this.state = 547;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 548;
-        this.match(AmmParser.VARNAME);
-        this.state = 559;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.SEP) {
-            this.state = 549;
-            this.match(AmmParser.SEP);
-            this.state = 553;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-                this.state = 550;
-                this.blank();
-                this.state = 555;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-            }
-            this.state = 556;
-            this.match(AmmParser.VARNAME);
-            this.state = 561;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 565;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 562;
-            this.blank();
-            this.state = 567;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function CallsContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_calls;
-    return this;
-}
-CallsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-CallsContext.prototype.constructor = CallsContext;
-CallsContext.prototype.VARNAME = function () {
-    return this.getToken(AmmParser.VARNAME, 0);
-};
-CallsContext.prototype.OPENARGS = function () {
-    return this.getToken(AmmParser.OPENARGS, 0);
-};
-CallsContext.prototype.CLOSEARGS = function () {
-    return this.getToken(AmmParser.CLOSEARGS, 0);
-};
-CallsContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(AmmParser.WS);
-    }
-    else {
-        return this.getToken(AmmParser.WS, i);
-    }
-};
-CallsContext.prototype.calllist = function () {
-    return this.getTypedRuleContext(CalllistContext, 0);
-};
-CallsContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterCalls(this);
-    }
-};
-CallsContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitCalls(this);
-    }
-};
-AmmParser.CallsContext = CallsContext;
-AmmParser.prototype.calls = function () {
-    var localctx = new CallsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 50, AmmParser.RULE_calls);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 568;
-        this.match(AmmParser.VARNAME);
-        this.state = 572;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.WS) {
-            this.state = 569;
-            this.match(AmmParser.WS);
-            this.state = 574;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 575;
-        this.match(AmmParser.OPENARGS);
-        this.state = 577;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        if ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.NEWLINE) | (1 << AmmParser.WS) | (1 << AmmParser.VARNAME))) !== 0)) {
-            this.state = 576;
-            this.calllist();
-        }
-        this.state = 579;
-        this.match(AmmParser.CLOSEARGS);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function EmitsContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_emits;
-    return this;
-}
-EmitsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-EmitsContext.prototype.constructor = EmitsContext;
-EmitsContext.prototype.EMIT = function () {
-    return this.getToken(AmmParser.EMIT, 0);
-};
-EmitsContext.prototype.VARNAME = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(AmmParser.VARNAME);
-    }
-    else {
-        return this.getToken(AmmParser.VARNAME, i);
-    }
-};
-EmitsContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-EmitsContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterEmits(this);
-    }
-};
-EmitsContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitEmits(this);
-    }
-};
-AmmParser.EmitsContext = EmitsContext;
-AmmParser.prototype.emits = function () {
-    var localctx = new EmitsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 52, AmmParser.RULE_emits);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 581;
-        this.match(AmmParser.EMIT);
-        this.state = 585;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 582;
-            this.blank();
-            this.state = 587;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 588;
-        this.match(AmmParser.VARNAME);
-        this.state = 596;
-        this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input, 87, this._ctx);
-        if (la_ === 1) {
-            this.state = 592;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-                this.state = 589;
-                this.blank();
-                this.state = 594;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-            }
-            this.state = 595;
-            this.match(AmmParser.VARNAME);
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function ConstantsContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_constants;
-    return this;
-}
-ConstantsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-ConstantsContext.prototype.constructor = ConstantsContext;
-ConstantsContext.prototype.NUMBERCONSTANT = function () {
-    return this.getToken(AmmParser.NUMBERCONSTANT, 0);
-};
-ConstantsContext.prototype.STRINGCONSTANT = function () {
-    return this.getToken(AmmParser.STRINGCONSTANT, 0);
-};
-ConstantsContext.prototype.BOOLCONSTANT = function () {
-    return this.getToken(AmmParser.BOOLCONSTANT, 0);
-};
-ConstantsContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterConstants(this);
-    }
-};
-ConstantsContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitConstants(this);
-    }
-};
-AmmParser.ConstantsContext = ConstantsContext;
-AmmParser.prototype.constants = function () {
-    var localctx = new ConstantsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 54, AmmParser.RULE_constants);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 598;
-        _la = this._input.LA(1);
-        if (!((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << AmmParser.BOOLCONSTANT) | (1 << AmmParser.STRINGCONSTANT) | (1 << AmmParser.NUMBERCONSTANT))) !== 0))) {
-            this._errHandler.recoverInline(this);
-        }
-        else {
-            this._errHandler.reportMatch(this);
-            this.consume();
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function EventsContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_events;
-    return this;
-}
-EventsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-EventsContext.prototype.constructor = EventsContext;
-EventsContext.prototype.EVENT = function () {
-    return this.getToken(AmmParser.EVENT, 0);
-};
-EventsContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-EventsContext.prototype.VARNAME = function () {
-    return this.getToken(AmmParser.VARNAME, 0);
-};
-EventsContext.prototype.TYPESEP = function () {
-    return this.getToken(AmmParser.TYPESEP, 0);
-};
-EventsContext.prototype.typename = function () {
-    return this.getTypedRuleContext(TypenameContext, 0);
-};
-EventsContext.prototype.VOID = function () {
-    return this.getToken(AmmParser.VOID, 0);
-};
-EventsContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterEvents(this);
-    }
-};
-EventsContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitEvents(this);
-    }
-};
-AmmParser.EventsContext = EventsContext;
-AmmParser.prototype.events = function () {
-    var localctx = new EventsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 56, AmmParser.RULE_events);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 600;
-        this.match(AmmParser.EVENT);
-        this.state = 601;
-        this.blank();
-        this.state = 602;
-        this.match(AmmParser.VARNAME);
-        this.state = 606;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === AmmParser.NEWLINE || _la === AmmParser.WS) {
-            this.state = 603;
-            this.blank();
-            this.state = 608;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 609;
-        this.match(AmmParser.TYPESEP);
-        this.state = 612;
-        this._errHandler.sync(this);
-        switch (this._input.LA(1)) {
-            case AmmParser.VARNAME:
-                this.state = 610;
-                this.typename();
-                break;
-            case AmmParser.VOID:
-                this.state = 611;
-                this.match(AmmParser.VOID);
-                break;
-            default:
-                throw new antlr4.error.NoViableAltException(this);
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function HandlersContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = AmmParser.RULE_handlers;
-    return this;
-}
-HandlersContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-HandlersContext.prototype.constructor = HandlersContext;
-HandlersContext.prototype.ON = function () {
-    return this.getToken(AmmParser.ON, 0);
-};
-HandlersContext.prototype.VARNAME = function () {
-    return this.getToken(AmmParser.VARNAME, 0);
-};
-HandlersContext.prototype.functions = function () {
-    return this.getTypedRuleContext(FunctionsContext, 0);
-};
-HandlersContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-HandlersContext.prototype.enterRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.enterHandlers(this);
-    }
-};
-HandlersContext.prototype.exitRule = function (listener) {
-    if (listener instanceof AmmListener) {
-        listener.exitHandlers(this);
-    }
-};
-AmmParser.HandlersContext = HandlersContext;
-AmmParser.prototype.handlers = function () {
-    var localctx = new HandlersContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 58, AmmParser.RULE_handlers);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 614;
-        this.match(AmmParser.ON);
-        this.state = 616;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        do {
-            this.state = 615;
-            this.blank();
-            this.state = 618;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
-        this.state = 620;
-        this.match(AmmParser.VARNAME);
-        this.state = 622;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        do {
-            this.state = 621;
-            this.blank();
-            this.state = 624;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        } while (_la === AmmParser.NEWLINE || _la === AmmParser.WS);
-        this.state = 626;
-        this.functions();
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-exports.AmmParser = AmmParser;
+const assignables = lp_1.NamedOr.build({
+    functions: new lp_1.NulLP(),
+    calls,
+    value,
+    variable,
+});
+const constdeclaration = lp_1.NamedAnd.build({
+    constn,
+    a: blank,
+    decname,
+    b: optblank,
+    colon,
+    c: optblank,
+    fulltypename,
+    d: blank,
+    eq,
+    e: blank,
+    assignables,
+});
+const letdeclaration = lp_1.NamedAnd.build({
+    letn,
+    a: blank,
+    decname,
+    b: optblank,
+    colon,
+    c: optblank,
+    fulltypename,
+    d: blank,
+    eq,
+    e: blank,
+    assignables,
+});
+const declarations = lp_1.NamedOr.build({ constdeclaration, letdeclaration });
+const assignments = lp_1.NamedAnd.build({ decname, a: blank, eq, b: blank, assignables, });
+const statements = lp_1.OneOrMore.build(lp_1.NamedOr.build({
+    declarations,
+    assignments,
+    calls,
+    emits,
+    whitespace,
+}));
+const functionbody = lp_1.NamedAnd.build({
+    openCurly,
+    statements,
+    closeCurly,
+});
+const functions = lp_1.NamedAnd.build({
+    fn,
+    blank,
+    openParen,
+    arg: lp_1.ZeroOrOne.build(lp_1.NamedAnd.build({ variable, a: optblank, colon, b: optblank, fulltypename, })),
+    closeParen,
+    a: optblank,
+    colon,
+    b: optblank,
+    voidn,
+    c: optblank,
+    functionbody,
+});
+assignables.or.functions = functions;
+const handler = lp_1.NamedAnd.build({ on, a: blank, variable, b: blank, functions, });
+const amm = lp_1.NamedAnd.build({
+    a: optblank,
+    globalMem: lp_1.ZeroOrMore.build(lp_1.Or.build([constdeclaration, whitespace])),
+    eventDec: lp_1.ZeroOrMore.build(lp_1.Or.build([events, whitespace])),
+    handlers: lp_1.OneOrMore.build(lp_1.Or.build([handler, whitespace])),
+});
+exports.default = amm;
 
-},{"./AmmListener":4,"antlr4/index":77}],6:[function(require,module,exports){
-const fs = require('fs');
-const { InputStream, CommonTokenStream, } = require('antlr4');
-const { AmmLexer, AmmParser, } = require('./');
-const Ast = {
-    fromString: (str) => {
-        const inputStream = new InputStream(str);
-        const langLexer = new AmmLexer(inputStream);
-        const commonTokenStream = new CommonTokenStream(langLexer);
-        const langParser = new AmmParser(commonTokenStream);
-        return langParser.module();
-    },
-    fromFile: (filename) => {
-        return Ast.fromString(fs.readFileSync(filename, { encoding: 'utf8', }));
-    },
-};
-module.exports = Ast;
-
-},{"./":7,"antlr4":77,"fs":83}],7:[function(require,module,exports){
-module.exports = {
-    AmmLexer: require('./AmmLexer').AmmLexer,
-    AmmParser: require('./AmmParser').AmmParser,
-};
-
-},{"./AmmLexer":3,"./AmmParser":5}],8:[function(require,module,exports){
+},{"../lp":31}],4:[function(require,module,exports){
 (function (process){
-const Ast = require('../amm/Ast');
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.fromString = exports.fromFile = void 0;
+const lp_1 = require("../lp");
+const amm_1 = require("../amm");
 // This project depends on BigNum and associated support in Node's Buffer, so must be >= Node 10.20
 // and does not work in the browser. It would be possible to implement a browser-compatible version
 // but there is no need for it and it would make it harder to work with.
-const ceil8 = n => Math.ceil(n / 8) * 8;
+const ceil8 = (n) => Math.ceil(n / 8) * 8;
 const loadGlobalMem = (globalMemAst, addressMap) => {
     const globalMem = {};
     let currentOffset = -1;
     for (const globalConst of globalMemAst) {
+        const rec = globalConst.get();
+        if (!(rec instanceof lp_1.NamedAnd))
+            continue;
         let val;
-        switch (globalConst.fulltypename().getText().trim()) {
+        switch (rec.get('fulltypename').t.trim()) {
             case "int64":
-                val = globalConst.assignables().getText().trim() + 'i64';
+                val = rec.get('assignables').t.trim() + 'i64';
                 globalMem[`@${currentOffset}`] = val;
-                addressMap[globalConst.decname().getText()] = currentOffset;
+                addressMap[rec.get('decname').t] = currentOffset;
                 currentOffset -= 8;
                 break;
             case "float64":
-                val = globalConst.assignables().getText().trim() + 'f64';
+                val = rec.get('assignables').t.trim() + 'f64';
                 globalMem[`@${currentOffset}`] = val;
-                addressMap[globalConst.decname().getText()] = currentOffset;
+                addressMap[rec.get('decname').t] = currentOffset;
                 currentOffset -= 8;
                 break;
             case "string":
                 let str;
                 try {
                     // Will fail on strings with escape chars
-                    str = JSON.parse(globalConst.assignables().getText().trim());
+                    str = JSON.parse(rec.get('assignables').t.trim());
                 }
                 catch (e) {
                     // Hackery to get these strings to work
-                    str = JSON.stringify(globalConst.assignables().getText().trim().replace(/^["']/, '').replace(/["']$/, ''));
+                    str = JSON.stringify(rec.get('assignables').t.trim().replace(/^["']/, '').replace(/["']$/, ''));
                 }
                 let len = ceil8(str.length) + 8;
-                val = globalConst.assignables().getText().trim();
+                val = rec.get('assignables').t.trim();
                 globalMem[`@${currentOffset}`] = val;
-                addressMap[globalConst.decname().getText()] = currentOffset;
+                addressMap[rec.get('decname').t] = currentOffset;
                 currentOffset -= len;
                 break;
             case "bool":
-                val = globalConst.assignables().getText().trim();
+                val = rec.get('assignables').t.trim();
                 globalMem[`@${currentOffset}`] = val;
-                addressMap[globalConst.decname().getText()] = currentOffset;
+                addressMap[rec.get('decname').t] = currentOffset;
                 currentOffset -= 8;
                 break;
             default:
-                console.error(globalConst.fulltypename().getText() + " not yet implemented");
+                console.error(rec.get('fulltypename').t + " not yet implemented");
                 process.exit(1);
         }
     }
@@ -4405,8 +254,13 @@ const loadGlobalMem = (globalMemAst, addressMap) => {
 const loadEventDecs = (eventAst) => {
     const eventMem = {};
     for (const evt of eventAst) {
-        const evtName = evt.VARNAME().getText().trim();
-        const evtSize = evt.VOID() !== null ? 0 : (evt.typename().getText().trim() === "string" ? -1 : 8);
+        const rec = evt.get();
+        if (!(rec instanceof lp_1.NamedAnd))
+            continue;
+        const evtName = rec.get('variable').t.trim();
+        // TODO: Add event support for Arrays
+        const evtSize = rec.get('fulltypename').t.trim() === 'void' ? 0 :
+            rec.get('fulltypename').t.trim() === 'string' ? -1 : 8;
         eventMem[evtName] = evtSize;
     }
     return eventMem;
@@ -4414,22 +268,27 @@ const loadEventDecs = (eventAst) => {
 const getFunctionbodyMem = (functionbody) => {
     let memSize = 0;
     const addressMap = {};
-    for (const statement of functionbody.statements()) {
-        if (statement.declarations()) {
-            if (statement.declarations().constdeclaration()) {
-                if (statement.declarations().constdeclaration().assignables().functions()) {
+    for (const statement of functionbody.get('statements').getAll()) {
+        if (statement.has('declarations')) {
+            if (statement.get('declarations').has('constdeclaration')) {
+                if (statement.get('declarations').get('constdeclaration').get('assignables').has('functions')) {
                     // Because closures re-use their parent memory space, their own memory needs to be included
-                    const closureMem = getFunctionbodyMem(statement.declarations().constdeclaration().assignables().functions().functionbody());
+                    const closureMem = getFunctionbodyMem(statement
+                        .get('declarations')
+                        .get('constdeclaration')
+                        .get('assignables')
+                        .get('functions')
+                        .get('functionbody'));
                     Object.keys(closureMem.addressMap).forEach(name => addressMap[name] = closureMem.addressMap[name] + memSize);
                     memSize += closureMem.memSize;
                 }
                 else {
-                    addressMap[statement.declarations().constdeclaration().decname().getText().trim()] = memSize;
+                    addressMap[statement.get('declarations').get('constdeclaration').get('decname').t.trim()] = memSize;
                     memSize += 8;
                 }
             }
             else {
-                addressMap[statement.declarations().letdeclaration().decname().getText().trim()] = memSize;
+                addressMap[statement.get('declarations').get('letdeclaration').get('decname').t.trim()] = memSize;
                 memSize += 8;
             }
         }
@@ -4439,30 +298,34 @@ const getFunctionbodyMem = (functionbody) => {
         addressMap,
     };
 };
-const getHandlersMem = handlers => handlers.map(handler => {
-    const handlerMem = getFunctionbodyMem(handler.functions().functionbody());
-    if (handler.functions().VARNAME()) {
+const getHandlersMem = (handlers) => handlers
+    .map(h => h.get())
+    .filter(h => h instanceof lp_1.NamedAnd)
+    .map(handler => {
+    const handlerMem = getFunctionbodyMem(handler.get('functions').get('functionbody'));
+    if (!(handler.get('functions').get('arg') instanceof lp_1.NulLP)) {
         // Increase the memory usage and shift *everything* down, then add the new address
         handlerMem.memSize += 8;
         Object.keys(handlerMem.addressMap).forEach(name => handlerMem.addressMap[name] += 8);
-        handlerMem.addressMap[handler.functions().VARNAME().getText().trim()] = 0;
+        handlerMem.addressMap[handler.get('functions').get('arg').get('variable').t.trim()] = 0;
     }
     return handlerMem;
 });
 const closuresFromDeclaration = (declaration, closureMem, eventDecs) => {
-    const name = declaration.constdeclaration().decname().getText().trim();
+    const name = declaration.get('constdeclaration').get('decname').t.trim();
     const allStatements = declaration
-        .constdeclaration()
-        .assignables()
-        .functions()
-        .functionbody()
-        .statements();
-    const statements = allStatements.filter(statement => !(statement.declarations() &&
-        statement.declarations().constdeclaration() &&
-        statement.declarations().constdeclaration().assignables().functions()));
-    const otherClosures = allStatements.filter(statement => statement.declarations() &&
-        statement.declarations().constdeclaration() &&
-        statement.declarations().constdeclaration().assignables().functions()).map(s => closuresFromDeclaration(s.declarations(), closureMem, eventDecs)).reduce((obj, rec) => ({
+        .get('constdeclaration')
+        .get('assignables')
+        .get('functions')
+        .get('functionbody')
+        .get('statements')
+        .getAll();
+    const statements = allStatements.filter(statement => !(statement.has('declarations') &&
+        statement.get('declarations').has('constdeclaration') &&
+        statement.get('declarations').get('constdeclaration').get('assignables').has('functions')));
+    const otherClosures = allStatements.filter(statement => statement.has('declarations') &&
+        statement.get('declarations').has('constdeclaration') &&
+        statement.get('declarations').get('constdeclaration').get('assignables').has('functions')).map(s => closuresFromDeclaration(s.get('declarations'), closureMem, eventDecs)).reduce((obj, rec) => ({
         ...obj,
         ...rec,
     }), {});
@@ -4478,15 +341,16 @@ const closuresFromDeclaration = (declaration, closureMem, eventDecs) => {
 };
 const extractClosures = (handlers, handlerMem, eventDecs) => {
     let closures = {};
-    for (let i = 0; i < handlers.length; i++) {
+    let recs = handlers.filter(h => h.get() instanceof lp_1.NamedAnd);
+    for (let i = 0; i < recs.length; i++) {
+        const rec = recs[i].get();
         const closureMem = handlerMem[i];
-        const handler = handlers[i];
-        for (const statement of handler.functions().functionbody().statements()) {
-            if (statement.declarations() &&
-                statement.declarations().constdeclaration() &&
-                statement.declarations().constdeclaration().assignables().functions()) {
+        for (const statement of rec.get('functions').get('functionbody').get('statements').getAll()) {
+            if (statement.has('declarations') &&
+                statement.get('declarations').has('constdeclaration') &&
+                statement.get('declarations').get('constdeclaration').get('assignables').has('functions')) {
                 // It's a closure, first try to extract any inner closures it may have
-                const innerClosures = closuresFromDeclaration(statement.declarations(), closureMem, eventDecs);
+                const innerClosures = closuresFromDeclaration(statement.get('declarations'), closureMem, eventDecs);
                 closures = {
                     ...closures,
                     ...innerClosures,
@@ -4501,29 +365,32 @@ const loadStatements = (statements, localMem, globalMem) => {
     let line = 0;
     let localMemToLine = {};
     for (const statement of statements) {
-        if (statement.declarations() &&
-            statement.declarations().constdeclaration() &&
-            statement.declarations().constdeclaration().assignables().functions()) {
+        if (statement.has('whitespace'))
+            continue;
+        if (statement.has('declarations') &&
+            statement.get('declarations').has('constdeclaration') &&
+            statement.get('declarations').get('constdeclaration').get('assignables').has('functions')) {
             // It's a closure, skip it
             continue;
         }
-        // let s = `line ${line}`
         let s = '';
-        if (statement.declarations()) {
-            const dec = statement.declarations().constdeclaration() || statement.declarations().letdeclaration();
-            let resultAddress = localMem[dec.decname().getText().trim()];
-            localMemToLine[dec.decname().getText().trim()] = line;
-            const assignables = dec.assignables();
-            if (assignables.functions()) {
+        if (statement.has('declarations')) {
+            const dec = statement.get('declarations').has('constdeclaration') ?
+                statement.get('declarations').get('constdeclaration') :
+                statement.get('declarations').get('letdeclaration');
+            let resultAddress = localMem[dec.get('decname').t.trim()];
+            localMemToLine[dec.get('decname').t.trim()] = line;
+            const assignables = dec.get('assignables');
+            if (assignables.has('functions')) {
                 console.error("This shouldn't be possible!");
                 process.exit(2);
             }
-            else if (assignables.calls()) {
-                const call = assignables.calls();
-                const fn = call.VARNAME().getText().trim();
+            else if (assignables.has('calls')) {
+                const call = assignables.get('calls');
+                const fn = call.get('variable').t.trim();
                 // TODO: Absolute hackery that must be removed soon
                 if (fn === 'pusharr') {
-                    switch (dec.fulltypename().getText().trim()) {
+                    switch (dec.get('fulltypename').t.trim()) {
                         case 'int8':
                         case 'bool':
                             resultAddress = 1;
@@ -4544,7 +411,7 @@ const loadStatements = (statements, localMem, globalMem) => {
                             break;
                     }
                 }
-                const vars = (call.calllist() ? call.calllist().VARNAME() : []).map(v => v.getText().trim());
+                const vars = (call.has('calllist') ? call.get('calllist').getAll() : []).map(v => v.get('variable').t.trim());
                 const args = vars.map(v => localMem.hasOwnProperty(v) ?
                     localMem[v] :
                     globalMem.hasOwnProperty(v) ?
@@ -4562,71 +429,67 @@ const loadStatements = (statements, localMem, globalMem) => {
                     s += ` <- [${deps.join(', ')}]`;
                 }
             }
-            else if (assignables.constants()) {
+            else if (assignables.has('constants')) {
                 // Only required for `let` statements
                 let fn;
                 let val;
-                switch (dec.fulltypename().getText().trim()) {
+                switch (dec.get('fulltypename').t.trim()) {
                     case 'int64':
                         fn = 'seti64';
-                        val = assignables.getText() + 'i64';
+                        val = assignables.t + 'i64';
                         break;
                     case 'int32':
                         fn = 'seti32';
-                        val = assignables.getText() + 'i32';
+                        val = assignables.t + 'i32';
                         break;
                     case 'int16':
                         fn = 'seti16';
-                        val = assignables.getText() + 'i16';
+                        val = assignables.t + 'i16';
                         break;
                     case 'int8':
                         fn = 'seti8';
-                        val = assignables.getText() + 'i8';
+                        val = assignables.t + 'i8';
                         break;
                     case 'float64':
                         fn = 'setf64';
-                        val = assignables.getText() + 'f64';
+                        val = assignables.t + 'f64';
                         break;
                     case 'float32':
                         fn = 'setf32';
-                        val = assignables.getText() + 'f32';
+                        val = assignables.t + 'f32';
                         break;
                     case 'bool':
                         fn = 'setbool';
-                        val = assignables.getText() === 'true' ? '1i8' : '0i8'; // Bools are bytes in the runtime
+                        val = assignables.t === 'true' ? '1i8' : '0i8'; // Bools are bytes in the runtime
                         break;
                     case 'string':
                         fn = 'setestr';
                         val = '0i64';
                         break;
                     default:
-                        throw new Error(`Unsupported variable type ${dec.fulltypename().getText()}`);
+                        throw new Error(`Unsupported variable type ${dec.get('fulltypename').t}`);
                 }
                 s += `@${resultAddress} = ${fn}(${val}, @0) #${line}`;
             }
-            else if (assignables.objectliterals()) {
-                console.error("Not yet implemented");
-                process.exit(4);
-            }
-            else if (assignables.VARNAME()) {
+            else if (assignables.has('variable')) {
                 console.error("This should have been squashed");
                 process.exit(5);
             }
         }
-        else if (statement.assignments()) {
-            const asgn = statement.assignments();
-            const resultAddress = localMem[asgn.decname().getText().trim()];
+        else if (statement.has('assignments')) {
+            const asgn = statement.get('assignments');
+            const resultAddress = localMem[asgn.get('decname').t.trim()];
             localMemToLine[resultAddress] = line;
-            const assignables = asgn.assignables();
-            if (assignables.functions()) {
+            const assignables = asgn.get('assignables');
+            if (assignables.has('functions')) {
                 console.error("This shouldn't be possible!");
                 process.exit(2);
             }
-            else if (assignables.calls()) {
-                const call = assignables.calls();
-                const fn = call.VARNAME().getText().trim();
-                const vars = (call.calllist() ? call.calllist().VARNAME() : []);
-                const args = vars.map(v => v.getText().trim()).map(v => localMem.hasOwnProperty(v) ?
+            else if (assignables.has('calls')) {
+                const call = assignables.get('calls');
+                const fn = call.get('variable').t.trim();
+                const vars = (call.has('calllist') ? call.get('calllist').getAll() : []).map(v => v.get('variable').t.trim());
+                const args = vars.map(v => localMem.hasOwnProperty(v) ?
                     localMem[v] :
                     globalMem.hasOwnProperty(v) ?
                         globalMem[v] :
@@ -4643,30 +506,26 @@ const loadStatements = (statements, localMem, globalMem) => {
                     s += ` <- [${deps.join(', ')}]`;
                 }
             }
-            else if (assignables.constants()) {
+            else if (assignables.has('constants')) {
                 console.error("This should have been hoisted");
                 process.exit(3);
             }
-            else if (assignables.objectliterals()) {
-                console.error("Not yet implemented");
-                process.exit(4);
-            }
-            else if (assignables.VARNAME()) {
+            else if (assignables.has('variable')) {
                 console.error("This should have been squashed");
                 process.exit(5);
             }
         }
-        else if (statement.calls()) {
-            const call = statement.calls();
-            const fn = call.VARNAME().getText().trim();
-            const vars = (call.calllist() ? call.calllist().VARNAME() : []);
-            const args = vars.map(v => v.getText().trim()).map(v => localMem.hasOwnProperty(v) ?
+        else if (statement.has('calls')) {
+            const call = statement.get('calls');
+            const fn = call.get('variable').t.trim();
+            const vars = (call.has('calllist') ? call.get('calllist').getAll() : []).map(v => v.t.trim());
+            const args = vars.map(v => localMem.hasOwnProperty(v) ?
                 localMem[v] :
                 globalMem.hasOwnProperty(v) ?
                     globalMem[v] :
                     v).map(a => typeof a === 'string' ? a : `@${a}`);
             while (args.length < 2)
-                args.push(0);
+                args.push('0');
             const deps = vars
                 .filter(v => localMem.hasOwnProperty(v))
                 .map(v => localMemToLine[localMem[v]])
@@ -4677,10 +536,10 @@ const loadStatements = (statements, localMem, globalMem) => {
                 s += ` <- [${deps.join(', ')}]`;
             }
         }
-        else if (statement.emits()) {
-            const emit = statement.emits();
-            const evtName = emit.VARNAME(0).getText().trim();
-            const payloadVar = emit.VARNAME(1) === null ? undefined : emit.VARNAME(1).getText().trim();
+        else if (statement.has('emits')) {
+            const emit = statement.get('emits');
+            const evtName = emit.get('variable').t.trim();
+            const payloadVar = emit.has('value') ? emit.get('value').t.trim() : undefined;
             const payload = !payloadVar ?
                 0 :
                 localMem.hasOwnProperty(payloadVar) ?
@@ -4704,13 +563,14 @@ const loadStatements = (statements, localMem, globalMem) => {
 };
 const loadHandlers = (handlers, handlerMem, globalMem) => {
     const vec = [];
-    for (let i = 0; i < handlers.length; i++) {
-        const handler = handlers[i];
-        const eventName = handler.VARNAME().getText().trim();
+    const recs = handlers.filter(h => h.get() instanceof lp_1.NamedAnd);
+    for (let i = 0; i < recs.length; i++) {
+        const handler = recs[i].get();
+        const eventName = handler.get('variable').t.trim();
         const memSize = handlerMem[i].memSize;
         const localMem = handlerMem[i].addressMap;
         let h = `handler for ${eventName} with size ${memSize}\n`;
-        const statements = loadStatements(handler.functions().functionbody().statements(), localMem, globalMem);
+        const statements = loadStatements(handler.get('functions').get('functionbody').get('statements').getAll(), localMem, globalMem);
         statements.forEach(s => h += `  ${s}\n`);
         vec.push(h);
     }
@@ -4735,18 +595,16 @@ const ammToAga = (amm) => {
     let outStr = 'Alan Graphcode Assembler v0.0.1\n\n';
     // Get the global memory and the memory address map (var name to address ID)
     const addressMap = {};
-    const globalMem = loadGlobalMem(amm.constdeclaration(), addressMap);
+    const globalMem = loadGlobalMem(amm.get('globalMem').getAll(), addressMap);
     // Output the global memory
     outStr += 'globalMem\n';
     Object.keys(globalMem).forEach(addr => outStr += `  ${addr}: ${globalMem[addr]}\n`);
     outStr += '\n';
     // Load the events, get the event id offset (for reuse with closures) and the event declarations
-    let eventDecs = loadEventDecs(amm.events());
-    // Skipping types for now as exactly how we deal with them and what metadata the runtime needs is
-    // not yet decided.
+    let eventDecs = loadEventDecs(amm.get('eventDec').getAll());
     // Determine the amount of memory to allocate per handler and map declarations to addresses
-    const handlerMem = getHandlersMem(amm.handlers());
-    const closures = extractClosures(amm.handlers(), handlerMem, eventDecs);
+    const handlerMem = getHandlersMem(amm.get('handlers').getAll());
+    const closures = extractClosures(amm.get('handlers').getAll(), handlerMem, eventDecs);
     // Then output the custom events, which may include closures, if needed
     if (Object.keys(eventDecs).length > 0) {
         outStr += 'customEvents\n';
@@ -4754,7 +612,7 @@ const ammToAga = (amm) => {
         outStr += '\n';
     }
     // Load the handlers
-    const handlerVec = loadHandlers(amm.handlers(), handlerMem, addressMap);
+    const handlerVec = loadHandlers(amm.get('handlers').getAll(), handlerMem, addressMap);
     outStr += handlerVec.join('\n');
     // And load the closures (as handlers) if present
     const closureVec = loadClosures(closures, addressMap);
@@ -4764,45 +622,65 @@ const ammToAga = (amm) => {
     }
     return outStr;
 };
-module.exports = {
-    fromFile: (filename) => ammToAga(Ast.fromFile(filename)),
-    fromString: (str) => ammToAga(Ast.fromString(str)),
+exports.fromFile = (filename) => {
+    const lp = new lp_1.LP(filename);
+    const ast = amm_1.default.apply(lp);
+    if (ast instanceof Error) {
+        console.error(ast);
+        process.exit(1);
+    }
+    return ammToAga(ast);
+};
+exports.fromString = (str) => {
+    const lp = lp_1.LP.fromText(str);
+    const ast = amm_1.default.apply(lp);
+    if (ast instanceof Error) {
+        console.error(ast);
+        process.exit(1);
+    }
+    return ammToAga(ast);
 };
 
 }).call(this,require('_process'))
-},{"../amm/Ast":6,"_process":86}],9:[function(require,module,exports){
-const Ast = require('../amm/Ast');
-const AsyncOpcodes = require('alan-js-runtime').asyncopcodes;
+},{"../amm":3,"../lp":31,"_process":83}],5:[function(require,module,exports){
+(function (process){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.fromString = exports.fromFile = void 0;
+const alan_js_runtime_1 = require("alan-js-runtime");
+const lp_1 = require("../lp");
+const amm_1 = require("../amm");
 const callToJsText = (call) => {
-    const args = call.calllist() ? call.calllist().VARNAME().map(v => v.getText()).join(', ') : "";
-    const opcode = call.VARNAME().getText();
-    return AsyncOpcodes.includes(opcode) ? `await r.${opcode}(${args})` : `r.${opcode}(${args})`;
+    const args = call.has('calllist') ?
+        call.get('calllist').getAll().map(r => r.get('variable').t).join(', ') : "";
+    const opcode = call.get('variable').t;
+    return alan_js_runtime_1.asyncopcodes.includes(opcode) ? `await r.${opcode}(${args})` : `r.${opcode}(${args})`;
 };
 const functionbodyToJsText = (fnbody, indent) => {
     let outText = "";
-    for (const statement of fnbody.statements()) {
+    for (const statement of fnbody.get('statements').getAll()) {
         outText += indent + "  "; // For legibility of the output
-        if (statement.declarations()) {
-            if (statement.declarations().constdeclaration()) {
-                const dec = statement.declarations().constdeclaration();
-                outText += `const ${dec.decname().getText()} = ${assignableToJsText(dec.assignables(), indent)}\n`;
+        if (statement.has('declarations')) {
+            if (statement.get('declarations').has('constdeclaration')) {
+                const dec = statement.get('declarations').get('constdeclaration');
+                outText += `const ${dec.get('decname').t} = ${assignableToJsText(dec.get('assignables'), indent)}\n`;
             }
-            else if (statement.declarations().letdeclaration()) {
-                const dec = statement.declarations().letdeclaration();
-                outText += `let ${dec.decname().getText()} = ${assignableToJsText(dec.assignables(), indent)}\n`;
+            else if (statement.get('declarations').has('letdeclaration')) {
+                const dec = statement.get('declarations').get('letdeclaration');
+                outText += `let ${dec.get('decname').t} = ${assignableToJsText(dec.get('assignables'), indent)}\n`;
             }
         }
-        else if (statement.assignments()) {
-            const assign = statement.assignments();
-            outText += `${assign.decname().getText()} = ${assignableToJsText(assign.assignables(), indent)}\n`;
+        else if (statement.has('assignments')) {
+            const assign = statement.get('assignments');
+            outText += `${assign.get('decname').t} = ${assignableToJsText(assign.get('assignables'), indent)}\n`;
         }
-        else if (statement.calls()) {
-            outText += `${callToJsText(statement.calls())}\n`;
+        else if (statement.has('calls')) {
+            outText += `${callToJsText(statement.get('calls'))}\n`;
         }
-        else if (statement.emits()) {
-            const emit = statement.emits();
-            const name = emit.VARNAME(0).getText();
-            const arg = emit.VARNAME(1) ? emit.VARNAME(1).getText() : 'undefined';
+        else if (statement.has('emits')) {
+            const emit = statement.get('emits');
+            const name = emit.get('variable').t;
+            const arg = emit.has('value') ? emit.get('value').get('variable').t : 'undefined';
             outText += `r.emit('${name}', ${arg})\n`;
         }
     }
@@ -4810,23 +688,19 @@ const functionbodyToJsText = (fnbody, indent) => {
 };
 const assignableToJsText = (assignable, indent) => {
     let outText = "";
-    if (assignable.functions()) {
+    if (assignable.has('functions')) {
         outText += '() => {\n'; // All assignable functions/closures take no arguments
-        outText += functionbodyToJsText(assignable.functions().functionbody(), indent + "  ");
+        outText += functionbodyToJsText(assignable.get('functions').get('functionbody'), indent + "  ");
         outText += indent + '  }'; // End this closure
     }
-    else if (assignable.calls()) {
-        outText += callToJsText(assignable.calls());
+    else if (assignable.has('calls')) {
+        outText += callToJsText(assignable.get('calls'));
     }
-    else if (assignable.VARNAME()) {
-        outText += assignable.VARNAME().getText();
+    else if (assignable.has('variable')) {
+        outText += assignable.get('variable').t;
     }
-    else if (assignable.constants()) {
-        outText += assignable.constants().getText();
-    }
-    else if (assignable.objectliterals()) {
-        // TODO: Actually do this right once we figure out what we even want to do with object literals
-        throw new Error('Object literals not yet implemented!');
+    else if (assignable.has('value')) {
+        outText += assignable.get('value').t;
     }
     return outText;
 };
@@ -4834,27 +708,49 @@ const ammToJsText = (amm) => {
     let outFile = "const r = require('alan-js-runtime')\n";
     // Where we're going we don't need types, so skipping that entire section
     // First convert all of the global constants to javascript
-    for (const globalConst of amm.constdeclaration()) {
+    for (const globalConst of amm.get('globalMem').getAll()) {
+        const rec = globalConst.get();
+        if (!(rec instanceof lp_1.NamedAnd))
+            continue;
         outFile +=
-            `const ${globalConst.decname().getText()} = ${assignableToJsText(globalConst.assignables(), '')}\n`;
+            `const ${rec.get('decname').t} = ${assignableToJsText(rec.get('assignables'), '')}\n`;
     }
     // We can also skip the event declarations because they are lazily bound by EventEmitter
     // Now we convert the handlers to Javascript. This is the vast majority of the work
-    for (const handler of amm.handlers()) {
-        const eventVarName = handler.functions().VARNAME() ? handler.functions().VARNAME().getText() : "";
-        outFile += `r.on('${handler.VARNAME().getText()}', async (${eventVarName}) => {\n`;
-        outFile += functionbodyToJsText(handler.functions().functionbody(), '');
+    for (const handler of amm.get('handlers').getAll()) {
+        const rec = handler.get();
+        if (!(rec instanceof lp_1.NamedAnd))
+            continue;
+        const eventVarName = rec.get('functions').has('arg') ?
+            rec.get('functions').get('arg').get('variable').t : "";
+        outFile += `r.on('${rec.get('variable').t}', async (${eventVarName}) => {\n`;
+        outFile += functionbodyToJsText(rec.get('functions').get('functionbody'), '');
         outFile += '})\n'; // End this handler
     }
     outFile += "r.emit('_start', undefined)\n"; // Let's get it started in here
     return outFile;
 };
-module.exports = {
-    fromFile: (filename) => ammToJsText(Ast.fromFile(filename)),
-    fromString: (str) => ammToJsText(Ast.fromString(str)),
+exports.fromFile = (filename) => {
+    const lp = new lp_1.LP(filename);
+    const ast = amm_1.default.apply(lp);
+    if (ast instanceof Error) {
+        console.error(ast);
+        process.exit(1);
+    }
+    return ammToJsText(ast);
+};
+exports.fromString = (str) => {
+    const lp = lp_1.LP.fromText(str);
+    const ast = amm_1.default.apply(lp);
+    if (ast instanceof Error) {
+        console.error(ast);
+        process.exit(1);
+    }
+    return ammToJsText(ast);
 };
 
-},{"../amm/Ast":6,"alan-js-runtime":"alan-js-runtime"}],10:[function(require,module,exports){
+}).call(this,require('_process'))
+},{"../amm":3,"../lp":31,"_process":83,"alan-js-runtime":"alan-js-runtime"}],6:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -5197,7 +1093,7 @@ LnLexer.prototype.ruleNames = ["IMPORT", "FROM", "TYPE", "FN", "EVENT",
 LnLexer.prototype.grammarFileName = "Ln.g4";
 exports.LnLexer = LnLexer;
 
-},{"antlr4/index":77}],11:[function(require,module,exports){
+},{"antlr4/index":74}],7:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -5600,7 +1496,7 @@ LnListener.prototype.exitArrayaccess = function (ctx) {
 };
 exports.LnListener = LnListener;
 
-},{"antlr4/index":77}],12:[function(require,module,exports){
+},{"antlr4/index":74}],8:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -13547,13 +9443,13 @@ LnParser.prototype.arrayaccess = function () {
 };
 exports.LnParser = LnParser;
 
-},{"./LnListener":11,"antlr4/index":77}],13:[function(require,module,exports){
+},{"./LnListener":7,"antlr4/index":74}],9:[function(require,module,exports){
 module.exports = {
     LnLexer: require('./LnLexer').LnLexer,
     LnParser: require('./LnParser').LnParser,
 };
 
-},{"./LnLexer":10,"./LnParser":12}],14:[function(require,module,exports){
+},{"./LnLexer":6,"./LnParser":8}],10:[function(require,module,exports){
 (function (process){
 const fs = require('fs');
 const path = require('path');
@@ -13768,7 +9664,7 @@ const Ast = {
 module.exports = Ast;
 
 }).call(this,require('_process'))
-},{"../ln":13,"_process":86,"antlr4":77,"fs":83,"path":85}],15:[function(require,module,exports){
+},{"../ln":9,"_process":83,"antlr4":74,"fs":80,"path":82}],11:[function(require,module,exports){
 (function (process){
 const Type = require('./Type');
 const Int8 = require('./Int8');
@@ -14200,7 +10096,7 @@ Box.builtinTypes = {
 module.exports = Box;
 
 }).call(this,require('_process'))
-},{"./Event":16,"./Float32":17,"./Float64":18,"./Int16":20,"./Int32":21,"./Int64":22,"./Int8":23,"./Microstatement":25,"./Scope":28,"./Type":31,"_process":86}],16:[function(require,module,exports){
+},{"./Event":12,"./Float32":13,"./Float64":14,"./Int16":16,"./Int32":17,"./Int64":18,"./Int8":19,"./Microstatement":21,"./Scope":24,"./Type":27,"_process":83}],12:[function(require,module,exports){
 (function (process){
 class Event {
     constructor(name, type, builtIn) {
@@ -14232,7 +10128,7 @@ Event.allEvents = [];
 module.exports = Event;
 
 }).call(this,require('_process'))
-},{"_process":86}],17:[function(require,module,exports){
+},{"_process":83}],13:[function(require,module,exports){
 class Float32 {
     constructor(val) {
         this.val = val;
@@ -14243,7 +10139,7 @@ class Float32 {
 }
 module.exports = Float32;
 
-},{}],18:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 class Float64 {
     constructor(val) {
         this.val = val;
@@ -14254,7 +10150,7 @@ class Float64 {
 }
 module.exports = Float64;
 
-},{}],19:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 class FunctionType {
     constructor(...args) {
         if (args.length === 1) {
@@ -14283,7 +10179,7 @@ class FunctionType {
 }
 module.exports = FunctionType;
 
-},{}],20:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 class Int16 {
     constructor(val) {
         this.val = val;
@@ -14294,7 +10190,7 @@ class Int16 {
 }
 module.exports = Int16;
 
-},{}],21:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 class Int32 {
     constructor(val) {
         this.val = val;
@@ -14305,7 +10201,7 @@ class Int32 {
 }
 module.exports = Int32;
 
-},{}],22:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 class Int64 {
     constructor(val) {
         this.val = val;
@@ -14316,7 +10212,7 @@ class Int64 {
 }
 module.exports = Int64;
 
-},{}],23:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 class Int8 {
     constructor(val) {
         this.val = val;
@@ -14327,7 +10223,7 @@ class Int8 {
 }
 module.exports = Int8;
 
-},{}],24:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 (function (process){
 const Type = require('./Type');
 const FunctionType = require('./FunctionType');
@@ -14456,7 +10352,7 @@ class Interface {
 module.exports = Interface;
 
 }).call(this,require('_process'))
-},{"./Box":15,"./FunctionType":19,"./Type":31,"_process":86}],25:[function(require,module,exports){
+},{"./Box":11,"./FunctionType":15,"./Type":27,"_process":83}],21:[function(require,module,exports){
 (function (process){
 const { v4: uuid, } = require('uuid');
 const { LnParser, } = require('../ln');
@@ -15467,7 +11363,7 @@ class Microstatement {
 module.exports = Microstatement;
 
 }).call(this,require('_process'))
-},{"../ln":13,"./Box":15,"./StatementType":30,"./UserFunction":32,"./opcodes":34,"_process":86,"uuid":91}],26:[function(require,module,exports){
+},{"../ln":9,"./Box":11,"./StatementType":26,"./UserFunction":28,"./opcodes":30,"_process":83,"uuid":88}],22:[function(require,module,exports){
 (function (process){
 const Ast = require('./Ast');
 const Box = require('./Box');
@@ -15867,7 +11763,7 @@ class Module {
 module.exports = Module;
 
 }).call(this,require('_process'))
-},{"./Ast":14,"./Box":15,"./Event":16,"./Interface":24,"./Operator":27,"./Scope":28,"./Type":31,"./UserFunction":32,"_process":86}],27:[function(require,module,exports){
+},{"./Ast":10,"./Box":11,"./Event":12,"./Interface":20,"./Operator":23,"./Scope":24,"./Type":27,"./UserFunction":28,"_process":83}],23:[function(require,module,exports){
 class Operator {
     constructor(name, precedence, isPrefix, isCommutative, isAssociative, potentialFunctions) {
         this.name = name;
@@ -15928,7 +11824,7 @@ class Operator {
 }
 module.exports = Operator;
 
-},{}],28:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 (function (process){
 const Box = require('./Box');
 const { LnParser, } = require('../ln');
@@ -16108,7 +12004,7 @@ class Scope {
 module.exports = Scope;
 
 }).call(this,require('_process'))
-},{"../ln":13,"./Box":15,"./opcodes":34,"_process":86}],29:[function(require,module,exports){
+},{"../ln":9,"./Box":11,"./opcodes":30,"_process":83}],25:[function(require,module,exports){
 (function (process){
 const Box = require('./Box');
 const { LnParser, } = require('../ln');
@@ -16271,7 +12167,7 @@ class Statement {
 module.exports = Statement;
 
 }).call(this,require('_process'))
-},{"../ln":13,"./Box":15,"_process":86}],30:[function(require,module,exports){
+},{"../ln":9,"./Box":11,"_process":83}],26:[function(require,module,exports){
 module.exports = {
     CONSTDEC: 'CONSTDEC',
     LETDEC: 'LETDEC',
@@ -16283,7 +12179,7 @@ module.exports = {
     ARG: 'ARG',
 };
 
-},{}],31:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 (function (process){
 class Type {
     constructor(...args) {
@@ -16514,7 +12410,7 @@ class Type {
 module.exports = Type;
 
 }).call(this,require('_process'))
-},{"./Box":15,"./Interface":24,"_process":86}],32:[function(require,module,exports){
+},{"./Box":11,"./Interface":20,"_process":83}],28:[function(require,module,exports){
 (function (process){
 const { v4: uuid, } = require('uuid');
 const Ast = require('./Ast');
@@ -17044,7 +12940,7 @@ class UserFunction {
 module.exports = UserFunction;
 
 }).call(this,require('_process'))
-},{"../ln":13,"./Ast":14,"./Box":15,"./Microstatement":25,"./Statement":29,"./StatementType":30,"_process":86,"uuid":91}],33:[function(require,module,exports){
+},{"../ln":9,"./Ast":10,"./Box":11,"./Microstatement":21,"./Statement":25,"./StatementType":26,"_process":83,"uuid":88}],29:[function(require,module,exports){
 const fs = require('fs');
 const { v4: uuid, } = require('uuid');
 const Ast = require('./Ast');
@@ -17286,7 +13182,7 @@ module.exports = {
     fromString: (str) => ammFromModuleAsts(moduleAstsFromString(str)),
 };
 
-},{"./Ast":14,"./Event":16,"./Microstatement":25,"./Module":26,"./StatementType":30,"./Std":1,"./UserFunction":32,"fs":83,"uuid":91}],34:[function(require,module,exports){
+},{"./Ast":10,"./Event":12,"./Microstatement":21,"./Module":22,"./StatementType":26,"./Std":1,"./UserFunction":28,"fs":80,"uuid":88}],30:[function(require,module,exports){
 const { v4: uuid, } = require('uuid');
 const Box = require('./Box'); // TODO: Eliminate Box
 const Module = require('./Module');
@@ -17564,7 +13460,608 @@ addopcodes({
 });
 module.exports = opcodeModule;
 
-},{"./Box":15,"./Event":16,"./Interface":24,"./Microstatement":25,"./Module":26,"./Scope":28,"./StatementType":30,"./Type":31,"uuid":91}],35:[function(require,module,exports){
+},{"./Box":11,"./Event":12,"./Interface":20,"./Microstatement":21,"./Module":22,"./Scope":24,"./StatementType":26,"./Type":27,"uuid":88}],31:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RangeSet = exports.CharSet = exports.NamedOr = exports.NamedAnd = exports.Or = exports.And = exports.OneOrMore = exports.ZeroOrMore = exports.ZeroOrOne = exports.Not = exports.Token = exports.NulLP = exports.lpError = exports.LP = void 0;
+const fs = require("fs"); // This syntax is so dumb
+// An LP record and methods, used for keeping track of advancements through the text to parse
+class LP {
+    constructor(filename, loadData = true) {
+        this.filename = filename;
+        this.data = loadData ? fs.readFileSync(filename, 'utf8') : '';
+        this.line = 1;
+        this.char = 1;
+        this.i = 0;
+    }
+    advance(n) {
+        for (let i = 0; i < n; i++) {
+            this.i += 1;
+            if (this.data[this.i] === '\n') {
+                this.line += 1;
+                this.char = 1;
+            }
+            else {
+                this.char += 1;
+            }
+        }
+    }
+    clone() {
+        const clone = new LP(this.filename, false);
+        clone.data = this.data;
+        clone.line = this.line;
+        clone.char = this.char;
+        clone.i = this.i;
+        return clone;
+    }
+    static fromText(data) {
+        const lp = new LP('fakeFile', false);
+        lp.data = data;
+        return lp;
+    }
+    snapshot() {
+        return {
+            line: this.line,
+            char: this.char,
+            i: this.i
+        };
+    }
+    restore(snap) {
+        this.line = snap.line;
+        this.char = snap.char;
+        this.i = snap.i;
+    }
+}
+exports.LP = LP;
+exports.lpError = (message, obj) => new Error(`${message} in file ${obj.filename} line ${obj.line}:${obj.char}`);
+// A special AST node that indicates that you successfully matched nothing, useful for optional ASTs
+class NulLP {
+    constructor() {
+        this.t = '';
+    }
+    get() {
+        return this;
+    }
+    getAll() {
+        return [this];
+    }
+    has() {
+        return false;
+    }
+    apply() {
+        return new Error('nullish');
+    }
+    toString() {
+        return this.t;
+    }
+}
+exports.NulLP = NulLP;
+// One of the 'leaf' AST nodes. It declares a fixed set of characters in a row to match
+class Token {
+    constructor(t, filename, line, char) {
+        this.t = t;
+        this.filename = filename;
+        this.line = line;
+        this.char = char;
+    }
+    static build(t) {
+        return new Token(t, '', -1, -1);
+    }
+    toString() {
+        return this.t;
+    }
+    get() {
+        return this;
+    }
+    getAll() {
+        return [this];
+    }
+    has() {
+        return this.line > -1;
+    }
+    check(lp) {
+        let matches = true;
+        const t = this.t;
+        const len = t.length;
+        const data = lp.data;
+        const j = lp.i;
+        for (let i = 0; i < len; i++) {
+            if (t[i] !== data[i + j]) {
+                matches = false;
+                break;
+            }
+        }
+        return matches;
+    }
+    apply(lp) {
+        if (this.check(lp)) {
+            lp.advance(this.t.length);
+            return new Token(this.t, lp.filename, lp.line, lp.char);
+        }
+        return exports.lpError(`Token mismatch, ${this.t} not found`, lp);
+    }
+}
+exports.Token = Token;
+// Another 'leaf' AST node. It matches any characters that DO NOT match the string provided
+class Not {
+    constructor(t, filename, line, char) {
+        this.t = t;
+        this.filename = filename;
+        this.line = line;
+        this.char = char;
+    }
+    static build(t) {
+        return new Not(t, '', -1, -1);
+    }
+    toString() {
+        return this.t;
+    }
+    check(lp) {
+        let matches = true;
+        const t = this.t;
+        const len = t.length;
+        const data = lp.data;
+        const j = lp.i;
+        for (let i = 0; i < len; i++) {
+            if (t[i] !== data[i + j]) {
+                matches = false;
+                break;
+            }
+        }
+        return !matches;
+    }
+    get() {
+        return this;
+    }
+    getAll() {
+        return [this];
+    }
+    has() {
+        return this.line > -1;
+    }
+    apply(lp) {
+        if (this.check(lp)) {
+            const newT = lp.data[lp.i];
+            lp.advance(this.t.length);
+            return new Not(newT, lp.filename, lp.line, lp.char);
+        }
+        return exports.lpError(`Not mismatch, ${this.t} found`, lp);
+    }
+}
+exports.Not = Not;
+// An AST node that optionally matches the AST node below it
+class ZeroOrOne {
+    constructor(t, zeroOrOne, filename, line, char) {
+        this.t = t;
+        this.zeroOrOne = zeroOrOne;
+        this.filename = filename;
+        this.line = line;
+        this.char = char;
+    }
+    static build(zeroOrOne) {
+        return new ZeroOrOne('', zeroOrOne, '', -1, -1);
+    }
+    toString() {
+        return this.t;
+    }
+    get() {
+        return this.zeroOrOne;
+    }
+    getAll() {
+        return [this.zeroOrOne];
+    }
+    has() {
+        return this.line > -1;
+    }
+    apply(lp) {
+        const s = lp.snapshot();
+        const zeroOrOne = this.zeroOrOne.apply(lp);
+        if (zeroOrOne instanceof Error) {
+            lp.restore(s);
+            return new NulLP();
+        }
+        return zeroOrOne;
+    }
+}
+exports.ZeroOrOne = ZeroOrOne;
+// An AST node that optionally matches the AST node below it as many times as possible
+class ZeroOrMore {
+    constructor(t, zeroOrMore, filename, line, char) {
+        this.t = t;
+        this.zeroOrMore = zeroOrMore;
+        this.filename = filename;
+        this.line = line;
+        this.char = char;
+    }
+    static build(zeroOrMore) {
+        return new ZeroOrMore('', [zeroOrMore], '', -1, -1);
+    }
+    toString() {
+        return this.t;
+    }
+    get(i) {
+        if (this.zeroOrMore[i])
+            return this.zeroOrMore[i];
+        return new NulLP();
+    }
+    getAll() {
+        return this.zeroOrMore;
+    }
+    has(id) {
+        if (typeof id === 'number') {
+            if (this.zeroOrMore[id]) {
+                return this.zeroOrMore[id].has();
+            }
+            return false;
+        }
+        return this.line > -1;
+    }
+    apply(lp) {
+        const filename = lp.filename;
+        const line = lp.line;
+        const char = lp.char;
+        let t = '';
+        let zeroOrMore = [];
+        do {
+            const s = lp.snapshot();
+            const z = this.zeroOrMore[0].apply(lp);
+            if (z instanceof Error) {
+                lp.restore(s);
+                return new ZeroOrMore(t, zeroOrMore, filename, line, char);
+            }
+            const t2 = z.toString();
+            if (t2.length === 0) {
+                return exports.lpError('ZeroOrMore made no forward progress, will infinite loop', lp);
+            }
+            t += t2;
+            zeroOrMore.push(z);
+        } while (true);
+    }
+}
+exports.ZeroOrMore = ZeroOrMore;
+// An AST node that matches the node below it multiple times and fails if it finds no match
+class OneOrMore {
+    constructor(t, oneOrMore, filename, line, char) {
+        this.t = t;
+        this.oneOrMore = oneOrMore;
+        this.filename = filename;
+        this.line = line;
+        this.char = char;
+    }
+    static build(oneOrMore) {
+        return new OneOrMore('', [oneOrMore], '', -1, -1);
+    }
+    toString() {
+        return this.t;
+    }
+    get(i) {
+        if (this.oneOrMore[i])
+            return this.oneOrMore[i];
+        return new NulLP();
+    }
+    getAll() {
+        return this.oneOrMore;
+    }
+    has(id) {
+        if (typeof id === 'number') {
+            if (this.oneOrMore[id]) {
+                return this.oneOrMore[id].has();
+            }
+            return false;
+        }
+        return this.line > -1;
+    }
+    apply(lp) {
+        const filename = lp.filename;
+        const line = lp.line;
+        const char = lp.char;
+        let t = '';
+        let oneOrMore = [];
+        do {
+            const s = lp.snapshot();
+            const o = this.oneOrMore[0].apply(lp);
+            if (o instanceof Error) {
+                lp.restore(s);
+                if (oneOrMore.length === 0) {
+                    return exports.lpError('No match for OneOrMore', lp);
+                }
+                return new OneOrMore(t, oneOrMore, filename, line, char);
+            }
+            const t2 = o.toString();
+            if (t2.length === 0) {
+                return exports.lpError('OneOrMore made no forward progress, will infinite loop', lp);
+            }
+            t += t2;
+            oneOrMore.push(o);
+        } while (true);
+    }
+}
+exports.OneOrMore = OneOrMore;
+// An AST node that matches a sequence of child nodes in a row or fails
+class And {
+    constructor(t, and, filename, line, char) {
+        this.t = t;
+        this.and = and;
+        this.filename = filename;
+        this.line = line;
+        this.char = char;
+    }
+    static build(and) {
+        return new And('', and, '', -1, -1);
+    }
+    toString() {
+        return this.t;
+    }
+    get(i) {
+        if (this.and[i])
+            return this.and[i];
+        return new NulLP();
+    }
+    getAll() {
+        return this.and;
+    }
+    has(id) {
+        if (typeof id === 'number') {
+            if (this.and[id]) {
+                return this.and[id].has();
+            }
+            return false;
+        }
+        return this.line > -1;
+    }
+    apply(lp) {
+        const filename = lp.filename;
+        const line = lp.line;
+        const char = lp.char;
+        let t = '';
+        let and = [];
+        const s = lp.snapshot();
+        // This can fail, allow the underlying error to bubble up
+        for (let i = 0; i < this.and.length; i++) {
+            const a = this.and[i].apply(lp);
+            if (a instanceof Error) {
+                lp.restore(s);
+                return a;
+            }
+            t += a.toString();
+            and.push(a);
+        }
+        return new And(t, and, filename, line, char);
+    }
+}
+exports.And = And;
+// An AST node that matches any of its child nodes or fails. Only returns the first match.
+class Or {
+    constructor(t, or, filename, line, char) {
+        this.t = t;
+        this.or = or;
+        this.filename = filename;
+        this.line = line;
+        this.char = char;
+    }
+    static build(or) {
+        return new Or('', or, '', -1, -1);
+    }
+    toString() {
+        return this.t;
+    }
+    get() {
+        if (this.or[0])
+            return this.or[0];
+        return new NulLP();
+    }
+    getAll() {
+        return this.or;
+    }
+    has(id) {
+        if (typeof id === 'number') {
+            if (this.or[id]) {
+                return this.or[id].has();
+            }
+            return false;
+        }
+        return this.line > -1;
+    }
+    apply(lp) {
+        const filename = lp.filename;
+        const line = lp.line;
+        const char = lp.char;
+        let t = '';
+        let or = [];
+        // Return the first match (if there are multiple matches, it is the first one)
+        for (let i = 0; i < this.or.length; i++) {
+            const s = lp.snapshot();
+            const o = this.or[i].apply(lp);
+            if (o instanceof Error) {
+                lp.restore(s);
+                continue;
+            }
+            // We have a match!
+            t = o.toString();
+            or.push(o);
+            break;
+        }
+        if (or.length === 0)
+            return exports.lpError('No matching tokens found', lp);
+        return new Or(t, or, filename, line, char);
+    }
+}
+exports.Or = Or;
+// An AST node that matches all of the child nodes or fails. Also provides easier access to the
+// matched child nodes.
+class NamedAnd {
+    constructor(t, and, filename, line, char) {
+        this.t = t;
+        this.and = and;
+        this.filename = filename;
+        this.line = line;
+        this.char = char;
+    }
+    static build(and) {
+        return new NamedAnd(Object.keys(and).join(' '), and, '', -1, -1);
+    }
+    toString() {
+        return this.t;
+    }
+    get(name) {
+        if (this.and[name])
+            return this.and[name];
+        return new NulLP();
+    }
+    getAll() {
+        return Object.values(this.and);
+    }
+    has(id) {
+        if (typeof id === 'string') {
+            if (this.and[id]) {
+                return this.and[id].has();
+            }
+            return false;
+        }
+        return this.line > -1;
+    }
+    apply(lp) {
+        const filename = lp.filename;
+        const line = lp.line;
+        const char = lp.char;
+        let t = '';
+        let and = {};
+        const andNames = Object.keys(this.and);
+        const s = lp.snapshot();
+        // This can fail, allow the underlying error to bubble up
+        for (let i = 0; i < andNames.length; i++) {
+            const a = this.and[andNames[i]].apply(lp);
+            if (a instanceof Error) {
+                lp.restore(s);
+                return a;
+            }
+            t += a.toString();
+            and[andNames[i]] = a;
+        }
+        return new NamedAnd(t, and, filename, line, char);
+    }
+}
+exports.NamedAnd = NamedAnd;
+// An AST node that matches one of the child nodes or fails. The first match is returned. Also
+// provides easier access to the child node by name.
+class NamedOr {
+    constructor(t, or, filename, line, char) {
+        this.t = t;
+        this.or = or;
+        this.filename = filename;
+        this.line = line;
+        this.char = char;
+    }
+    static build(or) {
+        return new NamedOr(Object.keys(or).join(' '), or, '', -1, -1);
+    }
+    toString() {
+        return this.t;
+    }
+    get(name) {
+        if (this.or[name])
+            return this.or[name];
+        return new NulLP();
+    }
+    getAll() {
+        return Object.values(this.or);
+    }
+    has(id) {
+        if (typeof id === 'string') {
+            if (this.or[id]) {
+                return this.or[id].has();
+            }
+            return false;
+        }
+        return this.line > -1;
+    }
+    apply(lp) {
+        const filename = lp.filename;
+        const line = lp.line;
+        const char = lp.char;
+        let t = '';
+        let or = {};
+        const orNames = Object.keys(this.or);
+        // Return the first match (if there are multiple matches, it is the first one)
+        for (let i = 0; i < orNames.length; i++) {
+            const s = lp.snapshot();
+            const o = this.or[orNames[i]].apply(lp);
+            if (o instanceof Error) {
+                lp.restore(s);
+                continue;
+            }
+            // We have a match!
+            t = o.toString();
+            or[orNames[i]] = o;
+            break;
+        }
+        if (Object.keys(or).length === 0)
+            return exports.lpError('No matching or tokens found', lp);
+        return new NamedOr(t, or, filename, line, char);
+    }
+}
+exports.NamedOr = NamedOr;
+// A 'leaf' AST node that matches a character within the specified range of characters. Useful for
+// building regex-like matchers.
+class CharSet {
+    constructor(t, lowerChar, upperChar, filename, line, char) {
+        this.t = t;
+        this.lowerCharCode = lowerChar.charCodeAt(0);
+        this.upperCharCode = upperChar.charCodeAt(0);
+        this.filename = filename;
+        this.line = line;
+        this.char = char;
+    }
+    static build(lowerChar, upperChar) {
+        return new CharSet(`[${lowerChar}-${upperChar}]`, lowerChar, upperChar, '', -1, -1);
+    }
+    toString() {
+        return this.t;
+    }
+    check(lp) {
+        let lpCharCode = lp.data.charCodeAt(lp.i);
+        return this.lowerCharCode <= lpCharCode && this.upperCharCode >= lpCharCode;
+    }
+    get() {
+        return this;
+    }
+    getAll() {
+        return [this];
+    }
+    has() {
+        return this.line > -1;
+    }
+    apply(lp) {
+        if (this.check(lp)) {
+            const outCharSet = new CharSet(lp.data[lp.i], String.fromCharCode(this.lowerCharCode), String.fromCharCode(this.upperCharCode), lp.filename, lp.line, lp.char);
+            lp.advance(1);
+            return outCharSet;
+        }
+        return exports.lpError(`Token mismatch, expected character in range of ${String.fromCharCode(this.lowerCharCode)}-${String.fromCharCode(this.upperCharCode)}`, lp);
+    }
+}
+exports.CharSet = CharSet;
+// A composite AST 'node' that matches the child node between the minimum and maximum repetitions or
+// fails.
+exports.RangeSet = (toRepeat, min, max) => {
+    let sets = [];
+    for (let i = min; i <= max; i++) {
+        if (i === 0) {
+            sets.push(Token.build(''));
+            continue;
+        }
+        else {
+            let set = [];
+            for (let j = 0; j < i; j++) {
+                set.push(toRepeat);
+            }
+            sets.push(And.build(set));
+        }
+    }
+    return Or.build(sets);
+};
+
+},{"fs":80}],32:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const buildPipeline = (converters) => {
@@ -17693,7 +14190,7 @@ const buildPipeline = (converters) => {
 };
 exports.default = buildPipeline;
 
-},{}],36:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -18070,7 +14567,7 @@ BufferedTokenStream.prototype.fill = function() {
 
 exports.BufferedTokenStream = BufferedTokenStream;
 
-},{"./IntervalSet":42,"./Lexer":44,"./Token":50}],37:[function(require,module,exports){
+},{"./IntervalSet":39,"./Lexer":41,"./Token":47}],34:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -18143,7 +14640,7 @@ var CharStreams = {
 
 exports.CharStreams = CharStreams;
 
-},{"./InputStream":41,"fs":83}],38:[function(require,module,exports){
+},{"./InputStream":38,"fs":80}],35:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -18214,7 +14711,7 @@ CommonTokenFactory.prototype.createThin = function(type, text) {
 
 exports.CommonTokenFactory = CommonTokenFactory;
 
-},{"./Token":50}],39:[function(require,module,exports){
+},{"./Token":47}],36:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -18319,7 +14816,7 @@ CommonTokenStream.prototype.getNumberOfOnChannelTokens = function() {
 };
 
 exports.CommonTokenStream = CommonTokenStream;
-},{"./BufferedTokenStream":36,"./Token":50}],40:[function(require,module,exports){
+},{"./BufferedTokenStream":33,"./Token":47}],37:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -18347,7 +14844,7 @@ FileStream.prototype.constructor = FileStream;
 
 exports.FileStream = FileStream;
 
-},{"./InputStream":41,"fs":83}],41:[function(require,module,exports){
+},{"./InputStream":38,"fs":80}],38:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -18484,7 +14981,7 @@ InputStream.prototype.toString = function() {
 
 exports.InputStream = InputStream;
 
-},{"./Token":50,"./polyfills/codepointat":78,"./polyfills/fromcodepoint":79}],42:[function(require,module,exports){
+},{"./Token":47,"./polyfills/codepointat":75,"./polyfills/fromcodepoint":76}],39:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -18784,7 +15281,7 @@ IntervalSet.prototype.elementName = function(literalNames, symbolicNames, a) {
 exports.Interval = Interval;
 exports.IntervalSet = IntervalSet;
 
-},{"./Token":50}],43:[function(require,module,exports){
+},{"./Token":47}],40:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -18985,7 +15482,7 @@ LL1Analyzer.prototype._LOOK = function(s, stopState , ctx, look, lookBusy, calle
 exports.LL1Analyzer = LL1Analyzer;
 
 
-},{"./IntervalSet":42,"./PredictionContext":47,"./Token":50,"./Utils":51,"./atn/ATNConfig":53,"./atn/ATNState":58,"./atn/Transition":66}],44:[function(require,module,exports){
+},{"./IntervalSet":39,"./PredictionContext":44,"./Token":47,"./Utils":48,"./atn/ATNConfig":50,"./atn/ATNState":55,"./atn/Transition":63}],41:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -19358,7 +15855,7 @@ Lexer.prototype.recover = function(re) {
 
 exports.Lexer = Lexer;
 
-},{"./CommonTokenFactory":38,"./Recognizer":48,"./Token":50,"./error/Errors":75}],45:[function(require,module,exports){
+},{"./CommonTokenFactory":35,"./Recognizer":45,"./Token":47,"./error/Errors":72}],42:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -20033,7 +16530,7 @@ Parser.prototype.setTrace = function(trace) {
 };
 
 exports.Parser = Parser;
-},{"./Lexer":44,"./Recognizer":48,"./Token":50,"./atn/ATNDeserializationOptions":55,"./atn/ATNDeserializer":56,"./error/ErrorStrategy":74,"./tree/Tree":80}],46:[function(require,module,exports){
+},{"./Lexer":41,"./Recognizer":45,"./Token":47,"./atn/ATNDeserializationOptions":52,"./atn/ATNDeserializer":53,"./error/ErrorStrategy":71,"./tree/Tree":77}],43:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -20259,7 +16756,7 @@ InterpreterRuleContext.prototype = Object.create(ParserRuleContext.prototype);
 InterpreterRuleContext.prototype.constructor = InterpreterRuleContext;
 
 exports.ParserRuleContext = ParserRuleContext;
-},{"./IntervalSet":42,"./RuleContext":49,"./tree/Tree":80}],47:[function(require,module,exports){
+},{"./IntervalSet":39,"./RuleContext":46,"./tree/Tree":77}],44:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -20995,7 +17492,7 @@ exports.SingletonPredictionContext = SingletonPredictionContext;
 exports.predictionContextFromRuleContext = predictionContextFromRuleContext;
 exports.getCachedPredictionContext = getCachedPredictionContext;
 
-},{"./RuleContext":49,"./Utils":51}],48:[function(require,module,exports){
+},{"./RuleContext":46,"./Utils":48}],45:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -21144,7 +17641,7 @@ Object.defineProperty(Recognizer.prototype, "state", {
 
 exports.Recognizer = Recognizer;
 
-},{"./Token":50,"./error/ErrorListener":73}],49:[function(require,module,exports){
+},{"./Token":47,"./error/ErrorListener":70}],46:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -21303,7 +17800,7 @@ RuleContext.prototype.toString = function(ruleNames, stop) {
 };
 
 
-},{"./atn/ATN":52,"./tree/Tree":80,"./tree/Trees":81}],50:[function(require,module,exports){
+},{"./atn/ATN":49,"./tree/Tree":77,"./tree/Trees":78}],47:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -21456,7 +17953,7 @@ CommonToken.prototype.toString = function() {
 exports.Token = Token;
 exports.CommonToken = CommonToken;
 
-},{}],51:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -21909,7 +18406,7 @@ exports.arrayToString = arrayToString;
 exports.titleCase = titleCase;
 exports.equalArrays = equalArrays;
 
-},{}],52:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -22052,7 +18549,7 @@ ATN.prototype.getExpectedTokens = function( stateNumber, ctx ) {
 ATN.INVALID_ALT_NUMBER = 0;
 
 exports.ATN = ATN;
-},{"./../IntervalSet":42,"./../LL1Analyzer":43,"./../Token":50}],53:[function(require,module,exports){
+},{"./../IntervalSet":39,"./../LL1Analyzer":40,"./../Token":47}],50:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -22229,7 +18726,7 @@ LexerATNConfig.prototype.checkNonGreedyDecision = function(source, target) {
 
 exports.ATNConfig = ATNConfig;
 exports.LexerATNConfig = LexerATNConfig;
-},{"../Utils":51,"./ATNState":58,"./SemanticContext":65}],54:[function(require,module,exports){
+},{"../Utils":48,"./ATNState":55,"./SemanticContext":62}],51:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -22484,7 +18981,7 @@ OrderedATNConfigSet.prototype.constructor = OrderedATNConfigSet;
 exports.ATNConfigSet = ATNConfigSet;
 exports.OrderedATNConfigSet = OrderedATNConfigSet;
 
-},{"./../PredictionContext":47,"./../Utils":51,"./ATN":52,"./SemanticContext":65}],55:[function(require,module,exports){
+},{"./../PredictionContext":44,"./../Utils":48,"./ATN":49,"./SemanticContext":62}],52:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -22511,7 +19008,7 @@ ATNDeserializationOptions.defaultOptions.readOnly = true;
 
 exports.ATNDeserializationOptions = ATNDeserializationOptions;
 
-},{}],56:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -23190,7 +19687,7 @@ ATNDeserializer.prototype.lexerActionFactory = function(type, data1, data2) {
 
 
 exports.ATNDeserializer = ATNDeserializer;
-},{"./../IntervalSet":42,"./../Token":50,"./ATN":52,"./ATNDeserializationOptions":55,"./ATNState":58,"./ATNType":59,"./LexerAction":61,"./Transition":66}],57:[function(require,module,exports){
+},{"./../IntervalSet":39,"./../Token":47,"./ATN":49,"./ATNDeserializationOptions":52,"./ATNState":55,"./ATNType":56,"./LexerAction":58,"./Transition":63}],54:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -23244,7 +19741,7 @@ ATNSimulator.prototype.getCachedContext = function(context) {
 
 exports.ATNSimulator = ATNSimulator;
 
-},{"./../PredictionContext":47,"./../Utils":51,"./../dfa/DFAState":70,"./ATNConfigSet":54}],58:[function(require,module,exports){
+},{"./../PredictionContext":44,"./../Utils":48,"./../dfa/DFAState":67,"./ATNConfigSet":51}],55:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -23572,7 +20069,7 @@ exports.PlusBlockStartState = PlusBlockStartState;
 exports.StarBlockStartState = StarBlockStartState;
 exports.BasicBlockStartState = BasicBlockStartState;
 
-},{}],59:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -23591,7 +20088,7 @@ ATNType.PARSER = 1;
 exports.ATNType = ATNType;
 
 
-},{}],60:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -24229,7 +20726,7 @@ LexerATNSimulator.prototype.getTokenName = function(tt) {
 
 exports.LexerATNSimulator = LexerATNSimulator;
 
-},{"./../Lexer":44,"./../PredictionContext":47,"./../Token":50,"./../dfa/DFAState":70,"./../error/Errors":75,"./ATN":52,"./ATNConfig":53,"./ATNConfigSet":54,"./ATNSimulator":57,"./ATNState":58,"./LexerActionExecutor":62,"./Transition":66}],61:[function(require,module,exports){
+},{"./../Lexer":41,"./../PredictionContext":44,"./../Token":47,"./../dfa/DFAState":67,"./../error/Errors":72,"./ATN":49,"./ATNConfig":50,"./ATNConfigSet":51,"./ATNSimulator":54,"./ATNState":55,"./LexerActionExecutor":59,"./Transition":63}],58:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -24596,7 +21093,7 @@ exports.LexerTypeAction = LexerTypeAction;
 exports.LexerPushModeAction = LexerPushModeAction;
 exports.LexerPopModeAction = LexerPopModeAction;
 exports.LexerModeAction = LexerModeAction;
-},{}],62:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -24764,7 +21261,7 @@ LexerActionExecutor.prototype.equals = function(other) {
 
 exports.LexerActionExecutor = LexerActionExecutor;
 
-},{"../Utils":51,"./LexerAction":61}],63:[function(require,module,exports){
+},{"../Utils":48,"./LexerAction":58}],60:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -26493,7 +22990,7 @@ ParserATNSimulator.prototype.reportAmbiguity = function(dfa, D, startIndex, stop
 };
 
 exports.ParserATNSimulator = ParserATNSimulator;
-},{"./../IntervalSet":42,"./../ParserRuleContext":46,"./../PredictionContext":47,"./../RuleContext":49,"./../Token":50,"./../Utils":51,"./../dfa/DFAState":70,"./../error/Errors":75,"./ATN":52,"./ATNConfig":53,"./ATNConfigSet":54,"./ATNSimulator":57,"./ATNState":58,"./PredictionMode":64,"./SemanticContext":65,"./Transition":66}],64:[function(require,module,exports){
+},{"./../IntervalSet":39,"./../ParserRuleContext":43,"./../PredictionContext":44,"./../RuleContext":46,"./../Token":47,"./../Utils":48,"./../dfa/DFAState":67,"./../error/Errors":72,"./ATN":49,"./ATNConfig":50,"./ATNConfigSet":51,"./ATNSimulator":54,"./ATNState":55,"./PredictionMode":61,"./SemanticContext":62,"./Transition":63}],61:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -27054,7 +23551,7 @@ PredictionMode.getSingleViableAlt = function(altsets) {
 
 exports.PredictionMode = PredictionMode;
 
-},{"../Utils":51,"./../Utils":51,"./ATN":52,"./ATNConfig":53,"./ATNConfigSet":54,"./ATNState":58,"./SemanticContext":65}],65:[function(require,module,exports){
+},{"../Utils":48,"./../Utils":48,"./ATN":49,"./ATNConfig":50,"./ATNConfigSet":51,"./ATNState":55,"./SemanticContext":62}],62:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -27460,7 +23957,7 @@ exports.SemanticContext = SemanticContext;
 exports.PrecedencePredicate = PrecedencePredicate;
 exports.Predicate = Predicate;
 
-},{"./../Utils":51}],66:[function(require,module,exports){
+},{"./../Utils":48}],63:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -27777,7 +24274,7 @@ exports.WildcardTransition = WildcardTransition;
 exports.PredicateTransition = PredicateTransition;
 exports.PrecedencePredicateTransition = PrecedencePredicateTransition;
 exports.AbstractPredicateTransition = AbstractPredicateTransition;
-},{"./../IntervalSet":42,"./../Token":50,"./SemanticContext":65}],67:[function(require,module,exports){
+},{"./../IntervalSet":39,"./../Token":47,"./SemanticContext":62}],64:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -27789,7 +24286,7 @@ exports.LexerATNSimulator = require('./LexerATNSimulator').LexerATNSimulator;
 exports.ParserATNSimulator = require('./ParserATNSimulator').ParserATNSimulator;
 exports.PredictionMode = require('./PredictionMode').PredictionMode;
 
-},{"./ATN":52,"./ATNDeserializer":56,"./LexerATNSimulator":60,"./ParserATNSimulator":63,"./PredictionMode":64}],68:[function(require,module,exports){
+},{"./ATN":49,"./ATNDeserializer":53,"./LexerATNSimulator":57,"./ParserATNSimulator":60,"./PredictionMode":61}],65:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -27944,7 +24441,7 @@ DFA.prototype.toLexerString = function() {
 
 exports.DFA = DFA;
 
-},{"../Utils":51,"../atn/ATNState":58,"./../atn/ATNConfigSet":54,"./DFASerializer":69,"./DFAState":70}],69:[function(require,module,exports){
+},{"../Utils":48,"../atn/ATNState":55,"./../atn/ATNConfigSet":51,"./DFASerializer":66,"./DFAState":67}],66:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -28025,7 +24522,7 @@ exports.DFASerializer = DFASerializer;
 exports.LexerDFASerializer = LexerDFASerializer;
 
 
-},{}],70:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -28173,7 +24670,7 @@ DFAState.prototype.hashCode = function() {
 exports.DFAState = DFAState;
 exports.PredPrediction = PredPrediction;
 
-},{"./../Utils":51,"./../atn/ATNConfigSet":54}],71:[function(require,module,exports){
+},{"./../Utils":48,"./../atn/ATNConfigSet":51}],68:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -28184,7 +24681,7 @@ exports.DFASerializer = require('./DFASerializer').DFASerializer;
 exports.LexerDFASerializer = require('./DFASerializer').LexerDFASerializer;
 exports.PredPrediction = require('./DFAState').PredPrediction;
 
-},{"./DFA":68,"./DFASerializer":69,"./DFAState":70}],72:[function(require,module,exports){
+},{"./DFA":65,"./DFASerializer":66,"./DFAState":67}],69:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -28296,7 +24793,7 @@ DiagnosticErrorListener.prototype.getConflictingAlts = function(reportedAlts, co
 };
 
 exports.DiagnosticErrorListener = DiagnosticErrorListener;
-},{"./../IntervalSet":42,"./../Utils":51,"./ErrorListener":73}],73:[function(require,module,exports){
+},{"./../IntervalSet":39,"./../Utils":48,"./ErrorListener":70}],70:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -28385,7 +24882,7 @@ exports.ConsoleErrorListener = ConsoleErrorListener;
 exports.ProxyErrorListener = ProxyErrorListener;
 
 
-},{}],74:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -29143,7 +25640,7 @@ BailErrorStrategy.prototype.sync = function(recognizer) {
 exports.BailErrorStrategy = BailErrorStrategy;
 exports.DefaultErrorStrategy = DefaultErrorStrategy;
 
-},{"./../IntervalSet":42,"./../Token":50,"./../atn/ATNState":58,"./Errors":75}],75:[function(require,module,exports){
+},{"./../IntervalSet":39,"./../Token":47,"./../atn/ATNState":55,"./Errors":72}],72:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -29314,7 +25811,7 @@ exports.InputMismatchException = InputMismatchException;
 exports.FailedPredicateException = FailedPredicateException;
 exports.ParseCancellationException = ParseCancellationException;
 
-},{"./../atn/Transition":66}],76:[function(require,module,exports){
+},{"./../atn/Transition":63}],73:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -29329,7 +25826,7 @@ exports.DiagnosticErrorListener = require('./DiagnosticErrorListener').Diagnosti
 exports.BailErrorStrategy = require('./ErrorStrategy').BailErrorStrategy;
 exports.ErrorListener = require('./ErrorListener').ErrorListener;
 
-},{"./DiagnosticErrorListener":72,"./ErrorListener":73,"./ErrorStrategy":74,"./Errors":75}],77:[function(require,module,exports){
+},{"./DiagnosticErrorListener":69,"./ErrorListener":70,"./ErrorStrategy":71,"./Errors":72}],74:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -29354,7 +25851,7 @@ exports.ParserRuleContext = require('./ParserRuleContext').ParserRuleContext;
 exports.Interval = require('./IntervalSet').Interval;
 exports.Utils = require('./Utils');
 
-},{"./CharStreams":37,"./CommonTokenStream":39,"./FileStream":40,"./InputStream":41,"./IntervalSet":42,"./Lexer":44,"./Parser":45,"./ParserRuleContext":46,"./PredictionContext":47,"./Token":50,"./Utils":51,"./atn/index":67,"./dfa/index":71,"./error/index":76,"./polyfills/codepointat":78,"./polyfills/fromcodepoint":79,"./tree/index":82}],78:[function(require,module,exports){
+},{"./CharStreams":34,"./CommonTokenStream":36,"./FileStream":37,"./InputStream":38,"./IntervalSet":39,"./Lexer":41,"./Parser":42,"./ParserRuleContext":43,"./PredictionContext":44,"./Token":47,"./Utils":48,"./atn/index":64,"./dfa/index":68,"./error/index":73,"./polyfills/codepointat":75,"./polyfills/fromcodepoint":76,"./tree/index":79}],75:[function(require,module,exports){
 /*! https://mths.be/codepointat v0.2.0 by @mathias */
 if (!String.prototype.codePointAt) {
 	(function() {
@@ -29410,7 +25907,7 @@ if (!String.prototype.codePointAt) {
 	}());
 }
 
-},{}],79:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 /*! https://mths.be/fromcodepoint v0.2.1 by @mathias */
 if (!String.fromCodePoint) {
 	(function() {
@@ -29474,7 +25971,7 @@ if (!String.fromCodePoint) {
 	}());
 }
 
-},{}],80:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -29706,7 +26203,7 @@ exports.ParseTreeVisitor = ParseTreeVisitor;
 exports.ParseTreeWalker = ParseTreeWalker;
 exports.INVALID_INTERVAL = INVALID_INTERVAL;
 
-},{"../Utils.js":51,"./../IntervalSet":42,"./../Token":50}],81:[function(require,module,exports){
+},{"../Utils.js":48,"./../IntervalSet":39,"./../Token":47}],78:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -29847,7 +26344,7 @@ Trees.descendants = function(t) {
 
 
 exports.Trees = Trees;
-},{"./../ParserRuleContext":46,"./../RuleContext":49,"./../Token":50,"./../Utils":51,"./../atn/ATN":52,"./Tree":80}],82:[function(require,module,exports){
+},{"./../ParserRuleContext":43,"./../RuleContext":46,"./../Token":47,"./../Utils":48,"./../atn/ATN":49,"./Tree":77}],79:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -29860,9 +26357,9 @@ exports.ParseTreeListener = Tree.ParseTreeListener;
 exports.ParseTreeVisitor = Tree.ParseTreeVisitor;
 exports.ParseTreeWalker = Tree.ParseTreeWalker;
 
-},{"./Tree":80,"./Trees":81}],83:[function(require,module,exports){
+},{"./Tree":77,"./Trees":78}],80:[function(require,module,exports){
 
-},{}],84:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -30387,7 +26884,7 @@ function functionBindPolyfill(context) {
   };
 }
 
-},{}],85:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 (function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
@@ -30693,7 +27190,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":86}],86:[function(require,module,exports){
+},{"_process":83}],83:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -30879,7 +27376,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],87:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -30904,14 +27401,14 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],88:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],89:[function(require,module,exports){
+},{}],86:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -31501,7 +27998,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":88,"_process":86,"inherits":87}],90:[function(require,module,exports){
+},{"./support/isBuffer":85,"_process":83,"inherits":84}],87:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31529,7 +28026,7 @@ function bytesToUuid(buf, offset) {
 
 var _default = bytesToUuid;
 exports.default = _default;
-},{}],91:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31569,7 +28066,7 @@ var _v3 = _interopRequireDefault(require("./v4.js"));
 var _v4 = _interopRequireDefault(require("./v5.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-},{"./v1.js":95,"./v3.js":96,"./v4.js":98,"./v5.js":99}],92:[function(require,module,exports){
+},{"./v1.js":92,"./v3.js":93,"./v4.js":95,"./v5.js":96}],89:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31793,7 +28290,7 @@ function md5ii(a, b, c, d, x, s, t) {
 
 var _default = md5;
 exports.default = _default;
-},{}],93:[function(require,module,exports){
+},{}],90:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31815,7 +28312,7 @@ function rng() {
 
   return getRandomValues(rnds8);
 }
-},{}],94:[function(require,module,exports){
+},{}],91:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31917,7 +28414,7 @@ function sha1(bytes) {
 
 var _default = sha1;
 exports.default = _default;
-},{}],95:[function(require,module,exports){
+},{}],92:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -32025,7 +28522,7 @@ function v1(options, buf, offset) {
 
 var _default = v1;
 exports.default = _default;
-},{"./bytesToUuid.js":90,"./rng.js":93}],96:[function(require,module,exports){
+},{"./bytesToUuid.js":87,"./rng.js":90}],93:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -32042,7 +28539,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const v3 = (0, _v.default)('v3', 0x30, _md.default);
 var _default = v3;
 exports.default = _default;
-},{"./md5.js":92,"./v35.js":97}],97:[function(require,module,exports){
+},{"./md5.js":89,"./v35.js":94}],94:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -32119,7 +28616,7 @@ function _default(name, version, hashfunc) {
   generateUUID.URL = URL;
   return generateUUID;
 }
-},{"./bytesToUuid.js":90}],98:[function(require,module,exports){
+},{"./bytesToUuid.js":87}],95:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -32162,7 +28659,7 @@ function v4(options, buf, offset) {
 
 var _default = v4;
 exports.default = _default;
-},{"./bytesToUuid.js":90,"./rng.js":93}],99:[function(require,module,exports){
+},{"./bytesToUuid.js":87,"./rng.js":90}],96:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -32179,7 +28676,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const v5 = (0, _v.default)('v5', 0x50, _sha.default);
 var _default = v5;
 exports.default = _default;
-},{"./sha1.js":94,"./v35.js":97}],"alan-compiler":[function(require,module,exports){
+},{"./sha1.js":91,"./v35.js":94}],"alan-compiler":[function(require,module,exports){
 const { default: buildPipeline, } = require('./dist/pipeline')
 const ammtojs = require('./dist/ammtojs')
 const lntoamm = require('./dist/lntoamm')
@@ -32204,7 +28701,7 @@ module.exports = (inFormat, outFormat, text) => {
   }
 }
 
-},{"./dist/ammtoaga":8,"./dist/ammtojs":9,"./dist/lntoamm":33,"./dist/pipeline":35}],"alan-js-runtime":[function(require,module,exports){
+},{"./dist/ammtoaga":4,"./dist/ammtojs":5,"./dist/lntoamm":29,"./dist/pipeline":32}],"alan-js-runtime":[function(require,module,exports){
 (function (process){
 const EventEmitter = require('events')
 const util = require('util')
@@ -32473,7 +28970,7 @@ module.exports = {
 }
 
 }).call(this,require('_process'))
-},{"_process":86,"child_process":83,"events":84,"util":89}],"alan-runtime":[function(require,module,exports){
+},{"_process":83,"child_process":80,"events":81,"util":86}],"alan-runtime":[function(require,module,exports){
 const r = require('alan-js-runtime')
 
 // Redefined stdoutp and exitop to work in the browser

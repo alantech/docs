@@ -41,7 +41,7 @@ module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\
 },{}],3:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const lp_1 = require("../lp");
+const lp_1 = require("./lp");
 // Defining AMM Tokens
 const space = lp_1.Token.build(' ');
 const blank = lp_1.OneOrMore.build(space);
@@ -190,13 +190,13 @@ const amm = lp_1.NamedAnd.build({
 });
 exports.default = amm;
 
-},{"../lp":31}],4:[function(require,module,exports){
+},{"./lp":31}],4:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fromString = exports.fromFile = void 0;
-const lp_1 = require("../lp");
-const amm_1 = require("../amm");
+const lp_1 = require("./lp");
+const amm_1 = require("./amm");
 // This project depends on BigNum and associated support in Node's Buffer, so must be >= Node 10.20
 // and does not work in the browser. It would be possible to implement a browser-compatible version
 // but there is no need for it and it would make it harder to work with.
@@ -642,14 +642,14 @@ exports.fromString = (str) => {
 };
 
 }).call(this,require('_process'))
-},{"../amm":3,"../lp":31,"_process":83}],5:[function(require,module,exports){
+},{"./amm":3,"./lp":31,"_process":83}],5:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fromString = exports.fromFile = void 0;
 const alan_js_runtime_1 = require("alan-js-runtime");
-const lp_1 = require("../lp");
-const amm_1 = require("../amm");
+const lp_1 = require("./lp");
+const amm_1 = require("./amm");
 const callToJsText = (call) => {
     const args = call.has('calllist') ?
         call.get('calllist').getAll().map(r => r.get('variable').t).join(', ') : "";
@@ -750,7 +750,7 @@ exports.fromString = (str) => {
 };
 
 }).call(this,require('_process'))
-},{"../amm":3,"../lp":31,"_process":83,"alan-js-runtime":"alan-js-runtime"}],6:[function(require,module,exports){
+},{"./amm":3,"./lp":31,"_process":83,"alan-js-runtime":"alan-js-runtime"}],6:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');

@@ -2,9 +2,9 @@ require=(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c=
 const stdlibs = require('./stdlibs.json')
 
 const Ast = require('../dist/lntoamm/Ast')
-const Module = require('../dist/lntoamm/Module')
-const Scope = require('../dist/lntoamm/Scope')
-const opcodeScope = require('../dist/lntoamm/opcodes').exportScope
+const Module = require('../dist/lntoamm/Module').default
+const Scope = require('../dist/lntoamm/Scope').default
+const opcodeScope = require('../dist/lntoamm/opcodes').default.exportScope
 
 module.exports = {
   loadStdModules: (modules) => {
@@ -9592,10 +9592,13 @@ module.exports = {
 
 },{"./LnLexer":6,"./LnParser":8}],10:[function(require,module,exports){
 (function (process){
-const fs = require('fs');
-const path = require('path');
-const { InputStream, CommonTokenStream, } = require('antlr4');
-const { LnLexer, LnParser } = require('../ln');
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.statementAstFromString = exports.functionAstFromString = exports.resolveImports = exports.resolveDependency = exports.fromFile = exports.fromString = void 0;
+const fs = require("fs");
+const path = require("path");
+const antlr4_1 = require("antlr4");
+const ln_1 = require("../ln");
 const resolve = (path) => {
     try {
         return fs.realpathSync(path);
@@ -9604,308 +9607,301 @@ const resolve = (path) => {
         return null;
     }
 };
-const Ast = {
-    fromString: (str) => {
-        const inputStream = new InputStream(str);
-        const langLexer = new LnLexer(inputStream);
-        const commonTokenStream = new CommonTokenStream(langLexer);
-        const langParser = new LnParser(commonTokenStream);
-        return langParser.module();
-    },
-    fromFile: (filename) => {
-        return Ast.fromString(fs.readFileSync(filename, { encoding: 'utf8', }));
-    },
-    resolveDependency: (modulePath, dependency) => {
-        // Special case path for the standard library importing itself
-        if (modulePath.substring(0, 4) === '@std')
-            return dependency.getText().trim();
-        // For everything else...
-        let importPath = null;
-        // If the dependency is a local dependency, there's little logic in determining
-        // what is being imported. It's either the relative path to a file with the language
-        // extension, or the relative path to a directory containing an "index.ln" file
-        if (dependency.localdependency() != null) {
-            const dirPath = resolve(path.join(path.dirname(modulePath), dependency.localdependency().getText().toString(), "index.ln"));
-            const filePath = resolve(path.join(path.dirname(modulePath), dependency.localdependency().getText().toString() + ".ln"));
+exports.fromString = (str) => {
+    const inputStream = new antlr4_1.InputStream(str);
+    const langLexer = new ln_1.LnLexer(inputStream);
+    const commonTokenStream = new antlr4_1.CommonTokenStream(langLexer);
+    const langParser = new ln_1.LnParser(commonTokenStream);
+    return langParser.module();
+};
+exports.fromFile = (filename) => {
+    return exports.fromString(fs.readFileSync(filename, { encoding: 'utf8', }));
+};
+exports.resolveDependency = (modulePath, dependency) => {
+    // Special case path for the standard library importing itself
+    if (modulePath.substring(0, 4) === '@std')
+        return dependency.getText().trim();
+    // For everything else...
+    let importPath = null;
+    // If the dependency is a local dependency, there's little logic in determining
+    // what is being imported. It's either the relative path to a file with the language
+    // extension, or the relative path to a directory containing an "index.ln" file
+    if (dependency.localdependency() != null) {
+        const dirPath = resolve(path.join(path.dirname(modulePath), dependency.localdependency().getText().toString(), "index.ln"));
+        const filePath = resolve(path.join(path.dirname(modulePath), dependency.localdependency().getText().toString() + ".ln"));
+        // It's possible for both to exist. Prefer the directory-based one, but warn the user
+        if (typeof dirPath === "string" && typeof filePath === "string") {
+            console.error(dirPath + " and " + filePath + " both exist. Using " + dirPath);
+        }
+        if (typeof filePath === "string") {
+            importPath = filePath;
+        }
+        if (typeof dirPath === "string") {
+            importPath = dirPath;
+        }
+        if (importPath === null) {
+            // Should I do anything else here?
+            console.error("The dependency " +
+                dependency.localdependency().getText().toString() +
+                " could not be found.");
+            process.exit(-2);
+        }
+    }
+    // If the dependency is a global dependency, there's a more complicated resolution to find it.
+    // This is inspired by the Ruby and Node resolution mechanisms, but with some changes that
+    // should hopefully make some improvements so dependency-injection is effectively first-class
+    // and micro-libraries are discouraged (the latter will require a multi-pronged effort)
+    //
+    // Essentially, there are two recursively-found directories that global modules can be found,
+    // the `modules` directory and the `dependencies` directory (TBD: are these the final names?)
+    // The `modules` directory is recursively checked first (with a special check to make sure it
+    // ignores self-resolutions) and the first one found in that check, if any, is used. If not,
+    // there's a special check if the dependency is an `@std/...` dependency, and if so to return
+    // that string as-is so the built-in dependency is used. Next the same recursive check is
+    // performed on the `dependencies` directories until the dependency is found. If that also
+    // fails, then there will be a complaint and the process will exit.
+    //
+    // The idea is that the package manager will install dependencies into the `dependencies`
+    // directory at the root of the project (or maybe PWD, but that seems a bit too unwieldy).
+    // Meanwhile the `modules` directory will only exist if the developer wants it, but it can be
+    // useful for cross-cutting code in the same project that doesn't really need to be open-
+    // sourced but is annoying to always reference slightly differently in each file, eg
+    // `../../../util`. Instead the project can have a project-root-level `modules` directory and
+    // then `modules/util.ln` can be referenced simply with `import @util` anywhere in the project.
+    //
+    // Since this is also recursive, it's should make dependency injection a first-class citizen
+    // of the language. For instance you can put all of your models in `modules/models/`, and then
+    // your unit test suite can have its model mocks in `tests/modules/models/` and the dependency
+    // you intend to inject into can be symlinked in the `tests/` directory to cause that version
+    // to pull the injected code, instead. And of course, if different tests need different
+    // dependency injections, you can turn the test file into a directory of the same name and
+    // rename the file to `index.ln` within it, and then have the specific mocks that test needs
+    // stored in a `modules/` directory in parallel with it, which will not impact other mocks.
+    //
+    // Because these mocks also have a special exception to not import themselves, this can also
+    // be used for instrumentation purposes, where they override the actual module but then also
+    // import the real thing and add extra behavior to it.
+    //
+    // While there are certainly uses for splitting some logical piece of code into a tree of
+    // files and directories, it is my hope that the standard application organization path is a
+    // project with a root `index.ln` file and `modules` and `dependencies` directories, and little
+    // else. At least things like `modules/logger`, `modules/config`, etc should belong there.
+    if (dependency.globaldependency() != null) {
+        // Get the two potential dependency types, file and directory-style.
+        const fileModule = dependency.globaldependency().getText().toString().substring(1) + ".ln";
+        const dirModule = dependency.globaldependency().getText().toString().substring(1) + "/index.ln";
+        // Get the initial root to check
+        let pathRoot = path.dirname(modulePath);
+        // Search the recursively up the directory structure in the `modules` directories for the
+        // specified dependency, and if found, return it.
+        while (pathRoot != null) {
+            const dirPath = resolve(path.join(pathRoot, "modules", dirModule));
+            const filePath = resolve(path.join(pathRoot, "modules", fileModule));
+            // It's possible for a module to accidentally resolve to itself when the module wraps the
+            // actual dependency it is named for.
+            if (dirPath === modulePath || filePath === modulePath) {
+                pathRoot = path.dirname(pathRoot);
+                continue;
+            }
             // It's possible for both to exist. Prefer the directory-based one, but warn the user
             if (typeof dirPath === "string" && typeof filePath === "string") {
-                System.err.println(dirPath + " and " + filePath + " both exist. Using " + dirPath);
+                console.error(dirPath + " and " + filePath + " both exist. Using " + dirPath);
             }
             if (typeof filePath === "string") {
                 importPath = filePath;
+                break;
             }
             if (typeof dirPath === "string") {
                 importPath = dirPath;
+                break;
             }
-            if (importPath === null) {
+            if (pathRoot === "/") {
+                pathRoot = null;
+            }
+            else {
+                pathRoot = path.dirname(pathRoot);
+            }
+        }
+        if (importPath == null) {
+            // If we can't find it defined in a `modules` directory, check if it's an `@std/...`
+            // module and abort here so the built-in standard library is used.
+            if (dependency.globaldependency().getText().toString().substring(0, 5) === "@std/") {
+                // Not a valid path (starting with '@') to be used as signal to use built-in library)
+                importPath = dependency.globaldependency().getText().toString();
+            }
+            else {
+                // Go back to the original point and search up the tree for `dependencies` directories
+                pathRoot = path.dirname(modulePath);
+                while (pathRoot != null) {
+                    const dirPath = resolve(path.join(pathRoot, "dependencies", dirModule));
+                    const filePath = resolve(path.join(pathRoot, "dependencies", fileModule));
+                    // It's possible for both to exist. Prefer the directory-based one, but warn the user
+                    if (typeof dirPath === "string" && typeof filePath === "string") {
+                        console.error(dirPath + " and " + filePath + " both exist. Using " + dirPath);
+                    }
+                    if (typeof filePath === "string") {
+                        importPath = filePath;
+                        break;
+                    }
+                    if (typeof dirPath === "string") {
+                        importPath = dirPath;
+                        break;
+                    }
+                    if (pathRoot === "/") {
+                        pathRoot = null;
+                    }
+                    else {
+                        pathRoot = path.dirname(pathRoot);
+                    }
+                }
+            }
+            if (importPath == null) {
                 // Should I do anything else here?
                 console.error("The dependency " +
-                    dependency.localdependency().getText().toString() +
+                    dependency.globaldependency().getText().toString() +
                     " could not be found.");
                 process.exit(-2);
             }
         }
-        // If the dependency is a global dependency, there's a more complicated resolution to find it.
-        // This is inspired by the Ruby and Node resolution mechanisms, but with some changes that
-        // should hopefully make some improvements so dependency-injection is effectively first-class
-        // and micro-libraries are discouraged (the latter will require a multi-pronged effort)
-        //
-        // Essentially, there are two recursively-found directories that global modules can be found,
-        // the `modules` directory and the `dependencies` directory (TBD: are these the final names?)
-        // The `modules` directory is recursively checked first (with a special check to make sure it
-        // ignores self-resolutions) and the first one found in that check, if any, is used. If not,
-        // there's a special check if the dependency is an `@std/...` dependency, and if so to return
-        // that string as-is so the built-in dependency is used. Next the same recursive check is
-        // performed on the `dependencies` directories until the dependency is found. If that also
-        // fails, then there will be a complaint and the process will exit.
-        //
-        // The idea is that the package manager will install dependencies into the `dependencies`
-        // directory at the root of the project (or maybe PWD, but that seems a bit too unwieldy).
-        // Meanwhile the `modules` directory will only exist if the developer wants it, but it can be
-        // useful for cross-cutting code in the same project that doesn't really need to be open-
-        // sourced but is annoying to always reference slightly differently in each file, eg
-        // `../../../util`. Instead the project can have a project-root-level `modules` directory and
-        // then `modules/util.ln` can be referenced simply with `import @util` anywhere in the project.
-        //
-        // Since this is also recursive, it's should make dependency injection a first-class citizen
-        // of the language. For instance you can put all of your models in `modules/models/`, and then
-        // your unit test suite can have its model mocks in `tests/modules/models/` and the dependency
-        // you intend to inject into can be symlinked in the `tests/` directory to cause that version
-        // to pull the injected code, instead. And of course, if different tests need different
-        // dependency injections, you can turn the test file into a directory of the same name and
-        // rename the file to `index.ln` within it, and then have the specific mocks that test needs
-        // stored in a `modules/` directory in parallel with it, which will not impact other mocks.
-        //
-        // Because these mocks also have a special exception to not import themselves, this can also
-        // be used for instrumentation purposes, where they override the actual module but then also
-        // import the real thing and add extra behavior to it.
-        //
-        // While there are certainly uses for splitting some logical piece of code into a tree of
-        // files and directories, it is my hope that the standard application organization path is a
-        // project with a root `index.ln` file and `modules` and `dependencies` directories, and little
-        // else. At least things like `modules/logger`, `modules/config`, etc should belong there.
-        if (dependency.globaldependency() != null) {
-            // Get the two potential dependency types, file and directory-style.
-            const fileModule = dependency.globaldependency().getText().toString().substring(1) + ".ln";
-            const dirModule = dependency.globaldependency().getText().toString().substring(1) + "/index.ln";
-            // Get the initial root to check
-            let pathRoot = path.dirname(modulePath);
-            // Search the recursively up the directory structure in the `modules` directories for the
-            // specified dependency, and if found, return it.
-            while (pathRoot != null) {
-                const dirPath = resolve(path.join(pathRoot, "modules", dirModule));
-                const filePath = resolve(path.join(pathRoot, "modules", fileModule));
-                // It's possible for a module to accidentally resolve to itself when the module wraps the
-                // actual dependency it is named for.
-                if (dirPath === modulePath || filePath === modulePath) {
-                    pathRoot = path.dirname(pathRoot);
-                    continue;
-                }
-                // It's possible for both to exist. Prefer the directory-based one, but warn the user
-                if (typeof dirPath === "string" && typeof filePath === "string") {
-                    console.error(dirPath + " and " + filePath + " both exist. Using " + dirPath);
-                }
-                if (typeof filePath === "string") {
-                    importPath = filePath;
-                    break;
-                }
-                if (typeof dirPath === "string") {
-                    importPath = dirPath;
-                    break;
-                }
-                if (pathRoot === "/") {
-                    pathRoot = null;
-                }
-                else {
-                    pathRoot = path.dirname(pathRoot);
-                }
-            }
-            if (importPath == null) {
-                // If we can't find it defined in a `modules` directory, check if it's an `@std/...`
-                // module and abort here so the built-in standard library is used.
-                if (dependency.globaldependency().getText().toString().substring(0, 5) === "@std/") {
-                    // Not a valid path (starting with '@') to be used as signal to use built-in library)
-                    importPath = dependency.globaldependency().getText().toString();
-                }
-                else {
-                    // Go back to the original point and search up the tree for `dependencies` directories
-                    pathRoot = path.dirname(modulePath);
-                    while (pathRoot != null) {
-                        const dirPath = resolve(path.join(pathRoot, "dependencies", dirModule));
-                        const filePath = resolve(path.join(pathRoot, "dependencies", fileModule));
-                        // It's possible for both to exist. Prefer the directory-based one, but warn the user
-                        if (typeof dirPath === "string" && typeof filePath === "string") {
-                            System.err.println(dirPath + " and " + filePath + " both exist. Using " + dirPath);
-                        }
-                        if (typeof filePath === "string") {
-                            importPath = filePath;
-                            break;
-                        }
-                        if (typeof dirPath === "string") {
-                            importPath = dirPath;
-                            break;
-                        }
-                        if (pathRoot === "/") {
-                            pathRoot = null;
-                        }
-                        else {
-                            pathRoot = path.dirname(pathRoot);
-                        }
-                    }
-                }
-                if (importPath == null) {
-                    // Should I do anything else here?
-                    console.error("The dependency " +
-                        dependency.globaldependency().getText().toString() +
-                        " could not be found.");
-                    process.exit(-2);
-                }
-            }
-        }
-        return importPath;
-    },
-    resolveImports: (modulePath, ast) => {
-        let resolvedImports = [];
-        let imports = ast.imports();
-        for (let i = 0; i < imports.length; i++) {
-            const standardImport = imports[i].standardImport();
-            const fromImport = imports[i].fromImport();
-            let dependency = null;
-            if (standardImport != null) {
-                dependency = standardImport.dependency();
-            }
-            if (fromImport != null) {
-                dependency = fromImport.dependency();
-            }
-            if (dependency == null) {
-                // Should I do anything else here?
-                console.error("Things are horribly broken!");
-                process.exit(-2);
-            }
-            importPath = Ast.resolveDependency(modulePath, dependency);
-            resolvedImports.push(importPath);
-        }
-        return resolvedImports;
-    },
-    functionAstFromString: (fn) => {
-        const inputStream = new InputStream(fn);
-        const langLexer = new LnLexer(inputStream);
-        const commonTokenStream = new CommonTokenStream(langLexer);
-        const langParser = new LnParser(commonTokenStream);
-        return langParser.functions();
-    },
-    statementAstFromString: (s) => {
-        const inputStream = new InputStream(s);
-        const langLexer = new LnLexer(inputStream);
-        const commonTokenStream = new CommonTokenStream(langLexer);
-        const langParser = new LnParser(commonTokenStream);
-        return langParser.statements();
-    },
+    }
+    return importPath;
 };
-module.exports = Ast;
+exports.resolveImports = (modulePath, ast) => {
+    let resolvedImports = [];
+    let imports = ast.imports();
+    for (let i = 0; i < imports.length; i++) {
+        const standardImport = imports[i].standardImport();
+        const fromImport = imports[i].fromImport();
+        let dependency = null;
+        if (standardImport != null) {
+            dependency = standardImport.dependency();
+        }
+        if (fromImport != null) {
+            dependency = fromImport.dependency();
+        }
+        if (dependency == null) {
+            // Should I do anything else here?
+            console.error("Things are horribly broken!");
+            process.exit(-2);
+        }
+        const importPath = exports.resolveDependency(modulePath, dependency);
+        resolvedImports.push(importPath);
+    }
+    return resolvedImports;
+};
+exports.functionAstFromString = (fn) => {
+    const inputStream = new antlr4_1.InputStream(fn);
+    const langLexer = new ln_1.LnLexer(inputStream);
+    const commonTokenStream = new antlr4_1.CommonTokenStream(langLexer);
+    const langParser = new ln_1.LnParser(commonTokenStream);
+    return langParser.functions();
+};
+exports.statementAstFromString = (s) => {
+    const inputStream = new antlr4_1.InputStream(s);
+    const langLexer = new ln_1.LnLexer(inputStream);
+    const commonTokenStream = new antlr4_1.CommonTokenStream(langLexer);
+    const langParser = new ln_1.LnParser(commonTokenStream);
+    return langParser.statements();
+};
 
 }).call(this,require('_process'))
 },{"../ln":9,"_process":83,"antlr4":74,"fs":80,"path":82}],11:[function(require,module,exports){
 (function (process){
-const Type = require('./Type');
-const Int8 = require('./Int8');
-const Int16 = require('./Int16');
-const Int32 = require('./Int32');
-const Int64 = require('./Int64');
-const Float32 = require('./Float32');
-const Float64 = require('./Float64');
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Event_1 = require("./Event");
+const Float32_1 = require("./Float32");
+const Float64_1 = require("./Float64");
+const Int16_1 = require("./Int16");
+const Int32_1 = require("./Int32");
+const Int64_1 = require("./Int64");
+const Int8_1 = require("./Int8");
+const Microstatement_1 = require("./Microstatement");
+const Scope_1 = require("./Scope");
+const Type_1 = require("./Type");
+const UserFunction_1 = require("./UserFunction");
 class Box {
     constructor(...args) {
-        // Work around circular deps in another way
-        const Scope = require('./Scope');
-        const Microstatement = require('./Microstatement');
-        const Int8 = require('./Int8');
-        const Int16 = require('./Int16');
-        const Int32 = require('./Int32');
-        const Int64 = require('./Int64');
-        const Float32 = require('./Float32');
-        const Float64 = require('./Float64');
-        const Event = require('./Event');
         if (args.length === 0) {
-            this.type = Type.builtinTypes.void;
+            this.type = Type_1.default.builtinTypes.void;
             this.readonly = true;
         }
         else if (args.length === 1) {
             if (typeof args[0] === "boolean") {
-                this.type = Type.builtinTypes.void;
+                this.type = Type_1.default.builtinTypes.void;
                 this.readonly = args[0];
             }
-            else if (args[0] instanceof Type) {
-                this.type = Type.builtinTypes.type;
+            else if (args[0] instanceof Type_1.default) {
+                this.type = Type_1.default.builtinTypes.type;
                 this.typeval = args[0];
                 this.readonly = true; // Type declarations are always read-only
             }
-            else if (args[0] instanceof Scope) {
-                this.type = Type.builtinTypes.scope;
+            else if (args[0] instanceof Scope_1.default) {
+                this.type = Type_1.default.builtinTypes.scope;
                 this.scopeval = args[0];
                 this.readonly = true; // Boxed scopes are always read-only
             }
-            else if (args[0] instanceof Microstatement) {
-                this.type = Type.builtinTypes.microstatement;
+            else if (args[0] instanceof Microstatement_1.default) {
+                this.type = Type_1.default.builtinTypes.microstatement;
                 this.microstatementval = args[0];
                 this.readonly = true;
             }
             else if (args[0] instanceof Array) {
                 // This is only operator declarations right now
-                this.type = Type.builtinTypes.operator;
+                this.type = Type_1.default.builtinTypes.operator;
                 this.operatorval = args[0];
                 this.readonly = true;
             }
         }
         else if (args.length === 2) {
-            if (args[0] instanceof Int8) {
-                this.type = Type.builtinTypes.int8;
+            if (args[0] instanceof Int8_1.default) {
+                this.type = Type_1.default.builtinTypes.int8;
                 this.int8val = args[0];
                 this.readonly = args[1];
             }
-            else if (args[0] instanceof Int16) {
-                this.type = Type.builtinTypes.int16;
+            else if (args[0] instanceof Int16_1.default) {
+                this.type = Type_1.default.builtinTypes.int16;
                 this.int16val = args[0];
                 this.readonly = args[1];
             }
-            else if (args[0] instanceof Int32) {
-                this.type = Type.builtinTypes.int32;
+            else if (args[0] instanceof Int32_1.default) {
+                this.type = Type_1.default.builtinTypes.int32;
                 this.int32val = args[0];
                 this.readonly = args[1];
             }
-            else if (args[0] instanceof Int64) {
-                this.type = Type.builtinTypes.int64;
+            else if (args[0] instanceof Int64_1.default) {
+                this.type = Type_1.default.builtinTypes.int64;
                 this.int64val = args[0];
                 this.readonly = args[1];
             }
-            else if (args[0] instanceof Float32) {
-                this.type = Type.builtinTypes.float32;
+            else if (args[0] instanceof Float32_1.default) {
+                this.type = Type_1.default.builtinTypes.float32;
                 this.float32val = args[0];
                 this.readonly = args[1];
             }
-            else if (args[0] instanceof Float64) {
-                this.type = Type.builtinTypes.float64;
+            else if (args[0] instanceof Float64_1.default) {
+                this.type = Type_1.default.builtinTypes.float64;
                 this.float64val = args[0];
                 this.readonly = args[1];
             }
             else if (typeof args[0] === "boolean") {
-                this.type = Type.builtinTypes.bool;
+                this.type = Type_1.default.builtinTypes.bool;
                 this.boolval = args[0];
                 this.readonly = args[1];
             }
             else if (typeof args[0] === "string") {
-                this.type = Type.builtinTypes.string;
+                this.type = Type_1.default.builtinTypes.string;
                 this.stringval = args[0];
                 this.readonly = args[1];
             }
             else if (args[0] instanceof Array) {
                 // This is only function declarations right now
-                this.type = Type.builtinTypes["function"];
+                this.type = Type_1.default.builtinTypes["function"];
                 this.functionval = args[0];
                 this.readonly = args[1];
             }
-            else if (args[0] instanceof Event) {
-                this.type = Type.builtinTypes.Event;
+            else if (args[0] instanceof Event_1.default) {
+                this.type = Type_1.default.builtinTypes.Event;
                 this.eventval = args[0];
                 this.readonly = args[1];
             }
@@ -9927,8 +9923,8 @@ class Box {
             }
             else if (args[0] instanceof Object) {
                 // It's an event or user-defined type
-                if (args[1].originalType == Type.builtinTypes.Event) {
-                    let eventval = new Event(args[0].name.stringval, args[1].properties.type, false);
+                if (args[1].originalType == Type_1.default.builtinTypes.Event) {
+                    let eventval = new Event_1.default(args[0].name.stringval, args[1].properties.type, false);
                     this.eventval = eventval;
                     this.readonly = args[2];
                 }
@@ -9940,7 +9936,10 @@ class Box {
             }
         }
     }
-    static fromConstantsAst(constantsAst, scope, expectedType, readonly) {
+    // TODO: There are so many Java-isms in this method, check if it's even being used
+    static fromConstantsAst(constantsAst, // TODO: Port from ANTLR to improve AST typing
+    _scope, // TODO: Remove this arg from calling functions
+    expectedType, readonly) {
         if (constantsAst.BOOLCONSTANT() != null) {
             if (constantsAst.BOOLCONSTANT().getText() === "true") {
                 return new Box(true, readonly);
@@ -9966,19 +9965,19 @@ class Box {
         if (constantsAst.NUMBERCONSTANT() != null) {
             // TODO: Add support for hex, octal, scientific, etc
             const numberConst = constantsAst.NUMBERCONSTANT().getText();
-            const typename = expectedType != null ? expectedType.typename : null;
-            if (typename != null && typename.equals("void"))
+            let typename = expectedType != null ? expectedType.typename : null;
+            if (typename != null && typename === "void")
                 typename = null;
             if (numberConst.indexOf('.') > -1) { // It's a float
                 // TODO: How to handle other float constants like NaN, Infinity, -0, etc
                 if (typename == null) {
-                    return new Box(new Float64(numberConst), readonly);
+                    return new Box(new Float64_1.default(numberConst), readonly);
                 }
-                else if (typename.equals("float32")) {
-                    return new Box(new Float32(numberConst), readonly);
+                else if (typename === "float32") {
+                    return new Box(new Float32_1.default(numberConst), readonly);
                 }
-                else if (typename.equals("float64")) {
-                    return new Box(new Float64(numberConst), readonly);
+                else if (typename === "float64") {
+                    return new Box(new Float64_1.default(numberConst), readonly);
                 }
                 else {
                     // Bad assignment
@@ -9989,25 +9988,25 @@ class Box {
             else { // It's an integer
                 // TODO: Should we error on overflowing constants in integer mode?
                 if (typename == null) {
-                    return new Box(new Int64(numberConst), readonly);
+                    return new Box(new Int64_1.default(numberConst), readonly);
                 }
-                else if (typename.equals("int8")) {
-                    return new Box(new Int8(numberConst), readonly);
+                else if (typename === "int8") {
+                    return new Box(new Int8_1.default(numberConst), readonly);
                 }
-                else if (typename.equals("int16")) {
-                    return new Box(new Int16(numberConst), readonly);
+                else if (typename === "int16") {
+                    return new Box(new Int16_1.default(numberConst), readonly);
                 }
-                else if (typename.equals("int32")) {
-                    return new Box(new Int32(numberConst), readonly);
+                else if (typename === "int32") {
+                    return new Box(new Int32_1.default(numberConst), readonly);
                 }
-                else if (typename.equals("int64")) {
-                    return new Box(new Int64(numberConst), readonly);
+                else if (typename === "int64") {
+                    return new Box(new Int64_1.default(numberConst), readonly);
                 }
-                else if (typename.equals("float32")) { // We'll allow floats to get integer constants
-                    return new Box(new Float32(numberConst), readonly);
+                else if (typename === "float32") { // We'll allow floats to get integer constants
+                    return new Box(new Float32_1.default(numberConst), readonly);
                 }
-                else if (typename.equals("float64")) {
-                    return new Box(new Float64(numberConst), readonly);
+                else if (typename === "float64") {
+                    return new Box(new Float64_1.default(numberConst), readonly);
                 }
                 else {
                     // Bad assignment
@@ -10060,14 +10059,15 @@ class Box {
         }
         if (type.generics.length > 0 && assignmentAst.typegenerics() != null) {
             let solidTypes = [];
-            for (fulltypenameAst of assignmentAst.typegenerics().fulltypename()) {
+            for (const fulltypenameAst of assignmentAst.typegenerics().fulltypename()) {
                 solidTypes.push(fulltypenameAst.getText());
             }
             type = type.solidify(solidTypes, scope);
         }
         return Box.fromAssignableAst(assignmentAst.assignables(), scope, type, readonly);
     }
-    static fromAssignableAst(assignableAst, scope, expectedType, readonly) {
+    static fromAssignableAst(assignableAst, // TODO: Eliminate ANTLR
+    scope, expectedType, readonly) {
         if (assignableAst == null) {
             return new Box(null, expectedType);
         }
@@ -10089,9 +10089,10 @@ class Box {
         // Just to prevent complains, but this should not be reachable
         return null;
     }
-    static fromBasicAssignableAst(basicAssignable, scope, expectedType, readonly) {
+    static fromBasicAssignableAst(basicAssignable, // TODO: Eliminate ANTLR
+    scope, expectedType, readonly) {
         if (basicAssignable.functions() != null) {
-            const assignedFunction = UserFunction.fromAst(basicAssignable.functions(), scope);
+            const assignedFunction = UserFunction_1.default.fromAst(basicAssignable.functions(), scope);
             return new Box([assignedFunction], readonly);
         }
         if (basicAssignable.calls() != null) {
@@ -10126,7 +10127,9 @@ class Box {
         console.error("Something went wrong parsing the syntax");
         process.exit(-8);
     }
-    static fromObjectLiteralsAst(objectliteralsAst, scope, expectedType, readonly) {
+    static fromObjectLiteralsAst(objectliteralsAst, // TODO: Eliminate ANTLR
+    scope, _expectedType, // TODO: Eliminate this arg from calling code
+    readonly) {
         const typename = objectliteralsAst.othertype().getText();
         const typeBox = scope.deepGet(typename);
         let type = null;
@@ -10169,7 +10172,7 @@ class Box {
                         + property + " property.");
                     process.exit(-46);
                 }
-                typevalval.put(assignmentsAst.varn().getText(), Box.fromAssignableAst(assignmentsAst.assignables(), scope, assignmentType, readonly));
+                typevalval[assignmentsAst.varn().getText()] = Box.fromAssignableAst(assignmentsAst.assignables(), scope, assignmentType, readonly);
             }
             return new Box(typevalval, type, readonly);
         }
@@ -10181,7 +10184,7 @@ class Box {
                     readonly);
                     const valBox = Box.fromAssignableAst(mapline.assignables(1), scope, type.properties["value"], // Special for Maps
                     readonly);
-                    mapval.put(keyBox, valBox);
+                    mapval[keyBox] = valBox;
                 }
             }
             return new Box(mapval, type, readonly);
@@ -10190,42 +10193,49 @@ class Box {
         return null;
     }
 }
-module.exports = Box;
+exports.default = Box;
 
 }).call(this,require('_process'))
-},{"./Event":12,"./Float32":13,"./Float64":14,"./Int16":16,"./Int32":17,"./Int64":18,"./Int8":19,"./Microstatement":21,"./Scope":24,"./Type":27,"_process":83}],12:[function(require,module,exports){
+},{"./Event":12,"./Float32":13,"./Float64":14,"./Int16":16,"./Int32":17,"./Int64":18,"./Int8":19,"./Microstatement":21,"./Scope":24,"./Type":27,"./UserFunction":28,"_process":83}],12:[function(require,module,exports){
 (function (process){
-class Event {
-    constructor(name, type, builtIn) {
-        this.name = name,
-            this.type = type;
-        this.builtIn = builtIn;
-        this.handlers = [];
-        Event.allEvents.push(this);
-    }
-    toString() {
-        return `event ${this.name}: ${this.type.typename}`;
-    }
-    static fromAst(eventAst, scope) {
-        const name = eventAst.VARNAME().getText();
-        const boxedVal = scope.deepGet(eventAst.varn());
-        if (boxedVal === null) {
-            console.error("Could not find specified type: " + eventAst.varn().getText());
-            process.exit(-8);
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+let Event = /** @class */ (() => {
+    class Event {
+        constructor(name, type, builtIn) {
+            this.name = name,
+                this.type = type;
+            this.builtIn = builtIn;
+            this.handlers = [];
+            Event.allEvents.push(this);
         }
-        else if (!boxedVal.type.typename === "type") {
-            console.error(eventAst.varn().getText() + " is not a type");
-            process.exit(-9);
+        toString() {
+            return `event ${this.name}: ${this.type.typename}`;
         }
-        const type = boxedVal.typeval;
-        return new Event(name, type, false);
+        static fromAst(eventAst, scope) {
+            const name = eventAst.VARNAME().getText();
+            const boxedVal = scope.deepGet(eventAst.varn());
+            if (boxedVal === null) {
+                console.error("Could not find specified type: " + eventAst.varn().getText());
+                process.exit(-8);
+            }
+            else if (boxedVal.type.typename !== "type") {
+                console.error(eventAst.varn().getText() + " is not a type");
+                process.exit(-9);
+            }
+            const type = boxedVal.typeval;
+            return new Event(name, type, false);
+        }
     }
-}
-Event.allEvents = [];
-module.exports = Event;
+    Event.allEvents = [];
+    return Event;
+})();
+exports.default = Event;
 
 }).call(this,require('_process'))
 },{"_process":83}],13:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class Float32 {
     constructor(val) {
         this.val = val;
@@ -10234,9 +10244,11 @@ class Float32 {
         return this.val;
     }
 }
-module.exports = Float32;
+exports.default = Float32;
 
 },{}],14:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class Float64 {
     constructor(val) {
         this.val = val;
@@ -10245,9 +10257,11 @@ class Float64 {
         return this.val;
     }
 }
-module.exports = Float64;
+exports.default = Float64;
 
 },{}],15:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class FunctionType {
     constructor(...args) {
         if (args.length === 1) {
@@ -10274,9 +10288,11 @@ class FunctionType {
         }
     }
 }
-module.exports = FunctionType;
+exports.default = FunctionType;
 
 },{}],16:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class Int16 {
     constructor(val) {
         this.val = val;
@@ -10285,9 +10301,11 @@ class Int16 {
         return this.val;
     }
 }
-module.exports = Int16;
+exports.default = Int16;
 
 },{}],17:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class Int32 {
     constructor(val) {
         this.val = val;
@@ -10296,9 +10314,11 @@ class Int32 {
         return this.val;
     }
 }
-module.exports = Int32;
+exports.default = Int32;
 
 },{}],18:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class Int64 {
     constructor(val) {
         this.val = val;
@@ -10307,9 +10327,11 @@ class Int64 {
         return this.val;
     }
 }
-module.exports = Int64;
+exports.default = Int64;
 
 },{}],19:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class Int8 {
     constructor(val) {
         this.val = val;
@@ -10318,29 +10340,23 @@ class Int8 {
         return this.val;
     }
 }
-module.exports = Int8;
+exports.default = Int8;
 
 },{}],20:[function(require,module,exports){
 (function (process){
-const FunctionType = require('./FunctionType');
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Box_1 = require("./Box");
+const FunctionType_1 = require("./FunctionType");
+const Type_1 = require("./Type");
 class Interface {
-    constructor(...args) {
-        if (args.length === 1) {
-            this.interfacename = args[0];
-            this.functionTypes = [];
-            this.operatorTypes = [];
-            this.requiredProperties = {};
-        }
-        else if (args.length === 4) {
-            this.interfacename = args[0];
-            this.functionTypes = args[1];
-            this.operatorTypes = args[2];
-            this.requiredProperties = args[3];
-        }
+    constructor(interfacename, functionTypes = [], operatorTypes = [], requiredProperties = {}) {
+        this.interfacename = interfacename;
+        this.functionTypes = functionTypes;
+        this.operatorTypes = operatorTypes;
+        this.requiredProperties = requiredProperties;
     }
     typeApplies(typeToCheck, scope) {
-        // Circulary dependency nonsense
-        const Type = require('./Type');
         // Solve circular dependency issue
         for (const requiredProperty of Object.keys(this.requiredProperties)) {
             if (!typeToCheck.properties.hasOwnProperty(requiredProperty))
@@ -10351,7 +10367,7 @@ class Interface {
                 continue; // Anonymous functions checked at callsite
             const potentialFunctionsBox = scope.deepGet(functionType.functionname);
             if (potentialFunctionsBox == null ||
-                potentialFunctionsBox.type != Type.builtinTypes["function"]) {
+                potentialFunctionsBox.type != Type_1.default.builtinTypes["function"]) {
                 console.error(functionType.functionname + " is not the name of a function");
                 process.exit(-48);
             }
@@ -10384,22 +10400,19 @@ class Interface {
             if (!functionFound)
                 return false;
         }
-        for (const operatorType of this.operatorTypes) {
-            // TODO: Implement me!
-        }
+        /* for (const operatorType of this.operatorTypes) {
+          // TODO: Implement me!
+        } */
         return true;
     }
     static fromAst(interfaceAst, scope) {
-        // Circulary dependency nonsense
-        const Box = require('./Box');
-        const Type = require('./Type');
         // Construct the basic interface, the wrapper type, and insert it into the scope
         // This is all necessary so the interface can self-reference when constructing the function and
         // operator types.
         const interfacename = interfaceAst.VARNAME().getText();
         let iface = new Interface(interfacename);
-        const ifaceType = new Type(interfacename, false, iface);
-        const ifaceTypeBox = new Box(ifaceType);
+        const ifaceType = new Type_1.default(interfacename, false, iface);
+        const ifaceTypeBox = new Box_1.default(ifaceType);
         scope.put(interfacename, ifaceTypeBox);
         // Now, insert the actual declarations of the interface, if there are any (if there are none,
         // it will provide only as much as a type generic -- you can set it to a variable and return it
@@ -10428,7 +10441,7 @@ class Interface {
                         }
                         args.push(argumentBox.typeval);
                     }
-                    const functionType = new FunctionType(functionname, args, returnType);
+                    const functionType = new FunctionType_1.default(functionname, args, returnType);
                     iface.functionTypes.push(functionType);
                 }
                 if (interfaceline.operatortypeline() != null) {
@@ -10448,18 +10461,21 @@ class Interface {
         return ifaceTypeBox;
     }
 }
-module.exports = Interface;
+exports.default = Interface;
 
 }).call(this,require('_process'))
 },{"./Box":11,"./FunctionType":15,"./Type":27,"_process":83}],21:[function(require,module,exports){
 (function (process){
-const { v4: uuid, } = require('uuid');
-const { LnParser, } = require('../ln');
-const StatementType = require('./StatementType');
-const Box = require('./Box');
-const Type = require('./Type');
-const UserFunction = require('./UserFunction');
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const uuid_1 = require("uuid");
+const Box_1 = require("./Box");
+const StatementType_1 = require("./StatementType");
+const Type_1 = require("./Type");
+const UserFunction_1 = require("./UserFunction");
+const ln_1 = require("../ln");
 class Microstatement {
+    // TODO: Replace fake multiple dispatch with default arg values
     constructor(...args) {
         if (args.length === 5) {
             // "Normal" microstatement
@@ -10468,7 +10484,7 @@ class Microstatement {
             this.pure = args[2];
             this.outputName = args[3];
             this.alias = "";
-            this.outputType = Type.builtinTypes.void;
+            this.outputType = Type_1.default.builtinTypes.void;
             this.inputNames = [];
             this.fns = [];
             this.closureStatements = args[4];
@@ -10513,7 +10529,7 @@ class Microstatement {
     toString() {
         let outString = "";
         switch (this.statementType) {
-            case StatementType.CONSTDEC:
+            case StatementType_1.default.CONSTDEC:
                 outString = "const " + this.outputName + ": " + this.outputType.typename;
                 if (this.fns.length > 0) {
                     outString += " = " + this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
@@ -10522,7 +10538,7 @@ class Microstatement {
                     outString += " = " + this.inputNames[0]; // Doesn't appear the list is ever used here
                 }
                 break;
-            case StatementType.LETDEC:
+            case StatementType_1.default.LETDEC:
                 outString = "let " + this.outputName + ": " + this.outputType.typename;
                 if (this.fns.length > 0) {
                     outString += " = " + this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
@@ -10531,7 +10547,7 @@ class Microstatement {
                     outString += " = " + this.inputNames[0]; // Doesn't appear the list is ever used here
                 }
                 break;
-            case StatementType.ASSIGNMENT:
+            case StatementType_1.default.ASSIGNMENT:
                 outString = this.outputName;
                 if (this.fns.length > 0) {
                     outString += " = " + this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
@@ -10540,12 +10556,12 @@ class Microstatement {
                     outString += " = " + this.inputNames[0]; // Doesn't appear the list is ever used here
                 }
                 break;
-            case StatementType.CALL:
+            case StatementType_1.default.CALL:
                 if (this.fns.length > 0) {
                     outString += this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
                 }
                 break;
-            case StatementType.EMIT:
+            case StatementType_1.default.EMIT:
                 outString = "emit " + this.outputName + " ";
                 if (this.fns.length > 0) {
                     outString += this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
@@ -10554,7 +10570,7 @@ class Microstatement {
                     outString += this.inputNames[0]; // Doesn't appear the list is ever used here
                 }
                 break;
-            case StatementType.CLOSURE:
+            case StatementType_1.default.CLOSURE:
                 outString = "const " + this.outputName + ": function = fn (): void {\n";
                 for (const m of this.closureStatements) {
                     const s = m.toString();
@@ -10564,8 +10580,8 @@ class Microstatement {
                 }
                 outString += "  }";
                 break;
-            case StatementType.REREF:
-            case StatementType.ARG:
+            case StatementType_1.default.REREF:
+            case StatementType_1.default.ARG:
                 // Intentionally never output anything, this is metadata for the transpiler algo only
                 break;
         }
@@ -10584,7 +10600,7 @@ class Microstatement {
                 original = microstatement;
                 for (let j = i - 1; j >= 0; j--) {
                     if (microstatements[j].outputName === original.outputName &&
-                        microstatements[j].statementType !== StatementType.REREF) {
+                        microstatements[j].statementType !== StatementType_1.default.REREF) {
                         original = microstatements[j];
                         break;
                     }
@@ -10594,6 +10610,7 @@ class Microstatement {
         }
         return original;
     }
+    // TODO: Eliminate ANTLR
     static fromVarAst(varAst, scope, microstatements) {
         // Short-circuit if this exact var was already loaded
         let original = Microstatement.fromVarName(varAst.getText(), microstatements);
@@ -10627,12 +10644,12 @@ class Microstatement {
                             process.exit(-205);
                         }
                         // Create a new variable to hold the address within the array literal
-                        const addrName = "_" + uuid().replace(/-/g, "_");
-                        microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, addrName, Type.builtinTypes['int64'], [`${fieldNum}`], []));
+                        const addrName = "_" + uuid_1.v4().replace(/-/g, "_");
+                        microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, addrName, Type_1.default.builtinTypes['int64'], [`${fieldNum}`], []));
                         // Insert a `copyto` opcode. Eventually determine if it should be `copyto` or `register`
                         // based on the inner type of the Array.
-                        const opcodeScope = require('./opcodes').exportScope; // Unfortunate circular dep issue
-                        opcodeScope.get('copyfrom').functionval[0].microstatementInlining([original.outputName, addrName], scope, microstatements);
+                        const opcodes = require('./opcodes').default;
+                        opcodes.exportScope.get('copyfrom').functionval[0].microstatementInlining([original.outputName, addrName], scope, microstatements);
                         // We'll need a reference to this for later
                         const typeRecord = original;
                         // Set the original to this newly-generated microstatement
@@ -10681,8 +10698,8 @@ class Microstatement {
                     }
                     // Insert a `copyto` opcode. Eventually determine if it should be `copyto` or `register`
                     // based on the inner type of the Array.
-                    const opcodeScope = require('./opcodes').exportScope; // Unfortunate circular dep issue
-                    opcodeScope.get('copyfrom').functionval[0].microstatementInlining([original.outputName, lookup.outputName], scope, microstatements);
+                    const opcodes = require('./opcodes').default;
+                    opcodes.exportScope.get('copyfrom').functionval[0].microstatementInlining([original.outputName, lookup.outputName], scope, microstatements);
                     // We'll need a reference to this for later
                     const arrayRecord = original;
                     // Set the original to this newly-generated microstatement
@@ -10705,11 +10722,12 @@ class Microstatement {
         // When a variable is reassigned (or was referenced in a function call or operator statement,
         // instead of duplicating its data, add a microstatement to rereference that data (all of the
         // function and operator calls expect their arguments to be the N statements preceding them).
-        microstatements.push(new Microstatement(StatementType.REREF, scope, true, original.outputName, original.outputType, [], []));
+        microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, original.outputName, original.outputType, [], []));
     }
+    // TODO: Eliminate ANTLR
     static fromConstantsAst(constantsAst, scope, microstatements) {
-        const constName = "_" + uuid().replace(/-/g, "_");
-        const constBox = Box.fromConstantsAst(constantsAst, scope, null, true);
+        const constName = "_" + uuid_1.v4().replace(/-/g, "_");
+        const constBox = Box_1.default.fromConstantsAst(constantsAst, scope, null, true);
         let constVal;
         try {
             JSON.parse(constantsAst.getText()); // Will fail on strings with escape chars
@@ -10719,13 +10737,14 @@ class Microstatement {
             // Hackery to get these strings to work
             constVal = JSON.stringify(constantsAst.getText().replace(/^["']/, '').replace(/["']$/, ''));
         }
-        microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, constName, constBox.type, [constVal], []));
+        microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, constBox.type, [constVal], []));
     }
-    static fromBasicAssignablesAst(basicAssignablesAst, returnTypeHint, scope, microstatements) {
+    static fromBasicAssignablesAst(basicAssignablesAst, // TODO: Eliminate ANTLR
+    scope, microstatements) {
         // Functions will be inlined in a second pass over the microstatements whereever it is called.
         // For now we still create the function object and the microstatement to assign it
         if (basicAssignablesAst.functions() != null) {
-            const fnToAssign = UserFunction.fromAst(basicAssignablesAst.functions(), scope);
+            const fnToAssign = UserFunction_1.default.fromAst(basicAssignablesAst.functions(), scope);
             Microstatement.closureFromUserFunction(fnToAssign, scope, microstatements);
             return;
         }
@@ -10749,7 +10768,7 @@ class Microstatement {
         }
         // `groups` are just grouped `withOperators`.
         if (basicAssignablesAst.groups() != null) {
-            Microstatement.fromWithOperatorsAst(basicAssignablesAst.groups().withoperators(), null, scope, microstatements);
+            Microstatement.fromWithOperatorsAst(basicAssignablesAst.groups().withoperators(), scope, microstatements);
             return;
         }
         // `typeof` is a special statement to get the type from a variable. This is usually static but
@@ -10760,11 +10779,11 @@ class Microstatement {
         // TODO: For now, ignore this complexity and assume it can just be serialized.
         if (basicAssignablesAst.typeofn() != null) {
             // First evaluate the type's basicassignables.
-            Microstatement.fromBasicAssignablesAst(basicAssignablesAst.typeofn().basicassignables(), null, scope, microstatements);
+            Microstatement.fromBasicAssignablesAst(basicAssignablesAst.typeofn().basicassignables(), scope, microstatements);
             // The last microstatement is the one we want to get the type data from.
             const last = microstatements[microstatements.length - 1];
-            const constName = "_" + uuid().replace(/-/g, "_");
-            microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, constName, Type.builtinTypes["string"], [`"${last.outputType.typename}"`], []));
+            const constName = "_" + uuid_1.v4().replace(/-/g, "_");
+            microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, Type_1.default.builtinTypes["string"], [`"${last.outputType.typename}"`], []));
             return;
         }
         // The conversion of object literals is devolved to alangraphcode when types are erased, at this
@@ -10785,7 +10804,8 @@ class Microstatement {
                             basicAssignablesAst.start.column);
                         process.exit(-105);
                     }
-                    outerTypeBox.typeval.solidify(basicAssignablesAst.objectliterals().othertype().typegenerics().fulltypename().map(t => t.getText()), scope);
+                    outerTypeBox.typeval.solidify(basicAssignablesAst.objectliterals().othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                    ), scope);
                     typeBox = scope.deepGet(basicAssignablesAst.objectliterals().othertype().getText().trim());
                 }
             }
@@ -10810,17 +10830,17 @@ class Microstatement {
                     arrayLiteralContents.push(microstatements[microstatements.length - 1]);
                 }
                 // Create a new variable to hold the size of the array literal
-                const lenName = "_" + uuid().replace(/-/g, "_");
-                microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, lenName, Type.builtinTypes['int64'], [`${arrayLiteralContents.length}`], []));
-                const opcodeScope = require('./opcodes').exportScope; // Unfortunate circular dep issue
+                const lenName = "_" + uuid_1.v4().replace(/-/g, "_");
+                microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, lenName, Type_1.default.builtinTypes['int64'], [`${arrayLiteralContents.length}`], []));
                 // Add the opcode to create a new array with the specified size
-                opcodeScope.get('newarr').functionval[0].microstatementInlining([lenName], scope, microstatements);
+                const opcodes = require('./opcodes').default;
+                opcodes.exportScope.get('newarr').functionval[0].microstatementInlining([lenName], scope, microstatements);
                 // Get the array microstatement and extract the name and insert the correct type
                 const array = microstatements[microstatements.length - 1];
                 array.outputType = typeBox.typeval;
                 // Try to use the "real" type if knowable
                 if (arrayLiteralContents.length > 0) {
-                    array.outputType = Type.builtinTypes['Array'].solidify([arrayLiteralContents[0].outputType.typename], scope);
+                    array.outputType = Type_1.default.builtinTypes['Array'].solidify([arrayLiteralContents[0].outputType.typename], scope);
                 }
                 const arrayName = array.outputName;
                 // Push the values into the array
@@ -10830,13 +10850,14 @@ class Microstatement {
                         arrayLiteralContents[i].outputType.typename !== "string" ?
                         "8" :
                         "0";
-                    const sizeName = "_" + uuid().replace(/-/g, "_");
-                    microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, sizeName, Type.builtinTypes['int64'], [size], []));
+                    const sizeName = "_" + uuid_1.v4().replace(/-/g, "_");
+                    microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], [size], []));
                     // Push the value into the array
-                    opcodeScope.get('pusharr').functionval[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
+                    const opcodes = require('./opcodes').default;
+                    opcodes.exportScope.get('pusharr').functionval[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
                 }
                 // REREF the array
-                microstatements.push(new Microstatement(StatementType.REREF, scope, true, arrayName, array.outputType, [], []));
+                microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, arrayName, array.outputType, [], []));
                 return;
             }
             if (basicAssignablesAst.objectliterals().typeliteral()) {
@@ -10907,11 +10928,11 @@ class Microstatement {
                     arrayLiteralContents.push(microstatements[microstatements.length - 1]);
                 }
                 // Create a new variable to hold the size of the array literal
-                const lenName = "_" + uuid().replace(/-/g, "_");
-                microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, lenName, Type.builtinTypes['int64'], [`${fields.length}`], []));
-                const opcodeScope = require('./opcodes').exportScope; // Unfortunate circular dep issue
+                const lenName = "_" + uuid_1.v4().replace(/-/g, "_");
+                microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, lenName, Type_1.default.builtinTypes['int64'], [`${fields.length}`], []));
                 // Add the opcode to create a new array with the specified size
-                opcodeScope.get('newarr').functionval[0].microstatementInlining([lenName], scope, microstatements);
+                const opcodes = require('./opcodes').default;
+                opcodes.exportScope.get('newarr').functionval[0].microstatementInlining([lenName], scope, microstatements);
                 // Get the array microstatement and extract the name and insert the correct type
                 const array = microstatements[microstatements.length - 1];
                 array.outputType = typeBox.typeval;
@@ -10923,13 +10944,14 @@ class Microstatement {
                         arrayLiteralContents[i].outputType.typename !== "string" ?
                         "8" :
                         "0";
-                    const sizeName = "_" + uuid().replace(/-/g, "_");
-                    microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, sizeName, Type.builtinTypes['int64'], [size], []));
+                    const sizeName = "_" + uuid_1.v4().replace(/-/g, "_");
+                    microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], [size], []));
                     // Push the value into the array
-                    opcodeScope.get('pusharr').functionval[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
+                    const opcodes = require('./opcodes').default;
+                    opcodes.exportScope.get('pusharr').functionval[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
                 }
                 // REREF the array
-                microstatements.push(new Microstatement(StatementType.REREF, scope, true, arrayName, array.outputType, [], []));
+                microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, arrayName, array.outputType, [], []));
                 return;
             }
             // If object literal parsing has made it this far, it's a Map literal that is not yet supported
@@ -10942,11 +10964,12 @@ class Microstatement {
             process.exit(-107);
         }
     }
-    static fromWithOperatorsAst(withOperatorsAst, returnTypeHint, scope, microstatements) {
+    static fromWithOperatorsAst(withOperatorsAst, // TODO: Eliminate ANTLR
+    scope, microstatements) {
         // Short circuit on the trivial case
         if (withOperatorsAst.operatororassignable().length === 1 &&
             !!withOperatorsAst.operatororassignable(1).basicassignables()) {
-            Microstatement.fromBasicAssignablesAst(withOperatorsAst.operatororassignable(1).basicassignables(), returnTypeHint, scope, microstatements);
+            Microstatement.fromBasicAssignablesAst(withOperatorsAst.operatororassignable(1).basicassignables(), scope, microstatements);
         }
         let withOperatorsList = [];
         for (const operatorOrAssignable of withOperatorsAst.operatororassignable()) {
@@ -10960,9 +10983,9 @@ class Microstatement {
                 withOperatorsList.push(op);
             }
             if (operatorOrAssignable.basicassignables() != null) {
-                Microstatement.fromBasicAssignablesAst(operatorOrAssignable.basicassignables(), null, scope, microstatements);
+                Microstatement.fromBasicAssignablesAst(operatorOrAssignable.basicassignables(), scope, microstatements);
                 const last = microstatements[microstatements.length - 1];
-                withOperatorsList.push(new Box(last)); // Wrapped in a box to make this work
+                withOperatorsList.push(new Box_1.default(last)); // Wrapped in a box to make this work
             }
         }
         // Now to combine these operators and values in the correct order. A compiled language could
@@ -11055,11 +11078,11 @@ class Microstatement {
             const right = withOperatorsList[maxOperatorLoc + 1].microstatementval;
             realArgNames.push(right.outputName);
             realArgTypes.push(right.outputType);
-            UserFunction
+            UserFunction_1.default
                 .dispatchFn(op.potentialFunctions, realArgTypes, scope)
                 .microstatementInlining(realArgNames, scope, microstatements);
             const last = microstatements[microstatements.length - 1];
-            withOperatorsList[maxOperatorLoc] = new Box(last);
+            withOperatorsList[maxOperatorLoc] = new Box_1.default(last);
             withOperatorsList.splice(maxOperatorLoc + 1, 1);
             if (!op.isPrefix) {
                 withOperatorsList.splice(maxOperatorLoc - 1, 1);
@@ -11070,7 +11093,7 @@ class Microstatement {
         // TODO: Add support for closures with arguments
         let len = microstatements.length;
         for (const s of userFunction.statements) {
-            if (s.statementOrAssignableAst instanceof LnParser.StatementsContext) {
+            if (s.statementOrAssignableAst instanceof ln_1.LnParser.StatementsContext) {
                 Microstatement.fromStatementsAst(s.statementOrAssignableAst, scope, microstatements);
             }
             else {
@@ -11081,18 +11104,19 @@ class Microstatement {
         // There might be off-by-one bugs in the conversion here
         const innerMicrostatements = microstatements.slice(len, newlen);
         microstatements.splice(len, newlen - len);
-        const constName = "_" + uuid().replace(/-/g, "_");
-        microstatements.push(new Microstatement(StatementType.CLOSURE, scope, true, // TODO: Figure out if this is true or not
-        constName, Type.builtinTypes['function'], innerMicrostatements));
+        const constName = "_" + uuid_1.v4().replace(/-/g, "_");
+        microstatements.push(new Microstatement(StatementType_1.default.CLOSURE, scope, true, // TODO: Figure out if this is true or not
+        constName, Type_1.default.builtinTypes['function'], innerMicrostatements));
     }
-    static closureFromBlocklikesAst(blocklikesAst, scope, microstatements) {
+    static closureFromBlocklikesAst(blocklikesAst, // TODO: Eliminate ANTLR
+    scope, microstatements) {
         // There are roughly two paths for closure generation of the blocklike. If it's a var reference
         // to another function, use the scope to grab the function definition directly, run the inlining
         // logic on it, then attach them to a new microstatement declaring the closure. If it's closure
         // that could (probably usually will) reference the outer scope, the inner statements should be
         // converted as normal, but with the current length of the microstatements array tracked so they
         // can be pruned back off of the list to be reattached to a closure microstatement type.
-        const constName = "_" + uuid().replace(/-/g, "_");
+        const constName = "_" + uuid_1.v4().replace(/-/g, "_");
         if (blocklikesAst.varn() != null) { // TODO: Port to fromVarAst
             const fnToClose = scope.deepGet(blocklikesAst.varn());
             if (fnToClose == null || fnToClose.functionval == null) {
@@ -11104,7 +11128,7 @@ class Microstatement {
             const closureFn = fnToClose.functionval[0];
             let innerMicrostatements = [];
             closureFn.microstatementInlining([], scope, innerMicrostatements);
-            microstatements.push(new Microstatement(StatementType.CLOSURE, scope, true, // Guaranteed true in this case, it's not really a closure
+            microstatements.push(new Microstatement(StatementType_1.default.CLOSURE, scope, true, // Guaranteed true in this case, it's not really a closure
             constName, innerMicrostatements));
         }
         else {
@@ -11128,11 +11152,12 @@ class Microstatement {
             // There might be off-by-one bugs in the conversion here
             const innerMicrostatements = microstatements.slice(len, newlen);
             microstatements.splice(len, newlen - len);
-            microstatements.push(new Microstatement(StatementType.CLOSURE, scope, true, // Guaranteed true in this case, it's not really a closure
+            microstatements.push(new Microstatement(StatementType_1.default.CLOSURE, scope, true, // Guaranteed true in this case, it's not really a closure
             constName, innerMicrostatements));
         }
     }
-    static fromEmitsAst(emitsAst, scope, microstatements) {
+    static fromEmitsAst(emitsAst, // TODO: Eliminate ANTLR
+    scope, microstatements) {
         if (emitsAst.assignables() != null) {
             // If there's an assignable value here, add it to the list of microstatements first, then
             // rewrite the final const assignment as the emit statement.
@@ -11161,7 +11186,7 @@ class Microstatement {
                     emitsAst.start.column);
                 process.exit(-103);
             }
-            microstatements.push(new Microstatement(StatementType.EMIT, scope, true, eventBox.eventval.name, eventBox.eventval.type, [last.outputName], []));
+            microstatements.push(new Microstatement(StatementType_1.default.EMIT, scope, true, eventBox.eventval.name, eventBox.eventval.type, [last.outputName], []));
         }
         else {
             // Otherwise, create an emit statement with no value
@@ -11175,7 +11200,7 @@ class Microstatement {
                     emitsAst.start.column);
                 process.exit(-102);
             }
-            if (eventBox.eventval.type != Type.builtinTypes.void) {
+            if (eventBox.eventval.type != Type_1.default.builtinTypes.void) {
                 console.error(emitsAst.varn().getText() + " must have a value emitted to it!");
                 console.error(emitsAst.getText() +
                     " on line " +
@@ -11184,10 +11209,11 @@ class Microstatement {
                     emitsAst.start.column);
                 process.exit(-103);
             }
-            microstatements.push(new Microstatement(StatementType.EMIT, scope, true, eventBox.eventval.name, Type.builtinTypes.void, [], []));
+            microstatements.push(new Microstatement(StatementType_1.default.EMIT, scope, true, eventBox.eventval.name, Type_1.default.builtinTypes.void, [], []));
         }
     }
-    static fromExitsAst(exitsAst, scope, microstatements) {
+    static fromExitsAst(exitsAst, // TODO: Eliminate ANTLR
+    scope, microstatements) {
         // `alan--` doesn't have the concept of a `return` statement, the functions are all inlined
         // and the last assigned value for the function *is* the return statement
         if (exitsAst.assignables() != null) {
@@ -11196,10 +11222,12 @@ class Microstatement {
         }
         else {
             // Otherwise, create a microstatement with no value
-            microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, constName, scope.deepGet("void").typeval, ["void"], null));
+            const constName = "_" + uuid_1.v4().replace(/-/g, "_");
+            microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, scope.deepGet("void").typeval, ["void"], null));
         }
     }
-    static fromCallsAst(callsAst, scope, microstatements) {
+    static fromCallsAst(callsAst, // TODO: Eliminate ANTLR
+    scope, microstatements) {
         // Function call syntax also supports method chaining syntax, and you can chain off of any
         // assignable value (where they're wrapped in parens for clarity, with a special exception for
         // constants that would be unambiguous). This means there are three classes of function calls:
@@ -11323,17 +11351,17 @@ class Microstatement {
             // Generate the relevant microstatements for this function. UserFunctions get inlined with the
             // return statement turned into a const assignment as the last statement, while built-in
             // functions are kept as function calls with the correct renaming.
-            UserFunction
+            UserFunction_1.default
                 .dispatchFn(fnBox.functionval, realArgTypes, scope)
                 .microstatementInlining(realArgNames, scope, microstatements);
             // Set the output as the firstArg for the next chained call
             firstArg = microstatements[microstatements.length - 1];
         }
     }
-    static fromAssignmentsAst(assignmentsAst, scope, microstatements) {
+    static fromAssignmentsAst(assignmentsAst, // TODO: Eliminate ANTLR
+    scope, microstatements) {
         // TODO: Figure out a way to remove this custom var logic
         const letName = assignmentsAst.varn().getText();
-        let letType = null;
         let actualLetName;
         for (let i = microstatements.length - 1; i >= 0; i--) {
             const microstatement = microstatements[i];
@@ -11342,8 +11370,7 @@ class Microstatement {
                 continue;
             }
             if (microstatement.outputName === actualLetName) {
-                if (microstatement.statementType === StatementType.LETDEC) {
-                    letType = microstatement.outputType;
+                if (microstatement.statementType === StatementType_1.default.LETDEC) {
                     break;
                 }
                 else {
@@ -11376,28 +11403,29 @@ class Microstatement {
         // var, and constants.
         if (assignmentsAst.assignables().withoperators() != null) {
             // Update the microstatements list with the operator serialization
-            Microstatement.fromWithOperatorsAst(assignmentsAst.assignables().withoperators(), letType.typename, scope, microstatements);
+            Microstatement.fromWithOperatorsAst(assignmentsAst.assignables().withoperators(), scope, microstatements);
             // By definition the last microstatement is the const assignment we care about, so we can just
             // mutate its object to rename the output variable name to the name we need instead.
             microstatements[microstatements.length - 1].outputName = actualLetName;
-            microstatements[microstatements.length - 1].statementType = StatementType.ASSIGNMENT;
+            microstatements[microstatements.length - 1].statementType = StatementType_1.default.ASSIGNMENT;
             return;
         }
         if (assignmentsAst.assignables().basicassignables() != null) {
-            Microstatement.fromBasicAssignablesAst(assignmentsAst.assignables().basicassignables(), letType.typename, scope, microstatements);
+            Microstatement.fromBasicAssignablesAst(assignmentsAst.assignables().basicassignables(), scope, microstatements);
             // The same rule as above, the last microstatement is already a const assignment for the value
             // that we care about, so just rename its variable to the one that will be expected by other
             // code.
             microstatements[microstatements.length - 1].outputName = actualLetName;
-            microstatements[microstatements.length - 1].statementType = StatementType.ASSIGNMENT;
+            microstatements[microstatements.length - 1].statementType = StatementType_1.default.ASSIGNMENT;
             return;
         }
     }
-    static fromLetdeclarationAst(letdeclarationAst, scope, microstatements) {
+    static fromLetdeclarationAst(letdeclarationAst, // TODO: Eliminate ANTLR
+    scope, microstatements) {
         // TODO: Once we figure out how to handle re-assignment to let variables as new variable names
         // with all references to that variable afterwards rewritten, these can just be brought in as
         // constants, too.
-        const letName = "_" + uuid().replace(/-/g, "_");
+        const letName = "_" + uuid_1.v4().replace(/-/g, "_");
         let letAlias;
         let letTypeHint = null;
         if (letdeclarationAst.VARNAME() != null) {
@@ -11421,7 +11449,8 @@ class Microstatement {
                             letdeclarationAst.start.column);
                         process.exit(-105);
                     }
-                    outerTypeBox.typeval.solidify(letdeclarationAst.assignments().typegenerics().fulltypename().map(t => t.getText()), scope);
+                    outerTypeBox.typeval.solidify(letdeclarationAst.assignments().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                    ), scope);
                 }
             }
         }
@@ -11433,14 +11462,14 @@ class Microstatement {
             // This is the situation where a variable is declared but no value is yet assigned.
             // An automatic replacement with a "default" value (false, 0, "") is performed, similar to
             // C.
-            const type = (scope.deepGet(letTypeHint) && scope.deepGet(letTypeHint).typeval) || Type.builtinTypes.void;
+            const type = (scope.deepGet(letTypeHint) && scope.deepGet(letTypeHint).typeval) || Type_1.default.builtinTypes.void;
             if (type.originalType) {
-                const opcodeScope = require('./opcodes').exportScope; // Unfortunate circular dep issue
-                const constName = "_" + uuid().replace(/-/g, "_");
-                microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, constName, Type.builtinTypes.int64, ["0"], []));
-                opcodeScope.get('newarr').functionval[0].microstatementInlining([constName], scope, microstatements);
+                const constName = "_" + uuid_1.v4().replace(/-/g, "_");
+                microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, Type_1.default.builtinTypes.int64, ["0"], []));
+                const opcodes = require('./opcodes').default;
+                opcodes.exportScope.get('newarr').functionval[0].microstatementInlining([constName], scope, microstatements);
                 const blankArr = microstatements[microstatements.length - 1];
-                blankArr.statementType = StatementType.LETDEC,
+                blankArr.statementType = StatementType_1.default.LETDEC,
                     blankArr.outputName = letName;
                 blankArr.outputType = type;
             }
@@ -11450,11 +11479,11 @@ class Microstatement {
                     val = "false";
                 if (type.typename === "string")
                     val = '""';
-                const blankLet = new Microstatement(StatementType.LETDEC, scope, true, letName, type, [val], []);
+                const blankLet = new Microstatement(StatementType_1.default.LETDEC, scope, true, letName, type, [val], []);
                 // This is a terminating condition for the microstatements, though
                 microstatements.push(blankLet);
             }
-            microstatements.push(new Microstatement(StatementType.REREF, scope, true, letName, letAlias, type, [], []));
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, letName, letAlias, type, [], []));
             return;
         }
         // An assignable may either be a basic constant or could be broken down into other microstatements
@@ -11465,26 +11494,27 @@ class Microstatement {
         // var, and constants.
         if (letdeclarationAst.assignments().assignables().withoperators() != null) {
             // Update the microstatements list with the operator serialization
-            Microstatement.fromWithOperatorsAst(letdeclarationAst.assignments().assignables().withoperators(), letTypeHint, scope, microstatements);
+            Microstatement.fromWithOperatorsAst(letdeclarationAst.assignments().assignables().withoperators(), scope, microstatements);
             // By definition the last microstatement is the const assignment we care about, so we can just
             // mutate its object to rename the output variable name to the name we need instead.
-            microstatements[microstatements.length - 1].statementType = StatementType.LETDEC;
-            microstatements.push(new Microstatement(StatementType.REREF, scope, true, microstatements[microstatements.length - 1].outputName, letAlias, microstatements[microstatements.length - 1].outputType, [], []));
+            microstatements[microstatements.length - 1].statementType = StatementType_1.default.LETDEC;
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, microstatements[microstatements.length - 1].outputName, letAlias, microstatements[microstatements.length - 1].outputType, [], []));
             return;
         }
         if (letdeclarationAst.assignments().assignables().basicassignables() != null) {
-            Microstatement.fromBasicAssignablesAst(letdeclarationAst.assignments().assignables().basicassignables(), letTypeHint, scope, microstatements);
+            Microstatement.fromBasicAssignablesAst(letdeclarationAst.assignments().assignables().basicassignables(), scope, microstatements);
             // The same rule as above, the last microstatement is already a const assignment for the value
             // that we care about, so just rename its variable to the one that will be expected by other
             // code.
-            microstatements[microstatements.length - 1].statementType = StatementType.LETDEC;
-            microstatements.push(new Microstatement(StatementType.REREF, scope, true, microstatements[microstatements.length - 1].outputName, letAlias, microstatements[microstatements.length - 1].outputType, [], []));
+            microstatements[microstatements.length - 1].statementType = StatementType_1.default.LETDEC;
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, microstatements[microstatements.length - 1].outputName, letAlias, microstatements[microstatements.length - 1].outputType, [], []));
             return;
         }
     }
-    static fromConstdeclarationAst(constdeclarationAst, scope, microstatements) {
+    static fromConstdeclarationAst(constdeclarationAst, // TODO: Eliminate ANTLR
+    scope, microstatements) {
         // TODO: Weirdness in the ANTLR grammar around declarations needs to be cleaned up at some point
-        const constName = "_" + uuid().replace(/-/g, "_");
+        const constName = "_" + uuid_1.v4().replace(/-/g, "_");
         let constAlias;
         let constTypeHint = null;
         if (constdeclarationAst.VARNAME() != null) {
@@ -11508,7 +11538,8 @@ class Microstatement {
                             constdeclarationAst.start.column);
                         process.exit(-105);
                     }
-                    outerTypeBox.typeval.solidify(constdeclarationAst.assignments().typegenerics().fulltypename().map(t => t.getText()), scope);
+                    outerTypeBox.typeval.solidify(constdeclarationAst.assignments().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                    ), scope);
                 }
             }
         }
@@ -11519,10 +11550,10 @@ class Microstatement {
         if (constdeclarationAst.assignments().assignables() == null) {
             // This is a weird edge case where a constant with no assignment was declared. Should this
             // even be legal?
-            const weirdConst = new Microstatement(StatementType.CONSTDEC, scope, true, constName, Type.builtinTypes.void, ["void"], []);
+            const weirdConst = new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, Type_1.default.builtinTypes.void, ["void"], []);
             // This is a terminating condition for the microstatements, though
             microstatements.push(weirdConst);
-            microstatements.push(new Microstatement(StatementType.REREF, scope, true, constName, constAlias, Type.builtinTypes.void, [], []));
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, constName, constAlias, Type_1.default.builtinTypes.void, [], []));
             return;
         }
         // An assignable may either be a basic constant or could be broken down into other microstatements
@@ -11533,23 +11564,24 @@ class Microstatement {
         // var, and constants.
         if (constdeclarationAst.assignments().assignables().withoperators() != null) {
             // Update the microstatements list with the operator serialization
-            Microstatement.fromWithOperatorsAst(constdeclarationAst.assignments().assignables().withoperators(), constTypeHint, scope, microstatements);
+            Microstatement.fromWithOperatorsAst(constdeclarationAst.assignments().assignables().withoperators(), scope, microstatements);
             // By definition the last microstatement is the const assignment we care about, so we can just
             // mutate its object to rename the output variable name to the name we need instead.
-            microstatements.push(new Microstatement(StatementType.REREF, scope, true, microstatements[microstatements.length - 1].outputName, constAlias, microstatements[microstatements.length - 1].outputType, [], []));
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, microstatements[microstatements.length - 1].outputName, constAlias, microstatements[microstatements.length - 1].outputType, [], []));
             return;
         }
         if (constdeclarationAst.assignments().assignables().basicassignables() != null) {
-            Microstatement.fromBasicAssignablesAst(constdeclarationAst.assignments().assignables().basicassignables(), constTypeHint, scope, microstatements);
+            Microstatement.fromBasicAssignablesAst(constdeclarationAst.assignments().assignables().basicassignables(), scope, microstatements);
             // The same rule as above, the last microstatement is already a const assignment for the value
             // that we care about, so just rename its variable to the one that will be expected by other
             // code.
-            microstatements.push(new Microstatement(StatementType.REREF, scope, true, microstatements[microstatements.length - 1].outputName, constAlias, microstatements[microstatements.length - 1].outputType, [], []));
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, microstatements[microstatements.length - 1].outputName, constAlias, microstatements[microstatements.length - 1].outputType, [], []));
             return;
         }
     }
     // DFS recursive algo to get the microstatements in a valid ordering
-    static fromStatementsAst(statementAst, scope, microstatements) {
+    static fromStatementsAst(statementAst, // TODO: Eliminate ANTLR
+    scope, microstatements) {
         if (statementAst.declarations() != null) {
             if (statementAst.declarations().constdeclaration() != null) {
                 Microstatement.fromConstdeclarationAst(statementAst.declarations().constdeclaration(), scope, microstatements);
@@ -11572,16 +11604,17 @@ class Microstatement {
         }
         return microstatements;
     }
-    static fromAssignablesAst(assignablesAst, scope, microstatements) {
+    static fromAssignablesAst(assignablesAst, // TODO: Eliminate ANTLR
+    scope, microstatements) {
         if (assignablesAst.basicassignables() != null) {
-            Microstatement.fromBasicAssignablesAst(assignablesAst.basicassignables(), null, scope, microstatements);
+            Microstatement.fromBasicAssignablesAst(assignablesAst.basicassignables(), scope, microstatements);
         }
         else {
-            Microstatement.fromWithOperatorsAst(assignablesAst.withoperators(), null, scope, microstatements);
+            Microstatement.fromWithOperatorsAst(assignablesAst.withoperators(), scope, microstatements);
         }
     }
     static fromStatement(statement, microstatements) {
-        if (statement.statementOrAssignableAst instanceof LnParser.StatementsContext) {
+        if (statement.statementOrAssignableAst instanceof ln_1.LnParser.StatementsContext) {
             Microstatement.fromStatementsAst(statement.statementOrAssignableAst, statement.scope, microstatements);
         }
         else {
@@ -11590,19 +11623,21 @@ class Microstatement {
         }
     }
 }
-module.exports = Microstatement;
+exports.default = Microstatement;
 
 }).call(this,require('_process'))
 },{"../ln":9,"./Box":11,"./StatementType":26,"./Type":27,"./UserFunction":28,"./opcodes":30,"_process":83,"uuid":88}],22:[function(require,module,exports){
 (function (process){
-const Ast = require('./Ast');
-const Box = require('./Box');
-const Event = require('./Event');
-const Interface = require('./Interface');
-const Operator = require('./Operator');
-const Scope = require('./Scope');
-const UserFunction = require('./UserFunction');
-const Type = require('./Type');
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Ast = require("./Ast");
+const Box_1 = require("./Box");
+const Event_1 = require("./Event");
+const Interface_1 = require("./Interface");
+const Operator_1 = require("./Operator");
+const Scope_1 = require("./Scope");
+const Type_1 = require("./Type");
+const UserFunction_1 = require("./UserFunction");
 const modules = {};
 class Module {
     constructor(rootScope) {
@@ -11611,16 +11646,14 @@ class Module {
         // 2. Therefore anything in the export scope can simply be duplicated in both scopes
         // 3. Therefore export scope needs access to the module scope so the functions function, but
         //    the module scope can just use its local copy
-        this.moduleScope = new Scope(rootScope);
-        this.exportScope = new Scope(this.moduleScope);
+        this.moduleScope = new Scope_1.default(rootScope);
+        this.exportScope = new Scope_1.default(this.moduleScope);
     }
     static getAllModules() {
         return modules;
     }
-    static populateModule(path, // string
-    ast, // ModuleContext
-    rootScope // Scope
-    ) {
+    static populateModule(path, ast, // ModuleContext
+    rootScope) {
         let module = new Module(rootScope);
         // First, populate all of the imports
         const imports = ast.imports();
@@ -11649,7 +11682,7 @@ class Module {
                     process.exit(-3);
                 }
                 const importedModule = modules[Ast.resolveDependency(path, standardImport.dependency())];
-                module.moduleScope.put(importName, new Box(importedModule.exportScope));
+                module.moduleScope.put(importName, new Box_1.default(importedModule.exportScope));
             }
             // If it's a "from" import, we're picking off pieces of the exported scope and inserting them
             // also potentially renaming them if requested by the user
@@ -11693,7 +11726,7 @@ class Module {
                         fnsToCheck
                             .filter(fn => {
                             // TODO: Make this better and move it to the Interface file in the future
-                            return iface.functionTypes.some(ft => ft.functionname === fn.functionval[0].getName());
+                            return iface.functionTypes.some((ft) => ft.functionname === fn.functionval[0].getName());
                         })
                             .forEach(fn => {
                             module.moduleScope.put(fn.functionval[0].getName(), fn);
@@ -11705,19 +11738,19 @@ class Module {
         // Next, types
         const types = ast.types();
         for (const typeAst of types) {
-            const newType = Type.fromAst(typeAst, module.moduleScope);
-            module.moduleScope.put(newType.typename, new Box(newType.alias ? newType.alias : newType));
+            const newType = Type_1.default.fromAst(typeAst, module.moduleScope);
+            module.moduleScope.put(newType.typename, new Box_1.default(newType.alias ? newType.alias : newType));
         }
         // Next, interfaces
         const interfaces = ast.interfaces();
         for (const interfaceAst of interfaces) {
-            Interface.fromAst(interfaceAst, module.moduleScope);
+            Interface_1.default.fromAst(interfaceAst, module.moduleScope);
             // Automatically inserts the interface into the module scope, we're done.
         }
         // Next, constants
         const constdeclarations = ast.constdeclaration();
         for (const constAst of constdeclarations) {
-            const newConst = Box.fromConstAst(constAst, module.moduleScope);
+            const newConst = Box_1.default.fromConstAst(constAst, module.moduleScope);
             let constName;
             if (constAst.VARNAME() != null) {
                 constName = constAst.VARNAME().getText();
@@ -11730,20 +11763,20 @@ class Module {
         // Next, events
         const events = ast.events();
         for (const eventAst of events) {
-            const newEvent = Event.fromAst(eventAst, module.moduleScope);
-            module.moduleScope.put(newEvent.name, new Box(newEvent, true));
+            const newEvent = Event_1.default.fromAst(eventAst, module.moduleScope);
+            module.moduleScope.put(newEvent.name, new Box_1.default(newEvent, true));
         }
         // Next, functions
         const functions = ast.functions();
         for (const functionAst of functions) {
-            const newFunc = UserFunction.fromAst(functionAst, module.moduleScope);
+            const newFunc = UserFunction_1.default.fromAst(functionAst, module.moduleScope);
             if (newFunc.getName() == null) {
                 console.error("Module-level functions must have a name");
                 process.exit(-19);
             }
             let fns = module.moduleScope.get(newFunc.getName());
             if (fns == null) {
-                module.moduleScope.put(newFunc.getName(), new Box([newFunc], true));
+                module.moduleScope.put(newFunc.getName(), new Box_1.default([newFunc], true));
             }
             else {
                 fns.functionval.push(newFunc);
@@ -11760,16 +11793,16 @@ class Module {
                 console.error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
                 process.exit(-31);
             }
-            const op = new Operator(name, precedence, isPrefix, fns.functionval);
+            const op = new Operator_1.default(name, precedence, isPrefix, fns.functionval);
             const opsBox = module.moduleScope.deepGet(name);
             if (opsBox == null) {
-                module.moduleScope.put(name, new Box([op]));
+                module.moduleScope.put(name, new Box_1.default([op]));
             }
             else {
                 // To make sure we don't accidentally mutate other scopes, we're cloning this operator list
                 let ops = [...opsBox.operatorval];
                 ops.push(op);
-                module.moduleScope.put(name, new Box(ops));
+                module.moduleScope.put(name, new Box_1.default(ops));
             }
         }
         // Next, exports, which can be most of the above
@@ -11782,18 +11815,18 @@ class Module {
                 module.exportScope.put(splitName[splitName.length - 1], exportVar);
             }
             else if (exportAst.types() != null) {
-                const newType = Type.fromAst(exportAst.types(), module.moduleScope);
-                const typeBox = new Box(!newType.alias ? newType : newType.alias);
+                const newType = Type_1.default.fromAst(exportAst.types(), module.moduleScope);
+                const typeBox = new Box_1.default(!newType.alias ? newType : newType.alias);
                 module.moduleScope.put(newType.typename, typeBox);
                 module.exportScope.put(newType.typename, typeBox);
             }
             else if (exportAst.interfaces() != null) {
-                const interfaceBox = Interface.fromAst(exportAst.interfaces(), module.moduleScope);
+                const interfaceBox = Interface_1.default.fromAst(exportAst.interfaces(), module.moduleScope);
                 // Automatically inserts the interface into the module scope
                 module.exportScope.put(interfaceBox.typeval.typename, interfaceBox);
             }
             else if (exportAst.constdeclaration() != null) {
-                const newConst = Box.fromConstAst(exportAst.constdeclaration(), module.moduleScope);
+                const newConst = Box_1.default.fromConstAst(exportAst.constdeclaration(), module.moduleScope);
                 let constName;
                 if (exportAst.constdeclaration().VARNAME() != null) {
                     constName = exportAst.constdeclaration().VARNAME().getText();
@@ -11805,7 +11838,7 @@ class Module {
                 module.exportScope.put(constName, newConst);
             }
             else if (exportAst.functions() != null) {
-                const newFunc = UserFunction.fromAst(exportAst.functions(), module.moduleScope);
+                const newFunc = UserFunction_1.default.fromAst(exportAst.functions(), module.moduleScope);
                 if (newFunc.getName() == null) {
                     console.error("Module-level functions must have a name");
                     process.exit(-19);
@@ -11815,14 +11848,14 @@ class Module {
                 // the two if blocks below is enough to fix things here.
                 let expFns = module.exportScope.get(newFunc.getName());
                 if (expFns == null) {
-                    module.exportScope.put(newFunc.getName(), new Box([newFunc], true));
+                    module.exportScope.put(newFunc.getName(), new Box_1.default([newFunc], true));
                 }
                 else {
                     expFns.functionval.push(newFunc);
                 }
                 let modFns = module.moduleScope.get(newFunc.getName());
                 if (modFns == null) {
-                    module.moduleScope.put(newFunc.getName(), new Box([newFunc], true));
+                    module.moduleScope.put(newFunc.getName(), new Box_1.default([newFunc], true));
                 }
                 else {
                     modFns.functionval.push(newFunc);
@@ -11847,30 +11880,30 @@ class Module {
                     console.error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
                     process.exit(-33);
                 }
-                const op = new Operator(name, precedence, isPrefix, fns.functionval);
+                const op = new Operator_1.default(name, precedence, isPrefix, fns.functionval);
                 let modOpsBox = module.moduleScope.deepGet(name);
                 if (modOpsBox == null) {
-                    module.moduleScope.put(name, new Box([op]));
+                    module.moduleScope.put(name, new Box_1.default([op]));
                 }
                 else {
                     let ops = [...modOpsBox.operatorval];
                     ops.push(op);
-                    module.moduleScope.put(name, new Box(ops));
+                    module.moduleScope.put(name, new Box_1.default(ops));
                 }
                 let expOpsBox = module.exportScope.deepGet(name);
                 if (expOpsBox == null) {
-                    module.exportScope.put(name, new Box([op]));
+                    module.exportScope.put(name, new Box_1.default([op]));
                 }
                 else {
                     let ops = [...expOpsBox.operatorval];
                     ops.push(op);
-                    module.exportScope.put(name, new Box(ops));
+                    module.exportScope.put(name, new Box_1.default(ops));
                 }
             }
             else if (exportAst.events() != null) {
-                const newEvent = Event.fromAst(exportAst.events(), module.moduleScope);
-                module.moduleScope.put(newEvent.name, new Box(newEvent, true));
-                module.exportScope.put(newEvent.name, new Box(newEvent, true));
+                const newEvent = Event_1.default.fromAst(exportAst.events(), module.moduleScope);
+                module.moduleScope.put(newEvent.name, new Box_1.default(newEvent, true));
+                module.exportScope.put(newEvent.name, new Box_1.default(newEvent, true));
             }
             else {
                 // What?
@@ -11883,17 +11916,18 @@ class Module {
         for (const handlerAst of handlers) {
             let eventBox = null;
             if (handlerAst.eventref().varn() != null) {
-                const eventName = handlerAst.eventref().varn().getText();
                 eventBox = module.moduleScope.deepGet(handlerAst.eventref().varn());
             }
             else if (handlerAst.eventref().calls() != null) {
-                eventBox = AFunction.callFromAst(handlerAst.eventref().calls(), module.moduleScope);
+                console.error("Not yet implemented!");
+                process.exit(-19);
+                // eventBox = AFunction.callFromAst(handlerAst.eventref().calls(), module.moduleScope)
             }
             if (eventBox == null) {
                 console.error("Could not find specified event: " + handlerAst.eventref().getText());
                 process.exit(-20);
             }
-            if (eventBox.type !== Type.builtinTypes["Event"]) {
+            if (eventBox.type !== Type_1.default.builtinTypes["Event"]) {
                 console.error(eventBox);
                 console.error(handlerAst.eventref().getText() + " is not an event");
                 process.exit(-21);
@@ -11907,7 +11941,7 @@ class Module {
                     console.error("Could not find specified function: " + fnName);
                     process.exit(-22);
                 }
-                if (fnBox.type !== Type.builtinTypes["function"]) {
+                if (fnBox.type !== Type_1.default.builtinTypes["function"]) {
                     console.error(fnName + " is not a function");
                     process.exit(-23);
                 }
@@ -11931,10 +11965,10 @@ class Module {
                 }
             }
             if (handlerAst.functions() != null) {
-                fn = UserFunction.fromAst(handlerAst.functions(), module.moduleScope);
+                fn = UserFunction_1.default.fromAst(handlerAst.functions(), module.moduleScope);
             }
             if (handlerAst.functionbody() != null) {
-                fn = UserFunction.fromAst(handlerAst.functionbody(), module.moduleScope);
+                fn = UserFunction_1.default.fromAst(handlerAst.functionbody(), module.moduleScope);
             }
             if (fn == null) {
                 // Shouldn't be possible
@@ -11942,7 +11976,7 @@ class Module {
                 process.exit(-24);
             }
             if (Object.keys(fn.getArguments()).length > 1 ||
-                (evt.type === Type.builtinTypes["void"] && Object.keys(fn.getArguments()).length !== 0)) {
+                (evt.type === Type_1.default.builtinTypes["void"] && Object.keys(fn.getArguments()).length !== 0)) {
                 console.error("Function provided for " + handlerAst.eventref().getText() + " has invalid argument signature");
                 process.exit(-25);
             }
@@ -11951,8 +11985,7 @@ class Module {
         return module;
     }
     static modulesFromAsts(astMap, // string to ModuleContext
-    rootScope // Scope
-    ) {
+    rootScope) {
         let modulePaths = Object.keys(astMap);
         while (modulePaths.length > 0) {
             for (let i = 0; i < modulePaths.length; i++) {
@@ -11978,10 +12011,12 @@ class Module {
         return modules;
     }
 }
-module.exports = Module;
+exports.default = Module;
 
 }).call(this,require('_process'))
 },{"./Ast":10,"./Box":11,"./Event":12,"./Interface":20,"./Operator":23,"./Scope":24,"./Type":27,"./UserFunction":28,"_process":83}],23:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 class Operator {
     constructor(name, precedence, isPrefix, potentialFunctions) {
         this.name = name;
@@ -12038,13 +12073,15 @@ class Operator {
         return null;
     }
 }
-module.exports = Operator;
+exports.default = Operator;
 
 },{}],24:[function(require,module,exports){
 (function (process){
-const Box = require('./Box');
-const Type = require('./Type');
-const { LnParser, } = require('../ln');
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Box_1 = require("./Box");
+const Type_1 = require("./Type");
+const ln_1 = require("../ln");
 class Scope {
     constructor(par) {
         this.vals = {};
@@ -12060,8 +12097,6 @@ class Scope {
         return null;
     }
     deepGet(fullName) {
-        // For circular dependency reasons
-        const opcodeScope = require('./opcodes').exportScope;
         if (typeof fullName === "string") {
             const fullVar = fullName.trim().split(".");
             let boxedVar;
@@ -12073,7 +12108,7 @@ class Scope {
                     return null;
                 }
                 else {
-                    if (boxedVar.type === Type.builtinTypes['scope']) {
+                    if (boxedVar.type === Type_1.default.builtinTypes['scope']) {
                         boxedVar = boxedVar.scopeval.get(fullVar[i]);
                     }
                     else if (boxedVar.typevalval !== null) {
@@ -12086,7 +12121,9 @@ class Scope {
             }
             return boxedVar;
         }
-        else if (fullName instanceof LnParser.VarnContext) {
+        else if (fullName instanceof ln_1.LnParser.VarnContext) {
+            // Circular dependency fix: TODO figure out how to eliminate this
+            const opcodes = require('./opcodes').default;
             const varAst = fullName;
             let boxedVar = null;
             for (const varSegment of varAst.varsegment()) {
@@ -12099,7 +12136,7 @@ class Scope {
                         continue; // Skip these, they're just periods
                     if (varSegment.VARNAME() != null) {
                         // This path is like the original deepGet
-                        if (boxedVar.type === Type.builtinTypes["scope"]) {
+                        if (boxedVar.type === Type_1.default.builtinTypes["scope"]) {
                             boxedVar = boxedVar.scopeval.get(varSegment.getText());
                         }
                         else if (boxedVar.typevalval !== null) { // User-defined type instance
@@ -12111,14 +12148,14 @@ class Scope {
                     }
                     if (varSegment.arrayaccess() != null) {
                         // First resolve the value of the array accessor
-                        const arrayAccessBox = Box.fromAssignableAst(varSegment.arrayaccess().assignables(), this, null, true);
-                        if (boxedVar.type.originalType !== null && boxedVar.type.originalType === Type.builtinTypes["Array"]) {
+                        const arrayAccessBox = Box_1.default.fromAssignableAst(varSegment.arrayaccess().assignables(), this, null, true);
+                        if (boxedVar.type.originalType !== null && boxedVar.type.originalType === Type_1.default.builtinTypes["Array"]) {
                             boxedVar = boxedVar.arrayval.get(arrayAccessBox.int64val);
                         }
-                        else if (boxedVar.type.originalType != null && boxedVar.type.originalType == Type.builtinTypes["Map"]) {
+                        else if (boxedVar.type.originalType != null && boxedVar.type.originalType == Type_1.default.builtinTypes["Map"]) {
                             boxedVar = boxedVar.mapval.get(arrayAccessBox);
                             if (boxedVar == null) {
-                                boxedVar = opcodeScope.get("_");
+                                boxedVar = opcodes.exportScope.get("_");
                             }
                         }
                         else {
@@ -12128,7 +12165,7 @@ class Scope {
                                 process.exit(-38);
                             }
                             const arrayAccessStr = arrayAccessBox.stringval;
-                            if (boxedVar.type == Type.builtinTypes["scope"]) {
+                            if (boxedVar.type == Type_1.default.builtinTypes["scope"]) {
                                 boxedVar = boxedVar.scopeval.get(arrayAccessStr);
                             }
                             else if (boxedVar.typevalval !== null) { // User-defined type instance
@@ -12177,7 +12214,7 @@ class Scope {
                 boxedVar = this.deepGet(fullVar[i]);
             }
             else {
-                if (boxedVar.type === Type.builtinTypes["scope"]) {
+                if (boxedVar.type === Type_1.default.builtinTypes["scope"]) {
                     boxedVar = boxedVar.scopeval.get(fullVar[i]);
                 }
                 else if (boxedVar.typevalval !== null) { // User-defined type instance
@@ -12189,7 +12226,7 @@ class Scope {
                 }
             }
         }
-        if (boxedVar.type === Type.builtinTypes["scope"]) {
+        if (boxedVar.type === Type_1.default.builtinTypes["scope"]) {
             boxedVar.scopeval.put(fullVar[fullVar.length - 1], val);
         }
         else if (boxedVar.typevalval != null) {
@@ -12204,7 +12241,7 @@ class Scope {
             // TODO: When we add ADTs, need to make the type check more advanced
             // Also TODO: Make the following algorithm less dumb and slow.
             let boxedScope = this;
-            while (!boxedScope.vals.containsValue(boxedVar)) {
+            while (!Object.values(boxedScope.vals).includes(boxedVar)) {
                 // We've already proven that we can find this value in the scope hierarchy, so this *will*
                 // halt. :)
                 boxedScope = boxedScope.par;
@@ -12218,13 +12255,15 @@ class Scope {
         }
     }
 }
-module.exports = Scope;
+exports.default = Scope;
 
 }).call(this,require('_process'))
 },{"../ln":9,"./Box":11,"./Type":27,"./opcodes":30,"_process":83}],25:[function(require,module,exports){
 (function (process){
-const Type = require('./Type');
-const { LnParser, } = require('../ln');
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Type_1 = require("./Type");
+const ln_1 = require("../ln");
 // Only implements the pieces necessary for the first stage compiler
 class Statement {
     constructor(statementOrAssignableAst, scope, pure) {
@@ -12233,11 +12272,11 @@ class Statement {
         this.pure = pure;
     }
     isConditionalStatement() {
-        return this.statementOrAssignableAst instanceof LnParser.StatementsContext &&
+        return this.statementOrAssignableAst instanceof ln_1.LnParser.StatementsContext &&
             this.statementOrAssignableAst.conditionals() !== null;
     }
     isReturnStatement() {
-        return this.statementOrAssignableAst instanceof LnParser.AssignablesContext ||
+        return this.statementOrAssignableAst instanceof ln_1.LnParser.AssignablesContext ||
             this.statementOrAssignableAst.exits() !== null;
     }
     static isCallPure(callAst, scope) {
@@ -12249,7 +12288,7 @@ class Statement {
             // if prior statements defined it, for now, just assume it exists and is not pure
             return false;
         }
-        if (functionBox.type !== Type.builtinTypes["function"]) {
+        if (functionBox.type !== Type_1.default.builtinTypes["function"]) {
             console.error(callAst.varn(0).getText() + " is not a function");
             process.exit(-17);
         }
@@ -12325,11 +12364,11 @@ class Statement {
         process.exit(-14);
     }
     static create(statementOrAssignableAst, scope) {
-        if (statementOrAssignableAst instanceof LnParser.AssignablesContext) {
+        if (statementOrAssignableAst instanceof ln_1.LnParser.AssignablesContext) {
             const pure = Statement.isAssignablePure(statementOrAssignableAst, scope);
             return new Statement(statementOrAssignableAst, scope, pure);
         }
-        else if (statementOrAssignableAst instanceof LnParser.StatementsContext) {
+        else if (statementOrAssignableAst instanceof ln_1.LnParser.StatementsContext) {
             const statementAst = statementOrAssignableAst;
             let pure = true;
             if (statementAst.declarations() != null) {
@@ -12378,63 +12417,51 @@ class Statement {
         }
     }
     toString() {
-        return statementOrAssignableAst.getText();
+        return this.statementOrAssignableAst.getText();
     }
 }
-module.exports = Statement;
+exports.default = Statement;
 
 }).call(this,require('_process'))
 },{"../ln":9,"./Type":27,"_process":83}],26:[function(require,module,exports){
-module.exports = {
-    CONSTDEC: 'CONSTDEC',
-    LETDEC: 'LETDEC',
-    ASSIGNMENT: 'ASSIGNMENT',
-    CALL: 'CALL',
-    EMIT: 'EMIT',
-    REREF: 'REREF',
-    CLOSURE: 'CLOSURE',
-    ARG: 'ARG',
-};
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var StatementType;
+(function (StatementType) {
+    StatementType["CONSTDEC"] = "CONSTDEC";
+    StatementType["LETDEC"] = "LETDEC";
+    StatementType["ASSIGNMENT"] = "ASSIGNMENT";
+    StatementType["CALL"] = "CALL";
+    StatementType["EMIT"] = "EMIT";
+    StatementType["REREF"] = "REREF";
+    StatementType["CLOSURE"] = "CLOSURE";
+    StatementType["ARG"] = "ARG";
+})(StatementType || (StatementType = {}));
+exports.default = StatementType;
 
 },{}],27:[function(require,module,exports){
 (function (process){
-class Type {
-    constructor(...args) {
-        // Circular dependency 'fix'
-        const Interface = require('./Interface');
-        // Simulate multiple dispatch by duck typing the args
-        if (args.length === 1) {
-            this.typename = args[0];
-            this.builtIn = false;
-            this.isGenericStandin = false;
-            this.properties = {};
-            this.generics = {};
-            this.originalType = null;
-            this.unionTypes = null;
-            this.iface = null;
-        }
-        else if (args.length === 2) {
-            this.typename = args[0];
-            this.builtIn = args[1];
-            this.isGenericStandin = false;
-            this.properties = {};
-            this.generics = {};
-            this.originalType = null;
-            this.unionTypes = null;
-            this.iface = null;
-        }
-        else if (args.length === 3) {
-            if (typeof args[2] === "boolean") {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Box_1 = require("./Box");
+const Interface_1 = require("./Interface");
+let Type = /** @class */ (() => {
+    class Type {
+        constructor(...args) {
+            // Simulate multiple dispatch by duck typing the args
+            // TODO: Switch this to arguments with default values
+            if (args.length === 1) {
                 this.typename = args[0];
-                this.builtIn = args[1];
-                this.isGenericStandin = args[2];
+                this.builtIn = false;
+                this.isGenericStandin = false;
                 this.properties = {};
                 this.generics = {};
                 this.originalType = null;
                 this.unionTypes = null;
                 this.iface = null;
+                this.alias = null;
             }
-            else if (args[2] instanceof Interface) {
+            else if (args.length === 2) {
                 this.typename = args[0];
                 this.builtIn = args[1];
                 this.isGenericStandin = false;
@@ -12442,249 +12469,280 @@ class Type {
                 this.generics = {};
                 this.originalType = null;
                 this.unionTypes = null;
-                this.iface = args[2];
-            }
-            else if (args[2] instanceof Array) {
-                this.typename = args[0];
-                this.builtIn = args[1];
-                this.isGenericStandin = false;
-                this.properties = {};
-                this.generics = {};
-                this.originalType = null;
-                this.unionTypes = args[2];
                 this.iface = null;
+                this.alias = null;
             }
-            else if (args[2] instanceof Object) {
+            else if (args.length === 3) {
+                if (typeof args[2] === "boolean") {
+                    this.typename = args[0];
+                    this.builtIn = args[1];
+                    this.isGenericStandin = args[2];
+                    this.properties = {};
+                    this.generics = {};
+                    this.originalType = null;
+                    this.unionTypes = null;
+                    this.iface = null;
+                    this.alias = null;
+                }
+                else if (args[2] instanceof Interface_1.default) {
+                    this.typename = args[0];
+                    this.builtIn = args[1];
+                    this.isGenericStandin = false;
+                    this.properties = {};
+                    this.generics = {};
+                    this.originalType = null;
+                    this.unionTypes = null;
+                    this.iface = args[2];
+                    this.alias = null;
+                }
+                else if (args[2] instanceof Array) {
+                    this.typename = args[0];
+                    this.builtIn = args[1];
+                    this.isGenericStandin = false;
+                    this.properties = {};
+                    this.generics = {};
+                    this.originalType = null;
+                    this.unionTypes = args[2];
+                    this.iface = null;
+                    this.alias = null;
+                }
+                else if (args[2] instanceof Object) {
+                    this.typename = args[0];
+                    this.builtIn = args[1];
+                    this.isGenericStandin = false;
+                    this.properties = args[2];
+                    this.generics = {};
+                    this.originalType = null;
+                    this.unionTypes = null;
+                    this.iface = null;
+                    this.alias = null;
+                }
+            }
+            else if (args.length === 4) {
                 this.typename = args[0];
                 this.builtIn = args[1];
                 this.isGenericStandin = false;
                 this.properties = args[2];
-                this.generics = {};
+                this.generics = args[3];
                 this.originalType = null;
                 this.unionTypes = null;
                 this.iface = null;
+                this.alias = null;
             }
         }
-        else if (args.length === 4) {
-            this.typename = args[0];
-            this.builtIn = args[1];
-            this.isGenericStandin = false;
-            this.properties = args[2];
-            this.generics = args[3];
-            this.originalType = null;
-            this.unionTypes = null;
-            this.iface = null;
-        }
-    }
-    toString() {
-        // TODO: Handle interfaces union types appropriately
-        if (this.iface != null)
-            return "// Interfaces TBD";
-        if (this.unionTypes != null)
-            return "// Union types TBD";
-        let outString = "type " + this.typename;
-        if (this.alias != null) {
-            outString += " = " + this.alias.typename;
+        toString() {
+            // TODO: Handle interfaces union types appropriately
+            if (this.iface != null)
+                return "// Interfaces TBD";
+            if (this.unionTypes != null)
+                return "// Union types TBD";
+            let outString = "type " + this.typename;
+            if (this.alias != null) {
+                outString += " = " + this.alias.typename;
+                return outString;
+            }
+            if (this.generics.length > 0) {
+                outString += "<" + Object.keys(this.generics).join(", ") + ">";
+            }
+            outString += "{\n";
+            for (const propName of Object.keys(this.properties)) {
+                outString += "  " + propName + ": " + this.properties[propName].typename + "\n";
+            }
+            outString += "}\n";
             return outString;
         }
-        if (this.generics.length > 0) {
-            outString += "<" + Object.keys(this.generics).join(", ") + ">";
-        }
-        outString += "{\n";
-        for (const propName of Object.keys(this.properties)) {
-            outString += "  " + propName + ": " + this.properties[propName].typename + "\n";
-        }
-        outString += "}\n";
-        return outString;
-    }
-    static fromAst(typeAst, scope) {
-        let type = new Type(typeAst.typename().getText());
-        if (typeAst.typegenerics() != null) {
-            const generics = typeAst.typegenerics().fulltypename();
-            for (let i = 0; i < generics.length; i++) {
-                type.generics[generics[i].getText()] = i;
+        static fromAst(typeAst, scope) {
+            let type = new Type(typeAst.typename().getText());
+            if (typeAst.typegenerics() != null) {
+                const generics = typeAst.typegenerics().fulltypename();
+                for (let i = 0; i < generics.length; i++) {
+                    type.generics[generics[i].getText()] = i;
+                }
             }
-        }
-        if (typeAst.typebody() != null) {
-            const lines = typeAst.typebody().typeline();
-            for (const lineAst of lines) {
-                const propertyName = lineAst.VARNAME().getText();
-                const typeName = lineAst.varn().getText();
-                const property = scope.deepGet(lineAst.varn());
-                if (property == null || !property.type.typename === "type") {
-                    if (type.generics.hasOwnProperty(typeName)) {
-                        type.properties[propertyName] = new Type(typeName, true, true);
+            if (typeAst.typebody() != null) {
+                const lines = typeAst.typebody().typeline();
+                for (const lineAst of lines) {
+                    const propertyName = lineAst.VARNAME().getText();
+                    const typeName = lineAst.varn().getText();
+                    const property = scope.deepGet(lineAst.varn());
+                    if (property == null || property.type.typename !== "type") {
+                        if (type.generics.hasOwnProperty(typeName)) {
+                            type.properties[propertyName] = new Type(typeName, true, true);
+                        }
+                        else {
+                            console.error(lineAst.varn().getText() + " is not a type");
+                            process.exit(-4);
+                        }
                     }
                     else {
-                        console.error(lineAst.varn().getText() + " is not a type");
-                        process.exit(-4);
+                        type.properties[propertyName] = property.typeval;
                     }
                 }
-                else {
-                    type.properties[propertyName] = property.typeval;
-                }
             }
-        }
-        if (typeAst.othertype() != null && typeAst.othertype().length == 1) {
-            const otherTypebox = scope.deepGet(typeAst.othertype(0).typename().getText());
-            if (otherTypebox == null) {
-                console.error("Type " + typeAst.othertype(0).getText() + " not defined");
-                process.exit(-38);
-            }
-            if (otherTypebox.typeval == null) {
-                console.error(typeAst.othertype(0).getText() + " is not a valid type");
-                process.exit(-39);
-            }
-            let othertype = otherTypebox.typeval;
-            if (Object.keys(othertype.generics).length > 0 && typeAst.othertype(0).typegenerics() != null) {
-                let solidTypes = [];
-                for (const fulltypenameAst of typeAst.othertype(0).typegenerics().fulltypename()) {
-                    solidTypes.push(fulltypenameAst.getText());
+            if (typeAst.othertype() != null && typeAst.othertype().length == 1) {
+                const otherTypebox = scope.deepGet(typeAst.othertype(0).typename().getText());
+                if (otherTypebox == null) {
+                    console.error("Type " + typeAst.othertype(0).getText() + " not defined");
+                    process.exit(-38);
                 }
-                othertype = othertype.solidify(solidTypes, scope);
-            }
-            // For simplification of the type aliasing functionality, the other type is attached as
-            // an alias. The module construction will, if present, perfer the alias over the actual
-            // type, to make sure built-in types that are aliased continue to work. This means that
-            // `type varA == type varB` will work if `varA` is assigned to an alias and `varB` to the
-            // orignal type. I can see the argument either way on this, but the simplicity of this
-            // approach is why I will go with this for now.
-            type.alias = othertype;
-        }
-        else if (typeAst.othertype() != null) { // It's a union type
-            const othertypes = typeAst.othertype();
-            let unionTypes = [];
-            for (const othertype of othertypes) {
-                const othertypeBox = scope.deepGet(othertype.typename().getText());
-                if (othertypeBox == null) {
-                    console.error("Type " + othertype.getText() + " not defined");
-                    process.exit(-48);
+                if (otherTypebox.typeval == null) {
+                    console.error(typeAst.othertype(0).getText() + " is not a valid type");
+                    process.exit(-39);
                 }
-                if (othertypeBox.typeval == null) {
-                    console.error(othertype.getText() + " is not a valid type");
-                    process.exit(-49);
-                }
-                let othertypeVal = othertypeBox.typeval;
-                if (othertypeVal.generics.length > 0 && othertype.typegenerics() != null) {
+                let othertype = otherTypebox.typeval;
+                if (Object.keys(othertype.generics).length > 0 && typeAst.othertype(0).typegenerics() != null) {
                     let solidTypes = [];
-                    for (fulltypenameAst of othertype.typegenerics().fulltypename()) {
+                    for (const fulltypenameAst of typeAst.othertype(0).typegenerics().fulltypename()) {
                         solidTypes.push(fulltypenameAst.getText());
                     }
-                    othertypeVal = othertypeVal.solidify(solidTypes, scope);
+                    othertype = othertype.solidify(solidTypes, scope);
                 }
-                unionTypes.push(othertypeVal);
+                // For simplification of the type aliasing functionality, the other type is attached as
+                // an alias. The module construction will, if present, perfer the alias over the actual
+                // type, to make sure built-in types that are aliased continue to work. This means that
+                // `type varA == type varB` will work if `varA` is assigned to an alias and `varB` to the
+                // orignal type. I can see the argument either way on this, but the simplicity of this
+                // approach is why I will go with this for now.
+                type.alias = othertype;
             }
-            type.unionTypes = unionTypes;
-        }
-        return type;
-    }
-    solidify(genericReplacements, scope) {
-        const Box = require('./Box'); // To solve circular dependency issues
-        let replacementTypes = [];
-        for (const typename of genericReplacements) {
-            const typebox = scope.deepGet(typename);
-            if (typebox == null || typebox.type.typename !== "type") {
-                console.error(typename + " type not found");
-                process.exit(-35);
-            }
-            replacementTypes.push(typebox.typeval);
-        }
-        const solidifiedName = this.typename + "<" + genericReplacements.join(", ") + ">";
-        let solidified = new Type(solidifiedName, this.builtIn);
-        solidified.originalType = this;
-        for (const propKey of Object.keys(this.properties)) {
-            const propValue = this.properties[propKey];
-            if (propValue.isGenericStandin) {
-                const genericLoc = this.generics[propValue.typename];
-                if (genericLoc == null) {
-                    console.error("Generic property not described but not found. Should be impossible");
-                    process.exit(-36);
+            else if (typeAst.othertype() != null) { // It's a union type
+                const othertypes = typeAst.othertype();
+                let unionTypes = [];
+                for (const othertype of othertypes) {
+                    const othertypeBox = scope.deepGet(othertype.typename().getText());
+                    if (othertypeBox == null) {
+                        console.error("Type " + othertype.getText() + " not defined");
+                        process.exit(-48);
+                    }
+                    if (othertypeBox.typeval == null) {
+                        console.error(othertype.getText() + " is not a valid type");
+                        process.exit(-49);
+                    }
+                    let othertypeVal = othertypeBox.typeval;
+                    if (othertypeVal.generics.length > 0 && othertype.typegenerics() != null) {
+                        let solidTypes = [];
+                        for (const fulltypenameAst of othertype.typegenerics().fulltypename()) {
+                            solidTypes.push(fulltypenameAst.getText());
+                        }
+                        othertypeVal = othertypeVal.solidify(solidTypes, scope);
+                    }
+                    unionTypes.push(othertypeVal);
                 }
-                const replacementType = replacementTypes[genericLoc];
-                solidified.properties[propKey] = replacementType;
+                type.unionTypes = unionTypes;
             }
-            else {
-                solidified.properties[propKey] = propValue;
-            }
+            return type;
         }
-        scope.put(solidifiedName, new Box(solidified));
-        return solidified;
+        solidify(genericReplacements, scope) {
+            let replacementTypes = [];
+            for (const typename of genericReplacements) {
+                const typebox = scope.deepGet(typename);
+                if (typebox == null || typebox.type.typename !== "type") {
+                    console.error(typename + " type not found");
+                    process.exit(-35);
+                }
+                replacementTypes.push(typebox.typeval);
+            }
+            const solidifiedName = this.typename + "<" + genericReplacements.join(", ") + ">";
+            let solidified = new Type(solidifiedName, this.builtIn);
+            solidified.originalType = this;
+            for (const propKey of Object.keys(this.properties)) {
+                const propValue = this.properties[propKey];
+                if (propValue.isGenericStandin) {
+                    const genericLoc = this.generics[propValue.typename];
+                    if (genericLoc == null) {
+                        console.error("Generic property not described but not found. Should be impossible");
+                        process.exit(-36);
+                    }
+                    const replacementType = replacementTypes[genericLoc];
+                    solidified.properties[propKey] = replacementType;
+                }
+                else {
+                    solidified.properties[propKey] = propValue;
+                }
+            }
+            scope.put(solidifiedName, new Box_1.default(solidified));
+            return solidified;
+        }
+        // This is only necessary for the numeric types. TODO: Can we eliminate it?
+        castable(otherType) {
+            const intTypes = ["int8", "int16", "int32", "int64"];
+            const floatTypes = ["float32", "float64"];
+            if (intTypes.includes(this.typename) && intTypes.includes(otherType.typename))
+                return true;
+            if (floatTypes.includes(this.typename) && floatTypes.includes(otherType.typename))
+                return true;
+            if (floatTypes.includes(this.typename) && intTypes.includes(otherType.typename))
+                return true;
+            return false;
+        }
     }
-    // This is only necessary for the numeric types. TODO: Can we eliminate it?
-    castable(otherType) {
-        const intTypes = ["int8", "int16", "int32", "int64"];
-        const floatTypes = ["float32", "float64"];
-        if (intTypes.includes(this.typename) && intTypes.includes(otherType.typename))
-            return true;
-        if (floatTypes.includes(this.typename) && floatTypes.includes(otherType.typename))
-            return true;
-        if (floatTypes.includes(this.typename) && intTypes.includes(otherType.typename))
-            return true;
-        return false;
-    }
-}
-Type.builtinTypes = {
-    void: new Type("void", true),
-    int8: new Type("int8", true),
-    int16: new Type("int16", true),
-    int32: new Type("int32", true),
-    int64: new Type("int64", true),
-    float32: new Type("float32", true),
-    float64: new Type("float64", true),
-    bool: new Type("bool", true),
-    string: new Type("string", true),
-    Error: new Type("Error", true, {
-        message: new Type("string", true, true),
-        code: new Type("int64", true, true),
-    }),
-    "Array": new Type("Array", true, {
-        records: new Type("V", true, true),
-    }, {
-        V: 0,
-    }),
-    Map: new Type("Map", true, {
-        key: new Type("K", true, true),
-        value: new Type("V", true, true),
-    }, {
-        K: 0,
-        V: 1,
-    }),
-    KeyVal: new Type("KeyVal", true, {
-        key: new Type("K", true, true),
-        value: new Type("V", true, true),
-    }, {
-        K: 0,
-        V: 1,
-    }),
-    "function": new Type("function", true),
-    operator: new Type("operator", true),
-    Event: new Type("Event", true, {
-        type: new Type("E", true, true),
-    }, {
-        E: 0,
-    }),
-    type: new Type("type", true),
-    scope: new Type("scope", true),
-    microstatement: new Type("microstatement", true),
-};
-module.exports = Type;
+    Type.builtinTypes = {
+        void: new Type("void", true),
+        int8: new Type("int8", true),
+        int16: new Type("int16", true),
+        int32: new Type("int32", true),
+        int64: new Type("int64", true),
+        float32: new Type("float32", true),
+        float64: new Type("float64", true),
+        bool: new Type("bool", true),
+        string: new Type("string", true),
+        Error: new Type("Error", true, {
+            message: new Type("string", true, true),
+            code: new Type("int64", true, true),
+        }),
+        "Array": new Type("Array", true, {
+            records: new Type("V", true, true),
+        }, {
+            V: 0,
+        }),
+        Map: new Type("Map", true, {
+            key: new Type("K", true, true),
+            value: new Type("V", true, true),
+        }, {
+            K: 0,
+            V: 1,
+        }),
+        KeyVal: new Type("KeyVal", true, {
+            key: new Type("K", true, true),
+            value: new Type("V", true, true),
+        }, {
+            K: 0,
+            V: 1,
+        }),
+        "function": new Type("function", true),
+        operator: new Type("operator", true),
+        Event: new Type("Event", true, {
+            type: new Type("E", true, true),
+        }, {
+            E: 0,
+        }),
+        type: new Type("type", true),
+        scope: new Type("scope", true),
+        microstatement: new Type("microstatement", true),
+    };
+    return Type;
+})();
+exports.default = Type;
 
 }).call(this,require('_process'))
 },{"./Box":11,"./Interface":20,"_process":83}],28:[function(require,module,exports){
 (function (process){
-const { v4: uuid, } = require('uuid');
-const Ast = require('./Ast');
-const Statement = require('./Statement');
-const StatementType = require('./StatementType');
-const Type = require('./Type');
-const { LnParser, } = require('../ln');
-// This only implements the parts required for the compiler
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const uuid_1 = require("uuid");
+const Ast = require("./Ast");
+const Box_1 = require("./Box");
+const Microstatement_1 = require("./Microstatement");
+const Statement_1 = require("./Statement");
+const StatementType_1 = require("./StatementType");
+const Type_1 = require("./Type");
+const ln_1 = require("../ln");
 class UserFunction {
-    constructor(name, args, returnType, closureScope, statements, pure) {
+    constructor(name, args, returnType, scope, statements, pure) {
         this.name = name;
         this.args = args;
         this.returnType = returnType;
-        this.closureScope = closureScope;
+        this.scope = scope;
         for (let i = 0; i < statements.length - 1; i++) {
             if (statements[i].isReturnStatement()) {
                 // There are unreachable statements after this line, abort
@@ -12700,38 +12758,38 @@ class UserFunction {
         this.statements = statements;
         this.pure = pure;
     }
-    static fromAst(functionishAst, closureScope) {
-        if (functionishAst instanceof LnParser.BlocklikesContext) {
+    static fromAst(functionishAst, scope) {
+        if (functionishAst instanceof ln_1.LnParser.BlocklikesContext) {
             if (functionishAst.functions() != null) {
-                return UserFunction.fromFunctionsAst(functionishAst.functions(), closureScope);
+                return UserFunction.fromFunctionsAst(functionishAst.functions(), scope);
             }
             if (functionishAst.functionbody() != null) {
-                return UserFunction.fromFunctionbodyAst(functionishAst.functionbody(), closureScope);
+                return UserFunction.fromFunctionbodyAst(functionishAst.functionbody(), scope);
             }
         }
-        if (functionishAst instanceof LnParser.FunctionsContext) {
-            return UserFunction.fromFunctionsAst(functionishAst, closureScope);
+        if (functionishAst instanceof ln_1.LnParser.FunctionsContext) {
+            return UserFunction.fromFunctionsAst(functionishAst, scope);
         }
-        if (functionishAst instanceof LnParser.FunctionbodyContext) {
-            return UserFunction.fromFunctionbodyAst(functionishAst, closureScope);
+        if (functionishAst instanceof ln_1.LnParser.FunctionbodyContext) {
+            return UserFunction.fromFunctionbodyAst(functionishAst, scope);
         }
         return null;
     }
-    static fromFunctionbodyAst(functionbodyAst, closureScope) {
+    static fromFunctionbodyAst(functionbodyAst, scope) {
         let args = {};
-        const returnType = Type.builtinTypes.void;
+        const returnType = Type_1.default.builtinTypes.void;
         let pure = true; // Assume purity and then downgrade if needed
         let statements = [];
         const statementsAst = functionbodyAst.statements();
         for (const statementAst of statementsAst) {
-            const statement = Statement.create(statementAst, closureScope);
+            const statement = Statement_1.default.create(statementAst, scope);
             if (!statement.pure)
                 pure = false;
             statements.push(statement);
         }
-        return new UserFunction(null, args, returnType, closureScope, statements, pure);
+        return new UserFunction(null, args, returnType, scope, statements, pure);
     }
-    static fromFunctionsAst(functionAst, closureScope) {
+    static fromFunctionsAst(functionAst, scope) {
         const name = functionAst.VARNAME() == null ? null : functionAst.VARNAME().getText();
         let args = {};
         const argsAst = functionAst.arglist();
@@ -12739,16 +12797,16 @@ class UserFunction {
             const arglen = argsAst.VARNAME().length;
             for (let i = 0; i < arglen; i++) {
                 const argName = argsAst.VARNAME(i).getText();
-                let getArgType = closureScope.deepGet(argsAst.argtype(i).getText());
+                let getArgType = scope.deepGet(argsAst.argtype(i).getText());
                 if (getArgType === null) {
                     if (argsAst.argtype(i).othertype().length === 1) {
                         if (argsAst.argtype(i).othertype(0).typegenerics() !== null) {
-                            getArgType = closureScope.deepGet(argsAst.argtype(i).othertype(0).typename().getText());
+                            getArgType = scope.deepGet(argsAst.argtype(i).othertype(0).typename().getText());
                             if (getArgType == null) {
                                 console.error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName);
                                 process.exit(-39);
                             }
-                            if (getArgType.type !== Type.builtinTypes["type"]) {
+                            if (getArgType.type !== Type_1.default.builtinTypes["type"]) {
                                 console.error("Function argument is not a valid type: " + argsAst.argtype(i).getText());
                                 process.exit(-50);
                             }
@@ -12756,7 +12814,7 @@ class UserFunction {
                             for (const fulltypename of argsAst.argtype(i).othertype(0).typegenerics().fulltypename()) {
                                 genericTypes.push(fulltypename.getText());
                             }
-                            getArgType = new Box(getArgType.typeval.solidify(genericTypes, closureScope));
+                            getArgType = new Box_1.default(getArgType.typeval.solidify(genericTypes, scope));
                         }
                         else {
                             console.error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName);
@@ -12767,15 +12825,15 @@ class UserFunction {
                         const othertypes = argsAst.argtype(i).othertype();
                         let unionTypes = [];
                         for (const othertype of othertypes) {
-                            let othertypeBox = closureScope.deepGet(othertype.getText());
+                            let othertypeBox = scope.deepGet(othertype.getText());
                             if (othertypeBox == null) {
                                 if (othertype.typegenerics() != null) {
-                                    othertypeBox = closureScope.deepGet(othertype.typename().getText());
+                                    othertypeBox = scope.deepGet(othertype.typename().getText());
                                     if (othertypeBox == null) {
                                         console.error("Could not find type " + othertype.getText() + " for argument " + argName);
                                         process.exit(-59);
                                     }
-                                    if (othertypeBox.type != Type.builtinTypes["type"]) {
+                                    if (othertypeBox.type != Type_1.default.builtinTypes["type"]) {
                                         console.error("Function argument is not a valid type: " + othertype.getText());
                                         process.exit(-60);
                                     }
@@ -12783,7 +12841,7 @@ class UserFunction {
                                     for (const fulltypename of othertype.typegenerics().fulltypename()) {
                                         genericTypes.push(fulltypename.getText());
                                     }
-                                    othertypeBox = new Box(othertypeBox.typeval.solidify(genericTypes, closureScope));
+                                    othertypeBox = new Box_1.default(othertypeBox.typeval.solidify(genericTypes, scope));
                                 }
                                 else {
                                     console.error("Could not find type " + othertype.getText() + " for argument " + argName);
@@ -12792,11 +12850,11 @@ class UserFunction {
                             }
                             unionTypes.push(othertypeBox.typeval);
                         }
-                        const union = new Type(argsAst.argtype(i).getText(), false, unionTypes);
-                        getArgType = new Box(union);
+                        const union = new Type_1.default(argsAst.argtype(i).getText(), false, unionTypes);
+                        getArgType = new Box_1.default(union);
                     }
                 }
-                if (getArgType.type != Type.builtinTypes["type"]) {
+                if (getArgType.type != Type_1.default.builtinTypes["type"]) {
                     console.error("Function argument is not a valid type: " + argsAst.argtype(i).getText());
                     process.exit(-13);
                 }
@@ -12806,15 +12864,15 @@ class UserFunction {
         let returnType = null;
         if (functionAst.argtype() !== null) {
             if (functionAst.argtype().othertype().length === 1) {
-                let getReturnType = closureScope.deepGet(functionAst.argtype().getText());
-                if (getReturnType == null || getReturnType.type != Type.builtinTypes["type"]) {
+                let getReturnType = scope.deepGet(functionAst.argtype().getText());
+                if (getReturnType == null || getReturnType.type != Type_1.default.builtinTypes["type"]) {
                     if (functionAst.argtype().othertype(0).typegenerics() != null) {
-                        getReturnType = closureScope.deepGet(functionAst.argtype().othertype(0).typename().getText());
+                        getReturnType = scope.deepGet(functionAst.argtype().othertype(0).typename().getText());
                         if (getReturnType == null) {
                             console.error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText());
                             process.exit(-59);
                         }
-                        if (getReturnType.type !== Type.builtinTypes["type"]) {
+                        if (getReturnType.type !== Type_1.default.builtinTypes["type"]) {
                             console.error("Function return is not a valid type: " + functionAst.argtype().getText());
                             process.exit(-60);
                         }
@@ -12822,7 +12880,7 @@ class UserFunction {
                         for (const fulltypename of functionAst.argType().othertype(0).typegenerics().fulltypename()) {
                             genericTypes.push(fulltypename.getText());
                         }
-                        getReturnType = new Box(getReturnType.typeval.solidify(genericTypes, closureScope));
+                        getReturnType = new Box_1.default(getReturnType.typeval.solidify(genericTypes, scope));
                     }
                     else {
                         console.error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText());
@@ -12835,15 +12893,15 @@ class UserFunction {
                 const othertypes = functionAst.argtype().othertype();
                 let unionTypes = [];
                 for (const othertype of othertypes) {
-                    let othertypeBox = closureScope.deepGet(othertype.getText());
+                    let othertypeBox = scope.deepGet(othertype.getText());
                     if (othertypeBox === null) {
                         if (othertype.typegenerics() !== null) {
-                            othertypeBox = closureScope.deepGet(othertype.typename().getText());
+                            othertypeBox = scope.deepGet(othertype.typename().getText());
                             if (othertypeBox === null) {
                                 console.error("Could not find return type " + othertype.getText() + " for function " + functionAst.VARNAME().getText());
                                 process.exit(-59);
                             }
-                            if (othertypeBox.type !== Type.builtinTypes["type"]) {
+                            if (othertypeBox.type !== Type_1.default.builtinTypes["type"]) {
                                 console.error("Function argument is not a valid type: " + othertype.getText());
                                 process.exit(-60);
                             }
@@ -12851,7 +12909,7 @@ class UserFunction {
                             for (const fulltypename of othertype.typegenerics().fulltypename()) {
                                 genericTypes.push(fulltypename.getText());
                             }
-                            othertypeBox = new Box(othertypeBox.typeval.solidify(genericTypes, closureScope));
+                            othertypeBox = new Box_1.default(othertypeBox.typeval.solidify(genericTypes, scope));
                         }
                         else {
                             console.error("Could not find return type " + othertype.getText() + " for function " + functionAst.VARNAME().getText());
@@ -12860,12 +12918,12 @@ class UserFunction {
                     }
                     unionTypes.push(othertypeBox.typeval);
                 }
-                returnType = new Type(functionAst.argtype().getText(), false, unionTypes);
+                returnType = new Type_1.default(functionAst.argtype().getText(), false, unionTypes);
             }
         }
         else {
             // TODO: Infer the return type by finding the return value and tracing backwards
-            returnType = Type.builtinTypes["void"];
+            returnType = Type_1.default.builtinTypes["void"];
         }
         let pure = true;
         let statements = [];
@@ -12873,7 +12931,7 @@ class UserFunction {
         if (functionbody !== null) {
             const statementsAst = functionbody.statements();
             for (const statementAst of statementsAst) {
-                let statement = Statement.create(statementAst, closureScope);
+                let statement = Statement_1.default.create(statementAst, scope);
                 if (!statement.pure)
                     pure = false;
                 statements.push(statement);
@@ -12881,13 +12939,13 @@ class UserFunction {
         }
         else {
             const assignablesAst = functionAst.fullfunctionbody().assignables();
-            let statement = Statement.create(assignablesAst, closureScope);
+            let statement = Statement_1.default.create(assignablesAst, scope);
             if (!statement.pure)
                 pure = false;
             statements.push(statement);
             // TODO: Infer the return type for anything other than calls or object literals
             if (assignablesAst.basicassignables() && assignablesAst.basicassignables().calls()) {
-                const fnCall = closureScope.deepGet(assignablesAst.basicassignables().calls().varn(0));
+                const fnCall = scope.deepGet(assignablesAst.basicassignables().calls().varn(0));
                 if (fnCall && fnCall.functionval) {
                     // TODO: For now, also take the first matching function name, in the future
                     // figure out the argument types provided recursively to select appropriately
@@ -12897,10 +12955,10 @@ class UserFunction {
             }
             else if (assignablesAst.basicassignables() &&
                 assignablesAst.basicassignables().objectliterals()) {
-                returnType = closureScope.deepGet(assignablesAst.basicassignables().objectliterals().othertype().getText().trim()).typeval;
+                returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().othertype().getText().trim()).typeval;
             }
         }
-        return new UserFunction(name, args, returnType, closureScope, statements, pure);
+        return new UserFunction(name, args, returnType, scope, statements, pure);
     }
     getName() {
         return this.name;
@@ -12919,7 +12977,7 @@ class UserFunction {
     }
     toFnStr() {
         if (this.statements.length === 1 &&
-            this.statements[0].statementOrAssignableAst instanceof LnParser.AssignablesContext) {
+            this.statements[0].statementOrAssignableAst instanceof ln_1.LnParser.AssignablesContext) {
             return `
         fn ${this.name || ''} (${Object.keys(this.args).map(argName => `${argName}: ${this.args[argName].typename}`).join(', ')}): ${this.returnType.typename} = ${this.statements[0].statementOrAssignableAst.getText()}
       `.trim();
@@ -12933,7 +12991,7 @@ class UserFunction {
     static conditionalToCond(cond, scope) {
         let newStatements = [];
         let hasConditionalReturn = false; // Flag for potential second pass
-        const condName = "_" + uuid().replace(/-/g, "_");
+        const condName = "_" + uuid_1.v4().replace(/-/g, "_");
         const condStatement = Ast.statementAstFromString(`
       const ${condName}: bool = ${cond.withoperators().getText()}
     `.trim() + '\n');
@@ -12981,7 +13039,8 @@ class UserFunction {
         }
         return [newStatements, hasConditionalReturn];
     }
-    static earlyReturnRewrite(retVal, retNotSet, statements, scope) {
+    static earlyReturnRewrite(retVal, retNotSet, statements, // TODO: Eliminate ANTLR
+    scope) {
         let replacementStatements = [];
         while (statements.length > 0) {
             const s = statements.shift();
@@ -13041,13 +13100,13 @@ class UserFunction {
                 const s = this.statements[i];
                 if (s.isConditionalStatement()) {
                     const cond = s.statementOrAssignableAst.conditionals();
-                    const res = UserFunction.conditionalToCond(cond, this.closureScope);
+                    const res = UserFunction.conditionalToCond(cond, this.scope);
                     const newStatements = res[0];
                     if (res[1])
                         hasConditionalReturn = true;
                     statementAsts.push(...newStatements);
                 }
-                else if (s.statementOrAssignableAst instanceof LnParser.AssignmentsContext) {
+                else if (s.statementOrAssignableAst instanceof ln_1.LnParser.AssignmentsContext) {
                     // TODO: Clean up the const/let/assignment grammar mistakes.
                     const a = s.statementOrAssignableAst;
                     if (a.assignables()) {
@@ -13060,7 +13119,7 @@ class UserFunction {
                         statementAsts.push(s.statementOrAssignableAst);
                     }
                 }
-                else if (s.statementOrAssignableAst instanceof LnParser.LetdeclarationContext) {
+                else if (s.statementOrAssignableAst instanceof ln_1.LnParser.LetdeclarationContext) {
                     const l = s.statementOrAssignableAst;
                     // TODO: More cleanup of const/let/assignment here, too
                     let name = "";
@@ -13094,7 +13153,7 @@ class UserFunction {
             // instead hoisted into writing a closure variable
             if (hasConditionalReturn) {
                 // Need the UUID to make sure this is unique if there's multiple layers of nested returns
-                const retNamePostfix = "_" + uuid().replace(/-/g, "_");
+                const retNamePostfix = "_" + uuid_1.v4().replace(/-/g, "_");
                 const retVal = "retVal" + retNamePostfix;
                 const retNotSet = "retNotSet" + retNamePostfix;
                 const retValStatement = Ast.statementAstFromString(`
@@ -13104,7 +13163,7 @@ class UserFunction {
           let ${retNotSet}: bool = assign(true)
         `.trim() + '\n');
                 let replacementStatements = [retValStatement, retNotSetStatement];
-                replacementStatements.push(...UserFunction.earlyReturnRewrite(retVal, retNotSet, statementAsts, this.closureScope));
+                replacementStatements.push(...UserFunction.earlyReturnRewrite(retVal, retNotSet, statementAsts, this.scope));
                 replacementStatements.push(Ast.statementAstFromString(`
           return ${retVal}
         `.trim() + '\n'));
@@ -13115,7 +13174,7 @@ class UserFunction {
           ${statementAsts.map(s => s.getText()).join('\n')}
         }
       `.trim();
-            const fn = UserFunction.fromAst(Ast.functionAstFromString(fnStr), this.closureScope);
+            const fn = UserFunction.fromAst(Ast.functionAstFromString(fnStr), this.scope);
             return fn;
         }
         return this;
@@ -13124,25 +13183,24 @@ class UserFunction {
         // Perform a transform, if necessary, before generating the microstatements
         const fn = this.maybeTransform();
         // Resolve circular dependency issue
-        const Microstatement = require('./Microstatement');
         const internalNames = Object.keys(fn.args);
         const originalStatementLength = microstatements.length;
-        const inputs = realArgNames.map(n => Microstatement.fromVarName(n, microstatements));
+        const inputs = realArgNames.map(n => Microstatement_1.default.fromVarName(n, microstatements));
         const inputTypes = inputs.map(i => i.outputType);
         for (let i = 0; i < internalNames.length; i++) {
             const realArgName = realArgNames[i];
             // Instead of copying the relevant data, define a reference to where the data is located with
             // an alias for the function's expected variable name so statements referencing the argument
             // can be rewritten to use the new variable name.
-            microstatements.push(new Microstatement(StatementType.REREF, scope, true, realArgName, internalNames[i], inputTypes[i], [], []));
+            microstatements.push(new Microstatement_1.default(StatementType_1.default.REREF, scope, true, realArgName, internalNames[i], inputTypes[i], [], []));
         }
         for (const s of fn.statements) {
-            Microstatement.fromStatement(s, microstatements);
+            Microstatement_1.default.fromStatement(s, microstatements);
         }
         // Delete `REREF`s except a `return` statement's `REREF` to make sure it doesn't interfere with
         // the outer scope (if it has the same variable name defined, for instance)
         for (let i = originalStatementLength; i < microstatements.length - 1; i++) {
-            if (microstatements[i].statementType == StatementType.REREF) {
+            if (microstatements[i].statementType == StatementType_1.default.REREF) {
                 microstatements.splice(i, 1);
                 i--;
             }
@@ -13161,7 +13219,7 @@ class UserFunction {
                         newReturnType = inputTypes[i];
                     }
                     else if (Object.values(a.properties).some(p => !!p.iface && p.iface.interfacename === oldReturnType.iface.interfacename)) {
-                        newReturnType = Object.values(inputTypes[i].properties).find(p => !!p.iface && p.iface.interfacename === oldReturnType.iface.interfacename);
+                        newReturnType = Object.values(inputTypes[i].properties).find((p) => !!p.iface && p.iface.interfacename === oldReturnType.iface.interfacename);
                     }
                 });
             }
@@ -13252,24 +13310,27 @@ class UserFunction {
         return fn;
     }
 }
-module.exports = UserFunction;
+exports.default = UserFunction;
 
 }).call(this,require('_process'))
-},{"../ln":9,"./Ast":10,"./Microstatement":21,"./Statement":25,"./StatementType":26,"./Type":27,"_process":83,"uuid":88}],29:[function(require,module,exports){
-const fs = require('fs');
-const { v4: uuid, } = require('uuid');
-const Ast = require('./Ast');
-const Std = require('./Std');
-const Module = require('./Module');
-const Event = require('./Event');
-const UserFunction = require('./UserFunction');
-const Microstatement = require('./Microstatement');
-const StatementType = require('./StatementType');
-const hoistConst = (microstatements, constantDedupeLookup, constants) => {
+},{"../ln":9,"./Ast":10,"./Box":11,"./Microstatement":21,"./Statement":25,"./StatementType":26,"./Type":27,"_process":83,"uuid":88}],29:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.fromString = exports.fromFile = void 0;
+const fs = require("fs");
+const uuid_1 = require("uuid");
+const Ast = require("./Ast");
+const Std = require("./Std");
+const Event_1 = require("./Event");
+const Microstatement_1 = require("./Microstatement");
+const Module_1 = require("./Module");
+const StatementType_1 = require("./StatementType");
+const UserFunction_1 = require("./UserFunction");
+const hoistConst = (microstatements, constantDedupeLookup, constants, eventTypes) => {
     let i = 0;
     while (i < microstatements.length) {
         const m = microstatements[i];
-        if (m.statementType === StatementType.CONSTDEC &&
+        if (m.statementType === StatementType_1.default.CONSTDEC &&
             m.fns.length === 0) {
             const original = constantDedupeLookup[m.inputNames[0]];
             if (!original) {
@@ -13293,8 +13354,8 @@ const hoistConst = (microstatements, constantDedupeLookup, constants) => {
                 microstatements.splice(i, 1);
             }
         }
-        else if (m.statementType === StatementType.CLOSURE) {
-            hoistConst(m.closureStatements, constantDedupeLookup, constants);
+        else if (m.statementType === StatementType_1.default.CLOSURE) {
+            hoistConst(m.closureStatements, constantDedupeLookup, constants, eventTypes);
             i++;
         }
         else {
@@ -13331,8 +13392,8 @@ const moduleAstsFromFile = (filename) => {
 const moduleAstsFromString = (str) => {
     // If loading from a string, it's in the browser and some internal state needs cleaning. Some of
     // this doesn't appear to affect things, but better to compile from a known state
-    Event.allEvents = [Event.allEvents[0]]; // Keep the `start` event
-    Event.allEvents[0].handlers = []; // Reset the registered handlers on the `start` event
+    Event_1.default.allEvents = [Event_1.default.allEvents[0]]; // Keep the `start` event
+    Event_1.default.allEvents[0].handlers = []; // Reset the registered handlers on the `start` event
     let moduleAsts = {};
     const fakeRoot = '/fake/root/test.ln';
     let module = null;
@@ -13365,9 +13426,9 @@ const ammFromModuleAsts = (moduleAsts) => {
         }
     }
     Std.loadStdModules(stdFiles);
-    const rootScope = Module.getAllModules()['<root>'].exportScope;
+    const rootScope = Module_1.default.getAllModules()['<root>'].exportScope;
     // Load all modules
-    Module.modulesFromAsts(moduleAsts, rootScope);
+    Module_1.default.modulesFromAsts(moduleAsts, rootScope);
     // This implicitly populates the `allEvents` static property on the `Event` type, which we can
     // use to serialize out the definitions, skipping the built-in events. In the process we're need
     // to check a hashset for duplicate event names and rename as necessary. We also need to get the
@@ -13375,14 +13436,14 @@ const ammFromModuleAsts = (moduleAsts) => {
     let eventNames = new Set();
     let eventTypeNames = new Set();
     let eventTypes = new Set();
-    for (const evt of Event.allEvents) {
+    for (const evt of Event_1.default.allEvents) {
         // Skip built-in events
         if (evt.builtIn)
             continue;
         // Check if there's a collision
         if (eventNames.has(evt.name)) {
             // We modify the event name by attaching a UUIDv4 to it
-            evt.name = evt.name + "_" + uuid().replace(/-/g, "_");
+            evt.name = evt.name + "_" + uuid_1.v4().replace(/-/g, "_");
         }
         // Add the event to the list
         eventNames.add(evt.name);
@@ -13397,7 +13458,7 @@ const ammFromModuleAsts = (moduleAsts) => {
             if (eventTypes.has(type))
                 continue; // This event was already processed, so we're done
             // Modify the type name by attaching a UUIDv4 to it
-            type.typename = type.typename + "_" + uuid().replace(/-/g, "_");
+            type.typename = type.typename + "_" + uuid_1.v4().replace(/-/g, "_");
         }
         // Add the type to the list
         eventTypeNames.add(type.typename);
@@ -13413,7 +13474,7 @@ const ammFromModuleAsts = (moduleAsts) => {
                 if (eventTypes.has(unionType))
                     continue; // This event was already processed, so we're done
                 // Modify the type name by attaching a UUIDv4 to it
-                unionType.typename = unionType.typename + "_" + uuid().replace(/-/g, "_");
+                unionType.typename = unionType.typename + "_" + uuid_1.v4().replace(/-/g, "_");
             }
             // Add the type to the list
             eventTypeNames.add(unionType.typename);
@@ -13421,6 +13482,7 @@ const ammFromModuleAsts = (moduleAsts) => {
         } // TODO: DRY this all up
         // Determine if any of the properties of the type should be added to the list
         for (const propType of Object.values(type.properties)) {
+            // TODO: Convert `Type` to TS
             // Skip built-in types, too
             if (propType.builtIn)
                 continue;
@@ -13430,7 +13492,7 @@ const ammFromModuleAsts = (moduleAsts) => {
                 if (eventTypes.has(propType))
                     continue; // This event was already processed, so we're done
                 // Modify the type name by attaching a UUIDv4 to it
-                propType.typename = propType.typename + "_" + uuid().replace(/-/g, "_");
+                propType.typename = propType.typename + "_" + uuid_1.v4().replace(/-/g, "_");
             }
             // Add the type to the list
             eventTypeNames.add(propType.typename);
@@ -13441,26 +13503,26 @@ const ammFromModuleAsts = (moduleAsts) => {
     let handlers = {}; // String to array of Microstatement objects
     let constantDedupeLookup = {}; // String to Microstatement object
     let constants = new Set(); // Microstatment objects
-    for (let evt of Event.allEvents) {
+    for (let evt of Event_1.default.allEvents) {
         for (let handler of evt.handlers) {
-            if (handler instanceof UserFunction) {
+            if (handler instanceof UserFunction_1.default) {
                 // Define the handler preamble
                 let handlerDec = "on " + evt.name + " fn (";
                 let argList = [];
                 let microstatements = [];
                 for (const arg of Object.keys(handler.getArguments())) {
                     argList.push(arg + ": " + handler.getArguments()[arg].typename);
-                    microstatements.push(new Microstatement(StatementType.ARG, handler.closureScope, true, arg, handler.getArguments()[arg], [], []));
+                    microstatements.push(new Microstatement_1.default(StatementType_1.default.ARG, handler.scope, true, arg, handler.getArguments()[arg], [], []));
                 }
                 handlerDec += argList.join(", ");
                 handlerDec += "): " + handler.getReturnType().typename + " {";
                 // Extract the handler statements and compile into microstatements
                 const statements = handler.maybeTransform().statements;
                 for (const s of statements) {
-                    Microstatement.fromStatement(s, microstatements);
+                    Microstatement_1.default.fromStatement(s, microstatements);
                 }
                 // Pull the constants out of the microstatements into the constants set.
-                hoistConst(microstatements, constantDedupeLookup, constants);
+                hoistConst(microstatements, constantDedupeLookup, constants, eventTypes);
                 // Register the handler and remaining statements
                 handlers.hasOwnProperty(handlerDec) ? handlers[handlerDec].push(microstatements) : handlers[handlerDec] = [microstatements];
             }
@@ -13476,7 +13538,7 @@ const ammFromModuleAsts = (moduleAsts) => {
         outStr += constant.toString() + "\n";
     }
     // Print the user-defined event declarations
-    for (const evt of Event.allEvents) {
+    for (const evt of Event_1.default.allEvents) {
         if (evt.builtIn)
             continue; // Skip built-in events
         outStr += evt.toString() + "\n";
@@ -13496,37 +13558,37 @@ const ammFromModuleAsts = (moduleAsts) => {
     }
     return outStr;
 };
-module.exports = {
-    fromFile: (filename) => ammFromModuleAsts(moduleAstsFromFile(filename)),
-    fromString: (str) => ammFromModuleAsts(moduleAstsFromString(str)),
-};
+exports.fromFile = (filename) => ammFromModuleAsts(moduleAstsFromFile(filename));
+exports.fromString = (str) => ammFromModuleAsts(moduleAstsFromString(str));
 
 },{"./Ast":10,"./Event":12,"./Microstatement":21,"./Module":22,"./StatementType":26,"./Std":1,"./UserFunction":28,"fs":80,"uuid":88}],30:[function(require,module,exports){
-const { v4: uuid, } = require('uuid');
-const Box = require('./Box'); // TODO: Eliminate Box
-const Module = require('./Module');
-const Event = require('./Event');
-const Interface = require('./Interface');
-const Scope = require('./Scope');
-const Type = require('./Type');
-const Microstatement = require('./Microstatement');
-const StatementType = require('./StatementType');
-const opcodeScope = new Scope();
-const opcodeModule = new Module(opcodeScope);
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const uuid_1 = require("uuid");
+const Box_1 = require("./Box"); // TODO: Eliminate Box
+const Event_1 = require("./Event");
+const Interface_1 = require("./Interface");
+const Microstatement_1 = require("./Microstatement");
+const Module_1 = require("./Module");
+const Scope_1 = require("./Scope");
+const StatementType_1 = require("./StatementType");
+const Type_1 = require("./Type");
+const opcodeScope = new Scope_1.default();
+const opcodeModule = new Module_1.default(opcodeScope);
 // Base types
-const addBuiltIn = (name) => { opcodeScope.put(name, new Box(Type.builtinTypes[name])); };
+const addBuiltIn = (name) => { opcodeScope.put(name, new Box_1.default(Type_1.default.builtinTypes[name])); };
 ([
     'void', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64', 'bool', 'string', 'function',
     'operator', 'Error', 'Array', 'Map', 'KeyVal',
 ].map(addBuiltIn));
-Type.builtinTypes['Array'].solidify(['string'], opcodeScope);
-Type.builtinTypes['Map'].solidify(['string', 'string'], opcodeScope);
-opcodeScope.put('any', new Box(new Type('any', true, new Interface('any'))));
-Type.builtinTypes['Array'].solidify(['any'], opcodeScope);
-Type.builtinTypes['Map'].solidify(['any', 'any'], opcodeScope);
-Type.builtinTypes['KeyVal'].solidify(['any', 'any'], opcodeScope);
-Type.builtinTypes['Array'].solidify(['KeyVal<any, any>'], opcodeScope);
-opcodeScope.put("start", new Box(new Event("_start", Type.builtinTypes.void, true), true));
+Type_1.default.builtinTypes['Array'].solidify(['string'], opcodeScope);
+Type_1.default.builtinTypes['Map'].solidify(['string', 'string'], opcodeScope);
+opcodeScope.put('any', new Box_1.default(new Type_1.default('any', true, new Interface_1.default('any'))));
+Type_1.default.builtinTypes['Array'].solidify(['any'], opcodeScope);
+Type_1.default.builtinTypes['Map'].solidify(['any', 'any'], opcodeScope);
+Type_1.default.builtinTypes['KeyVal'].solidify(['any', 'any'], opcodeScope);
+Type_1.default.builtinTypes['Array'].solidify(['KeyVal<any, any>'], opcodeScope);
+opcodeScope.put("start", new Box_1.default(new Event_1.default("_start", Type_1.default.builtinTypes.void, true), true));
 const t = (str) => opcodeScope.get(str).typeval;
 // opcode declarations
 const addopcodes = (opcodes) => {
@@ -13538,15 +13600,15 @@ const addopcodes = (opcodes) => {
             const opcodeObj = {
                 getName: () => opcodeName,
                 getArguments: () => args,
-                getReturnType: () => Type.builtinTypes.void,
+                getReturnType: () => Type_1.default.builtinTypes.void,
                 isNary: () => false,
                 isPure: () => true,
                 microstatementInlining: (realArgNames, scope, microstatements) => {
-                    microstatements.push(new Microstatement(StatementType.CALL, scope, true, null, opcodeObj.getReturnType(), realArgNames, [opcodeObj]));
+                    microstatements.push(new Microstatement_1.default(StatementType_1.default.CALL, scope, true, null, opcodeObj.getReturnType(), realArgNames, [opcodeObj]));
                 },
             };
             // Add each opcode
-            opcodeScope.put(opcodeName, new Box([opcodeObj], true));
+            opcodeScope.put(opcodeName, new Box_1.default([opcodeObj], true));
         }
         else {
             const opcodeObj = {
@@ -13556,9 +13618,9 @@ const addopcodes = (opcodes) => {
                 isNary: () => false,
                 isPure: () => true,
                 microstatementInlining: (realArgNames, scope, microstatements) => {
-                    const inputs = realArgNames.map(n => Microstatement.fromVarName(n, microstatements));
+                    const inputs = realArgNames.map(n => Microstatement_1.default.fromVarName(n, microstatements));
                     const inputTypes = inputs.map(i => i.outputType);
-                    microstatements.push(new Microstatement(StatementType.CONSTDEC, scope, true, "_" + uuid().replace(/-/g, "_"), ((inputTypes, scope) => {
+                    microstatements.push(new Microstatement_1.default(StatementType_1.default.CONSTDEC, scope, true, "_" + uuid_1.v4().replace(/-/g, "_"), ((inputTypes, scope) => {
                         if (!!returnType.iface) {
                             // Path 1: the opcode returns an interface based on the interface type of an input
                             let replacementType;
@@ -13577,15 +13639,15 @@ const addopcodes = (opcodes) => {
                             return replacementType;
                         }
                         else if (returnType.originalType &&
-                            Object.values(returnType.properties).some(p => !!p.iface)) {
+                            Object.values(returnType.properties).some((p) => !!p.iface)) {
                             // Path 2: the opcode returns solidified generic type with an interface generic that
                             // mathces the interface type of an input
                             const returnIfaces = Object.values(returnType.properties)
-                                .filter(p => !!p.iface).map(p => p.iface);
+                                .filter((p) => !!p.iface).map((p) => p.iface);
                             const ifaceMap = {};
                             Object.values(args).forEach((a, i) => {
                                 if (!!a.iface) {
-                                    ifaceMap[a.interfacename] = inputTypes[i];
+                                    ifaceMap[a.iface.interfacename] = inputTypes[i];
                                 }
                             });
                             const baseType = returnType.originalType;
@@ -13603,7 +13665,7 @@ const addopcodes = (opcodes) => {
                 },
             };
             // Add each opcode
-            opcodeScope.put(opcodeName, new Box([opcodeObj], true));
+            opcodeScope.put(opcodeName, new Box_1.default([opcodeObj], true));
         }
     });
 };
@@ -13835,7 +13897,7 @@ addopcodes({
     copystr: [{ a: t('string'), }, t('string')],
     copyarr: [{ a: t('Array<any>'), }, t('Array<any>')],
 });
-module.exports = opcodeModule;
+exports.default = opcodeModule;
 
 },{"./Box":11,"./Event":12,"./Interface":20,"./Microstatement":21,"./Module":22,"./Scope":24,"./StatementType":26,"./Type":27,"uuid":88}],31:[function(require,module,exports){
 "use strict";

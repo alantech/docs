@@ -10138,7 +10138,7 @@ class Box {
         // guess which context it's running in.
         // TODO: Review if any of the extra logic after deepGet is needed anymore
         const typename = assignmentAst.varn().getText();
-        let typeBox = scope.deepGet(assignmentAst.varn());
+        let typeBox = scope.deepGet(assignmentAst.varn().getText());
         let type;
         if (typeBox == null) {
             const nameSegments = typename.split(".");
@@ -10206,11 +10206,11 @@ class Box {
         }
         if (!!basicAssignable.calls()) {
             // TODO: Support generating global constants from function calls at some point
-            // return Function.callFromAst(basicAssignable.calls(), scope);
+            // return Function.callFromAst(basicAssignable.calls(), scope)
             return new Box(); // Void it for now
         }
         if (!!basicAssignable.varn()) {
-            return scope.deepGet(basicAssignable.varn());
+            return scope.deepGet(basicAssignable.varn().getText());
         }
         if (!!basicAssignable.groups()) {
             // TODO: Suppor this later
@@ -10259,7 +10259,7 @@ let Event = /** @class */ (() => {
         }
         static fromAst(eventAst, scope) {
             const name = eventAst.VARNAME().getText();
-            const boxedVal = scope.deepGet(eventAst.varn());
+            const boxedVal = scope.deepGet(eventAst.varn().getText());
             if (boxedVal === null) {
                 console.error("Could not find specified type: " + eventAst.varn().getText());
                 process.exit(-8);
@@ -11271,7 +11271,7 @@ class Microstatement {
         // can be pruned back off of the list to be reattached to a closure microstatement type.
         const constName = "_" + uuid_1.v4().replace(/-/g, "_");
         if (blocklikesAst.varn() != null) { // TODO: Port to fromVarAst
-            const fnToClose = scope.deepGet(blocklikesAst.varn());
+            const fnToClose = scope.deepGet(blocklikesAst.varn().getText());
             if (fnToClose == null || fnToClose.functionval == null) {
                 console.error(blocklikesAst.varn().getText() + " is not a function");
                 process.exit(-111);
@@ -11315,7 +11315,7 @@ class Microstatement {
             // If there's an assignable value here, add it to the list of microstatements first, then
             // rewrite the final const assignment as the emit statement.
             Microstatement.fromAssignablesAst(emitsAst.assignables(), scope, microstatements);
-            const eventBox = scope.deepGet(emitsAst.varn()); // TODO: Port to fromVarAst when Box is removed
+            const eventBox = scope.deepGet(emitsAst.varn().getText()); // TODO: Port to fromVarAst when Box is removed
             if (eventBox.eventval == null) {
                 console.error(emitsAst.varn().getText() + " is not an event!");
                 console.error(emitsAst.getText() +
@@ -11343,7 +11343,7 @@ class Microstatement {
         }
         else {
             // Otherwise, create an emit statement with no value
-            const eventBox = scope.deepGet(emitsAst.varn()); // TODO: Port to fromVarAst
+            const eventBox = scope.deepGet(emitsAst.varn().getText()); // TODO: Port to fromVarAst
             if (eventBox.eventval == null) {
                 console.error(emitsAst.varn().getText() + " is not an event!");
                 console.error(emitsAst.getText() +
@@ -12189,7 +12189,7 @@ class Module {
             const isPrefix = operatorAst.INFIX() === null;
             const name = operatorAst.fntoop().operators().getText().trim();
             const precedence = parseInt(operatorAst.opprecedence().NUMBERCONSTANT().getText(), 10);
-            const fns = module.moduleScope.deepGet(operatorAst.fntoop().varn());
+            const fns = module.moduleScope.deepGet(operatorAst.fntoop().varn().getText());
             if (fns == null) {
                 console.error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
                 process.exit(-31);
@@ -12210,7 +12210,7 @@ class Module {
         const exports = ast.exports();
         for (const exportAst of exports) {
             if (exportAst.varn() != null) {
-                const exportVar = module.moduleScope.deepGet(exportAst.varn());
+                const exportVar = module.moduleScope.deepGet(exportAst.varn().getText());
                 const splitName = exportAst.varn().getText().split(".");
                 module.moduleScope.put(splitName[splitName.length - 1], exportVar);
                 module.exportScope.put(splitName[splitName.length - 1], exportVar);
@@ -12267,9 +12267,9 @@ class Module {
                 const isPrefix = operatorAst.INFIX() == null;
                 const name = operatorAst.fntoop().operators().getText().trim();
                 const precedence = parseInt(operatorAst.opprecedence().NUMBERCONSTANT().getText(), 10);
-                let fns = module.exportScope.deepGet(operatorAst.fntoop().varn());
+                let fns = module.exportScope.deepGet(operatorAst.fntoop().varn().getText());
                 if (fns == null) {
-                    fns = module.moduleScope.deepGet(operatorAst.fntoop().varn());
+                    fns = module.moduleScope.deepGet(operatorAst.fntoop().varn().getText());
                     if (fns != null) {
                         console.error("Exported operator " +
                             name +
@@ -12317,7 +12317,7 @@ class Module {
         for (const handlerAst of handlers) {
             let eventBox = null;
             if (handlerAst.eventref().varn() != null) {
-                eventBox = module.moduleScope.deepGet(handlerAst.eventref().varn());
+                eventBox = module.moduleScope.deepGet(handlerAst.eventref().varn().getText());
             }
             else if (handlerAst.eventref().calls() != null) {
                 console.error("Not yet implemented!");
@@ -12337,7 +12337,7 @@ class Module {
             let fn = null;
             if (handlerAst.varn() != null) {
                 const fnName = handlerAst.varn().getText();
-                const fnBox = module.moduleScope.deepGet(handlerAst.varn());
+                const fnBox = module.moduleScope.deepGet(handlerAst.varn().getText());
                 if (fnBox == null) {
                     console.error("Could not find specified function: " + fnName);
                     process.exit(-22);
@@ -12493,9 +12493,7 @@ exports.default = OperatorType;
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const Box_1 = require("./Box");
 const Type_1 = require("./Type");
-const ln_1 = require("../ln");
 class Scope {
     constructor(par) {
         this.vals = {};
@@ -12511,89 +12509,28 @@ class Scope {
         return null;
     }
     deepGet(fullName) {
-        if (typeof fullName === "string") {
-            const fullVar = fullName.trim().split(".");
-            let boxedVar;
-            for (let i = 0; i < fullVar.length; i++) {
-                if (i === 0) {
-                    boxedVar = this.get(fullVar[i]);
+        const fullVar = fullName.trim().split(".");
+        let boxedVar;
+        for (let i = 0; i < fullVar.length; i++) {
+            if (i === 0) {
+                boxedVar = this.get(fullVar[i]);
+            }
+            else if (boxedVar === null) {
+                return null;
+            }
+            else {
+                if (boxedVar.type === Type_1.default.builtinTypes['scope']) {
+                    boxedVar = boxedVar.scopeval.get(fullVar[i]);
                 }
-                else if (boxedVar === null) {
+                else if (boxedVar.typevalval !== null) {
+                    boxedVar = boxedVar.typevalval[fullVar[i]];
+                }
+                else {
                     return null;
                 }
-                else {
-                    if (boxedVar.type === Type_1.default.builtinTypes['scope']) {
-                        boxedVar = boxedVar.scopeval.get(fullVar[i]);
-                    }
-                    else if (boxedVar.typevalval !== null) {
-                        boxedVar = boxedVar.typevalval[fullVar[i]];
-                    }
-                    else {
-                        return null;
-                    }
-                }
             }
-            return boxedVar;
         }
-        else if (fullName instanceof ln_1.LnParser.VarnContext) {
-            // Circular dependency fix: TODO figure out how to eliminate this
-            const opcodes = require('./opcodes').default;
-            const varAst = fullName;
-            let boxedVar = null;
-            for (const varSegment of varAst.varsegment()) {
-                if (boxedVar === null) {
-                    // The first lookup is to grab the root of the specified variable
-                    boxedVar = this.get(varSegment.getText());
-                }
-                else {
-                    if (varSegment.METHODSEP() != null)
-                        continue; // Skip these, they're just periods
-                    if (varSegment.VARNAME() != null) {
-                        // This path is like the original deepGet
-                        if (boxedVar.type === Type_1.default.builtinTypes["scope"]) {
-                            boxedVar = boxedVar.scopeval.get(varSegment.getText());
-                        }
-                        else if (boxedVar.typevalval !== null) { // User-defined type instance
-                            boxedVar = boxedVar.typevalval[varSegment.getText()];
-                        }
-                        else { // This should be a terminal value so an extra "." makes no sense
-                            return null;
-                        }
-                    }
-                    if (varSegment.arrayaccess() != null) {
-                        // First resolve the value of the array accessor
-                        const arrayAccessBox = Box_1.default.fromAssignableAst(varSegment.arrayaccess().assignables(), this, null, true);
-                        if (boxedVar.type.originalType !== null && boxedVar.type.originalType === Type_1.default.builtinTypes["Array"]) {
-                            boxedVar = boxedVar.arrayval.get(arrayAccessBox.int64val);
-                        }
-                        else if (boxedVar.type.originalType != null && boxedVar.type.originalType == Type_1.default.builtinTypes["Map"]) {
-                            boxedVar = boxedVar.mapval.get(arrayAccessBox);
-                            if (boxedVar == null) {
-                                boxedVar = opcodes.exportScope.get("_");
-                            }
-                        }
-                        else {
-                            if (arrayAccessBox.stringval == null) {
-                                // This should be prevented at "compile time" in the future
-                                console.error("Expected string type when accessing a type by array accessor");
-                                process.exit(-38);
-                            }
-                            const arrayAccessStr = arrayAccessBox.stringval;
-                            if (boxedVar.type == Type_1.default.builtinTypes["scope"]) {
-                                boxedVar = boxedVar.scopeval.get(arrayAccessStr);
-                            }
-                            else if (boxedVar.typevalval !== null) { // User-defined type instance
-                                boxedVar = boxedVar.typevalval[arrayAccessStr];
-                            }
-                            else { // This should be a terminal value so an extra "." makes no sense
-                                return null;
-                            }
-                        }
-                    }
-                }
-            }
-            return boxedVar;
-        }
+        return boxedVar;
     }
     has(name) {
         if (this.vals.hasOwnProperty(name)) {
@@ -12672,7 +12609,7 @@ class Scope {
 exports.default = Scope;
 
 }).call(this,require('_process'))
-},{"../ln":9,"./Box":11,"./Type":28,"./opcodes":31,"_process":84}],26:[function(require,module,exports){
+},{"./Type":28,"_process":84}],26:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -12695,7 +12632,7 @@ class Statement {
     }
     static isCallPure(callAst, scope) {
         // TODO: Add purity checking for chained method-style calls
-        const functionBox = scope.deepGet(callAst.varn(0));
+        const functionBox = scope.deepGet(callAst.varn(0).getText());
         if (functionBox == null) {
             // TODO: This function may be defined in the execution scope, we won't know until runtime
             // right now, but it should be determinable at "compile time". Need to fix this to check
@@ -12978,7 +12915,7 @@ let Type = /** @class */ (() => {
                 for (const lineAst of lines) {
                     const propertyName = lineAst.VARNAME().getText();
                     const typeName = lineAst.varn().getText();
-                    const property = scope.deepGet(lineAst.varn());
+                    const property = scope.deepGet(lineAst.varn().getText());
                     if (property == null || property.type.typename !== "type") {
                         if (type.generics.hasOwnProperty(typeName)) {
                             type.properties[propertyName] = new Type(typeName, true, true);
@@ -13359,7 +13296,7 @@ class UserFunction {
             statements.push(statement);
             // TODO: Infer the return type for anything other than calls or object literals
             if (assignablesAst.basicassignables() && assignablesAst.basicassignables().calls()) {
-                const fnCall = scope.deepGet(assignablesAst.basicassignables().calls().varn(0));
+                const fnCall = scope.deepGet(assignablesAst.basicassignables().calls().varn(0).getText());
                 if (fnCall && fnCall.functionval) {
                     // TODO: For now, also take the first matching function name, in the future
                     // figure out the argument types provided recursively to select appropriately
@@ -13428,7 +13365,7 @@ class UserFunction {
         const condBlockFn = (cond.blocklikes(0).functionbody() ?
             UserFunction.fromFunctionbodyAst(cond.blocklikes(0).functionbody(), scope) :
             cond.blocklikes(0).varn() ?
-                scope.deepGet(cond.blocklikes(0).varn()).functionval[0] :
+                scope.deepGet(cond.blocklikes(0).varn().getText()).functionval[0] :
                 UserFunction.fromFunctionsAst(cond.blocklikes(0).functions(), scope)).maybeTransform();
         if (condBlockFn.statements[condBlockFn.statements.length - 1].isReturnStatement()) {
             hasConditionalReturn = true;
@@ -13443,7 +13380,7 @@ class UserFunction {
                 const elseBlockFn = (cond.blocklikes(1).functionbody() ?
                     UserFunction.fromFunctionbodyAst(cond.blocklikes(1).functionbody(), scope) :
                     cond.blocklikes(1).varn() ?
-                        scope.deepGet(cond.blocklikes(1).varn()).functionval[0] :
+                        scope.deepGet(cond.blocklikes(1).varn().getText()).functionval[0] :
                         UserFunction.fromFunctionsAst(cond.blocklikes(1).functions(), scope)).maybeTransform();
                 if (elseBlockFn.statements[elseBlockFn.statements.length - 1].isReturnStatement()) {
                     hasConditionalReturn = true;

@@ -36,7 +36,7 @@ module.exports = {
 }
 
 },{"../dist/lntoamm/Ast":10,"../dist/lntoamm/Module":22,"../dist/lntoamm/Scope":25,"../dist/lntoamm/opcodes":31,"./stdlibs.json":2}],2:[function(require,module,exports){
-module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out)\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\"\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status)\n\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n)","deps.ln":"from @std/app import start, print\nfrom @std/cmd import exec\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\nexport fn add(remote: string) {\n  // TODO implement proper error handling\n  const parts = remote.split(':')\n  const repo = parts[length(parts)-1]\n  const repoParts = repo.split('.git')\n  const repoName = repoParts[0]\n  const dest = '/dependencies/' + repoName\n  exec('rm -rf .' + dest)\n  exec('git clone ' + remote + ' .' + dest)\n  exec('rm -rf .' + dest + '/.git')\n}\n\n// Emit the `install` event on app `start`\non start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  exec('rm -rf dependencies')\n  exec('mkdir dependencies')\n  emit install\n}\n","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Special _ variable\nexport const _: void\n\n// Default Interfaces\nexport interface any {}\nexport interface Stringifiable {\n  toString(Stringifiable): string\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n)\nexport fn toFloat64(n: int16) = i16f64(n)\nexport fn toFloat64(n: int32) = i32f64(n)\nexport fn toFloat64(n: int64) = i64f64(n)\nexport fn toFloat64(n: float32) = f32f64(n)\nexport fn toFloat64(n: float64) = n\nexport fn toFloat64(n: string) = strf64(n)\nexport fn toFloat64(n: bool) = boolf64(n)\n\nexport fn toFloat32(n: int8) = i8f32(n)\nexport fn toFloat32(n: int16) = i16f32(n)\nexport fn toFloat32(n: int32) = i32f32(n)\nexport fn toFloat32(n: int64) = i64f32(n)\nexport fn toFloat32(n: float32) = n\nexport fn toFloat32(n: float64) = f64f32(n)\nexport fn toFloat32(n: string) = strf32(n)\nexport fn toFloat32(n: bool) = boolf32(n)\n\nexport fn toInt64(n: int8) = i8i64(n)\nexport fn toInt64(n: int16) = i16i64(n)\nexport fn toInt64(n: int32) = i32i64(n)\nexport fn toInt64(n: int64) = n\nexport fn toInt64(n: float32) = f32i64(n)\nexport fn toInt64(n: float64) = f64i64(n)\nexport fn toInt64(n: string) = stri64(n)\nexport fn toInt64(n: bool) = booli64(n)\n\nexport fn toInt32(n: int8) = i8i32(n)\nexport fn toInt32(n: int16) = i16i32(n)\nexport fn toInt32(n: int32) = n\nexport fn toInt32(n: int64) = i64i32(n)\nexport fn toInt32(n: float32) = f32i32(n)\nexport fn toInt32(n: float64) = f64i32(n)\nexport fn toInt32(n: string) = stri32(n)\nexport fn toInt32(n: bool) = booli32(n)\n\nexport fn toInt16(n: int8) = i8i16(n)\nexport fn toInt16(n: int16) = n\nexport fn toInt16(n: int32) = i32i16(n)\nexport fn toInt16(n: int64) = i64i16(n)\nexport fn toInt16(n: float32) = f32i16(n)\nexport fn toInt16(n: float64) = f64i16(n)\nexport fn toInt16(n: string) = stri16(n)\nexport fn toInt16(n: bool) = booli16(n)\n\nexport fn toInt8(n: int8) = n\nexport fn toInt8(n: int16) = i16i8(n)\nexport fn toInt8(n: int32) = i32i8(n)\nexport fn toInt8(n: int64) = i64i8(n)\nexport fn toInt8(n: float32) = f32i8(n)\nexport fn toInt8(n: float64) = f64i8(n)\nexport fn toInt8(n: string) = stri8(n)\nexport fn toInt8(n: bool) = booli8(n)\n\nexport fn toBool(n: int8) = i8bool(n)\nexport fn toBool(n: int16) = i16bool(n)\nexport fn toBool(n: int32) = i32bool(n)\nexport fn toBool(n: int64) = i64bool(n)\nexport fn toBool(n: float32) = f32bool(n)\nexport fn toBool(n: float64) = f64bool(n)\nexport fn toBool(n: string) = strbool(n)\nexport fn toBool(n: bool) = n\n\nexport fn toString(n: int8) = i8str(n)\nexport fn toString(n: int16) = i16str(n)\nexport fn toString(n: int32) = i32str(n)\nexport fn toString(n: int64) = i64str(n)\nexport fn toString(n: float32) = f32str(n)\nexport fn toString(n: float64) = f64str(n)\nexport fn toString(n: string) = n\nexport fn toString(n: bool) = boolstr(n)\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b)\nexport fn add(a: int16, b: int16) = addi16(a, b)\nexport fn add(a: int32, b: int32) = addi32(a, b)\nexport fn add(a: int64, b: int64) = addi64(a, b)\nexport fn add(a: float32, b: float32) = addf32(a, b)\nexport fn add(a: float64, b: float64) = addf64(a, b)\n\nexport fn sub(a: int8, b: int8) = subi8(a, b)\nexport fn sub(a: int16, b: int16) = subi16(a, b)\nexport fn sub(a: int32, b: int32) = subi32(a, b)\nexport fn sub(a: int64, b: int64) = subi64(a, b)\nexport fn sub(a: float32, b: float32) = subf32(a, b)\nexport fn sub(a: float64, b: float64) = subf64(a, b)\n\nexport fn negate(n: int8) = negi8(n)\nexport fn negate(n: int16) = negi16(n)\nexport fn negate(n: int32) = negi32(n)\nexport fn negate(n: int64) = negi64(n)\nexport fn negate(n: float32) = negf32(n)\nexport fn negate(n: float64) = negf64(n)\n\nexport fn mul(a: int8, b: int8) = muli8(a, b)\nexport fn mul(a: int16, b: int16) = muli16(a, b)\nexport fn mul(a: int32, b: int32) = muli32(a, b)\nexport fn mul(a: int64, b: int64) = muli64(a, b)\nexport fn mul(a: float32, b: float32) = mulf32(a, b)\nexport fn mul(a: float64, b: float64) = mulf64(a, b)\n\nexport fn div(a: int8, b: int8) = divi8(a, b)\nexport fn div(a: int16, b: int16) = divi16(a, b)\nexport fn div(a: int32, b: int32) = divi32(a, b)\nexport fn div(a: int64, b: int64) = divi64(a, b)\nexport fn div(a: float32, b: float32) = divf32(a, b)\nexport fn div(a: float64, b: float64) = divf64(a, b)\n\nexport fn mod(a: int8, b: int8) = modi8(a, b)\nexport fn mod(a: int16, b: int16) = modi16(a, b)\nexport fn mod(a: int32, b: int32) = modi32(a, b)\nexport fn mod(a: int64, b: int64) = modi64(a, b)\n\nexport fn pow(a: int8, b: int8) = powi8(a, b)\nexport fn pow(a: int16, b: int16) = powi16(a, b)\nexport fn pow(a: int32, b: int32) = powi32(a, b)\nexport fn pow(a: int64, b: int64) = powi64(a, b)\nexport fn pow(a: float32, b: float32) = powf32(a, b)\nexport fn pow(a: float64, b: float64) = powf64(a, b)\n\nexport fn sqrt(n: float32) = sqrtf32(n)\nexport fn sqrt(n: float64) = sqrtf64(n)\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b)\nexport fn and(a: int16, b: int16) = andi16(a, b)\nexport fn and(a: int32, b: int32) = andi32(a, b)\nexport fn and(a: int64, b: int64) = andi64(a, b)\nexport fn and(a: bool, b: bool) = andbool(a, b)\n\nexport fn or(a: int8, b: int8) = ori8(a, b)\nexport fn or(a: int16, b: int16) = ori16(a, b)\nexport fn or(a: int32, b: int32) = ori32(a, b)\nexport fn or(a: int64, b: int64) = ori64(a, b)\nexport fn or(a: bool, b: bool) = orbool(a, b)\n\nexport fn xor(a: int8, b: int8) = xori8(a, b)\nexport fn xor(a: int16, b: int16) = xori16(a, b)\nexport fn xor(a: int32, b: int32) = xori32(a, b)\nexport fn xor(a: int64, b: int64) = xori64(a, b)\nexport fn xor(a: bool, b: bool) = xorbool(a, b)\n\nexport fn not(n: int8) = noti8(n)\nexport fn not(n: int16) = noti16(n)\nexport fn not(n: int32) = noti32(n)\nexport fn not(n: int64) = noti64(n)\nexport fn not(n: bool) = notbool(n)\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b)\nexport fn nand(a: int16, b: int16) = nandi16(a, b)\nexport fn nand(a: int32, b: int32) = nandi32(a, b)\nexport fn nand(a: int64, b: int64) = nandi64(a, b)\nexport fn nand(a: bool, b: bool) = nandboo(a, b)\n\nexport fn nor(a: int8, b: int8) = nori8(a, b)\nexport fn nor(a: int16, b: int16) = nori16(a, b)\nexport fn nor(a: int32, b: int32) = nori32(a, b)\nexport fn nor(a: int64, b: int64) = nori64(a, b)\nexport fn nor(a: bool, b: bool) = norbool(a, b)\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b)\nexport fn xnor(a: int16, b: int16) = xnori16(a, b)\nexport fn xnor(a: int32, b: int32) = xnori32(a, b)\nexport fn xnor(a: int64, b: int64) = xnori64(a, b)\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b)\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b)\nexport fn eq(a: int16, b: int16) = eqi16(a, b)\nexport fn eq(a: int32, b: int32) = eqi32(a, b)\nexport fn eq(a: int64, b: int64) = eqi64(a, b)\nexport fn eq(a: float32, b: float32) = eqf32(a, b)\nexport fn eq(a: float64, b: float64) = eqf64(a, b)\nexport fn eq(a: string, b: string) = eqstr(a, b)\nexport fn eq(a: bool, b: bool) = eqbool(a, b)\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b)\nexport fn neq(a: int16, b: int16) = neqi16(a, b)\nexport fn neq(a: int32, b: int32) = neqi32(a, b)\nexport fn neq(a: int64, b: int64) = neqi64(a, b)\nexport fn neq(a: float32, b: float32) = neqf32(a, b)\nexport fn neq(a: float64, b: float64) = neqf64(a, b)\nexport fn neq(a: string, b: string) = neqstr(a, b)\nexport fn neq(a: bool, b: bool) = neqbool(a, b)\n\nexport fn lt(a: int8, b: int8) = lti8(a, b)\nexport fn lt(a: int16, b: int16) = lti16(a, b)\nexport fn lt(a: int32, b: int32) = lti32(a, b)\nexport fn lt(a: int64, b: int64) = lti64(a, b)\nexport fn lt(a: float32, b: float32) = ltf32(a, b)\nexport fn lt(a: float64, b: float64) = ltf64(a, b)\nexport fn lt(a: string, b: string) = ltstr(a, b)\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b)\nexport fn lte(a: int16, b: int16) = ltei16(a, b)\nexport fn lte(a: int32, b: int32) = ltei32(a, b)\nexport fn lte(a: int64, b: int64) = ltei64(a, b)\nexport fn lte(a: float32, b: float32) = ltef32(a, b)\nexport fn lte(a: float64, b: float64) = ltef64(a, b)\nexport fn lte(a: string, b: string) = ltestr(a, b)\n\nexport fn gt(a: int8, b: int8) = gti8(a, b)\nexport fn gt(a: int16, b: int16) = gti16(a, b)\nexport fn gt(a: int32, b: int32) = gti32(a, b)\nexport fn gt(a: int64, b: int64) = gti64(a, b)\nexport fn gt(a: float32, b: float32) = gtf32(a, b)\nexport fn gt(a: float64, b: float64) = gtf64(a, b)\nexport fn gt(a: string, b: string) = gtstr(a, b)\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b)\nexport fn gte(a: int16, b: int16) = gtei16(a, b)\nexport fn gte(a: int32, b: int32) = gtei32(a, b)\nexport fn gte(a: int64, b: int64) = gtei64(a, b)\nexport fn gte(a: float32, b: float32) = gtef32(a, b)\nexport fn gte(a: float64, b: float64) = gtef64(a, b)\nexport fn gte(a: string, b: string) = gtestr(a, b)\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n))\nexport fn wait(n: int16) = waitop(i16i64(n))\nexport fn wait(n: int32) = waitop(i32i64(n))\nexport fn wait(n: int64) = waitop(n)\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b)\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n)\nexport fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t)\nexport fn length(s: string) = lenstr(s)\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b)\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n)\nexport fn index(arr: Array<any>, val: any) = indarrv(arr, val)\nexport fn index(arr: Array<any>, val: int8) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: int16) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: int32) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: int64) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: float32) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: float64) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: bool) = indarrf(arr, val)\nexport fn length(arr: Array<any>) = lenarr(arr)\nexport fn push(arr: Array<any>, val: any) {\n  pusharr(arr, val, 0)\n  return arr\n}\nexport fn push(arr: Array<any>, val: int8) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: int16) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: int32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: int64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: float32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: float64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: bool) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn pop(arr: Array<any>): any = poparr(arr, val)\nexport each // opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport map // opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport reduce // opcode with signature `fn reduce(arr: Array<any>, cb: function): any`\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): any`\nexport every // opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport some // opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\n\n// Map functions\nexport keyVal // opcode with signature `fn keyVal(map: Map<any, any>): Array<KeyVal<any, any>>`\nexport keys // opcode with signature `fn keys(map: Map<any, any>): Array<any>`\nexport values // opcode with signature `fn values(map: Map<any, any>): Array<any>`\n\n// Ternary functions\nexport fn pair(trueval: any, falseval: any) = new Array<any> [ trueval, falseval ]\nexport fn cond(c: bool, options: Array<any>) = options[1 - c.toInt64()]\nexport fn cond(c: bool, optional: function): void = condfn(c, optional)\n\n// \"assign\" function useful for hoisting assignments\nexport fn assign(a: int8) = copyi8(a)\nexport fn assign(a: int16) = copyi16(a)\nexport fn assign(a: int32) = copyi32(a)\nexport fn assign(a: int64) = copyi64(a)\nexport fn assign(a: float32) = copyf32(a)\nexport fn assign(a: float64) = copyf64(a)\nexport fn assign(a: bool) = copybool(a)\nexport fn assign(a: string) = copystr(a)\nexport fn assign(a: Array<any>) = copyarr(a)\n\n// Operator declarations\nexport infix add as + precedence 2\nexport infix concat as + precedence 2\nexport infix sub as - precedence 2\nexport prefix negate as - precedence 1\nexport infix mul as * precedence 3\nexport infix repeat as * precedence 3\nexport infix div as / precedence 3\nexport infix split as / precedence 3\nexport infix mod as % precedence 3\nexport infix template as % precedence 3\nexport infix pow as ** precedence 4\nexport infix and as & precedence 3\nexport infix and as && precedence 3\nexport infix or as | precedence 2\nexport infix or as || precedence 2\nexport infix xor as ^ precedence 2\nexport prefix not as ! precedence 4\nexport infix nand as !& precedence 3\nexport infix nor as !| precedence 2\nexport infix xnor as !^ precedence 2\nexport infix eq as == precedence 1\nexport infix neq as != precedence 1\nexport infix lt as < precedence 1\nexport infix lte as <= precedence 1\nexport infix gt as > precedence 1\nexport infix gte as >= precedence 1\nexport infix matches as ~ precedence 1\nexport infix index as @ precedence 1\nexport prefix length as # precedence 4\nexport prefix trim as ` precedence 4\nexport infix pair as : precedence 5\nexport infix push as : precedence 6\nexport infix cond as ? precedence 0\n\n"}
+module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out)\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\"\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status)\n\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n)","deps.ln":"from @std/app import start, print\nfrom @std/cmd import exec\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\nexport fn add(remote: string) {\n  // TODO implement proper error handling\n  const parts = remote.split(':')\n  const repo = parts[length(parts)-1]\n  const repoParts = repo.split('.git')\n  const repoName = repoParts[0]\n  const dest = '/dependencies/' + repoName\n  exec('rm -rf .' + dest)\n  exec('git clone ' + remote + ' .' + dest)\n  exec('rm -rf .' + dest + '/.git')\n}\n\n// Emit the `install` event on app `start`\non start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  exec('rm -rf dependencies')\n  exec('mkdir dependencies')\n  emit install\n}\n","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Default Interfaces\nexport interface any {}\nexport interface Stringifiable {\n  toString(Stringifiable): string\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n)\nexport fn toFloat64(n: int16) = i16f64(n)\nexport fn toFloat64(n: int32) = i32f64(n)\nexport fn toFloat64(n: int64) = i64f64(n)\nexport fn toFloat64(n: float32) = f32f64(n)\nexport fn toFloat64(n: float64) = n\nexport fn toFloat64(n: string) = strf64(n)\nexport fn toFloat64(n: bool) = boolf64(n)\n\nexport fn toFloat32(n: int8) = i8f32(n)\nexport fn toFloat32(n: int16) = i16f32(n)\nexport fn toFloat32(n: int32) = i32f32(n)\nexport fn toFloat32(n: int64) = i64f32(n)\nexport fn toFloat32(n: float32) = n\nexport fn toFloat32(n: float64) = f64f32(n)\nexport fn toFloat32(n: string) = strf32(n)\nexport fn toFloat32(n: bool) = boolf32(n)\n\nexport fn toInt64(n: int8) = i8i64(n)\nexport fn toInt64(n: int16) = i16i64(n)\nexport fn toInt64(n: int32) = i32i64(n)\nexport fn toInt64(n: int64) = n\nexport fn toInt64(n: float32) = f32i64(n)\nexport fn toInt64(n: float64) = f64i64(n)\nexport fn toInt64(n: string) = stri64(n)\nexport fn toInt64(n: bool) = booli64(n)\n\nexport fn toInt32(n: int8) = i8i32(n)\nexport fn toInt32(n: int16) = i16i32(n)\nexport fn toInt32(n: int32) = n\nexport fn toInt32(n: int64) = i64i32(n)\nexport fn toInt32(n: float32) = f32i32(n)\nexport fn toInt32(n: float64) = f64i32(n)\nexport fn toInt32(n: string) = stri32(n)\nexport fn toInt32(n: bool) = booli32(n)\n\nexport fn toInt16(n: int8) = i8i16(n)\nexport fn toInt16(n: int16) = n\nexport fn toInt16(n: int32) = i32i16(n)\nexport fn toInt16(n: int64) = i64i16(n)\nexport fn toInt16(n: float32) = f32i16(n)\nexport fn toInt16(n: float64) = f64i16(n)\nexport fn toInt16(n: string) = stri16(n)\nexport fn toInt16(n: bool) = booli16(n)\n\nexport fn toInt8(n: int8) = n\nexport fn toInt8(n: int16) = i16i8(n)\nexport fn toInt8(n: int32) = i32i8(n)\nexport fn toInt8(n: int64) = i64i8(n)\nexport fn toInt8(n: float32) = f32i8(n)\nexport fn toInt8(n: float64) = f64i8(n)\nexport fn toInt8(n: string) = stri8(n)\nexport fn toInt8(n: bool) = booli8(n)\n\nexport fn toBool(n: int8) = i8bool(n)\nexport fn toBool(n: int16) = i16bool(n)\nexport fn toBool(n: int32) = i32bool(n)\nexport fn toBool(n: int64) = i64bool(n)\nexport fn toBool(n: float32) = f32bool(n)\nexport fn toBool(n: float64) = f64bool(n)\nexport fn toBool(n: string) = strbool(n)\nexport fn toBool(n: bool) = n\n\nexport fn toString(n: int8) = i8str(n)\nexport fn toString(n: int16) = i16str(n)\nexport fn toString(n: int32) = i32str(n)\nexport fn toString(n: int64) = i64str(n)\nexport fn toString(n: float32) = f32str(n)\nexport fn toString(n: float64) = f64str(n)\nexport fn toString(n: string) = n\nexport fn toString(n: bool) = boolstr(n)\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b)\nexport fn add(a: int16, b: int16) = addi16(a, b)\nexport fn add(a: int32, b: int32) = addi32(a, b)\nexport fn add(a: int64, b: int64) = addi64(a, b)\nexport fn add(a: float32, b: float32) = addf32(a, b)\nexport fn add(a: float64, b: float64) = addf64(a, b)\n\nexport fn sub(a: int8, b: int8) = subi8(a, b)\nexport fn sub(a: int16, b: int16) = subi16(a, b)\nexport fn sub(a: int32, b: int32) = subi32(a, b)\nexport fn sub(a: int64, b: int64) = subi64(a, b)\nexport fn sub(a: float32, b: float32) = subf32(a, b)\nexport fn sub(a: float64, b: float64) = subf64(a, b)\n\nexport fn negate(n: int8) = negi8(n)\nexport fn negate(n: int16) = negi16(n)\nexport fn negate(n: int32) = negi32(n)\nexport fn negate(n: int64) = negi64(n)\nexport fn negate(n: float32) = negf32(n)\nexport fn negate(n: float64) = negf64(n)\n\nexport fn mul(a: int8, b: int8) = muli8(a, b)\nexport fn mul(a: int16, b: int16) = muli16(a, b)\nexport fn mul(a: int32, b: int32) = muli32(a, b)\nexport fn mul(a: int64, b: int64) = muli64(a, b)\nexport fn mul(a: float32, b: float32) = mulf32(a, b)\nexport fn mul(a: float64, b: float64) = mulf64(a, b)\n\nexport fn div(a: int8, b: int8) = divi8(a, b)\nexport fn div(a: int16, b: int16) = divi16(a, b)\nexport fn div(a: int32, b: int32) = divi32(a, b)\nexport fn div(a: int64, b: int64) = divi64(a, b)\nexport fn div(a: float32, b: float32) = divf32(a, b)\nexport fn div(a: float64, b: float64) = divf64(a, b)\n\nexport fn mod(a: int8, b: int8) = modi8(a, b)\nexport fn mod(a: int16, b: int16) = modi16(a, b)\nexport fn mod(a: int32, b: int32) = modi32(a, b)\nexport fn mod(a: int64, b: int64) = modi64(a, b)\n\nexport fn pow(a: int8, b: int8) = powi8(a, b)\nexport fn pow(a: int16, b: int16) = powi16(a, b)\nexport fn pow(a: int32, b: int32) = powi32(a, b)\nexport fn pow(a: int64, b: int64) = powi64(a, b)\nexport fn pow(a: float32, b: float32) = powf32(a, b)\nexport fn pow(a: float64, b: float64) = powf64(a, b)\n\nexport fn sqrt(n: float32) = sqrtf32(n)\nexport fn sqrt(n: float64) = sqrtf64(n)\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b)\nexport fn and(a: int16, b: int16) = andi16(a, b)\nexport fn and(a: int32, b: int32) = andi32(a, b)\nexport fn and(a: int64, b: int64) = andi64(a, b)\nexport fn and(a: bool, b: bool) = andbool(a, b)\n\nexport fn or(a: int8, b: int8) = ori8(a, b)\nexport fn or(a: int16, b: int16) = ori16(a, b)\nexport fn or(a: int32, b: int32) = ori32(a, b)\nexport fn or(a: int64, b: int64) = ori64(a, b)\nexport fn or(a: bool, b: bool) = orbool(a, b)\n\nexport fn xor(a: int8, b: int8) = xori8(a, b)\nexport fn xor(a: int16, b: int16) = xori16(a, b)\nexport fn xor(a: int32, b: int32) = xori32(a, b)\nexport fn xor(a: int64, b: int64) = xori64(a, b)\nexport fn xor(a: bool, b: bool) = xorbool(a, b)\n\nexport fn not(n: int8) = noti8(n)\nexport fn not(n: int16) = noti16(n)\nexport fn not(n: int32) = noti32(n)\nexport fn not(n: int64) = noti64(n)\nexport fn not(n: bool) = notbool(n)\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b)\nexport fn nand(a: int16, b: int16) = nandi16(a, b)\nexport fn nand(a: int32, b: int32) = nandi32(a, b)\nexport fn nand(a: int64, b: int64) = nandi64(a, b)\nexport fn nand(a: bool, b: bool) = nandboo(a, b)\n\nexport fn nor(a: int8, b: int8) = nori8(a, b)\nexport fn nor(a: int16, b: int16) = nori16(a, b)\nexport fn nor(a: int32, b: int32) = nori32(a, b)\nexport fn nor(a: int64, b: int64) = nori64(a, b)\nexport fn nor(a: bool, b: bool) = norbool(a, b)\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b)\nexport fn xnor(a: int16, b: int16) = xnori16(a, b)\nexport fn xnor(a: int32, b: int32) = xnori32(a, b)\nexport fn xnor(a: int64, b: int64) = xnori64(a, b)\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b)\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b)\nexport fn eq(a: int16, b: int16) = eqi16(a, b)\nexport fn eq(a: int32, b: int32) = eqi32(a, b)\nexport fn eq(a: int64, b: int64) = eqi64(a, b)\nexport fn eq(a: float32, b: float32) = eqf32(a, b)\nexport fn eq(a: float64, b: float64) = eqf64(a, b)\nexport fn eq(a: string, b: string) = eqstr(a, b)\nexport fn eq(a: bool, b: bool) = eqbool(a, b)\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b)\nexport fn neq(a: int16, b: int16) = neqi16(a, b)\nexport fn neq(a: int32, b: int32) = neqi32(a, b)\nexport fn neq(a: int64, b: int64) = neqi64(a, b)\nexport fn neq(a: float32, b: float32) = neqf32(a, b)\nexport fn neq(a: float64, b: float64) = neqf64(a, b)\nexport fn neq(a: string, b: string) = neqstr(a, b)\nexport fn neq(a: bool, b: bool) = neqbool(a, b)\n\nexport fn lt(a: int8, b: int8) = lti8(a, b)\nexport fn lt(a: int16, b: int16) = lti16(a, b)\nexport fn lt(a: int32, b: int32) = lti32(a, b)\nexport fn lt(a: int64, b: int64) = lti64(a, b)\nexport fn lt(a: float32, b: float32) = ltf32(a, b)\nexport fn lt(a: float64, b: float64) = ltf64(a, b)\nexport fn lt(a: string, b: string) = ltstr(a, b)\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b)\nexport fn lte(a: int16, b: int16) = ltei16(a, b)\nexport fn lte(a: int32, b: int32) = ltei32(a, b)\nexport fn lte(a: int64, b: int64) = ltei64(a, b)\nexport fn lte(a: float32, b: float32) = ltef32(a, b)\nexport fn lte(a: float64, b: float64) = ltef64(a, b)\nexport fn lte(a: string, b: string) = ltestr(a, b)\n\nexport fn gt(a: int8, b: int8) = gti8(a, b)\nexport fn gt(a: int16, b: int16) = gti16(a, b)\nexport fn gt(a: int32, b: int32) = gti32(a, b)\nexport fn gt(a: int64, b: int64) = gti64(a, b)\nexport fn gt(a: float32, b: float32) = gtf32(a, b)\nexport fn gt(a: float64, b: float64) = gtf64(a, b)\nexport fn gt(a: string, b: string) = gtstr(a, b)\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b)\nexport fn gte(a: int16, b: int16) = gtei16(a, b)\nexport fn gte(a: int32, b: int32) = gtei32(a, b)\nexport fn gte(a: int64, b: int64) = gtei64(a, b)\nexport fn gte(a: float32, b: float32) = gtef32(a, b)\nexport fn gte(a: float64, b: float64) = gtef64(a, b)\nexport fn gte(a: string, b: string) = gtestr(a, b)\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n))\nexport fn wait(n: int16) = waitop(i16i64(n))\nexport fn wait(n: int32) = waitop(i32i64(n))\nexport fn wait(n: int64) = waitop(n)\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b)\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n)\nexport fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t)\nexport fn length(s: string) = lenstr(s)\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b)\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n)\nexport fn index(arr: Array<any>, val: any) = indarrv(arr, val)\nexport fn index(arr: Array<any>, val: int8) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: int16) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: int32) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: int64) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: float32) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: float64) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: bool) = indarrf(arr, val)\nexport fn length(arr: Array<any>) = lenarr(arr)\nexport fn push(arr: Array<any>, val: any) {\n  pusharr(arr, val, 0)\n  return arr\n}\nexport fn push(arr: Array<any>, val: int8) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: int16) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: int32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: int64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: float32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: float64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: bool) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn pop(arr: Array<any>): any = poparr(arr, val)\nexport each // opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport map // opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport reduce // opcode with signature `fn reduce(arr: Array<any>, cb: function): any`\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): any`\nexport every // opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport some // opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\n\n// Map functions\nexport keyVal // opcode with signature `fn keyVal(map: Map<any, any>): Array<KeyVal<any, any>>`\nexport keys // opcode with signature `fn keys(map: Map<any, any>): Array<any>`\nexport values // opcode with signature `fn values(map: Map<any, any>): Array<any>`\n\n// Ternary functions\nexport fn pair(trueval: any, falseval: any) = new Array<any> [ trueval, falseval ]\nexport fn cond(c: bool, options: Array<any>) = options[1 - c.toInt64()]\nexport fn cond(c: bool, optional: function): void = condfn(c, optional)\n\n// \"assign\" function useful for hoisting assignments\nexport fn assign(a: int8) = copyi8(a)\nexport fn assign(a: int16) = copyi16(a)\nexport fn assign(a: int32) = copyi32(a)\nexport fn assign(a: int64) = copyi64(a)\nexport fn assign(a: float32) = copyf32(a)\nexport fn assign(a: float64) = copyf64(a)\nexport fn assign(a: bool) = copybool(a)\nexport fn assign(a: string) = copystr(a)\nexport fn assign(a: Array<any>) = copyarr(a)\n\n// Operator declarations\nexport infix add as + precedence 2\nexport infix concat as + precedence 2\nexport infix sub as - precedence 2\nexport prefix negate as - precedence 1\nexport infix mul as * precedence 3\nexport infix repeat as * precedence 3\nexport infix div as / precedence 3\nexport infix split as / precedence 3\nexport infix mod as % precedence 3\nexport infix template as % precedence 3\nexport infix pow as ** precedence 4\nexport infix and as & precedence 3\nexport infix and as && precedence 3\nexport infix or as | precedence 2\nexport infix or as || precedence 2\nexport infix xor as ^ precedence 2\nexport prefix not as ! precedence 4\nexport infix nand as !& precedence 3\nexport infix nor as !| precedence 2\nexport infix xnor as !^ precedence 2\nexport infix eq as == precedence 1\nexport infix neq as != precedence 1\nexport infix lt as < precedence 1\nexport infix lte as <= precedence 1\nexport infix gt as > precedence 1\nexport infix gte as >= precedence 1\nexport infix matches as ~ precedence 1\nexport infix index as @ precedence 1\nexport prefix length as # precedence 4\nexport prefix trim as ` precedence 4\nexport infix pair as : precedence 5\nexport infix push as : precedence 6\nexport infix cond as ? precedence 0\n\n"}
 
 },{}],3:[function(require,module,exports){
 "use strict";
@@ -9915,7 +9915,6 @@ exports.statementAstFromString = (s) => {
 
 }).call(this,require('_process'))
 },{"../ln":9,"_process":84,"antlr4":75,"fs":81,"path":83}],11:[function(require,module,exports){
-(function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Event_1 = require("./Event");
@@ -9928,7 +9927,6 @@ const Int8_1 = require("./Int8");
 const Microstatement_1 = require("./Microstatement");
 const Scope_1 = require("./Scope");
 const Type_1 = require("./Type");
-const UserFunction_1 = require("./UserFunction");
 class Box {
     constructor(...args) {
         if (args.length === 0) {
@@ -10045,203 +10043,10 @@ class Box {
             }
         }
     }
-    // TODO: There are so many Java-isms in this method, check if it's even being used
-    static fromConstantsAst(constantsAst, // TODO: Port from ANTLR to improve AST typing
-    _scope, // TODO: Remove this arg from calling functions
-    expectedType, readonly) {
-        if (constantsAst.BOOLCONSTANT() != null) {
-            if (constantsAst.BOOLCONSTANT().getText() === "true") {
-                return new Box(true, readonly);
-            }
-            else {
-                return new Box(false, readonly);
-            }
-        }
-        if (constantsAst.STRINGCONSTANT() != null) {
-            return new Box(constantsAst
-                .STRINGCONSTANT()
-                .getText()
-                .substring(1, constantsAst.STRINGCONSTANT().getText().length - 1)
-                .replace("\\t", "\t")
-                .replace("\\b", "\b")
-                .replace("\\n", "\n")
-                .replace("\\r", "\r")
-                .replace("\\f", "\f")
-                .replace("\\'", "'")
-                .replace("\\\"", "\"")
-                .replace("\\\\", "\\"), readonly);
-        }
-        if (constantsAst.NUMBERCONSTANT() != null) {
-            // TODO: Add support for hex, octal, scientific, etc
-            const numberConst = constantsAst.NUMBERCONSTANT().getText();
-            let typename = expectedType != null ? expectedType.typename : null;
-            if (typename != null && typename === "void")
-                typename = null;
-            if (numberConst.indexOf('.') > -1) { // It's a float
-                // TODO: How to handle other float constants like NaN, Infinity, -0, etc
-                if (typename == null) {
-                    return new Box(new Float64_1.default(numberConst), readonly);
-                }
-                else if (typename === "float32") {
-                    return new Box(new Float32_1.default(numberConst), readonly);
-                }
-                else if (typename === "float64") {
-                    return new Box(new Float64_1.default(numberConst), readonly);
-                }
-                else {
-                    // Bad assignment
-                    console.error("Assigning floating point number to non-floating point type");
-                    process.exit(-6);
-                }
-            }
-            else { // It's an integer
-                // TODO: Should we error on overflowing constants in integer mode?
-                if (typename == null) {
-                    return new Box(new Int64_1.default(numberConst), readonly);
-                }
-                else if (typename === "int8") {
-                    return new Box(new Int8_1.default(numberConst), readonly);
-                }
-                else if (typename === "int16") {
-                    return new Box(new Int16_1.default(numberConst), readonly);
-                }
-                else if (typename === "int32") {
-                    return new Box(new Int32_1.default(numberConst), readonly);
-                }
-                else if (typename === "int64") {
-                    return new Box(new Int64_1.default(numberConst), readonly);
-                }
-                else if (typename === "float32") { // We'll allow floats to get integer constants
-                    return new Box(new Float32_1.default(numberConst), readonly);
-                }
-                else if (typename === "float64") {
-                    return new Box(new Float64_1.default(numberConst), readonly);
-                }
-                else {
-                    // Bad assignment
-                    console.error("Assigning integer number to non-numeric type");
-                    console.error("Variable type: " + typename);
-                    process.exit(-7);
-                }
-            }
-        }
-        // This should never be reached
-        return null;
-    }
-    static fromConstAst(constAst, scope) {
-        const assignment = constAst.assignments();
-        return Box.fromAssignmentAst(assignment, scope, true);
-    }
-    static fromAssignmentAst(assignmentAst, scope, readonly) {
-        // TODO: This code is becoming very overloaded with different meanings in different contexts
-        // Should probably split this up into multiple functions instead of trying to have this function
-        // guess which context it's running in.
-        // TODO: Review if any of the extra logic after deepGet is needed anymore
-        const typename = assignmentAst.varn().getText();
-        let typeBox = scope.deepGet(assignmentAst.varn().getText());
-        let type;
-        if (typeBox == null) {
-            const nameSegments = typename.split(".");
-            let parentName = nameSegments[0];
-            for (let i = 1; i < nameSegments.length - 1; i++) {
-                parentName += "." + nameSegments[i];
-            }
-            const childName = nameSegments[nameSegments.length - 1];
-            typeBox = scope.deepGet(parentName);
-            if (typeBox == null) {
-                // Assignment to an undefined variable. This can legitimately happen in cases of type
-                // inference, but not in other cases. This whole bit really needs to be rethought.
-                return Box.fromAssignableAst(assignmentAst.assignables(), scope, null, readonly);
-            }
-            type = typeBox.type.properties[childName];
-        }
-        else if (typeBox.type.typename !== "type") {
-            // This is actually a secondary assignment to an existing variable
-            if (typeBox.readonly) {
-                console.error("Invalid reassignment to constant: " + typename);
-                process.exit(-30);
-            }
-            return Box.fromAssignableAst(assignmentAst.assignables(), scope, typeBox.type, false);
-        }
-        else {
-            type = typeBox.typeval;
-        }
-        if (type.generics.length > 0 && assignmentAst.typegenerics() != null) {
-            let solidTypes = [];
-            for (const fulltypenameAst of assignmentAst.typegenerics().fulltypename()) {
-                solidTypes.push(fulltypenameAst.getText());
-            }
-            type = type.solidify(solidTypes, scope);
-        }
-        return Box.fromAssignableAst(assignmentAst.assignables(), scope, type, readonly);
-    }
-    static fromAssignableAst(assignableAst, // TODO: Eliminate ANTLR
-    scope, expectedType, readonly) {
-        if (assignableAst == null) {
-            return new Box(null, expectedType);
-        }
-        if (assignableAst.basicassignables() != null) {
-            return Box.fromBasicAssignableAst(assignableAst.basicassignables(), scope, expectedType, readonly);
-        }
-        if (assignableAst.withoperators() != null) {
-            // TODO: How to support this in the compiler
-            // Operators are another form a function, to evaluate them requires a full interpreter, so
-            // we'll come back to this later
-            /* return Box.fromWithOperatorsAst(
-              assignableAst.withoperators(),
-              scope,
-              expectedType,
-              readonly
-            ) */
-            return new Box(); // void it for now
-        }
-        // Just to prevent complains, but this should not be reachable
-        return null;
-    }
-    static fromBasicAssignableAst(basicAssignable, // TODO: Eliminate ANTLR
-    scope, expectedType, readonly) {
-        if (!!basicAssignable.functions()) {
-            const assignedFunction = UserFunction_1.default.fromAst(basicAssignable.functions(), scope);
-            return new Box([assignedFunction], readonly);
-        }
-        if (!!basicAssignable.calls()) {
-            // TODO: Support generating global constants from function calls at some point
-            // return Function.callFromAst(basicAssignable.calls(), scope)
-            return new Box(); // Void it for now
-        }
-        if (!!basicAssignable.varn()) {
-            return scope.deepGet(basicAssignable.varn().getText());
-        }
-        if (!!basicAssignable.groups()) {
-            // TODO: Suppor this later
-            /* return Box.fromWithOperatorsAst(
-              basicAssignable.groups().withoperators(),
-              scope,
-              expectedType,
-              readonly
-            ) */
-            return new Box(); // void it for now
-        }
-        if (!!basicAssignable.typeofn()) {
-            // Potentially add a bunch of guards around this
-            return new Box(Box.fromBasicAssignableAst(basicAssignable.typeofn().basicassignables(), scope, null, readonly).type.typename, readonly);
-        }
-        if (!!basicAssignable.objectliterals()) {
-            console.error('De-implemented object literal construction in Box, should not be reached');
-            process.exit(-1);
-        }
-        if (!!basicAssignable.constants()) {
-            return Box.fromConstantsAst(basicAssignable.constants(), scope, expectedType, readonly);
-        }
-        // Shouldn't be possible
-        console.error("Something went wrong parsing the syntax");
-        process.exit(-8);
-    }
 }
 exports.default = Box;
 
-}).call(this,require('_process'))
-},{"./Event":12,"./Float32":13,"./Float64":14,"./Int16":16,"./Int32":17,"./Int64":18,"./Int8":19,"./Microstatement":21,"./Scope":25,"./Type":28,"./UserFunction":29,"_process":84}],12:[function(require,module,exports){
+},{"./Event":12,"./Float32":13,"./Float64":14,"./Int16":16,"./Int32":17,"./Int64":18,"./Int8":19,"./Microstatement":21,"./Scope":25,"./Type":28}],12:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -10823,7 +10628,23 @@ class Microstatement {
     // TODO: Eliminate ANTLR
     static fromConstantsAst(constantsAst, scope, microstatements) {
         const constName = "_" + uuid_1.v4().replace(/-/g, "_");
-        const constBox = Box_1.default.fromConstantsAst(constantsAst, scope, null, true);
+        let constType = 'void';
+        if (constantsAst.BOOLCONSTANT() != null) {
+            constType = 'bool';
+        }
+        if (constantsAst.STRINGCONSTANT() != null) {
+            constType = 'string';
+        }
+        if (constantsAst.NUMBERCONSTANT() != null) {
+            // TODO: Add support for hex, octal, scientific, etc
+            const numberConst = constantsAst.NUMBERCONSTANT().getText();
+            if (numberConst.indexOf('.') > -1) { // It's a float
+                constType = 'float64';
+            }
+            else { // It's an integer
+                constType = 'int64';
+            }
+        }
         let constVal;
         try {
             JSON.parse(constantsAst.getText()); // Will fail on strings with escape chars
@@ -10831,11 +10652,11 @@ class Microstatement {
         }
         catch (e) {
             // It may be a zero-padded number
-            if (['int8', 'int16', 'int32', 'int64'].includes(constBox.type.typename) &&
+            if (['int8', 'int16', 'int32', 'int64'].includes(constType) &&
                 constantsAst.getText()[0] === '0') {
                 constVal = parseInt(constantsAst.getText(), 10).toString();
             }
-            else if (['float32', 'float64'].includes(constBox.type.typename) &&
+            else if (['float32', 'float64'].includes(constType) &&
                 constantsAst.getText()[0] === '0') {
                 constVal = parseFloat(constantsAst.getText()).toString();
             }
@@ -10845,7 +10666,7 @@ class Microstatement {
                     .replace(/^["']/, '').replace(/["']$/, ''));
             }
         }
-        microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, constBox.type, [constVal], []));
+        microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, scope.deepGet(constType).typeval, [constVal], []));
     }
     static fromBasicAssignablesAst(basicAssignablesAst, // TODO: Eliminate ANTLR
     scope, microstatements) {
@@ -12149,17 +11970,12 @@ class Module {
             // Automatically inserts the interface into the module scope, we're done.
         }
         // Next, constants
+        // TODO: Need to restore this functionality once compile-time-eval is implemented
         const constdeclarations = ast.constdeclaration();
-        for (const constAst of constdeclarations) {
-            const newConst = Box_1.default.fromConstAst(constAst, module.moduleScope);
-            let constName;
-            if (constAst.VARNAME() != null) {
-                constName = constAst.VARNAME().getText();
-            }
-            else {
-                constName = constAst.assignments().varn().getText();
-            }
-            module.moduleScope.put(constName, newConst);
+        if (constdeclarations.length > 0) {
+            console.error('Module-scope constants not yet implemented');
+            console.error(constdeclarations().getText());
+            process.exit(2);
         }
         // Next, events
         const events = ast.events();
@@ -12227,16 +12043,8 @@ class Module {
                 module.exportScope.put(interfaceBox.typeval.typename, interfaceBox);
             }
             else if (exportAst.constdeclaration() != null) {
-                const newConst = Box_1.default.fromConstAst(exportAst.constdeclaration(), module.moduleScope);
-                let constName;
-                if (exportAst.constdeclaration().VARNAME() != null) {
-                    constName = exportAst.constdeclaration().VARNAME().getText();
-                }
-                else {
-                    constName = exportAst.constdeclaration().assignments().varn().getText();
-                }
-                module.moduleScope.put(constName, newConst);
-                module.exportScope.put(constName, newConst);
+                console.error('Module-scope constants not yet implemented');
+                process.exit(2);
             }
             else if (exportAst.functions() != null) {
                 const newFunc = UserFunction_1.default.fromAst(exportAst.functions(), module.moduleScope);

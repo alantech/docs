@@ -9917,178 +9917,17 @@ exports.statementAstFromString = (s) => {
 },{"../ln":9,"_process":78,"antlr4":69,"fs":75,"path":77}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const Event_1 = require("./Event");
-const Microstatement_1 = require("./Microstatement");
-const Scope_1 = require("./Scope");
 const Type_1 = require("./Type");
-class Int8 {
-    constructor(val) {
-        this.val = val;
-    }
-    toString() {
-        return this.val;
-    }
-}
-class Int16 {
-    constructor(val) {
-        this.val = val;
-    }
-    toString() {
-        return this.val;
-    }
-}
-class Int32 {
-    constructor(val) {
-        this.val = val;
-    }
-    toString() {
-        return this.val;
-    }
-}
-class Int64 {
-    constructor(val) {
-        this.val = val;
-    }
-    toString() {
-        return this.val;
-    }
-}
-class Float32 {
-    constructor(val) {
-        this.val = val;
-    }
-    toString() {
-        return this.val;
-    }
-}
-class Float64 {
-    constructor(val) {
-        this.val = val;
-    }
-    toString() {
-        return this.val;
-    }
-}
 class Box {
-    constructor(...args) {
-        if (args.length === 0) {
-            this.type = Type_1.default.builtinTypes.void;
-            this.readonly = true;
-        }
-        else if (args.length === 1) {
-            if (typeof args[0] === "boolean") {
-                this.type = Type_1.default.builtinTypes.void;
-                this.readonly = args[0];
-            }
-            else if (args[0] instanceof Type_1.default) {
-                this.type = Type_1.default.builtinTypes.type;
-                this.typeval = args[0];
-                this.readonly = true; // Type declarations are always read-only
-            }
-            else if (args[0] instanceof Scope_1.default) {
-                this.type = Type_1.default.builtinTypes.scope;
-                this.scopeval = args[0];
-                this.readonly = true; // Boxed scopes are always read-only
-            }
-            else if (args[0] instanceof Microstatement_1.default) {
-                this.type = Type_1.default.builtinTypes.microstatement;
-                this.microstatementval = args[0];
-                this.readonly = true;
-            }
-            else if (args[0] instanceof Array) {
-                // This is only operator declarations right now
-                this.type = Type_1.default.builtinTypes.operator;
-                this.operatorval = args[0];
-                this.readonly = true;
-            }
-        }
-        else if (args.length === 2) {
-            if (args[0] instanceof Int8) {
-                this.type = Type_1.default.builtinTypes.int8;
-                this.int8val = args[0];
-                this.readonly = args[1];
-            }
-            else if (args[0] instanceof Int16) {
-                this.type = Type_1.default.builtinTypes.int16;
-                this.int16val = args[0];
-                this.readonly = args[1];
-            }
-            else if (args[0] instanceof Int32) {
-                this.type = Type_1.default.builtinTypes.int32;
-                this.int32val = args[0];
-                this.readonly = args[1];
-            }
-            else if (args[0] instanceof Int64) {
-                this.type = Type_1.default.builtinTypes.int64;
-                this.int64val = args[0];
-                this.readonly = args[1];
-            }
-            else if (args[0] instanceof Float32) {
-                this.type = Type_1.default.builtinTypes.float32;
-                this.float32val = args[0];
-                this.readonly = args[1];
-            }
-            else if (args[0] instanceof Float64) {
-                this.type = Type_1.default.builtinTypes.float64;
-                this.float64val = args[0];
-                this.readonly = args[1];
-            }
-            else if (typeof args[0] === "boolean") {
-                this.type = Type_1.default.builtinTypes.bool;
-                this.boolval = args[0];
-                this.readonly = args[1];
-            }
-            else if (typeof args[0] === "string") {
-                this.type = Type_1.default.builtinTypes.string;
-                this.stringval = args[0];
-                this.readonly = args[1];
-            }
-            else if (args[0] instanceof Array) {
-                // This is only function declarations right now
-                this.type = Type_1.default.builtinTypes["function"];
-                this.functionval = args[0];
-                this.readonly = args[1];
-            }
-            else if (args[0] instanceof Event_1.default) {
-                this.type = Type_1.default.builtinTypes.Event;
-                this.eventval = args[0];
-                this.readonly = args[1];
-            }
-            // Technically there's also supposed to be something for an "Object blank" but I don't know
-            // what that is supposed to be for
-        }
-        else if (args.length === 3) {
-            if (args[0] instanceof Array) {
-                // It's an array, like a real one
-                this.type = args[1];
-                this.arrayval = args[0];
-                this.readonly = args[2];
-            }
-            else if (args[0] instanceof Map) {
-                // It's a map, also a real one
-                this.type = args[1];
-                this.mapval = args[0];
-                this.readonly = args[2];
-            }
-            else if (args[0] instanceof Object) {
-                // It's an event or user-defined type
-                if (args[1].originalType == Type_1.default.builtinTypes.Event) {
-                    let eventval = new Event_1.default(args[0].name.stringval, args[1].properties.type, false);
-                    this.eventval = eventval;
-                    this.readonly = args[2];
-                }
-                else {
-                    this.type = args[1];
-                    this.typevalval = args[0];
-                    this.readonly = args[2];
-                }
-            }
-        }
+    constructor(val = undefined, type = Type_1.default.builtinTypes.void, readonly = true) {
+        this.val = val;
+        this.type = type;
+        this.readonly = readonly;
     }
 }
 exports.default = Box;
 
-},{"./Event":12,"./Microstatement":15,"./Scope":19,"./Type":22}],12:[function(require,module,exports){
+},{"./Type":22}],12:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -10115,7 +9954,7 @@ let Event = /** @class */ (() => {
                 console.error(eventAst.varn().getText() + " is not a type");
                 process.exit(-9);
             }
-            const type = boxedVal.typeval;
+            const type = boxedVal.val;
             return new Event(name, type, false);
         }
     }
@@ -10185,7 +10024,7 @@ class Interface {
                 console.error(functionType.functionname + " is not the name of a function");
                 process.exit(-48);
             }
-            const potentialFunctions = potentialFunctionsBox.functionval;
+            const potentialFunctions = potentialFunctionsBox.val;
             let functionFound = false;
             for (const potentialFunction of potentialFunctions) {
                 const argTypes = potentialFunction.getArguments();
@@ -10217,9 +10056,10 @@ class Interface {
             const potentialOperatorsBox = scope.deepGet(operatorType.operatorname);
             if (!potentialOperatorsBox || potentialOperatorsBox.type !== Type_1.default.builtinTypes.operator) {
                 console.error(`${operatorType.operatorname} is not an operator`);
+                console.error(potentialOperatorsBox);
                 process.exit(-52);
             }
-            const potentialOperators = potentialOperatorsBox.operatorval;
+            const potentialOperators = potentialOperatorsBox.val;
             let operatorFound = false;
             for (const potentialOperator of potentialOperators) {
                 for (const potentialFunction of potentialOperator.potentialFunctions) {
@@ -10258,7 +10098,7 @@ class Interface {
         const interfacename = interfaceAst.VARNAME().getText();
         let iface = new Interface(interfacename);
         const ifaceType = new Type_1.default(interfacename, false, iface);
-        const ifaceTypeBox = new Box_1.default(ifaceType);
+        const ifaceTypeBox = new Box_1.default(ifaceType, Type_1.default.builtinTypes.type);
         scope.put(interfacename, ifaceTypeBox);
         // Now, insert the actual declarations of the interface, if there are any (if there are none,
         // it will provide only as much as a type generic -- you can set it to a variable and return it
@@ -10273,19 +10113,19 @@ class Interface {
                     }
                     const typenames = functiontypeline.functiontype().varn();
                     const returnTypeBox = scope.deepGet(typenames[typenames.length - 1].getText());
-                    if (!returnTypeBox || !returnTypeBox.typeval) {
+                    if (!returnTypeBox || returnTypeBox.type !== Type_1.default.builtinTypes.type) {
                         console.error(typenames.get(typenames.size() - 1).getText() + " is not a type");
                         process.exit(-48);
                     }
-                    const returnType = returnTypeBox.typeval;
+                    const returnType = returnTypeBox.val;
                     let args = [];
                     for (let i = 0; i < typenames.length - 1; i++) {
                         const argumentBox = scope.deepGet(typenames[i].getText());
-                        if (!argumentBox || !argumentBox.typeval) {
+                        if (!argumentBox || argumentBox.type !== Type_1.default.builtinTypes.type) {
                             console.error(typenames.get(i).getText() + " is not a type");
                             process.exit(-49);
                         }
-                        args.push(argumentBox.typeval);
+                        args.push(argumentBox.val);
                     }
                     const functionType = new FunctionType_1.default(functionname, args, returnType);
                     iface.functionTypes.push(functionType);
@@ -10301,28 +10141,28 @@ class Interface {
                     const returnTypename = interfaceline.operatortypeline().varn().getText();
                     const args = argTypenames.map(n => {
                         const box = scope.deepGet(n);
-                        if (!box || !box.typeval) {
+                        if (!box || box.type !== Type_1.default.builtinTypes.type) {
                             console.error(`${n} is not a type`);
                             process.exit(-50);
                         }
-                        return box.typeval;
+                        return box.val;
                     });
                     const returnBox = scope.deepGet(returnTypename);
-                    if (!returnBox || !returnBox.typeval) {
+                    if (!returnBox || returnBox.type !== Type_1.default.builtinTypes.type) {
                         console.error(`${returnTypename} is not a type`);
                         process.exit(-51);
                     }
-                    const returnType = returnBox.typeval;
+                    const returnType = returnBox.val;
                     const operatorType = new OperatorType_1.default(operatorname, isPrefix, args, returnType);
                     iface.operatorTypes.push(operatorType);
                 }
                 if (!!interfaceline.propertytypeline()) {
                     const propertyTypeBox = scope.deepGet(interfaceline.propertytypeline().varn().getText());
-                    if (!propertyTypeBox || !propertyTypeBox.typeval) {
+                    if (!propertyTypeBox || propertyTypeBox.type !== Type_1.default.builtinTypes.type) {
                         console.error(interfaceline.propertytypeline().varn().getText() + " is not a type");
                         process.exit(-52);
                     }
-                    iface.requiredProperties[interfaceline.propertytypeline().VARNAME().getText()] = propertyTypeBox.typeval;
+                    iface.requiredProperties[interfaceline.propertytypeline().VARNAME().getText()] = propertyTypeBox.val;
                 }
             }
         }
@@ -10516,7 +10356,7 @@ class Microstatement {
                         microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, addrName, Type_1.default.builtinTypes['int64'], [`${fieldNum}`], []));
                         // Insert a `copyfrom` opcode.
                         const opcodes = require('./opcodes').default;
-                        opcodes.exportScope.get('copyfrom').functionval[0].microstatementInlining([original.outputName, addrName], scope, microstatements);
+                        opcodes.exportScope.get('copyfrom').val[0].microstatementInlining([original.outputName, addrName], scope, microstatements);
                         // We'll need a reference to this for later
                         const typeRecord = original;
                         // Set the original to this newly-generated microstatement
@@ -10564,7 +10404,7 @@ class Microstatement {
                     }
                     // Insert a `copyfrom` opcode.
                     const opcodes = require('./opcodes').default;
-                    opcodes.exportScope.get('copyfrom').functionval[0].microstatementInlining([original.outputName, lookup.outputName], scope, microstatements);
+                    opcodes.exportScope.get('copyfrom').val[0].microstatementInlining([original.outputName, lookup.outputName], scope, microstatements);
                     // We'll need a reference to this for later
                     const arrayRecord = original;
                     // Set the original to this newly-generated microstatement
@@ -10630,7 +10470,7 @@ class Microstatement {
                     .replace(/^["']/, '').replace(/["']$/, ''));
             }
         }
-        microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, scope.deepGet(constType).typeval, [constVal], []));
+        microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, scope.deepGet(constType).val, [constVal], []));
     }
     static fromBasicAssignablesAst(basicAssignablesAst, // TODO: Eliminate ANTLR
     scope, microstatements) {
@@ -10710,12 +10550,12 @@ class Microstatement {
                                     basicAssignablesAst.start.column);
                                 process.exit(-105);
                             }
-                            outerTypeBox.typeval.solidify(basicAssignablesAst.objectliterals().arrayliteral().othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                            outerTypeBox.val.solidify(basicAssignablesAst.objectliterals().arrayliteral().othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                             ), scope);
                             typeBox = scope.deepGet(basicAssignablesAst.objectliterals().arrayliteral().othertype().getText().trim());
                         }
                     }
-                    if (typeBox.typeval == null) {
+                    if (typeBox.type !== Type_1.default.builtinTypes.type) {
                         console.error(basicAssignablesAst.objectliterals().arrayliteral().othertype().getText().trim() + " is not a type");
                         console.error(basicAssignablesAst.getText() +
                             " on line " +
@@ -10744,10 +10584,10 @@ class Microstatement {
                 microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, lenName, Type_1.default.builtinTypes['int64'], [`${arrayLiteralContents.length}`], []));
                 // Add the opcode to create a new array with the specified size
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('newarr').functionval[0].microstatementInlining([lenName], scope, microstatements);
+                opcodes.exportScope.get('newarr').val[0].microstatementInlining([lenName], scope, microstatements);
                 // Get the array microstatement and extract the name and insert the correct type
                 const array = microstatements[microstatements.length - 1];
-                array.outputType = typeBox.typeval;
+                array.outputType = typeBox.val;
                 // Try to use the "real" type if knowable
                 if (arrayLiteralContents.length > 0) {
                     array.outputType = Type_1.default.builtinTypes['Array'].solidify([arrayLiteralContents[0].outputType.typename], scope);
@@ -10764,7 +10604,7 @@ class Microstatement {
                     microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], [size], []));
                     // Push the value into the array
                     const opcodes = require('./opcodes').default;
-                    opcodes.exportScope.get('pusharr').functionval[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
+                    opcodes.exportScope.get('pusharr').val[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
                 }
                 // REREF the array
                 microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, arrayName, array.outputType, [], []));
@@ -10795,12 +10635,12 @@ class Microstatement {
                                 basicAssignablesAst.start.column);
                             process.exit(-105);
                         }
-                        outerTypeBox.typeval.solidify(basicAssignablesAst.objectliterals().typeliteral().othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                        outerTypeBox.val.solidify(basicAssignablesAst.objectliterals().typeliteral().othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                         ), scope);
                         typeBox = scope.deepGet(basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim());
                     }
                 }
-                if (typeBox.typeval == null) {
+                if (typeBox.type !== Type_1.default.builtinTypes.type) {
                     console.error(basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim() + " is not a type");
                     console.error(basicAssignablesAst.getText() +
                         " on line " +
@@ -10823,7 +10663,7 @@ class Microstatement {
                         process.exit(-109);
                     }
                 }
-                const fields = Object.keys(typeBox.typeval.properties);
+                const fields = Object.keys(typeBox.val.properties);
                 let missingFields = [];
                 let foundFields = [];
                 let extraFields = [];
@@ -10870,10 +10710,10 @@ class Microstatement {
                 microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, lenName, Type_1.default.builtinTypes['int64'], [`${fields.length}`], []));
                 // Add the opcode to create a new array with the specified size
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('newarr').functionval[0].microstatementInlining([lenName], scope, microstatements);
+                opcodes.exportScope.get('newarr').val[0].microstatementInlining([lenName], scope, microstatements);
                 // Get the array microstatement and extract the name and insert the correct type
                 const array = microstatements[microstatements.length - 1];
-                array.outputType = typeBox.typeval;
+                array.outputType = typeBox.val;
                 const arrayName = array.outputName;
                 // Push the values into the array
                 for (let i = 0; i < arrayLiteralContents.length; i++) {
@@ -10886,7 +10726,7 @@ class Microstatement {
                     microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], [size], []));
                     // Push the value into the array
                     const opcodes = require('./opcodes').default;
-                    opcodes.exportScope.get('pusharr').functionval[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
+                    opcodes.exportScope.get('pusharr').val[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
                 }
                 // REREF the array
                 microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, arrayName, array.outputType, [], []));
@@ -10914,7 +10754,7 @@ class Microstatement {
             if (operatorOrAssignable.operators() != null) {
                 const operator = operatorOrAssignable.operators();
                 const op = scope.deepGet(operator.getText());
-                if (op == null || op.operatorval == null) {
+                if (op == null || op.type !== Type_1.default.builtinTypes.operator) {
                     console.error("Operator " + operator.getText() + " is not defined");
                     process.exit(-34);
                 }
@@ -10923,7 +10763,7 @@ class Microstatement {
             if (operatorOrAssignable.basicassignables() != null) {
                 Microstatement.fromBasicAssignablesAst(operatorOrAssignable.basicassignables(), scope, microstatements);
                 const last = microstatements[microstatements.length - 1];
-                withOperatorsList.push(new Box_1.default(last)); // Wrapped in a box to make this work
+                withOperatorsList.push(new Box_1.default(last, Type_1.default.builtinTypes.microstatement));
             }
         }
         // Now to combine these operators and values in the correct order. A compiled language could
@@ -10938,8 +10778,8 @@ class Microstatement {
             let maxOperatorLoc = -1;
             let maxOperatorListLoc = -1;
             for (let i = 0; i < withOperatorsList.length; i++) {
-                if (withOperatorsList[i].operatorval != null) {
-                    const ops = withOperatorsList[i].operatorval;
+                if (withOperatorsList[i].type === Type_1.default.builtinTypes.operator) {
+                    const ops = withOperatorsList[i].val;
                     let op = null;
                     let operatorListLoc = -1;
                     let operatorPrecedence = -127;
@@ -10961,14 +10801,14 @@ class Microstatement {
                             right = withOperatorsList[i + 1];
                         // Skip over any operator that is followed by another operator as it must be a prefix
                         // operator (or a syntax error, but we'll catch that later)
-                        if (right === null || !!right.microstatementval) {
+                        if (right === null || right.type === Type_1.default.builtinTypes.microstatement) {
                             for (let j = 0; j < ops.length; j++) {
                                 if (ops[j].precedence > operatorPrecedence &&
                                     ops[j].applicableFunction(left === null ? // Left is special, if two operators are in a row, this one
                                         null : // needs to be a prefix operator for this to work at all
-                                        !!left.microstatementval ?
-                                            left.microstatementval.outputType :
-                                            null, right === null ? null : right.microstatementval.outputType, scope) != null) {
+                                        left.type === Type_1.default.builtinTypes.microstatement ?
+                                            left.val.outputType :
+                                            null, right === null ? null : right.val.outputType, scope) != null) {
                                     op = ops[j];
                                     operatorListLoc = j;
                                     operatorPrecedence = op.precedence;
@@ -10995,32 +10835,32 @@ class Microstatement {
                 let withOperatorsTranslation = [];
                 for (let i = 0; i < withOperatorsList.length; i++) {
                     const node = withOperatorsList[i];
-                    if (node.operatorval != null) {
-                        withOperatorsTranslation.push(node.operatorval[0].name);
+                    if (node.type === Type_1.default.builtinTypes.operator) {
+                        withOperatorsTranslation.push(node.val[0].name);
                     }
                     else {
-                        withOperatorsTranslation.push("<" + node.microstatementval.outputType.typename + ">");
+                        withOperatorsTranslation.push("<" + node.val.outputType.typename + ">");
                     }
                 }
                 console.error(withOperatorsTranslation.join(" "));
                 process.exit(-34);
             }
-            const op = withOperatorsList[maxOperatorLoc].operatorval[maxOperatorListLoc];
+            const op = withOperatorsList[maxOperatorLoc].val[maxOperatorListLoc];
             let realArgNames = [];
             let realArgTypes = [];
             if (!op.isPrefix) {
-                const left = withOperatorsList[maxOperatorLoc - 1].microstatementval;
+                const left = withOperatorsList[maxOperatorLoc - 1].val;
                 realArgNames.push(left.outputName);
                 realArgTypes.push(left.outputType);
             }
-            const right = withOperatorsList[maxOperatorLoc + 1].microstatementval;
+            const right = withOperatorsList[maxOperatorLoc + 1].val;
             realArgNames.push(right.outputName);
             realArgTypes.push(right.outputType);
             UserFunction_1.default
                 .dispatchFn(op.potentialFunctions, realArgTypes, scope)
                 .microstatementInlining(realArgNames, scope, microstatements);
             const last = microstatements[microstatements.length - 1];
-            withOperatorsList[maxOperatorLoc] = new Box_1.default(last);
+            withOperatorsList[maxOperatorLoc] = new Box_1.default(last, Type_1.default.builtinTypes.microstatement);
             withOperatorsList.splice(maxOperatorLoc + 1, 1);
             if (!op.isPrefix) {
                 withOperatorsList.splice(maxOperatorLoc - 1, 1);
@@ -11057,13 +10897,13 @@ class Microstatement {
         const constName = "_" + uuid_1.v4().replace(/-/g, "_");
         if (blocklikesAst.varn() != null) { // TODO: Port to fromVarAst
             const fnToClose = scope.deepGet(blocklikesAst.varn().getText());
-            if (fnToClose == null || fnToClose.functionval == null) {
+            if (fnToClose == null || fnToClose.type !== Type_1.default.builtinTypes['function']) {
                 console.error(blocklikesAst.varn().getText() + " is not a function");
                 process.exit(-111);
             }
             // TODO: Revisit this on resolving the appropriate function if multiple match, right now just
             // take the first one.
-            const closureFn = fnToClose.functionval[0];
+            const closureFn = fnToClose.val[0];
             let innerMicrostatements = [];
             closureFn.microstatementInlining([], scope, innerMicrostatements);
             microstatements.push(new Microstatement(StatementType_1.default.CLOSURE, scope, true, // Guaranteed true in this case, it's not really a closure
@@ -11101,7 +10941,7 @@ class Microstatement {
             // rewrite the final const assignment as the emit statement.
             Microstatement.fromAssignablesAst(emitsAst.assignables(), scope, microstatements);
             const eventBox = scope.deepGet(emitsAst.varn().getText()); // TODO: Port to fromVarAst when Box is removed
-            if (eventBox.eventval == null) {
+            if (eventBox.type !== Type_1.default.builtinTypes.Event) {
                 console.error(emitsAst.varn().getText() + " is not an event!");
                 console.error(emitsAst.getText() +
                     " on line " +
@@ -11111,12 +10951,12 @@ class Microstatement {
                 process.exit(-101);
             }
             const last = microstatements[microstatements.length - 1];
-            if (last.outputType != eventBox.eventval.type &&
-                !eventBox.eventval.type.castable(last.outputType)) {
+            if (last.outputType != eventBox.val.type &&
+                !eventBox.val.type.castable(last.outputType)) {
                 console.error("Attempting to assign a value of type " +
                     last.outputType.typename +
                     " to an event of type " +
-                    eventBox.eventval.type.typename);
+                    eventBox.val.type.typename);
                 console.error(emitsAst.getText() +
                     " on line " +
                     emitsAst.start.line +
@@ -11124,12 +10964,12 @@ class Microstatement {
                     emitsAst.start.column);
                 process.exit(-103);
             }
-            microstatements.push(new Microstatement(StatementType_1.default.EMIT, scope, true, eventBox.eventval.name, eventBox.eventval.type, [last.outputName], []));
+            microstatements.push(new Microstatement(StatementType_1.default.EMIT, scope, true, eventBox.val.name, eventBox.val.type, [last.outputName], []));
         }
         else {
             // Otherwise, create an emit statement with no value
             const eventBox = scope.deepGet(emitsAst.varn().getText()); // TODO: Port to fromVarAst
-            if (eventBox.eventval == null) {
+            if (eventBox.type !== Type_1.default.builtinTypes.Event) {
                 console.error(emitsAst.varn().getText() + " is not an event!");
                 console.error(emitsAst.getText() +
                     " on line " +
@@ -11138,7 +10978,7 @@ class Microstatement {
                     emitsAst.start.column);
                 process.exit(-102);
             }
-            if (eventBox.eventval.type != Type_1.default.builtinTypes.void) {
+            if (eventBox.val.type != Type_1.default.builtinTypes.void) {
                 console.error(emitsAst.varn().getText() + " must have a value emitted to it!");
                 console.error(emitsAst.getText() +
                     " on line " +
@@ -11147,7 +10987,7 @@ class Microstatement {
                     emitsAst.start.column);
                 process.exit(-103);
             }
-            microstatements.push(new Microstatement(StatementType_1.default.EMIT, scope, true, eventBox.eventval.name, Type_1.default.builtinTypes.void, [], []));
+            microstatements.push(new Microstatement(StatementType_1.default.EMIT, scope, true, eventBox.val.name, Type_1.default.builtinTypes.void, [], []));
         }
     }
     static fromExitsAst(exitsAst, // TODO: Eliminate ANTLR
@@ -11161,7 +11001,7 @@ class Microstatement {
         else {
             // Otherwise, create a microstatement with no value
             const constName = "_" + uuid_1.v4().replace(/-/g, "_");
-            microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, scope.deepGet("void").typeval, ["void"], null));
+            microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, scope.deepGet("void").val, ["void"], null));
         }
     }
     static fromCallsAst(callsAst, // TODO: Eliminate ANTLR
@@ -11261,7 +11101,7 @@ class Microstatement {
             }
             // Do a scan of the microstatements for an inner defined closure that is being called.
             // TODO: What if they decided to shove this closure into an object but then use it directly?
-            if (fnBox === null || !fnBox.functionval) {
+            if (fnBox === null || fnBox.type !== Type_1.default.builtinTypes['function']) {
                 const fnName = callsAst.varn(i).getText();
                 let actualFnName;
                 for (let i = microstatements.length - 1; i >= 0; i--) {
@@ -11277,7 +11117,7 @@ class Microstatement {
                     }
                 }
             }
-            if (fnBox === null || !fnBox.functionval) {
+            if (fnBox === null || fnBox.type !== Type_1.default.builtinTypes['function']) {
                 console.error(callsAst.varn(i).getText() + " is not a function!");
                 console.error(callsAst.getText() +
                     " on line " +
@@ -11290,7 +11130,7 @@ class Microstatement {
             // return statement turned into a const assignment as the last statement, while built-in
             // functions are kept as function calls with the correct renaming.
             UserFunction_1.default
-                .dispatchFn(fnBox.functionval, realArgTypes, scope)
+                .dispatchFn(fnBox.val, realArgTypes, scope)
                 .microstatementInlining(realArgNames, scope, microstatements);
             // Set the output as the firstArg for the next chained call
             firstArg = microstatements[microstatements.length - 1];
@@ -11386,7 +11226,7 @@ class Microstatement {
         }
         // The more complicated path. First, rule out that the first segment is not a `scope`.
         const testBox = scope.deepGet(segments[0].getText());
-        if (!!testBox && !!testBox.scopeval) {
+        if (!!testBox && testBox.type === Type_1.default.builtinTypes.scope) {
             console.error('Atempting to reassign to variable from another module');
             console.error(assignmentsAst.varn().getText() +
                 " on line " +
@@ -11471,7 +11311,7 @@ class Microstatement {
                 }
                 // Insert a `register` opcode.
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('register').functionval[0].microstatementInlining([original.outputName, lookup.outputName], scope, microstatements);
+                opcodes.exportScope.get('register').val[0].microstatementInlining([original.outputName, lookup.outputName], scope, microstatements);
                 // Now, we need to update the type we're working with. The nice thing about this is that as
                 // we are accessing an `Array`, the type is inside. We just need to dig into the existing
                 // type and rip out its inner type definition.
@@ -11501,7 +11341,7 @@ class Microstatement {
                 microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, addrName, Type_1.default.builtinTypes['int64'], [`${fieldNum}`], []));
                 // Insert a `register` opcode.
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('register').functionval[0].microstatementInlining([original.outputName, addrName], scope, microstatements);
+                opcodes.exportScope.get('register').val[0].microstatementInlining([original.outputName, addrName], scope, microstatements);
                 // Now, we need to update the type we're working with.
                 nestedLetType = Object.values(nestedLetType.properties)[fieldNum];
                 // Now update the `original` record to the new `register` result
@@ -11558,7 +11398,7 @@ class Microstatement {
             }
             // Insert a `copytof` or `copytov` opcode.
             const opcodes = require('./opcodes').default;
-            opcodes.exportScope.get(copytoop).functionval[0].microstatementInlining([original.outputName, lookup.outputName, assign.outputName], scope, microstatements);
+            opcodes.exportScope.get(copytoop).val[0].microstatementInlining([original.outputName, lookup.outputName, assign.outputName], scope, microstatements);
         }
         else if (finalSegment.VARNAME()) {
             const fieldName = finalSegment.VARNAME().getText();
@@ -11579,7 +11419,7 @@ class Microstatement {
             microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, addrName, Type_1.default.builtinTypes['int64'], [`${fieldNum}`], []));
             // Insert a `copytof` or `copytov` opcode.
             const opcodes = require('./opcodes').default;
-            opcodes.exportScope.get(copytoop).functionval[0].microstatementInlining([original.outputName, addrName, assign.outputName], scope, microstatements);
+            opcodes.exportScope.get(copytoop).val[0].microstatementInlining([original.outputName, addrName, assign.outputName], scope, microstatements);
         }
         else {
             console.error(`${finalSegment.getText()} cannot be the final piece in a reassignment statement`);
@@ -11620,7 +11460,7 @@ class Microstatement {
                             letdeclarationAst.start.column);
                         process.exit(-105);
                     }
-                    outerTypeBox.typeval.solidify(letdeclarationAst.assignments().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                    outerTypeBox.val.solidify(letdeclarationAst.assignments().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                     ), scope);
                 }
             }
@@ -11633,12 +11473,14 @@ class Microstatement {
             // This is the situation where a variable is declared but no value is yet assigned.
             // An automatic replacement with a "default" value (false, 0, "") is performed, similar to
             // C.
-            const type = (scope.deepGet(letTypeHint) && scope.deepGet(letTypeHint).typeval) || Type_1.default.builtinTypes.void;
+            const type = (scope.deepGet(letTypeHint) &&
+                scope.deepGet(letTypeHint).type === Type_1.default.builtinTypes.type &&
+                scope.deepGet(letTypeHint).val) || Type_1.default.builtinTypes.void;
             if (type.originalType) {
                 const constName = "_" + uuid_1.v4().replace(/-/g, "_");
                 microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, Type_1.default.builtinTypes.int64, ["0"], []));
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('newarr').functionval[0].microstatementInlining([constName], scope, microstatements);
+                opcodes.exportScope.get('newarr').val[0].microstatementInlining([constName], scope, microstatements);
                 const blankArr = microstatements[microstatements.length - 1];
                 blankArr.statementType = StatementType_1.default.LETDEC,
                     blankArr.outputName = letName;
@@ -11720,7 +11562,7 @@ class Microstatement {
                             constdeclarationAst.start.column);
                         process.exit(-105);
                     }
-                    outerTypeBox.typeval.solidify(constdeclarationAst.assignments().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                    outerTypeBox.val.solidify(constdeclarationAst.assignments().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                     ), scope);
                 }
             }
@@ -11864,7 +11706,7 @@ class Module {
                     process.exit(-3);
                 }
                 const importedModule = modules[Ast.resolveDependency(path, standardImport.dependency())];
-                module.moduleScope.put(importName, new Box_1.default(importedModule.exportScope));
+                module.moduleScope.put(importName, new Box_1.default(importedModule.exportScope, Type_1.default.builtinTypes.scope));
             }
             // If it's a "from" import, we're picking off pieces of the exported scope and inserting them
             // also potentially renaming them if requested by the user
@@ -11886,36 +11728,36 @@ class Module {
                     // the interface, pull them in. Similarly any types that match the entire interface. This
                     // allows concise importing of a related suite of tools without having to explicitly call
                     // out each one.
-                    if (thing.typeval && thing.typeval.iface) {
-                        const iface = thing.typeval.iface;
+                    if (thing.type === Type_1.default.builtinTypes.type && thing.val.iface) {
+                        const iface = thing.val.iface;
                         const typesToCheck = Object.keys(importedModule.exportScope.vals)
                             .map(n => importedModule.exportScope.vals[n])
-                            .filter(v => !!v.typeval);
+                            .filter(v => v.type === Type_1.default.builtinTypes.type);
                         const fnsToCheck = Object.keys(importedModule.exportScope.vals)
                             .map(n => importedModule.exportScope.vals[n])
-                            .filter(v => !!v.functionval);
+                            .filter(v => v.type === Type_1.default.builtinTypes['function']);
                         const opsToCheck = Object.keys(importedModule.exportScope.vals)
                             .map(n => importedModule.exportScope.vals[n])
-                            .filter(v => !!v.operatorval);
+                            .filter(v => v.type === Type_1.default.builtinTypes.operator);
                         typesToCheck
-                            .filter(t => iface.typeApplies(t.typeval, importedModule.exportScope))
+                            .filter(t => iface.typeApplies(t.val, importedModule.exportScope))
                             .forEach(t => {
-                            module.moduleScope.put(t.typeval.typename, t);
+                            module.moduleScope.put(t.val.typename, t);
                         });
                         fnsToCheck
                             .filter(fn => {
                             // TODO: Make this better and move it to the Interface file in the future
-                            return iface.functionTypes.some((ft) => ft.functionname === fn.functionval[0].getName());
+                            return iface.functionTypes.some((ft) => ft.functionname === fn.val[0].getName());
                         })
                             .forEach(fn => {
-                            module.moduleScope.put(fn.functionval[0].getName(), fn);
+                            module.moduleScope.put(fn.val[0].getName(), fn);
                         });
                         opsToCheck
                             .filter(op => {
-                            return iface.operatorTypes.some((ot) => ot.operatorname === op.operatorval[0].name);
+                            return iface.operatorTypes.some((ot) => ot.operatorname === op.val[0].name);
                         })
                             .forEach(op => {
-                            module.moduleScope.put(op.operatorval[0].name, op);
+                            module.moduleScope.put(op.val[0].name, op);
                         });
                     }
                 }
@@ -11925,7 +11767,7 @@ class Module {
         const types = ast.types();
         for (const typeAst of types) {
             const newType = Type_1.default.fromAst(typeAst, module.moduleScope);
-            module.moduleScope.put(newType.typename, new Box_1.default(newType.alias ? newType.alias : newType));
+            module.moduleScope.put(newType.typename, new Box_1.default(newType.alias ? newType.alias : newType, Type_1.default.builtinTypes.type));
         }
         // Next, interfaces
         const interfaces = ast.interfaces();
@@ -11945,7 +11787,7 @@ class Module {
         const events = ast.events();
         for (const eventAst of events) {
             const newEvent = Event_1.default.fromAst(eventAst, module.moduleScope);
-            module.moduleScope.put(newEvent.name, new Box_1.default(newEvent, true));
+            module.moduleScope.put(newEvent.name, new Box_1.default(newEvent, Type_1.default.builtinTypes.Event));
         }
         // Next, functions
         const functions = ast.functions();
@@ -11957,10 +11799,10 @@ class Module {
             }
             let fns = module.moduleScope.get(newFunc.getName());
             if (fns == null) {
-                module.moduleScope.put(newFunc.getName(), new Box_1.default([newFunc], true));
+                module.moduleScope.put(newFunc.getName(), new Box_1.default([newFunc], Type_1.default.builtinTypes['function']));
             }
             else {
-                fns.functionval.push(newFunc);
+                fns.val.push(newFunc);
             }
         }
         // Next, operators
@@ -11974,16 +11816,16 @@ class Module {
                 console.error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
                 process.exit(-31);
             }
-            const op = new Operator_1.default(name, precedence, isPrefix, fns.functionval);
+            const op = new Operator_1.default(name, precedence, isPrefix, fns.val);
             const opsBox = module.moduleScope.deepGet(name);
-            if (opsBox == null) {
-                module.moduleScope.put(name, new Box_1.default([op]));
+            if (!opsBox) {
+                module.moduleScope.put(name, new Box_1.default([op], Type_1.default.builtinTypes.operator));
             }
             else {
                 // To make sure we don't accidentally mutate other scopes, we're cloning this operator list
-                let ops = [...opsBox.operatorval];
+                let ops = [...opsBox.val];
                 ops.push(op);
-                module.moduleScope.put(name, new Box_1.default(ops));
+                module.moduleScope.put(name, new Box_1.default(ops, Type_1.default.builtinTypes.operator));
             }
         }
         // Next, exports, which can be most of the above
@@ -11997,14 +11839,14 @@ class Module {
             }
             else if (exportAst.types() != null) {
                 const newType = Type_1.default.fromAst(exportAst.types(), module.moduleScope);
-                const typeBox = new Box_1.default(!newType.alias ? newType : newType.alias);
+                const typeBox = new Box_1.default(!newType.alias ? newType : newType.alias, Type_1.default.builtinTypes.type);
                 module.moduleScope.put(newType.typename, typeBox);
                 module.exportScope.put(newType.typename, typeBox);
             }
             else if (exportAst.interfaces() != null) {
                 const interfaceBox = Interface_1.default.fromAst(exportAst.interfaces(), module.moduleScope);
                 // Automatically inserts the interface into the module scope
-                module.exportScope.put(interfaceBox.typeval.typename, interfaceBox);
+                module.exportScope.put(interfaceBox.val.typename, interfaceBox);
             }
             else if (exportAst.constdeclaration() != null) {
                 console.error('Module-scope constants not yet implemented');
@@ -12021,17 +11863,17 @@ class Module {
                 // the two if blocks below is enough to fix things here.
                 let expFns = module.exportScope.get(newFunc.getName());
                 if (expFns == null) {
-                    module.exportScope.put(newFunc.getName(), new Box_1.default([newFunc], true));
+                    module.exportScope.put(newFunc.getName(), new Box_1.default([newFunc], Type_1.default.builtinTypes['function']));
                 }
                 else {
-                    expFns.functionval.push(newFunc);
+                    expFns.val.push(newFunc);
                 }
                 let modFns = module.moduleScope.get(newFunc.getName());
                 if (modFns == null) {
-                    module.moduleScope.put(newFunc.getName(), new Box_1.default([newFunc], true));
+                    module.moduleScope.put(newFunc.getName(), new Box_1.default([newFunc], Type_1.default.builtinTypes['function']));
                 }
                 else {
-                    modFns.functionval.push(newFunc);
+                    modFns.val.push(newFunc);
                 }
             }
             else if (exportAst.operatormapping() != null) {
@@ -12040,9 +11882,9 @@ class Module {
                 const name = operatorAst.fntoop().operators().getText().trim();
                 const precedence = parseInt(operatorAst.opprecedence().NUMBERCONSTANT().getText(), 10);
                 let fns = module.exportScope.deepGet(operatorAst.fntoop().varn().getText());
-                if (fns == null) {
+                if (!fns) {
                     fns = module.moduleScope.deepGet(operatorAst.fntoop().varn().getText());
-                    if (fns != null) {
+                    if (!!fns) {
                         console.error("Exported operator " +
                             name +
                             " wrapping unexported function " +
@@ -12053,30 +11895,30 @@ class Module {
                     console.error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
                     process.exit(-33);
                 }
-                const op = new Operator_1.default(name, precedence, isPrefix, fns.functionval);
+                const op = new Operator_1.default(name, precedence, isPrefix, fns.val);
                 let modOpsBox = module.moduleScope.deepGet(name);
-                if (modOpsBox == null) {
-                    module.moduleScope.put(name, new Box_1.default([op]));
+                if (!modOpsBox) {
+                    module.moduleScope.put(name, new Box_1.default([op], Type_1.default.builtinTypes.operator));
                 }
                 else {
-                    let ops = [...modOpsBox.operatorval];
+                    let ops = [...modOpsBox.val];
                     ops.push(op);
-                    module.moduleScope.put(name, new Box_1.default(ops));
+                    module.moduleScope.put(name, new Box_1.default(ops, Type_1.default.builtinTypes.operator));
                 }
                 let expOpsBox = module.exportScope.deepGet(name);
-                if (expOpsBox == null) {
-                    module.exportScope.put(name, new Box_1.default([op]));
+                if (!expOpsBox) {
+                    module.exportScope.put(name, new Box_1.default([op], Type_1.default.builtinTypes.operator));
                 }
                 else {
-                    let ops = [...expOpsBox.operatorval];
+                    let ops = [...expOpsBox.val];
                     ops.push(op);
-                    module.exportScope.put(name, new Box_1.default(ops));
+                    module.exportScope.put(name, new Box_1.default(ops, Type_1.default.builtinTypes.operator));
                 }
             }
             else if (exportAst.events() != null) {
                 const newEvent = Event_1.default.fromAst(exportAst.events(), module.moduleScope);
-                module.moduleScope.put(newEvent.name, new Box_1.default(newEvent, true));
-                module.exportScope.put(newEvent.name, new Box_1.default(newEvent, true));
+                module.moduleScope.put(newEvent.name, new Box_1.default(newEvent, Type_1.default.builtinTypes.Event));
+                module.exportScope.put(newEvent.name, new Box_1.default(newEvent, Type_1.default.builtinTypes.Event));
             }
             else {
                 // What?
@@ -12105,7 +11947,7 @@ class Module {
                 console.error(handlerAst.eventref().getText() + " is not an event");
                 process.exit(-21);
             }
-            const evt = eventBox.eventval;
+            const evt = eventBox.val;
             let fn = null;
             if (handlerAst.varn() != null) {
                 const fnName = handlerAst.varn().getText();
@@ -12118,7 +11960,7 @@ class Module {
                     console.error(fnName + " is not a function");
                     process.exit(-23);
                 }
-                const fns = fnBox.functionval;
+                const fns = fnBox.val;
                 for (let i = 0; i < fns.length; i++) {
                     if (evt.type.typename === "void" && fns[i].getArguments().values().size() === 0) {
                         fn = fns[i];
@@ -12262,7 +12104,6 @@ class OperatorType {
 exports.default = OperatorType;
 
 },{}],19:[function(require,module,exports){
-(function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Type_1 = require("./Type");
@@ -12292,10 +12133,10 @@ class Scope {
             }
             else {
                 if (boxedVar.type === Type_1.default.builtinTypes['scope']) {
-                    boxedVar = boxedVar.scopeval.get(fullVar[i]);
+                    boxedVar = boxedVar.val.get(fullVar[i]);
                 }
-                else if (boxedVar.typevalval !== null) {
-                    boxedVar = boxedVar.typevalval[fullVar[i]];
+                else if (!Object.values(Type_1.default.builtinTypes).includes(boxedVar.type)) {
+                    boxedVar = boxedVar.val[fullVar[i]];
                 }
                 else {
                     return null;
@@ -12316,72 +12157,10 @@ class Scope {
     put(name, val) {
         this.vals[name.trim()] = val;
     }
-    deepPut(fullName, val) {
-        const fullVar = fullName.split(".");
-        let almostFullVar = fullVar[0];
-        for (let i = 1; i < fullVar.length - 1; i++) {
-            almostFullVar += "." + fullVar[i];
-        }
-        let boxedVar = this.deepGet(almostFullVar);
-        if (boxedVar !== null) {
-            if (boxedVar.typevalval === null) {
-                boxedVar = null; // Just reset and continue with the for loop
-            }
-            else {
-                boxedVar.typevalval[fullVar[fullVar.length - 1]] = val;
-                return;
-            }
-        }
-        for (let i = 0; i < fullVar.length; i++) {
-            if (boxedVar === null) {
-                boxedVar = this.deepGet(fullVar[i]);
-            }
-            else {
-                if (boxedVar.type === Type_1.default.builtinTypes["scope"]) {
-                    boxedVar = boxedVar.scopeval.get(fullVar[i]);
-                }
-                else if (boxedVar.typevalval !== null) { // User-defined type instance
-                    boxedVar = boxedVar.typevalval[fullVar[i]];
-                }
-                else { // This should be a terminal value so an extra "." makes no sense
-                    console.error("Attempted to export non-existent value: " + fullName);
-                    process.exit(-26);
-                }
-            }
-        }
-        if (boxedVar.type === Type_1.default.builtinTypes["scope"]) {
-            boxedVar.scopeval.put(fullVar[fullVar.length - 1], val);
-        }
-        else if (boxedVar.typevalval != null) {
-            boxedVar.typevalval[fullVar[fullVar.length - 1]] = val;
-        }
-        else if (boxedVar.type.typename === "void") {
-            // We're cool, this is throwing away some value
-            return;
-        }
-        else if (boxedVar.readonly === false && boxedVar.type === val.type) {
-            // We're reassigning a variable with the same time
-            // TODO: When we add ADTs, need to make the type check more advanced
-            // Also TODO: Make the following algorithm less dumb and slow.
-            let boxedScope = this;
-            while (!Object.values(boxedScope.vals).includes(boxedVar)) {
-                // We've already proven that we can find this value in the scope hierarchy, so this *will*
-                // halt. :)
-                boxedScope = boxedScope.par;
-            }
-            // Replace that value with the new one. This *should* work without having to scan the keys
-            boxedScope.put(fullVar[fullVar.length - 1], val);
-        }
-        else {
-            console.error("Attempted to set a value on a non-scope, non-compound-type value");
-            process.exit(-27);
-        }
-    }
 }
 exports.default = Scope;
 
-}).call(this,require('_process'))
-},{"./Type":22,"_process":78}],20:[function(require,module,exports){
+},{"./Type":22}],20:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -12418,7 +12197,7 @@ class Statement {
         // TODO: Add all of the logic to determine which function to use in here, too. For now,
         // let's just assume they all have the same purity state, which is a terrible assumption, but
         // easier.
-        if (!functionBox.functionval[0].isPure())
+        if (!functionBox.val[0].isPure())
             return false;
         const assignableListAst = callAst.fncall(0).assignablelist();
         if (assignableListAst == null) { // No arguments to this function call
@@ -12435,13 +12214,13 @@ class Statement {
             if (operatorOrAssignable.operators() != null) {
                 const operator = operatorOrAssignable.operators();
                 const op = scope.deepGet(operator.getText());
-                if (op == null || op.operatorval == null) {
+                if (!op || op.type !== Type_1.default.builtinTypes.operator) {
                     console.error("Operator " + operator.getText() + " is not defined");
                     process.exit(-33);
                 }
                 // TODO: Similar to the above, need to figure out logic to determine which particular function
                 // will be the one called. For now, just assume the first one and fix this later.
-                if (!op.operatorval[0].potentialFunctions[0].isPure())
+                if (!op.val[0].potentialFunctions[0].isPure())
                     return false;
             }
             if (operatorOrAssignable.basicassignables() != null) {
@@ -12698,21 +12477,21 @@ let Type = /** @class */ (() => {
                         }
                     }
                     else {
-                        type.properties[propertyName] = property.typeval;
+                        type.properties[propertyName] = property.val;
                     }
                 }
             }
             if (typeAst.othertype() != null && typeAst.othertype().length == 1) {
                 const otherTypebox = scope.deepGet(typeAst.othertype(0).typename().getText());
-                if (otherTypebox == null) {
+                if (!otherTypebox) {
                     console.error("Type " + typeAst.othertype(0).getText() + " not defined");
                     process.exit(-38);
                 }
-                if (otherTypebox.typeval == null) {
+                if (otherTypebox.type !== Type.builtinTypes.type) {
                     console.error(typeAst.othertype(0).getText() + " is not a valid type");
                     process.exit(-39);
                 }
-                let othertype = otherTypebox.typeval;
+                let othertype = otherTypebox.val;
                 if (Object.keys(othertype.generics).length > 0 && typeAst.othertype(0).typegenerics() != null) {
                     let solidTypes = [];
                     for (const fulltypenameAst of typeAst.othertype(0).typegenerics().fulltypename()) {
@@ -12737,11 +12516,11 @@ let Type = /** @class */ (() => {
                         console.error("Type " + othertype.getText() + " not defined");
                         process.exit(-48);
                     }
-                    if (othertypeBox.typeval == null) {
+                    if (othertypeBox.type !== Type.builtinTypes.type) {
                         console.error(othertype.getText() + " is not a valid type");
                         process.exit(-49);
                     }
-                    let othertypeVal = othertypeBox.typeval;
+                    let othertypeVal = othertypeBox.val;
                     if (othertypeVal.generics.length > 0 && othertype.typegenerics() != null) {
                         let solidTypes = [];
                         for (const fulltypenameAst of othertype.typegenerics().fulltypename()) {
@@ -12763,7 +12542,7 @@ let Type = /** @class */ (() => {
                     console.error(typename + " type not found");
                     process.exit(-35);
                 }
-                replacementTypes.push(typebox.typeval);
+                replacementTypes.push(typebox.val);
             }
             const solidifiedName = this.typename + "<" + genericReplacements.join(", ") + ">";
             let solidified = new Type(solidifiedName, this.builtIn);
@@ -12783,7 +12562,7 @@ let Type = /** @class */ (() => {
                     solidified.properties[propKey] = propValue;
                 }
             }
-            scope.put(solidifiedName, new Box_1.default(solidified));
+            scope.put(solidifiedName, new Box_1.default(solidified, Type.builtinTypes.type));
             return solidified;
         }
         // This is only necessary for the numeric types. TODO: Can we eliminate it?
@@ -12937,7 +12716,7 @@ class UserFunction {
                             for (const fulltypename of argsAst.argtype(i).othertype(0).typegenerics().fulltypename()) {
                                 genericTypes.push(fulltypename.getText());
                             }
-                            getArgType = new Box_1.default(getArgType.typeval.solidify(genericTypes, scope));
+                            getArgType = new Box_1.default(getArgType.val.solidify(genericTypes, scope), Type_1.default.builtinTypes.type);
                         }
                         else {
                             console.error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName);
@@ -12964,24 +12743,24 @@ class UserFunction {
                                     for (const fulltypename of othertype.typegenerics().fulltypename()) {
                                         genericTypes.push(fulltypename.getText());
                                     }
-                                    othertypeBox = new Box_1.default(othertypeBox.typeval.solidify(genericTypes, scope));
+                                    othertypeBox = new Box_1.default(othertypeBox.val.solidify(genericTypes, scope), Type_1.default.builtinTypes.type);
                                 }
                                 else {
                                     console.error("Could not find type " + othertype.getText() + " for argument " + argName);
                                     process.exit(-51);
                                 }
                             }
-                            unionTypes.push(othertypeBox.typeval);
+                            unionTypes.push(othertypeBox.val);
                         }
                         const union = new Type_1.default(argsAst.argtype(i).getText(), false, unionTypes);
-                        getArgType = new Box_1.default(union);
+                        getArgType = new Box_1.default(union, Type_1.default.builtinTypes.type);
                     }
                 }
                 if (getArgType.type != Type_1.default.builtinTypes["type"]) {
                     console.error("Function argument is not a valid type: " + argsAst.argtype(i).getText());
                     process.exit(-13);
                 }
-                args[argName] = getArgType.typeval;
+                args[argName] = getArgType.val;
             }
         }
         let returnType = null;
@@ -13003,14 +12782,14 @@ class UserFunction {
                         for (const fulltypename of functionAst.argType().othertype(0).typegenerics().fulltypename()) {
                             genericTypes.push(fulltypename.getText());
                         }
-                        getReturnType = new Box_1.default(getReturnType.typeval.solidify(genericTypes, scope));
+                        getReturnType = new Box_1.default(getReturnType.val.solidify(genericTypes, scope), Type_1.default.builtinTypes.type);
                     }
                     else {
                         console.error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText());
                         process.exit(-61);
                     }
                 }
-                returnType = getReturnType.typeval;
+                returnType = getReturnType.val;
             }
             else {
                 const othertypes = functionAst.argtype().othertype();
@@ -13032,14 +12811,14 @@ class UserFunction {
                             for (const fulltypename of othertype.typegenerics().fulltypename()) {
                                 genericTypes.push(fulltypename.getText());
                             }
-                            othertypeBox = new Box_1.default(othertypeBox.typeval.solidify(genericTypes, scope));
+                            othertypeBox = new Box_1.default(othertypeBox.val.solidify(genericTypes, scope), Type_1.default.builtinTypes.type);
                         }
                         else {
                             console.error("Could not find return type " + othertype.getText() + " for function " + functionAst.VARNAME().getText());
                             process.exit(-51);
                         }
                     }
-                    unionTypes.push(othertypeBox.typeval);
+                    unionTypes.push(othertypeBox.val);
                 }
                 returnType = new Type_1.default(functionAst.argtype().getText(), false, unionTypes);
             }
@@ -13069,24 +12848,24 @@ class UserFunction {
             // TODO: Infer the return type for anything other than calls or object literals
             if (assignablesAst.basicassignables() && assignablesAst.basicassignables().calls()) {
                 const fnCall = scope.deepGet(assignablesAst.basicassignables().calls().varn(0).getText());
-                if (fnCall && fnCall.functionval) {
+                if (fnCall && fnCall.type === Type_1.default.builtinTypes['function']) {
                     // TODO: For now, also take the first matching function name, in the future
                     // figure out the argument types provided recursively to select appropriately
                     // similar to how the Microstatements piece works
-                    returnType = fnCall.functionval[0].getReturnType();
+                    returnType = fnCall.val[0].getReturnType();
                 }
             }
             else if (assignablesAst.basicassignables() &&
                 assignablesAst.basicassignables().objectliterals()) {
                 if (assignablesAst.basicassignables().objectliterals().typeliteral()) {
-                    returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().typeliteral().othertype().getText().trim()).typeval;
+                    returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().typeliteral().othertype().getText().trim()).val;
                 }
                 else if (assignablesAst.basicassignables().objectliterals().mapliteral()) {
-                    returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().mapliteral().othertype().getText().trim()).typeval;
+                    returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().mapliteral().othertype().getText().trim()).val;
                 }
                 else {
                     if (assignablesAst.basicassignables().objectliterals().arrayliteral().othertype()) {
-                        returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().arrayliteral().othertype().getText().trim()).typeval;
+                        returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().arrayliteral().othertype().getText().trim()).val;
                     }
                     else {
                         // We're going to use the Microstatement logic here
@@ -13137,7 +12916,7 @@ class UserFunction {
         const condBlockFn = (cond.blocklikes(0).functionbody() ?
             UserFunction.fromFunctionbodyAst(cond.blocklikes(0).functionbody(), scope) :
             cond.blocklikes(0).varn() ?
-                scope.deepGet(cond.blocklikes(0).varn().getText()).functionval[0] :
+                scope.deepGet(cond.blocklikes(0).varn().getText()).val[0] :
                 UserFunction.fromFunctionsAst(cond.blocklikes(0).functions(), scope)).maybeTransform();
         if (condBlockFn.statements[condBlockFn.statements.length - 1].isReturnStatement()) {
             hasConditionalReturn = true;
@@ -13152,7 +12931,7 @@ class UserFunction {
                 const elseBlockFn = (cond.blocklikes(1).functionbody() ?
                     UserFunction.fromFunctionbodyAst(cond.blocklikes(1).functionbody(), scope) :
                     cond.blocklikes(1).varn() ?
-                        scope.deepGet(cond.blocklikes(1).varn().getText()).functionval[0] :
+                        scope.deepGet(cond.blocklikes(1).varn().getText()).val[0] :
                         UserFunction.fromFunctionsAst(cond.blocklikes(1).functions(), scope)).maybeTransform();
                 if (elseBlockFn.statements[elseBlockFn.statements.length - 1].isReturnStatement()) {
                     hasConditionalReturn = true;
@@ -13715,20 +13494,22 @@ const Type_1 = require("./Type");
 const opcodeScope = new Scope_1.default();
 const opcodeModule = new Module_1.default(opcodeScope);
 // Base types
-const addBuiltIn = (name) => { opcodeScope.put(name, new Box_1.default(Type_1.default.builtinTypes[name])); };
+const addBuiltIn = (name) => {
+    opcodeScope.put(name, new Box_1.default(Type_1.default.builtinTypes[name], Type_1.default.builtinTypes.type));
+};
 ([
     'void', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64', 'bool', 'string', 'function',
     'operator', 'Error', 'Array', 'Map', 'KeyVal',
 ].map(addBuiltIn));
 Type_1.default.builtinTypes['Array'].solidify(['string'], opcodeScope);
 Type_1.default.builtinTypes['Map'].solidify(['string', 'string'], opcodeScope);
-opcodeScope.put('any', new Box_1.default(new Type_1.default('any', true, new Interface_1.default('any'))));
+opcodeScope.put('any', new Box_1.default(new Type_1.default('any', true, new Interface_1.default('any')), Type_1.default.builtinTypes.type));
 Type_1.default.builtinTypes['Array'].solidify(['any'], opcodeScope);
 Type_1.default.builtinTypes['Map'].solidify(['any', 'any'], opcodeScope);
 Type_1.default.builtinTypes['KeyVal'].solidify(['any', 'any'], opcodeScope);
 Type_1.default.builtinTypes['Array'].solidify(['KeyVal<any, any>'], opcodeScope);
-opcodeScope.put("start", new Box_1.default(new Event_1.default("_start", Type_1.default.builtinTypes.void, true), true));
-const t = (str) => opcodeScope.get(str).typeval;
+opcodeScope.put("start", new Box_1.default(new Event_1.default("_start", Type_1.default.builtinTypes.void, true), Type_1.default.builtinTypes.Event));
+const t = (str) => opcodeScope.get(str).val;
 // opcode declarations
 const addopcodes = (opcodes) => {
     const opcodeNames = Object.keys(opcodes);
@@ -13747,7 +13528,7 @@ const addopcodes = (opcodes) => {
                 },
             };
             // Add each opcode
-            opcodeScope.put(opcodeName, new Box_1.default([opcodeObj], true));
+            opcodeScope.put(opcodeName, new Box_1.default([opcodeObj], Type_1.default.builtinTypes['function']));
         }
         else {
             const opcodeObj = {
@@ -13804,7 +13585,7 @@ const addopcodes = (opcodes) => {
                 },
             };
             // Add each opcode
-            opcodeScope.put(opcodeName, new Box_1.default([opcodeObj], true));
+            opcodeScope.put(opcodeName, new Box_1.default([opcodeObj], Type_1.default.builtinTypes['function']));
         }
     });
 };

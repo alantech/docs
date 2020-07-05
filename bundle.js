@@ -9964,56 +9964,16 @@ const Type_1 = require("./Type");
 const UserFunction_1 = require("./UserFunction");
 const ln_1 = require("../ln");
 class Microstatement {
-    // TODO: Replace fake multiple dispatch with default arg values
-    constructor(...args) {
-        if (args.length === 5) {
-            // "Normal" microstatement
-            this.statementType = args[0];
-            this.scope = args[1];
-            this.pure = args[2];
-            this.outputName = args[3];
-            this.alias = "";
-            this.outputType = Type_1.default.builtinTypes.void;
-            this.inputNames = [];
-            this.fns = [];
-            this.closureStatements = args[4];
-        }
-        else if (args.length === 8) {
-            // Aliasing microstatement (must be REREF)
-            this.statementType = args[0];
-            this.scope = args[1];
-            this.pure = args[2];
-            this.outputName = args[3];
-            this.alias = args[4];
-            this.outputType = args[5];
-            this.inputNames = args[6];
-            this.fns = args[7];
-            this.closureStatements = [];
-        }
-        else if (args.length === 7) {
-            // Void-returning closure
-            this.statementType = args[0];
-            this.scope = args[1];
-            this.pure = args[2];
-            this.outputName = args[3];
-            this.alias = "";
-            this.outputType = args[4];
-            this.inputNames = args[5];
-            this.fns = args[6];
-            this.closureStatements = [];
-        }
-        else if (args.length === 6) {
-            // Non-void returning closure
-            this.statementType = args[0];
-            this.scope = args[1];
-            this.pure = args[2];
-            this.outputName = args[3];
-            this.alias = "";
-            this.outputType = args[4];
-            this.inputNames = [];
-            this.fns = [];
-            this.closureStatements = args[5];
-        }
+    constructor(statementType, scope, pure, outputName, outputType = Type_1.default.builtinTypes.void, inputNames = [], fns = [], alias = '', closureStatements = []) {
+        this.statementType = statementType;
+        this.scope = scope;
+        this.pure = pure;
+        this.outputName = outputName;
+        this.outputType = outputType;
+        this.inputNames = inputNames;
+        this.fns = fns;
+        this.alias = alias;
+        this.closureStatements = closureStatements;
     }
     toString() {
         let outString = "";
@@ -10665,7 +10625,7 @@ class Microstatement {
         microstatements.splice(len, newlen - len);
         const constName = "_" + uuid_1.v4().replace(/-/g, "_");
         microstatements.push(new Microstatement(StatementType_1.default.CLOSURE, scope, true, // TODO: Figure out if this is true or not
-        constName, Type_1.default.builtinTypes['function'], innerMicrostatements));
+        constName, Type_1.default.builtinTypes['function'], [], [], '', innerMicrostatements));
     }
     static closureFromBlocklikesAst(blocklikesAst, // TODO: Eliminate ANTLR
     scope, microstatements) {
@@ -10689,7 +10649,7 @@ class Microstatement {
             let innerMicrostatements = [];
             closureFn.microstatementInlining([], scope, innerMicrostatements);
             microstatements.push(new Microstatement(StatementType_1.default.CLOSURE, scope, true, // Guaranteed true in this case, it's not really a closure
-            constName, innerMicrostatements));
+            constName, Type_1.default.builtinTypes.void, [], [], '', innerMicrostatements));
         }
         else {
             let len = microstatements.length;
@@ -10713,7 +10673,7 @@ class Microstatement {
             const innerMicrostatements = microstatements.slice(len, newlen);
             microstatements.splice(len, newlen - len);
             microstatements.push(new Microstatement(StatementType_1.default.CLOSURE, scope, true, // Guaranteed true in this case, it's not really a closure
-            constName, innerMicrostatements));
+            constName, Type_1.default.builtinTypes.void, [], [], '', innerMicrostatements));
         }
     }
     static fromEmitsAst(emitsAst, // TODO: Eliminate ANTLR
@@ -10783,7 +10743,7 @@ class Microstatement {
         else {
             // Otherwise, create a microstatement with no value
             const constName = "_" + uuid_1.v4().replace(/-/g, "_");
-            microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, scope.deepGet("void"), ["void"], null));
+            microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, Type_1.default.builtinTypes.void, ["void"], null));
         }
     }
     static fromCallsAst(callsAst, // TODO: Eliminate ANTLR
@@ -11279,7 +11239,7 @@ class Microstatement {
                 // This is a terminating condition for the microstatements, though
                 microstatements.push(blankLet);
             }
-            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, letName, letAlias, type, [], []));
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, letName, type, [], [], letAlias));
             return;
         }
         // An assignable may either be a basic constant or could be broken down into other microstatements
@@ -11300,7 +11260,7 @@ class Microstatement {
                 val = Microstatement.fromVarName(val.alias, microstatements);
             }
             val.statementType = StatementType_1.default.LETDEC;
-            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, val.outputName, letAlias, val.outputType, [], []));
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, val.outputName, val.outputType, [], [], letAlias));
             return;
         }
         if (letdeclarationAst.assignments().assignables().basicassignables() != null) {
@@ -11314,7 +11274,7 @@ class Microstatement {
                 val = Microstatement.fromVarName(val.alias, microstatements);
             }
             val.statementType = StatementType_1.default.LETDEC;
-            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, val.outputName, letAlias, val.outputType, [], []));
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, val.outputName, val.outputType, [], [], letAlias));
             return;
         }
     }
@@ -11360,7 +11320,7 @@ class Microstatement {
             const weirdConst = new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, Type_1.default.builtinTypes.void, ["void"], []);
             // This is a terminating condition for the microstatements, though
             microstatements.push(weirdConst);
-            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, constName, constAlias, Type_1.default.builtinTypes.void, [], []));
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, constName, Type_1.default.builtinTypes.void, [], [], constAlias));
             return;
         }
         // An assignable may either be a basic constant or could be broken down into other microstatements
@@ -11374,7 +11334,7 @@ class Microstatement {
             Microstatement.fromWithOperatorsAst(constdeclarationAst.assignments().assignables().withoperators(), scope, microstatements);
             // By definition the last microstatement is the const assignment we care about, so we can just
             // mutate its object to rename the output variable name to the name we need instead.
-            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, microstatements[microstatements.length - 1].outputName, constAlias, microstatements[microstatements.length - 1].outputType, [], []));
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, microstatements[microstatements.length - 1].outputName, microstatements[microstatements.length - 1].outputType, [], [], constAlias));
             return;
         }
         if (constdeclarationAst.assignments().assignables().basicassignables() != null) {
@@ -11382,7 +11342,7 @@ class Microstatement {
             // The same rule as above, the last microstatement is already a const assignment for the value
             // that we care about, so just rename its variable to the one that will be expected by other
             // code.
-            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, microstatements[microstatements.length - 1].outputName, constAlias, microstatements[microstatements.length - 1].outputType, [], []));
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, microstatements[microstatements.length - 1].outputName, microstatements[microstatements.length - 1].outputType, [], [], constAlias));
             return;
         }
     }
@@ -12109,29 +12069,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Type = exports.Interface = exports.OperatorType = exports.FunctionType = void 0;
 const Operator_1 = require("./Operator");
 class FunctionType {
-    constructor(...args) {
-        if (args.length === 1) {
-            this.functionname = null;
-            this.args = [];
-            this.returnType = args[0];
-        }
-        else if (args.length === 2) {
-            if (typeof args[0] === "string") {
-                this.functionname = args[0];
-                this.args = [];
-                this.returnType = args[1];
-            }
-            else if (args[0] instanceof Array) {
-                this.functionname = null;
-                this.args = args[0];
-                this.returnType = args[1];
-            }
-        }
-        else if (args.length === 3) {
-            this.functionname = args[0];
-            this.args = args[1];
-            this.returnType = args[2];
-        }
+    constructor(functionname = null, args = [], returnType) {
+        this.functionname = functionname;
+        this.args = args;
+        this.returnType = returnType;
     }
 }
 exports.FunctionType = FunctionType;
@@ -12241,7 +12182,7 @@ class Interface {
         // operator types.
         const interfacename = interfaceAst.VARNAME().getText();
         let iface = new Interface(interfacename);
-        const ifaceType = new Type(interfacename, false, iface);
+        const ifaceType = new Type(interfacename, false, false, {}, {}, null, null, iface);
         scope.put(interfacename, ifaceType);
         // Now, insert the actual declarations of the interface, if there are any (if there are none,
         // it will provide only as much as a type generic -- you can set it to a variable and return it
@@ -12313,88 +12254,16 @@ class Interface {
 exports.Interface = Interface;
 let Type = /** @class */ (() => {
     class Type {
-        constructor(...args) {
-            // Simulate multiple dispatch by duck typing the args
-            // TODO: Switch this to arguments with default values
-            if (args.length === 1) {
-                this.typename = args[0];
-                this.builtIn = false;
-                this.isGenericStandin = false;
-                this.properties = {};
-                this.generics = {};
-                this.originalType = null;
-                this.unionTypes = null;
-                this.iface = null;
-                this.alias = null;
-            }
-            else if (args.length === 2) {
-                this.typename = args[0];
-                this.builtIn = args[1];
-                this.isGenericStandin = false;
-                this.properties = {};
-                this.generics = {};
-                this.originalType = null;
-                this.unionTypes = null;
-                this.iface = null;
-                this.alias = null;
-            }
-            else if (args.length === 3) {
-                if (typeof args[2] === "boolean") {
-                    this.typename = args[0];
-                    this.builtIn = args[1];
-                    this.isGenericStandin = args[2];
-                    this.properties = {};
-                    this.generics = {};
-                    this.originalType = null;
-                    this.unionTypes = null;
-                    this.iface = null;
-                    this.alias = null;
-                }
-                else if (args[2] instanceof Interface) {
-                    this.typename = args[0];
-                    this.builtIn = args[1];
-                    this.isGenericStandin = false;
-                    this.properties = {};
-                    this.generics = {};
-                    this.originalType = null;
-                    this.unionTypes = null;
-                    this.iface = args[2];
-                    this.alias = null;
-                }
-                else if (args[2] instanceof Array) {
-                    this.typename = args[0];
-                    this.builtIn = args[1];
-                    this.isGenericStandin = false;
-                    this.properties = {};
-                    this.generics = {};
-                    this.originalType = null;
-                    this.unionTypes = args[2];
-                    this.iface = null;
-                    this.alias = null;
-                }
-                else if (args[2] instanceof Object) {
-                    this.typename = args[0];
-                    this.builtIn = args[1];
-                    this.isGenericStandin = false;
-                    this.properties = args[2];
-                    this.generics = {};
-                    this.originalType = null;
-                    this.unionTypes = null;
-                    this.iface = null;
-                    this.alias = null;
-                }
-            }
-            else if (args.length === 4) {
-                this.typename = args[0];
-                this.builtIn = args[1];
-                this.isGenericStandin = false;
-                this.properties = args[2];
-                this.generics = args[3];
-                this.originalType = null;
-                this.unionTypes = null;
-                this.iface = null;
-                this.alias = null;
-            }
+        constructor(typename, builtIn = false, isGenericStandin = false, properties = {}, generics = {}, originalType = null, unionTypes = null, iface = null, alias = null) {
+            this.typename = typename;
+            this.builtIn = builtIn;
+            this.isGenericStandin = isGenericStandin;
+            this.properties = properties;
+            this.generics = generics;
+            this.originalType = originalType;
+            this.unionTypes = unionTypes;
+            this.iface = iface;
+            this.alias = alias;
         }
         toString() {
             // TODO: Handle interfaces union types appropriately
@@ -12552,23 +12421,23 @@ let Type = /** @class */ (() => {
         float64: new Type("float64", true),
         bool: new Type("bool", true),
         string: new Type("string", true),
-        Error: new Type("Error", true, {
+        Error: new Type("Error", true, false, {
             message: new Type("string", true, true),
             code: new Type("int64", true, true),
         }),
-        "Array": new Type("Array", true, {
+        "Array": new Type("Array", true, false, {
             records: new Type("V", true, true),
         }, {
             V: 0,
         }),
-        Map: new Type("Map", true, {
+        Map: new Type("Map", true, false, {
             key: new Type("K", true, true),
             value: new Type("V", true, true),
         }, {
             K: 0,
             V: 1,
         }),
-        KeyVal: new Type("KeyVal", true, {
+        KeyVal: new Type("KeyVal", true, false, {
             key: new Type("K", true, true),
             value: new Type("V", true, true),
         }, {
@@ -12577,7 +12446,7 @@ let Type = /** @class */ (() => {
         }),
         "function": new Type("function", true),
         operator: new Type("operator", true),
-        Event: new Type("Event", true, {
+        Event: new Type("Event", true, false, {
             type: new Type("E", true, true),
         }, {
             E: 0,
@@ -12717,7 +12586,7 @@ class UserFunction {
                             }
                             unionTypes.push(othertypeBox);
                         }
-                        getArgType = new Type_1.default(argsAst.argtype(i).getText(), false, unionTypes);
+                        getArgType = new Type_1.default(argsAst.argtype(i).getText(), false, false, {}, {}, null, unionTypes);
                     }
                 }
                 if (!(getArgType instanceof Type_1.default)) {
@@ -12784,7 +12653,7 @@ class UserFunction {
                     }
                     unionTypes.push(othertypeBox);
                 }
-                returnType = new Type_1.default(functionAst.argtype().getText(), false, unionTypes);
+                returnType = new Type_1.default(functionAst.argtype().getText(), false, false, {}, {}, null, unionTypes);
             }
         }
         else {
@@ -13076,7 +12945,7 @@ class UserFunction {
             // Instead of copying the relevant data, define a reference to where the data is located with
             // an alias for the function's expected variable name so statements referencing the argument
             // can be rewritten to use the new variable name.
-            microstatements.push(new Microstatement_1.default(StatementType_1.default.REREF, scope, true, realArgName, internalNames[i], inputTypes[i], [], []));
+            microstatements.push(new Microstatement_1.default(StatementType_1.default.REREF, scope, true, realArgName, inputTypes[i], [], [], internalNames[i]));
         }
         for (const s of fn.statements) {
             Microstatement_1.default.fromStatement(s, microstatements);
@@ -13467,7 +13336,7 @@ const addBuiltIn = (name) => {
 ].map(addBuiltIn));
 Type_1.Type.builtinTypes['Array'].solidify(['string'], opcodeScope);
 Type_1.Type.builtinTypes['Map'].solidify(['string', 'string'], opcodeScope);
-opcodeScope.put('any', new Type_1.Type('any', true, new Type_1.Interface('any')));
+opcodeScope.put('any', new Type_1.Type('any', true, false, {}, {}, null, null, new Type_1.Interface('any')));
 Type_1.Type.builtinTypes['Array'].solidify(['any'], opcodeScope);
 Type_1.Type.builtinTypes['Map'].solidify(['any', 'any'], opcodeScope);
 Type_1.Type.builtinTypes['KeyVal'].solidify(['any', 'any'], opcodeScope);

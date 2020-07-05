@@ -35,7 +35,7 @@ module.exports = {
   },
 }
 
-},{"../dist/lntoamm/Ast":10,"../dist/lntoamm/Module":14,"../dist/lntoamm/Scope":16,"../dist/lntoamm/opcodes":22,"./stdlibs.json":2}],2:[function(require,module,exports){
+},{"../dist/lntoamm/Ast":10,"../dist/lntoamm/Module":13,"../dist/lntoamm/Scope":15,"../dist/lntoamm/opcodes":21,"./stdlibs.json":2}],2:[function(require,module,exports){
 module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out)\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\"\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status)\n\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n)","deps.ln":"from @std/app import start, print\nfrom @std/cmd import exec\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\nexport fn add(remote: string) {\n  // TODO implement proper error handling\n  const parts = remote.split(':')\n  const repo = parts[length(parts)-1]\n  const repoParts = repo.split('.git')\n  const repoName = repoParts[0]\n  const dest = '/dependencies/' + repoName\n  exec('rm -rf .' + dest)\n  exec('git clone ' + remote + ' .' + dest)\n  exec('rm -rf .' + dest + '/.git')\n}\n\n// Emit the `install` event on app `start`\non start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  exec('rm -rf dependencies')\n  exec('mkdir dependencies')\n  emit install\n}\n","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Default Interfaces\nexport interface any {}\nexport interface Stringifiable {\n  toString(Stringifiable): string\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n)\nexport fn toFloat64(n: int16) = i16f64(n)\nexport fn toFloat64(n: int32) = i32f64(n)\nexport fn toFloat64(n: int64) = i64f64(n)\nexport fn toFloat64(n: float32) = f32f64(n)\nexport fn toFloat64(n: float64) = n\nexport fn toFloat64(n: string) = strf64(n)\nexport fn toFloat64(n: bool) = boolf64(n)\n\nexport fn toFloat32(n: int8) = i8f32(n)\nexport fn toFloat32(n: int16) = i16f32(n)\nexport fn toFloat32(n: int32) = i32f32(n)\nexport fn toFloat32(n: int64) = i64f32(n)\nexport fn toFloat32(n: float32) = n\nexport fn toFloat32(n: float64) = f64f32(n)\nexport fn toFloat32(n: string) = strf32(n)\nexport fn toFloat32(n: bool) = boolf32(n)\n\nexport fn toInt64(n: int8) = i8i64(n)\nexport fn toInt64(n: int16) = i16i64(n)\nexport fn toInt64(n: int32) = i32i64(n)\nexport fn toInt64(n: int64) = n\nexport fn toInt64(n: float32) = f32i64(n)\nexport fn toInt64(n: float64) = f64i64(n)\nexport fn toInt64(n: string) = stri64(n)\nexport fn toInt64(n: bool) = booli64(n)\n\nexport fn toInt32(n: int8) = i8i32(n)\nexport fn toInt32(n: int16) = i16i32(n)\nexport fn toInt32(n: int32) = n\nexport fn toInt32(n: int64) = i64i32(n)\nexport fn toInt32(n: float32) = f32i32(n)\nexport fn toInt32(n: float64) = f64i32(n)\nexport fn toInt32(n: string) = stri32(n)\nexport fn toInt32(n: bool) = booli32(n)\n\nexport fn toInt16(n: int8) = i8i16(n)\nexport fn toInt16(n: int16) = n\nexport fn toInt16(n: int32) = i32i16(n)\nexport fn toInt16(n: int64) = i64i16(n)\nexport fn toInt16(n: float32) = f32i16(n)\nexport fn toInt16(n: float64) = f64i16(n)\nexport fn toInt16(n: string) = stri16(n)\nexport fn toInt16(n: bool) = booli16(n)\n\nexport fn toInt8(n: int8) = n\nexport fn toInt8(n: int16) = i16i8(n)\nexport fn toInt8(n: int32) = i32i8(n)\nexport fn toInt8(n: int64) = i64i8(n)\nexport fn toInt8(n: float32) = f32i8(n)\nexport fn toInt8(n: float64) = f64i8(n)\nexport fn toInt8(n: string) = stri8(n)\nexport fn toInt8(n: bool) = booli8(n)\n\nexport fn toBool(n: int8) = i8bool(n)\nexport fn toBool(n: int16) = i16bool(n)\nexport fn toBool(n: int32) = i32bool(n)\nexport fn toBool(n: int64) = i64bool(n)\nexport fn toBool(n: float32) = f32bool(n)\nexport fn toBool(n: float64) = f64bool(n)\nexport fn toBool(n: string) = strbool(n)\nexport fn toBool(n: bool) = n\n\nexport fn toString(n: int8) = i8str(n)\nexport fn toString(n: int16) = i16str(n)\nexport fn toString(n: int32) = i32str(n)\nexport fn toString(n: int64) = i64str(n)\nexport fn toString(n: float32) = f32str(n)\nexport fn toString(n: float64) = f64str(n)\nexport fn toString(n: string) = n\nexport fn toString(n: bool) = boolstr(n)\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b)\nexport fn add(a: int16, b: int16) = addi16(a, b)\nexport fn add(a: int32, b: int32) = addi32(a, b)\nexport fn add(a: int64, b: int64) = addi64(a, b)\nexport fn add(a: float32, b: float32) = addf32(a, b)\nexport fn add(a: float64, b: float64) = addf64(a, b)\n\nexport fn sub(a: int8, b: int8) = subi8(a, b)\nexport fn sub(a: int16, b: int16) = subi16(a, b)\nexport fn sub(a: int32, b: int32) = subi32(a, b)\nexport fn sub(a: int64, b: int64) = subi64(a, b)\nexport fn sub(a: float32, b: float32) = subf32(a, b)\nexport fn sub(a: float64, b: float64) = subf64(a, b)\n\nexport fn negate(n: int8) = negi8(n)\nexport fn negate(n: int16) = negi16(n)\nexport fn negate(n: int32) = negi32(n)\nexport fn negate(n: int64) = negi64(n)\nexport fn negate(n: float32) = negf32(n)\nexport fn negate(n: float64) = negf64(n)\n\nexport fn mul(a: int8, b: int8) = muli8(a, b)\nexport fn mul(a: int16, b: int16) = muli16(a, b)\nexport fn mul(a: int32, b: int32) = muli32(a, b)\nexport fn mul(a: int64, b: int64) = muli64(a, b)\nexport fn mul(a: float32, b: float32) = mulf32(a, b)\nexport fn mul(a: float64, b: float64) = mulf64(a, b)\n\nexport fn div(a: int8, b: int8) = divi8(a, b)\nexport fn div(a: int16, b: int16) = divi16(a, b)\nexport fn div(a: int32, b: int32) = divi32(a, b)\nexport fn div(a: int64, b: int64) = divi64(a, b)\nexport fn div(a: float32, b: float32) = divf32(a, b)\nexport fn div(a: float64, b: float64) = divf64(a, b)\n\nexport fn mod(a: int8, b: int8) = modi8(a, b)\nexport fn mod(a: int16, b: int16) = modi16(a, b)\nexport fn mod(a: int32, b: int32) = modi32(a, b)\nexport fn mod(a: int64, b: int64) = modi64(a, b)\n\nexport fn pow(a: int8, b: int8) = powi8(a, b)\nexport fn pow(a: int16, b: int16) = powi16(a, b)\nexport fn pow(a: int32, b: int32) = powi32(a, b)\nexport fn pow(a: int64, b: int64) = powi64(a, b)\nexport fn pow(a: float32, b: float32) = powf32(a, b)\nexport fn pow(a: float64, b: float64) = powf64(a, b)\n\nexport fn sqrt(n: float32) = sqrtf32(n)\nexport fn sqrt(n: float64) = sqrtf64(n)\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b)\nexport fn and(a: int16, b: int16) = andi16(a, b)\nexport fn and(a: int32, b: int32) = andi32(a, b)\nexport fn and(a: int64, b: int64) = andi64(a, b)\nexport fn and(a: bool, b: bool) = andbool(a, b)\n\nexport fn or(a: int8, b: int8) = ori8(a, b)\nexport fn or(a: int16, b: int16) = ori16(a, b)\nexport fn or(a: int32, b: int32) = ori32(a, b)\nexport fn or(a: int64, b: int64) = ori64(a, b)\nexport fn or(a: bool, b: bool) = orbool(a, b)\n\nexport fn xor(a: int8, b: int8) = xori8(a, b)\nexport fn xor(a: int16, b: int16) = xori16(a, b)\nexport fn xor(a: int32, b: int32) = xori32(a, b)\nexport fn xor(a: int64, b: int64) = xori64(a, b)\nexport fn xor(a: bool, b: bool) = xorbool(a, b)\n\nexport fn not(n: int8) = noti8(n)\nexport fn not(n: int16) = noti16(n)\nexport fn not(n: int32) = noti32(n)\nexport fn not(n: int64) = noti64(n)\nexport fn not(n: bool) = notbool(n)\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b)\nexport fn nand(a: int16, b: int16) = nandi16(a, b)\nexport fn nand(a: int32, b: int32) = nandi32(a, b)\nexport fn nand(a: int64, b: int64) = nandi64(a, b)\nexport fn nand(a: bool, b: bool) = nandboo(a, b)\n\nexport fn nor(a: int8, b: int8) = nori8(a, b)\nexport fn nor(a: int16, b: int16) = nori16(a, b)\nexport fn nor(a: int32, b: int32) = nori32(a, b)\nexport fn nor(a: int64, b: int64) = nori64(a, b)\nexport fn nor(a: bool, b: bool) = norbool(a, b)\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b)\nexport fn xnor(a: int16, b: int16) = xnori16(a, b)\nexport fn xnor(a: int32, b: int32) = xnori32(a, b)\nexport fn xnor(a: int64, b: int64) = xnori64(a, b)\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b)\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b)\nexport fn eq(a: int16, b: int16) = eqi16(a, b)\nexport fn eq(a: int32, b: int32) = eqi32(a, b)\nexport fn eq(a: int64, b: int64) = eqi64(a, b)\nexport fn eq(a: float32, b: float32) = eqf32(a, b)\nexport fn eq(a: float64, b: float64) = eqf64(a, b)\nexport fn eq(a: string, b: string) = eqstr(a, b)\nexport fn eq(a: bool, b: bool) = eqbool(a, b)\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b)\nexport fn neq(a: int16, b: int16) = neqi16(a, b)\nexport fn neq(a: int32, b: int32) = neqi32(a, b)\nexport fn neq(a: int64, b: int64) = neqi64(a, b)\nexport fn neq(a: float32, b: float32) = neqf32(a, b)\nexport fn neq(a: float64, b: float64) = neqf64(a, b)\nexport fn neq(a: string, b: string) = neqstr(a, b)\nexport fn neq(a: bool, b: bool) = neqbool(a, b)\n\nexport fn lt(a: int8, b: int8) = lti8(a, b)\nexport fn lt(a: int16, b: int16) = lti16(a, b)\nexport fn lt(a: int32, b: int32) = lti32(a, b)\nexport fn lt(a: int64, b: int64) = lti64(a, b)\nexport fn lt(a: float32, b: float32) = ltf32(a, b)\nexport fn lt(a: float64, b: float64) = ltf64(a, b)\nexport fn lt(a: string, b: string) = ltstr(a, b)\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b)\nexport fn lte(a: int16, b: int16) = ltei16(a, b)\nexport fn lte(a: int32, b: int32) = ltei32(a, b)\nexport fn lte(a: int64, b: int64) = ltei64(a, b)\nexport fn lte(a: float32, b: float32) = ltef32(a, b)\nexport fn lte(a: float64, b: float64) = ltef64(a, b)\nexport fn lte(a: string, b: string) = ltestr(a, b)\n\nexport fn gt(a: int8, b: int8) = gti8(a, b)\nexport fn gt(a: int16, b: int16) = gti16(a, b)\nexport fn gt(a: int32, b: int32) = gti32(a, b)\nexport fn gt(a: int64, b: int64) = gti64(a, b)\nexport fn gt(a: float32, b: float32) = gtf32(a, b)\nexport fn gt(a: float64, b: float64) = gtf64(a, b)\nexport fn gt(a: string, b: string) = gtstr(a, b)\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b)\nexport fn gte(a: int16, b: int16) = gtei16(a, b)\nexport fn gte(a: int32, b: int32) = gtei32(a, b)\nexport fn gte(a: int64, b: int64) = gtei64(a, b)\nexport fn gte(a: float32, b: float32) = gtef32(a, b)\nexport fn gte(a: float64, b: float64) = gtef64(a, b)\nexport fn gte(a: string, b: string) = gtestr(a, b)\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n))\nexport fn wait(n: int16) = waitop(i16i64(n))\nexport fn wait(n: int32) = waitop(i32i64(n))\nexport fn wait(n: int64) = waitop(n)\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b)\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n)\nexport fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t)\nexport fn length(s: string) = lenstr(s)\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b)\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n)\nexport fn index(arr: Array<any>, val: any) = indarrv(arr, val)\nexport fn index(arr: Array<any>, val: int8) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: int16) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: int32) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: int64) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: float32) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: float64) = indarrf(arr, val)\nexport fn index(arr: Array<any>, val: bool) = indarrf(arr, val)\nexport fn length(arr: Array<any>) = lenarr(arr)\nexport fn push(arr: Array<any>, val: any) {\n  pusharr(arr, val, 0)\n  return arr\n}\nexport fn push(arr: Array<any>, val: int8) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: int16) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: int32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: int64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: float32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: float64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<any>, val: bool) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn pop(arr: Array<any>): any = poparr(arr, val)\nexport each // opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport map // opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport reduce // opcode with signature `fn reduce(arr: Array<any>, cb: function): any`\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): any`\nexport every // opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport some // opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\n\n// Map functions\nexport keyVal // opcode with signature `fn keyVal(map: Map<any, any>): Array<KeyVal<any, any>>`\nexport keys // opcode with signature `fn keys(map: Map<any, any>): Array<any>`\nexport values // opcode with signature `fn values(map: Map<any, any>): Array<any>`\n\n// Ternary functions\nexport fn pair(trueval: any, falseval: any) = new Array<any> [ trueval, falseval ]\nexport fn cond(c: bool, options: Array<any>) = options[1 - c.toInt64()]\nexport fn cond(c: bool, optional: function): void = condfn(c, optional)\n\n// \"assign\" function useful for hoisting assignments\nexport fn assign(a: int8) = copyi8(a)\nexport fn assign(a: int16) = copyi16(a)\nexport fn assign(a: int32) = copyi32(a)\nexport fn assign(a: int64) = copyi64(a)\nexport fn assign(a: float32) = copyf32(a)\nexport fn assign(a: float64) = copyf64(a)\nexport fn assign(a: bool) = copybool(a)\nexport fn assign(a: string) = copystr(a)\nexport fn assign(a: Array<any>) = copyarr(a)\n\n// Operator declarations\nexport infix add as + precedence 2\nexport infix concat as + precedence 2\nexport infix sub as - precedence 2\nexport prefix negate as - precedence 1\nexport infix mul as * precedence 3\nexport infix repeat as * precedence 3\nexport infix div as / precedence 3\nexport infix split as / precedence 3\nexport infix mod as % precedence 3\nexport infix template as % precedence 3\nexport infix pow as ** precedence 4\nexport infix and as & precedence 3\nexport infix and as && precedence 3\nexport infix or as | precedence 2\nexport infix or as || precedence 2\nexport infix xor as ^ precedence 2\nexport prefix not as ! precedence 4\nexport infix nand as !& precedence 3\nexport infix nor as !| precedence 2\nexport infix xnor as !^ precedence 2\nexport infix eq as == precedence 1\nexport infix neq as != precedence 1\nexport infix lt as < precedence 1\nexport infix lte as <= precedence 1\nexport infix gt as > precedence 1\nexport infix gte as >= precedence 1\nexport infix matches as ~ precedence 1\nexport infix index as @ precedence 1\nexport prefix length as # precedence 4\nexport prefix trim as ` precedence 4\nexport infix pair as : precedence 5\nexport infix push as : precedence 6\nexport infix cond as ? precedence 0\n\n"}
 
 },{}],3:[function(require,module,exports){
@@ -190,7 +190,7 @@ const amm = lp_1.NamedAnd.build({
 });
 exports.default = amm;
 
-},{"./lp":23}],4:[function(require,module,exports){
+},{"./lp":22}],4:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -619,7 +619,7 @@ exports.fromString = (str) => {
 };
 
 }).call(this,require('_process'))
-},{"./amm":3,"./lp":23,"_process":75}],5:[function(require,module,exports){
+},{"./amm":3,"./lp":22,"_process":74}],5:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -727,7 +727,7 @@ exports.fromString = (str) => {
 };
 
 }).call(this,require('_process'))
-},{"./amm":3,"./lp":23,"_process":75,"alan-js-runtime":"alan-js-runtime"}],6:[function(require,module,exports){
+},{"./amm":3,"./lp":22,"_process":74,"alan-js-runtime":"alan-js-runtime"}],6:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.8
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -1053,7 +1053,7 @@ LnLexer.prototype.ruleNames = ["IMPORT", "FROM", "TYPE", "FN", "EVENT",
 LnLexer.prototype.grammarFileName = "Ln.g4";
 exports.LnLexer = LnLexer;
 
-},{"antlr4/index":66}],7:[function(require,module,exports){
+},{"antlr4/index":65}],7:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.8
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -1462,7 +1462,7 @@ LnListener.prototype.exitArrayaccess = function (ctx) {
 };
 exports.LnListener = LnListener;
 
-},{"antlr4/index":66}],8:[function(require,module,exports){
+},{"antlr4/index":65}],8:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.8
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -9693,7 +9693,7 @@ LnParser.prototype.arrayaccess = function () {
 };
 exports.LnParser = LnParser;
 
-},{"./LnListener":7,"antlr4/index":66}],9:[function(require,module,exports){
+},{"./LnListener":7,"antlr4/index":65}],9:[function(require,module,exports){
 module.exports = {
     LnLexer: require('./LnLexer').LnLexer,
     LnParser: require('./LnParser').LnParser,
@@ -9914,21 +9914,11 @@ exports.statementAstFromString = (s) => {
 };
 
 }).call(this,require('_process'))
-},{"../ln":9,"_process":75,"antlr4":66,"fs":72,"path":74}],11:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-class Box {
-    constructor(val, type) {
-        this.val = val;
-        this.type = type;
-    }
-}
-exports.default = Box;
-
-},{}],12:[function(require,module,exports){
+},{"../ln":9,"_process":74,"antlr4":65,"fs":71,"path":73}],11:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const Type_1 = require("./Type");
 let Event = /** @class */ (() => {
     class Event {
         constructor(name, type, builtIn) {
@@ -9943,16 +9933,15 @@ let Event = /** @class */ (() => {
         }
         static fromAst(eventAst, scope) {
             const name = eventAst.VARNAME().getText();
-            const boxedVal = scope.deepGet(eventAst.varn().getText());
-            if (boxedVal === null) {
+            const type = scope.deepGet(eventAst.varn().getText());
+            if (!type) {
                 console.error("Could not find specified type: " + eventAst.varn().getText());
                 process.exit(-8);
             }
-            else if (boxedVal.type.typename !== "type") {
+            else if (!(type instanceof Type_1.default)) {
                 console.error(eventAst.varn().getText() + " is not a type");
                 process.exit(-9);
             }
-            const type = boxedVal.val;
             return new Event(name, type, false);
         }
     }
@@ -9962,12 +9951,14 @@ let Event = /** @class */ (() => {
 exports.default = Event;
 
 }).call(this,require('_process'))
-},{"_process":75}],13:[function(require,module,exports){
+},{"./Type":18,"_process":74}],12:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const uuid_1 = require("uuid");
-const Box_1 = require("./Box");
+const Event_1 = require("./Event");
+const Operator_1 = require("./Operator");
+const Scope_1 = require("./Scope");
 const StatementType_1 = require("./StatementType");
 const Type_1 = require("./Type");
 const UserFunction_1 = require("./UserFunction");
@@ -10146,7 +10137,7 @@ class Microstatement {
                         microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, addrName, Type_1.default.builtinTypes['int64'], [`${fieldNum}`], []));
                         // Insert a `copyfrom` opcode.
                         const opcodes = require('./opcodes').default;
-                        opcodes.exportScope.get('copyfrom').val[0].microstatementInlining([original.outputName, addrName], scope, microstatements);
+                        opcodes.exportScope.get('copyfrom')[0].microstatementInlining([original.outputName, addrName], scope, microstatements);
                         // We'll need a reference to this for later
                         const typeRecord = original;
                         // Set the original to this newly-generated microstatement
@@ -10194,7 +10185,7 @@ class Microstatement {
                     }
                     // Insert a `copyfrom` opcode.
                     const opcodes = require('./opcodes').default;
-                    opcodes.exportScope.get('copyfrom').val[0].microstatementInlining([original.outputName, lookup.outputName], scope, microstatements);
+                    opcodes.exportScope.get('copyfrom')[0].microstatementInlining([original.outputName, lookup.outputName], scope, microstatements);
                     // We'll need a reference to this for later
                     const arrayRecord = original;
                     // Set the original to this newly-generated microstatement
@@ -10260,7 +10251,7 @@ class Microstatement {
                     .replace(/^["']/, '').replace(/["']$/, ''));
             }
         }
-        microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, scope.deepGet(constType).val, [constVal], []));
+        microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, scope.deepGet(constType), [constVal], []));
     }
     static fromBasicAssignablesAst(basicAssignablesAst, // TODO: Eliminate ANTLR
     scope, microstatements) {
@@ -10327,11 +10318,11 @@ class Microstatement {
                 let typeBox = null;
                 if (basicAssignablesAst.objectliterals().arrayliteral().othertype()) {
                     typeBox = scope.deepGet(basicAssignablesAst.objectliterals().arrayliteral().othertype().getText().trim());
-                    if (typeBox === null) {
+                    if (!typeBox) {
                         // Try to define it if it's a generic type
                         if (basicAssignablesAst.objectliterals().arrayliteral().othertype().typegenerics()) {
                             const outerTypeBox = scope.deepGet(basicAssignablesAst.objectliterals().arrayliteral().othertype().typename().getText().trim());
-                            if (outerTypeBox === null) {
+                            if (!outerTypeBox) {
                                 console.error(`${basicAssignablesAst.objectliterals().arrayliteral().othertype().getText()}  is not defined`);
                                 console.error(basicAssignablesAst.getText() +
                                     " on line " +
@@ -10340,12 +10331,12 @@ class Microstatement {
                                     basicAssignablesAst.start.column);
                                 process.exit(-105);
                             }
-                            outerTypeBox.val.solidify(basicAssignablesAst.objectliterals().arrayliteral().othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                            outerTypeBox.solidify(basicAssignablesAst.objectliterals().arrayliteral().othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                             ), scope);
                             typeBox = scope.deepGet(basicAssignablesAst.objectliterals().arrayliteral().othertype().getText().trim());
                         }
                     }
-                    if (typeBox.type !== Type_1.default.builtinTypes.type) {
+                    if (!(typeBox instanceof Type_1.default)) {
                         console.error(basicAssignablesAst.objectliterals().arrayliteral().othertype().getText().trim() + " is not a type");
                         console.error(basicAssignablesAst.getText() +
                             " on line " +
@@ -10374,10 +10365,10 @@ class Microstatement {
                 microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, lenName, Type_1.default.builtinTypes['int64'], [`${arrayLiteralContents.length}`], []));
                 // Add the opcode to create a new array with the specified size
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('newarr').val[0].microstatementInlining([lenName], scope, microstatements);
+                opcodes.exportScope.get('newarr')[0].microstatementInlining([lenName], scope, microstatements);
                 // Get the array microstatement and extract the name and insert the correct type
                 const array = microstatements[microstatements.length - 1];
-                array.outputType = typeBox.val;
+                array.outputType = typeBox;
                 // Try to use the "real" type if knowable
                 if (arrayLiteralContents.length > 0) {
                     array.outputType = Type_1.default.builtinTypes['Array'].solidify([arrayLiteralContents[0].outputType.typename], scope);
@@ -10394,7 +10385,7 @@ class Microstatement {
                     microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], [size], []));
                     // Push the value into the array
                     const opcodes = require('./opcodes').default;
-                    opcodes.exportScope.get('pusharr').val[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
+                    opcodes.exportScope.get('pusharr')[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
                 }
                 // REREF the array
                 microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, arrayName, array.outputType, [], []));
@@ -10425,12 +10416,12 @@ class Microstatement {
                                 basicAssignablesAst.start.column);
                             process.exit(-105);
                         }
-                        outerTypeBox.val.solidify(basicAssignablesAst.objectliterals().typeliteral().othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                        outerTypeBox.solidify(basicAssignablesAst.objectliterals().typeliteral().othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                         ), scope);
                         typeBox = scope.deepGet(basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim());
                     }
                 }
-                if (typeBox.type !== Type_1.default.builtinTypes.type) {
+                if (!(typeBox instanceof Type_1.default)) {
                     console.error(basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim() + " is not a type");
                     console.error(basicAssignablesAst.getText() +
                         " on line " +
@@ -10453,7 +10444,7 @@ class Microstatement {
                         process.exit(-109);
                     }
                 }
-                const fields = Object.keys(typeBox.val.properties);
+                const fields = Object.keys(typeBox.properties);
                 let missingFields = [];
                 let foundFields = [];
                 let extraFields = [];
@@ -10500,10 +10491,10 @@ class Microstatement {
                 microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, lenName, Type_1.default.builtinTypes['int64'], [`${fields.length}`], []));
                 // Add the opcode to create a new array with the specified size
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('newarr').val[0].microstatementInlining([lenName], scope, microstatements);
+                opcodes.exportScope.get('newarr')[0].microstatementInlining([lenName], scope, microstatements);
                 // Get the array microstatement and extract the name and insert the correct type
                 const array = microstatements[microstatements.length - 1];
-                array.outputType = typeBox.val;
+                array.outputType = typeBox;
                 const arrayName = array.outputName;
                 // Push the values into the array
                 for (let i = 0; i < arrayLiteralContents.length; i++) {
@@ -10516,7 +10507,7 @@ class Microstatement {
                     microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], [size], []));
                     // Push the value into the array
                     const opcodes = require('./opcodes').default;
-                    opcodes.exportScope.get('pusharr').val[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
+                    opcodes.exportScope.get('pusharr')[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
                 }
                 // REREF the array
                 microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, arrayName, array.outputType, [], []));
@@ -10544,7 +10535,7 @@ class Microstatement {
             if (operatorOrAssignable.operators() != null) {
                 const operator = operatorOrAssignable.operators();
                 const op = scope.deepGet(operator.getText());
-                if (op == null || op.type !== Type_1.default.builtinTypes.operator) {
+                if (op == null || !(op instanceof Array && op[0] instanceof Operator_1.default)) {
                     console.error("Operator " + operator.getText() + " is not defined");
                     process.exit(-34);
                 }
@@ -10553,7 +10544,7 @@ class Microstatement {
             if (operatorOrAssignable.basicassignables() != null) {
                 Microstatement.fromBasicAssignablesAst(operatorOrAssignable.basicassignables(), scope, microstatements);
                 const last = microstatements[microstatements.length - 1];
-                withOperatorsList.push(new Box_1.default(last, Type_1.default.builtinTypes.microstatement));
+                withOperatorsList.push(last);
             }
         }
         // Now to combine these operators and values in the correct order. A compiled language could
@@ -10568,8 +10559,8 @@ class Microstatement {
             let maxOperatorLoc = -1;
             let maxOperatorListLoc = -1;
             for (let i = 0; i < withOperatorsList.length; i++) {
-                if (withOperatorsList[i].type === Type_1.default.builtinTypes.operator) {
-                    const ops = withOperatorsList[i].val;
+                if (withOperatorsList[i] instanceof Array && withOperatorsList[i][0] instanceof Operator_1.default) {
+                    const ops = withOperatorsList[i];
                     let op = null;
                     let operatorListLoc = -1;
                     let operatorPrecedence = -127;
@@ -10591,14 +10582,14 @@ class Microstatement {
                             right = withOperatorsList[i + 1];
                         // Skip over any operator that is followed by another operator as it must be a prefix
                         // operator (or a syntax error, but we'll catch that later)
-                        if (right === null || right.type === Type_1.default.builtinTypes.microstatement) {
+                        if (right === null || right instanceof Microstatement) {
                             for (let j = 0; j < ops.length; j++) {
                                 if (ops[j].precedence > operatorPrecedence &&
-                                    ops[j].applicableFunction(left === null ? // Left is special, if two operators are in a row, this one
+                                    ops[j].applicableFunction(!left ? // Left is special, if two operators are in a row, this one
                                         null : // needs to be a prefix operator for this to work at all
-                                        left.type === Type_1.default.builtinTypes.microstatement ?
-                                            left.val.outputType :
-                                            null, right === null ? null : right.val.outputType, scope) != null) {
+                                        left instanceof Microstatement ?
+                                            left.outputType :
+                                            null, right === null ? null : right.outputType, scope) != null) {
                                     op = ops[j];
                                     operatorListLoc = j;
                                     operatorPrecedence = op.precedence;
@@ -10625,32 +10616,32 @@ class Microstatement {
                 let withOperatorsTranslation = [];
                 for (let i = 0; i < withOperatorsList.length; i++) {
                     const node = withOperatorsList[i];
-                    if (node.type === Type_1.default.builtinTypes.operator) {
-                        withOperatorsTranslation.push(node.val[0].name);
+                    if (node instanceof Array && node[0] instanceof Operator_1.default) {
+                        withOperatorsTranslation.push(node[0].name);
                     }
                     else {
-                        withOperatorsTranslation.push("<" + node.val.outputType.typename + ">");
+                        withOperatorsTranslation.push("<" + node.outputType.typename + ">");
                     }
                 }
                 console.error(withOperatorsTranslation.join(" "));
                 process.exit(-34);
             }
-            const op = withOperatorsList[maxOperatorLoc].val[maxOperatorListLoc];
+            const op = withOperatorsList[maxOperatorLoc][maxOperatorListLoc];
             let realArgNames = [];
             let realArgTypes = [];
             if (!op.isPrefix) {
-                const left = withOperatorsList[maxOperatorLoc - 1].val;
+                const left = withOperatorsList[maxOperatorLoc - 1];
                 realArgNames.push(left.outputName);
                 realArgTypes.push(left.outputType);
             }
-            const right = withOperatorsList[maxOperatorLoc + 1].val;
+            const right = withOperatorsList[maxOperatorLoc + 1];
             realArgNames.push(right.outputName);
             realArgTypes.push(right.outputType);
             UserFunction_1.default
                 .dispatchFn(op.potentialFunctions, realArgTypes, scope)
                 .microstatementInlining(realArgNames, scope, microstatements);
             const last = microstatements[microstatements.length - 1];
-            withOperatorsList[maxOperatorLoc] = new Box_1.default(last, Type_1.default.builtinTypes.microstatement);
+            withOperatorsList[maxOperatorLoc] = last;
             withOperatorsList.splice(maxOperatorLoc + 1, 1);
             if (!op.isPrefix) {
                 withOperatorsList.splice(maxOperatorLoc - 1, 1);
@@ -10685,15 +10676,16 @@ class Microstatement {
         // converted as normal, but with the current length of the microstatements array tracked so they
         // can be pruned back off of the list to be reattached to a closure microstatement type.
         const constName = "_" + uuid_1.v4().replace(/-/g, "_");
-        if (blocklikesAst.varn() != null) { // TODO: Port to fromVarAst
+        if (!!blocklikesAst.varn()) { // TODO: Port to fromVarAst
             const fnToClose = scope.deepGet(blocklikesAst.varn().getText());
-            if (fnToClose == null || fnToClose.type !== Type_1.default.builtinTypes['function']) {
+            if (fnToClose == null ||
+                !(fnToClose instanceof Array && fnToClose[0].microstatementInlining instanceof Function)) {
                 console.error(blocklikesAst.varn().getText() + " is not a function");
                 process.exit(-111);
             }
             // TODO: Revisit this on resolving the appropriate function if multiple match, right now just
             // take the first one.
-            const closureFn = fnToClose.val[0];
+            const closureFn = fnToClose[0];
             let innerMicrostatements = [];
             closureFn.microstatementInlining([], scope, innerMicrostatements);
             microstatements.push(new Microstatement(StatementType_1.default.CLOSURE, scope, true, // Guaranteed true in this case, it's not really a closure
@@ -10731,7 +10723,7 @@ class Microstatement {
             // rewrite the final const assignment as the emit statement.
             Microstatement.fromAssignablesAst(emitsAst.assignables(), scope, microstatements);
             const eventBox = scope.deepGet(emitsAst.varn().getText()); // TODO: Port to fromVarAst when Box is removed
-            if (eventBox.type !== Type_1.default.builtinTypes.Event) {
+            if (!(eventBox instanceof Event_1.default)) {
                 console.error(emitsAst.varn().getText() + " is not an event!");
                 console.error(emitsAst.getText() +
                     " on line " +
@@ -10741,12 +10733,12 @@ class Microstatement {
                 process.exit(-101);
             }
             const last = microstatements[microstatements.length - 1];
-            if (last.outputType != eventBox.val.type &&
-                !eventBox.val.type.castable(last.outputType)) {
+            if (last.outputType != eventBox.type &&
+                !eventBox.type.castable(last.outputType)) {
                 console.error("Attempting to assign a value of type " +
                     last.outputType.typename +
                     " to an event of type " +
-                    eventBox.val.type.typename);
+                    eventBox.type.typename);
                 console.error(emitsAst.getText() +
                     " on line " +
                     emitsAst.start.line +
@@ -10754,12 +10746,12 @@ class Microstatement {
                     emitsAst.start.column);
                 process.exit(-103);
             }
-            microstatements.push(new Microstatement(StatementType_1.default.EMIT, scope, true, eventBox.val.name, eventBox.val.type, [last.outputName], []));
+            microstatements.push(new Microstatement(StatementType_1.default.EMIT, scope, true, eventBox.name, eventBox.type, [last.outputName], []));
         }
         else {
             // Otherwise, create an emit statement with no value
             const eventBox = scope.deepGet(emitsAst.varn().getText()); // TODO: Port to fromVarAst
-            if (eventBox.type !== Type_1.default.builtinTypes.Event) {
+            if (!(eventBox instanceof Event_1.default)) {
                 console.error(emitsAst.varn().getText() + " is not an event!");
                 console.error(emitsAst.getText() +
                     " on line " +
@@ -10768,7 +10760,7 @@ class Microstatement {
                     emitsAst.start.column);
                 process.exit(-102);
             }
-            if (eventBox.val.type != Type_1.default.builtinTypes.void) {
+            if (eventBox.type != Type_1.default.builtinTypes.void) {
                 console.error(emitsAst.varn().getText() + " must have a value emitted to it!");
                 console.error(emitsAst.getText() +
                     " on line " +
@@ -10777,7 +10769,7 @@ class Microstatement {
                     emitsAst.start.column);
                 process.exit(-103);
             }
-            microstatements.push(new Microstatement(StatementType_1.default.EMIT, scope, true, eventBox.val.name, Type_1.default.builtinTypes.void, [], []));
+            microstatements.push(new Microstatement(StatementType_1.default.EMIT, scope, true, eventBox.name, Type_1.default.builtinTypes.void, [], []));
         }
     }
     static fromExitsAst(exitsAst, // TODO: Eliminate ANTLR
@@ -10791,7 +10783,7 @@ class Microstatement {
         else {
             // Otherwise, create a microstatement with no value
             const constName = "_" + uuid_1.v4().replace(/-/g, "_");
-            microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, scope.deepGet("void").val, ["void"], null));
+            microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, scope.deepGet("void"), ["void"], null));
         }
     }
     static fromCallsAst(callsAst, // TODO: Eliminate ANTLR
@@ -10891,7 +10883,8 @@ class Microstatement {
             }
             // Do a scan of the microstatements for an inner defined closure that is being called.
             // TODO: What if they decided to shove this closure into an object but then use it directly?
-            if (fnBox === null || fnBox.type !== Type_1.default.builtinTypes['function']) {
+            if (!fnBox ||
+                !(fnBox instanceof Array && fnBox[0].microstatementInlining instanceof Function)) {
                 const fnName = callsAst.varn(i).getText();
                 let actualFnName;
                 for (let i = microstatements.length - 1; i >= 0; i--) {
@@ -10907,7 +10900,8 @@ class Microstatement {
                     }
                 }
             }
-            if (fnBox === null || fnBox.type !== Type_1.default.builtinTypes['function']) {
+            if (!fnBox ||
+                !(fnBox instanceof Array && fnBox[0].microstatementInlining instanceof Function)) {
                 console.error(callsAst.varn(i).getText() + " is not a function!");
                 console.error(callsAst.getText() +
                     " on line " +
@@ -10920,7 +10914,7 @@ class Microstatement {
             // return statement turned into a const assignment as the last statement, while built-in
             // functions are kept as function calls with the correct renaming.
             UserFunction_1.default
-                .dispatchFn(fnBox.val, realArgTypes, scope)
+                .dispatchFn(fnBox, realArgTypes, scope)
                 .microstatementInlining(realArgNames, scope, microstatements);
             // Set the output as the firstArg for the next chained call
             firstArg = microstatements[microstatements.length - 1];
@@ -11016,7 +11010,7 @@ class Microstatement {
         }
         // The more complicated path. First, rule out that the first segment is not a `scope`.
         const testBox = scope.deepGet(segments[0].getText());
-        if (!!testBox && testBox.type === Type_1.default.builtinTypes.scope) {
+        if (!!testBox && testBox instanceof Scope_1.default) {
             console.error('Atempting to reassign to variable from another module');
             console.error(assignmentsAst.varn().getText() +
                 " on line " +
@@ -11101,7 +11095,7 @@ class Microstatement {
                 }
                 // Insert a `register` opcode.
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('register').val[0].microstatementInlining([original.outputName, lookup.outputName], scope, microstatements);
+                opcodes.exportScope.get('register')[0].microstatementInlining([original.outputName, lookup.outputName], scope, microstatements);
                 // Now, we need to update the type we're working with. The nice thing about this is that as
                 // we are accessing an `Array`, the type is inside. We just need to dig into the existing
                 // type and rip out its inner type definition.
@@ -11131,7 +11125,7 @@ class Microstatement {
                 microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, addrName, Type_1.default.builtinTypes['int64'], [`${fieldNum}`], []));
                 // Insert a `register` opcode.
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('register').val[0].microstatementInlining([original.outputName, addrName], scope, microstatements);
+                opcodes.exportScope.get('register')[0].microstatementInlining([original.outputName, addrName], scope, microstatements);
                 // Now, we need to update the type we're working with.
                 nestedLetType = Object.values(nestedLetType.properties)[fieldNum];
                 // Now update the `original` record to the new `register` result
@@ -11188,7 +11182,7 @@ class Microstatement {
             }
             // Insert a `copytof` or `copytov` opcode.
             const opcodes = require('./opcodes').default;
-            opcodes.exportScope.get(copytoop).val[0].microstatementInlining([original.outputName, lookup.outputName, assign.outputName], scope, microstatements);
+            opcodes.exportScope.get(copytoop)[0].microstatementInlining([original.outputName, lookup.outputName, assign.outputName], scope, microstatements);
         }
         else if (finalSegment.VARNAME()) {
             const fieldName = finalSegment.VARNAME().getText();
@@ -11209,7 +11203,7 @@ class Microstatement {
             microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, addrName, Type_1.default.builtinTypes['int64'], [`${fieldNum}`], []));
             // Insert a `copytof` or `copytov` opcode.
             const opcodes = require('./opcodes').default;
-            opcodes.exportScope.get(copytoop).val[0].microstatementInlining([original.outputName, addrName, assign.outputName], scope, microstatements);
+            opcodes.exportScope.get(copytoop)[0].microstatementInlining([original.outputName, addrName, assign.outputName], scope, microstatements);
         }
         else {
             console.error(`${finalSegment.getText()} cannot be the final piece in a reassignment statement`);
@@ -11250,7 +11244,7 @@ class Microstatement {
                             letdeclarationAst.start.column);
                         process.exit(-105);
                     }
-                    outerTypeBox.val.solidify(letdeclarationAst.assignments().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                    outerTypeBox.solidify(letdeclarationAst.assignments().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                     ), scope);
                 }
             }
@@ -11263,14 +11257,13 @@ class Microstatement {
             // This is the situation where a variable is declared but no value is yet assigned.
             // An automatic replacement with a "default" value (false, 0, "") is performed, similar to
             // C.
-            const type = (scope.deepGet(letTypeHint) &&
-                scope.deepGet(letTypeHint).type === Type_1.default.builtinTypes.type &&
-                scope.deepGet(letTypeHint).val) || Type_1.default.builtinTypes.void;
+            const type = ((scope.deepGet(letTypeHint) instanceof Type_1.default &&
+                scope.deepGet(letTypeHint)) || Type_1.default.builtinTypes.void);
             if (type.originalType) {
                 const constName = "_" + uuid_1.v4().replace(/-/g, "_");
                 microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, Type_1.default.builtinTypes.int64, ["0"], []));
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('newarr').val[0].microstatementInlining([constName], scope, microstatements);
+                opcodes.exportScope.get('newarr')[0].microstatementInlining([constName], scope, microstatements);
                 const blankArr = microstatements[microstatements.length - 1];
                 blankArr.statementType = StatementType_1.default.LETDEC,
                     blankArr.outputName = letName;
@@ -11352,7 +11345,7 @@ class Microstatement {
                             constdeclarationAst.start.column);
                         process.exit(-105);
                     }
-                    outerTypeBox.val.solidify(constdeclarationAst.assignments().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                    outerTypeBox.solidify(constdeclarationAst.assignments().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                     ), scope);
                 }
             }
@@ -11440,17 +11433,16 @@ class Microstatement {
 exports.default = Microstatement;
 
 }).call(this,require('_process'))
-},{"../ln":9,"./Box":11,"./StatementType":18,"./Type":19,"./UserFunction":20,"./opcodes":22,"_process":75,"uuid":80}],14:[function(require,module,exports){
+},{"../ln":9,"./Event":11,"./Operator":14,"./Scope":15,"./StatementType":17,"./Type":18,"./UserFunction":19,"./opcodes":21,"_process":74,"uuid":79}],13:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Ast = require("./Ast");
-const Box_1 = require("./Box");
 const Event_1 = require("./Event");
 const Operator_1 = require("./Operator");
 const Scope_1 = require("./Scope");
-const Type_1 = require("./Type");
 const UserFunction_1 = require("./UserFunction");
+const Type_1 = require("./Type");
 const modules = {};
 class Module {
     constructor(rootScope) {
@@ -11495,7 +11487,7 @@ class Module {
                     process.exit(-3);
                 }
                 const importedModule = modules[Ast.resolveDependency(path, standardImport.dependency())];
-                module.moduleScope.put(importName, new Box_1.default(importedModule.exportScope, Type_1.Type.builtinTypes.scope));
+                module.moduleScope.put(importName, importedModule.exportScope);
             }
             // If it's a "from" import, we're picking off pieces of the exported scope and inserting them
             // also potentially renaming them if requested by the user
@@ -11517,36 +11509,36 @@ class Module {
                     // the interface, pull them in. Similarly any types that match the entire interface. This
                     // allows concise importing of a related suite of tools without having to explicitly call
                     // out each one.
-                    if (thing.type === Type_1.Type.builtinTypes.type && thing.val.iface) {
-                        const iface = thing.val.iface;
+                    if (thing instanceof Type_1.Type && thing.iface) {
+                        const iface = thing.iface;
                         const typesToCheck = Object.keys(importedModule.exportScope.vals)
                             .map(n => importedModule.exportScope.vals[n])
-                            .filter(v => v.type === Type_1.Type.builtinTypes.type);
+                            .filter(v => v instanceof Type_1.Type);
                         const fnsToCheck = Object.keys(importedModule.exportScope.vals)
                             .map(n => importedModule.exportScope.vals[n])
-                            .filter(v => v.type === Type_1.Type.builtinTypes['function']);
+                            .filter(v => v instanceof Array && v[0].microstatementInlining instanceof Function);
                         const opsToCheck = Object.keys(importedModule.exportScope.vals)
                             .map(n => importedModule.exportScope.vals[n])
-                            .filter(v => v.type === Type_1.Type.builtinTypes.operator);
+                            .filter(v => v instanceof Array && v[0] instanceof Operator_1.default);
                         typesToCheck
-                            .filter(t => iface.typeApplies(t.val, importedModule.exportScope))
+                            .filter(t => iface.typeApplies(t, importedModule.exportScope))
                             .forEach(t => {
-                            module.moduleScope.put(t.val.typename, t);
+                            module.moduleScope.put(t.typename, t);
                         });
                         fnsToCheck
                             .filter(fn => {
                             // TODO: Make this better and move it to the Interface file in the future
-                            return iface.functionTypes.some((ft) => ft.functionname === fn.val[0].getName());
+                            return iface.functionTypes.some((ft) => ft.functionname === fn[0].getName());
                         })
                             .forEach(fn => {
-                            module.moduleScope.put(fn.val[0].getName(), fn);
+                            module.moduleScope.put(fn[0].getName(), fn);
                         });
                         opsToCheck
                             .filter(op => {
-                            return iface.operatorTypes.some((ot) => ot.operatorname === op.val[0].name);
+                            return iface.operatorTypes.some((ot) => ot.operatorname === op[0].name);
                         })
                             .forEach(op => {
-                            module.moduleScope.put(op.val[0].name, op);
+                            module.moduleScope.put(op[0].name, op);
                         });
                     }
                 }
@@ -11556,7 +11548,7 @@ class Module {
         const types = ast.types();
         for (const typeAst of types) {
             const newType = Type_1.Type.fromAst(typeAst, module.moduleScope);
-            module.moduleScope.put(newType.typename, new Box_1.default(newType.alias ? newType.alias : newType, Type_1.Type.builtinTypes.type));
+            module.moduleScope.put(newType.typename, newType.alias ? newType.alias : newType);
         }
         // Next, interfaces
         const interfaces = ast.interfaces();
@@ -11576,7 +11568,7 @@ class Module {
         const events = ast.events();
         for (const eventAst of events) {
             const newEvent = Event_1.default.fromAst(eventAst, module.moduleScope);
-            module.moduleScope.put(newEvent.name, new Box_1.default(newEvent, Type_1.Type.builtinTypes.Event));
+            module.moduleScope.put(newEvent.name, newEvent);
         }
         // Next, functions
         const functions = ast.functions();
@@ -11588,10 +11580,10 @@ class Module {
             }
             let fns = module.moduleScope.get(newFunc.getName());
             if (fns == null) {
-                module.moduleScope.put(newFunc.getName(), new Box_1.default([newFunc], Type_1.Type.builtinTypes['function']));
+                module.moduleScope.put(newFunc.getName(), [newFunc]);
             }
             else {
-                fns.val.push(newFunc);
+                fns.push(newFunc);
             }
         }
         // Next, operators
@@ -11605,16 +11597,16 @@ class Module {
                 console.error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
                 process.exit(-31);
             }
-            const op = new Operator_1.default(name, precedence, isPrefix, fns.val);
+            const op = new Operator_1.default(name, precedence, isPrefix, fns);
             const opsBox = module.moduleScope.deepGet(name);
             if (!opsBox) {
-                module.moduleScope.put(name, new Box_1.default([op], Type_1.Type.builtinTypes.operator));
+                module.moduleScope.put(name, [op]);
             }
             else {
                 // To make sure we don't accidentally mutate other scopes, we're cloning this operator list
-                let ops = [...opsBox.val];
+                let ops = [...opsBox];
                 ops.push(op);
-                module.moduleScope.put(name, new Box_1.default(ops, Type_1.Type.builtinTypes.operator));
+                module.moduleScope.put(name, ops);
             }
         }
         // Next, exports, which can be most of the above
@@ -11628,14 +11620,14 @@ class Module {
             }
             else if (exportAst.types() != null) {
                 const newType = Type_1.Type.fromAst(exportAst.types(), module.moduleScope);
-                const typeBox = new Box_1.default(!newType.alias ? newType : newType.alias, Type_1.Type.builtinTypes.type);
+                const typeBox = !newType.alias ? newType : newType.alias;
                 module.moduleScope.put(newType.typename, typeBox);
                 module.exportScope.put(newType.typename, typeBox);
             }
             else if (exportAst.interfaces() != null) {
                 const interfaceBox = Type_1.Interface.fromAst(exportAst.interfaces(), module.moduleScope);
                 // Automatically inserts the interface into the module scope
-                module.exportScope.put(interfaceBox.val.typename, interfaceBox);
+                module.exportScope.put(interfaceBox.typename, interfaceBox);
             }
             else if (exportAst.constdeclaration() != null) {
                 console.error('Module-scope constants not yet implemented');
@@ -11651,18 +11643,18 @@ class Module {
                 // scope by default. Should probably create a `getShallow` for this case, but reordering
                 // the two if blocks below is enough to fix things here.
                 let expFns = module.exportScope.get(newFunc.getName());
-                if (expFns == null) {
-                    module.exportScope.put(newFunc.getName(), new Box_1.default([newFunc], Type_1.Type.builtinTypes['function']));
+                if (!expFns) {
+                    module.exportScope.put(newFunc.getName(), [newFunc]);
                 }
                 else {
-                    expFns.val.push(newFunc);
+                    expFns.push(newFunc);
                 }
                 let modFns = module.moduleScope.get(newFunc.getName());
-                if (modFns == null) {
-                    module.moduleScope.put(newFunc.getName(), new Box_1.default([newFunc], Type_1.Type.builtinTypes['function']));
+                if (!modFns) {
+                    module.moduleScope.put(newFunc.getName(), [newFunc]);
                 }
                 else {
-                    modFns.val.push(newFunc);
+                    modFns.push(newFunc);
                 }
             }
             else if (exportAst.operatormapping() != null) {
@@ -11684,30 +11676,30 @@ class Module {
                     console.error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
                     process.exit(-33);
                 }
-                const op = new Operator_1.default(name, precedence, isPrefix, fns.val);
+                const op = new Operator_1.default(name, precedence, isPrefix, fns);
                 let modOpsBox = module.moduleScope.deepGet(name);
                 if (!modOpsBox) {
-                    module.moduleScope.put(name, new Box_1.default([op], Type_1.Type.builtinTypes.operator));
+                    module.moduleScope.put(name, [op]);
                 }
                 else {
-                    let ops = [...modOpsBox.val];
+                    let ops = [...modOpsBox];
                     ops.push(op);
-                    module.moduleScope.put(name, new Box_1.default(ops, Type_1.Type.builtinTypes.operator));
+                    module.moduleScope.put(name, ops);
                 }
                 let expOpsBox = module.exportScope.deepGet(name);
                 if (!expOpsBox) {
-                    module.exportScope.put(name, new Box_1.default([op], Type_1.Type.builtinTypes.operator));
+                    module.exportScope.put(name, [op]);
                 }
                 else {
-                    let ops = [...expOpsBox.val];
+                    let ops = [...expOpsBox];
                     ops.push(op);
-                    module.exportScope.put(name, new Box_1.default(ops, Type_1.Type.builtinTypes.operator));
+                    module.exportScope.put(name, ops);
                 }
             }
             else if (exportAst.events() != null) {
                 const newEvent = Event_1.default.fromAst(exportAst.events(), module.moduleScope);
-                module.moduleScope.put(newEvent.name, new Box_1.default(newEvent, Type_1.Type.builtinTypes.Event));
-                module.exportScope.put(newEvent.name, new Box_1.default(newEvent, Type_1.Type.builtinTypes.Event));
+                module.moduleScope.put(newEvent.name, newEvent);
+                module.exportScope.put(newEvent.name, newEvent);
             }
             else {
                 // What?
@@ -11718,40 +11710,37 @@ class Module {
         // Finally, event handlers, so they can depend on events that are exported from the same module
         const handlers = ast.handlers();
         for (const handlerAst of handlers) {
-            let eventBox = null;
+            let evt = null;
             if (handlerAst.eventref().varn() != null) {
-                eventBox = module.moduleScope.deepGet(handlerAst.eventref().varn().getText());
+                evt = module.moduleScope.deepGet(handlerAst.eventref().varn().getText());
             }
             else if (handlerAst.eventref().calls() != null) {
                 console.error("Not yet implemented!");
                 process.exit(-19);
-                // eventBox = AFunction.callFromAst(handlerAst.eventref().calls(), module.moduleScope)
+                // evt = AFunction.callFromAst(handlerAst.eventref().calls(), module.moduleScope)
             }
-            if (eventBox == null) {
+            if (!evt) {
                 console.error("Could not find specified event: " + handlerAst.eventref().getText());
                 process.exit(-20);
             }
-            if (eventBox.type !== Type_1.Type.builtinTypes["Event"]) {
-                console.error(eventBox);
+            if (!(evt instanceof Event_1.default)) {
                 console.error(handlerAst.eventref().getText() + " is not an event");
                 process.exit(-21);
             }
-            const evt = eventBox.val;
             let fn = null;
             if (handlerAst.varn() != null) {
                 const fnName = handlerAst.varn().getText();
-                const fnBox = module.moduleScope.deepGet(handlerAst.varn().getText());
-                if (fnBox == null) {
+                const fns = module.moduleScope.deepGet(handlerAst.varn().getText());
+                if (!fns) {
                     console.error("Could not find specified function: " + fnName);
                     process.exit(-22);
                 }
-                if (fnBox.type !== Type_1.Type.builtinTypes["function"]) {
+                if (!(fns instanceof Array && fns[0].microstatementInlining instanceof Function)) {
                     console.error(fnName + " is not a function");
                     process.exit(-23);
                 }
-                const fns = fnBox.val;
                 for (let i = 0; i < fns.length; i++) {
-                    if (evt.type.typename === "void" && fns[i].getArguments().values().size() === 0) {
+                    if (evt.type.typename === "void" && Object.values(fns[i].getArguments()).length === 0) {
                         fn = fns[i];
                         break;
                     }
@@ -11818,7 +11807,7 @@ class Module {
 exports.default = Module;
 
 }).call(this,require('_process'))
-},{"./Ast":10,"./Box":11,"./Event":12,"./Operator":15,"./Scope":16,"./Type":19,"./UserFunction":20,"_process":75}],15:[function(require,module,exports){
+},{"./Ast":10,"./Event":11,"./Operator":14,"./Scope":15,"./Type":18,"./UserFunction":19,"_process":74}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class Operator {
@@ -11879,10 +11868,9 @@ class Operator {
 }
 exports.default = Operator;
 
-},{}],16:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const Type_1 = require("./Type");
 class Scope {
     constructor(par) {
         this.vals = {};
@@ -11892,7 +11880,7 @@ class Scope {
         if (this.vals.hasOwnProperty(name)) {
             return this.vals[name];
         }
-        if (this.par != null) {
+        if (!!this.par) {
             return this.par.get(name);
         }
         return null;
@@ -11904,15 +11892,12 @@ class Scope {
             if (i === 0) {
                 boxedVar = this.get(fullVar[i]);
             }
-            else if (boxedVar === null) {
+            else if (!boxedVar) {
                 return null;
             }
             else {
-                if (boxedVar.type === Type_1.default.builtinTypes['scope']) {
-                    boxedVar = boxedVar.val.get(fullVar[i]);
-                }
-                else if (!Object.values(Type_1.default.builtinTypes).includes(boxedVar.type)) {
-                    boxedVar = boxedVar.val[fullVar[i]];
+                if (boxedVar instanceof Scope) {
+                    boxedVar = boxedVar.get(fullVar[i]);
                 }
                 else {
                     return null;
@@ -11925,7 +11910,7 @@ class Scope {
         if (this.vals.hasOwnProperty(name)) {
             return true;
         }
-        if (this.par != null) {
+        if (!!this.par) {
             return this.par.has(name);
         }
         return false;
@@ -11936,11 +11921,11 @@ class Scope {
 }
 exports.default = Scope;
 
-},{"./Type":19}],17:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const Type_1 = require("./Type");
+const Operator_1 = require("./Operator");
 const ln_1 = require("../ln");
 // Only implements the pieces necessary for the first stage compiler
 class Statement {
@@ -11959,21 +11944,21 @@ class Statement {
     }
     static isCallPure(callAst, scope) {
         // TODO: Add purity checking for chained method-style calls
-        const functionBox = scope.deepGet(callAst.varn(0).getText());
-        if (functionBox == null) {
+        const fn = scope.deepGet(callAst.varn(0).getText());
+        if (!fn) {
             // TODO: This function may be defined in the execution scope, we won't know until runtime
             // right now, but it should be determinable at "compile time". Need to fix this to check
             // if prior statements defined it, for now, just assume it exists and is not pure
             return false;
         }
-        if (functionBox.type !== Type_1.default.builtinTypes["function"]) {
+        if (!(fn instanceof Array && fn[0].microstatementInlining instanceof Function)) {
             console.error(callAst.varn(0).getText() + " is not a function");
             process.exit(-17);
         }
         // TODO: Add all of the logic to determine which function to use in here, too. For now,
         // let's just assume they all have the same purity state, which is a terrible assumption, but
         // easier.
-        if (!functionBox.val[0].isPure())
+        if (!fn[0].isPure())
             return false;
         const assignableListAst = callAst.fncall(0).assignablelist();
         if (assignableListAst == null) { // No arguments to this function call
@@ -11990,13 +11975,13 @@ class Statement {
             if (operatorOrAssignable.operators() != null) {
                 const operator = operatorOrAssignable.operators();
                 const op = scope.deepGet(operator.getText());
-                if (!op || op.type !== Type_1.default.builtinTypes.operator) {
+                if (!op || !(op instanceof Array && op[0] instanceof Operator_1.default)) {
                     console.error("Operator " + operator.getText() + " is not defined");
                     process.exit(-33);
                 }
                 // TODO: Similar to the above, need to figure out logic to determine which particular function
                 // will be the one called. For now, just assume the first one and fix this later.
-                if (!op.val[0].potentialFunctions[0].isPure())
+                if (!op[0].potentialFunctions[0].isPure())
                     return false;
             }
             if (operatorOrAssignable.basicassignables() != null) {
@@ -12101,7 +12086,7 @@ class Statement {
 exports.default = Statement;
 
 }).call(this,require('_process'))
-},{"../ln":9,"./Type":19,"_process":75}],18:[function(require,module,exports){
+},{"../ln":9,"./Operator":14,"_process":74}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var StatementType;
@@ -12117,12 +12102,12 @@ var StatementType;
 })(StatementType || (StatementType = {}));
 exports.default = StatementType;
 
-},{}],19:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Type = exports.Interface = exports.OperatorType = exports.FunctionType = void 0;
-const Box_1 = require("./Box");
+const Operator_1 = require("./Operator");
 class FunctionType {
     constructor(...args) {
         if (args.length === 1) {
@@ -12175,27 +12160,29 @@ class Interface {
         for (const functionType of this.functionTypes) {
             if (!functionType.functionname)
                 continue; // Anonymous functions checked at callsite
-            const potentialFunctionsBox = scope.deepGet(functionType.functionname);
-            if (!potentialFunctionsBox || potentialFunctionsBox.type !== Type.builtinTypes["function"]) {
+            const potentialFunctions = scope.deepGet(functionType.functionname);
+            if (!potentialFunctions ||
+                !(potentialFunctions instanceof Array &&
+                    potentialFunctions[0].microstatementInlining instanceof Function)) {
                 console.error(functionType.functionname + " is not the name of a function");
                 process.exit(-48);
             }
-            const potentialFunctions = potentialFunctionsBox.val;
             let functionFound = false;
             for (const potentialFunction of potentialFunctions) {
                 const argTypes = potentialFunction.getArguments();
                 let argsMatch = true;
-                for (let i = 0; i < argTypes.length; i++) {
+                let typeNames = Object.keys(argTypes);
+                for (let i = 0; i < typeNames.length; i++) {
                     const functionTypeArgType = functionType.args[i];
-                    if (argTypes[i] === functionTypeArgType)
+                    if (argTypes[typeNames[i]] === functionTypeArgType)
                         continue;
-                    if (argTypes[i].originalType === functionTypeArgType)
+                    if (argTypes[typeNames[i]].originalType === functionTypeArgType)
                         continue;
-                    if (argTypes[i] === typeToCheck)
+                    if (argTypes[typeNames[i]] === typeToCheck)
                         continue;
-                    if (!!argTypes[i].iface &&
+                    if (!!argTypes[typeNames[i]].iface &&
                         !!functionTypeArgType.iface &&
-                        argTypes[i].iface === functionTypeArgType.iface)
+                        argTypes[typeNames[i]].iface === functionTypeArgType.iface)
                         continue;
                     argsMatch = false;
                     break;
@@ -12209,29 +12196,30 @@ class Interface {
                 return false;
         }
         for (const operatorType of this.operatorTypes) {
-            const potentialOperatorsBox = scope.deepGet(operatorType.operatorname);
-            if (!potentialOperatorsBox || potentialOperatorsBox.type !== Type.builtinTypes.operator) {
+            const potentialOperators = scope.deepGet(operatorType.operatorname);
+            if (!potentialOperators ||
+                !(potentialOperators instanceof Array &&
+                    potentialOperators[0] instanceof Operator_1.default)) {
                 console.error(`${operatorType.operatorname} is not an operator`);
-                console.error(potentialOperatorsBox);
                 process.exit(-52);
             }
-            const potentialOperators = potentialOperatorsBox.val;
             let operatorFound = false;
             for (const potentialOperator of potentialOperators) {
                 for (const potentialFunction of potentialOperator.potentialFunctions) {
                     const argTypes = potentialFunction.getArguments();
                     let argsMatch = true;
-                    for (let i = 0; i < argTypes.length; i++) {
+                    let typeNames = Object.keys(argTypes);
+                    for (let i = 0; i < typeNames.length; i++) {
                         const operatorTypeArgType = operatorType.args[i];
-                        if (argTypes[i] === operatorTypeArgType)
+                        if (argTypes[typeNames[i]] === operatorTypeArgType)
                             continue;
-                        if (argTypes[i].originalType === operatorTypeArgType)
+                        if (argTypes[typeNames[i]].originalType === operatorTypeArgType)
                             continue;
-                        if (argTypes[i] === typeToCheck)
+                        if (argTypes[typeNames[i]] === typeToCheck)
                             continue;
-                        if (!!argTypes[i].iface &&
+                        if (!!argTypes[typeNames[i]].iface &&
                             !!operatorTypeArgType.iface &&
-                            argTypes[i].iface === operatorTypeArgType.iface)
+                            argTypes[typeNames[i]].iface === operatorTypeArgType.iface)
                             continue;
                         argsMatch = false;
                         break;
@@ -12254,8 +12242,7 @@ class Interface {
         const interfacename = interfaceAst.VARNAME().getText();
         let iface = new Interface(interfacename);
         const ifaceType = new Type(interfacename, false, iface);
-        const ifaceTypeBox = new Box_1.default(ifaceType, Type.builtinTypes.type);
-        scope.put(interfacename, ifaceTypeBox);
+        scope.put(interfacename, ifaceType);
         // Now, insert the actual declarations of the interface, if there are any (if there are none,
         // it will provide only as much as a type generic -- you can set it to a variable and return it
         // but nothing else, unlike Go's ridiculous interpretation of a bare interface).
@@ -12268,20 +12255,19 @@ class Interface {
                         functionname = functiontypeline.VARNAME().getText();
                     }
                     const typenames = functiontypeline.functiontype().varn();
-                    const returnTypeBox = scope.deepGet(typenames[typenames.length - 1].getText());
-                    if (!returnTypeBox || returnTypeBox.type !== Type.builtinTypes.type) {
+                    const returnType = scope.deepGet(typenames[typenames.length - 1].getText());
+                    if (!returnType || !(returnType instanceof Type)) {
                         console.error(typenames.get(typenames.size() - 1).getText() + " is not a type");
                         process.exit(-48);
                     }
-                    const returnType = returnTypeBox.val;
                     let args = [];
                     for (let i = 0; i < typenames.length - 1; i++) {
-                        const argumentBox = scope.deepGet(typenames[i].getText());
-                        if (!argumentBox || argumentBox.type !== Type.builtinTypes.type) {
+                        const argument = scope.deepGet(typenames[i].getText());
+                        if (!argument || !(argument instanceof Type)) {
                             console.error(typenames.get(i).getText() + " is not a type");
                             process.exit(-49);
                         }
-                        args.push(argumentBox.val);
+                        args.push(argument);
                     }
                     const functionType = new FunctionType(functionname, args, returnType);
                     iface.functionTypes.push(functionType);
@@ -12297,32 +12283,31 @@ class Interface {
                     const returnTypename = interfaceline.operatortypeline().varn().getText();
                     const args = argTypenames.map(n => {
                         const box = scope.deepGet(n);
-                        if (!box || box.type !== Type.builtinTypes.type) {
+                        if (!box || !(box instanceof Type)) {
                             console.error(`${n} is not a type`);
                             process.exit(-50);
                         }
-                        return box.val;
+                        return box;
                     });
-                    const returnBox = scope.deepGet(returnTypename);
-                    if (!returnBox || returnBox.type !== Type.builtinTypes.type) {
+                    const returnType = scope.deepGet(returnTypename);
+                    if (!returnType || !(returnType instanceof Type)) {
                         console.error(`${returnTypename} is not a type`);
                         process.exit(-51);
                     }
-                    const returnType = returnBox.val;
                     const operatorType = new OperatorType(operatorname, isPrefix, args, returnType);
                     iface.operatorTypes.push(operatorType);
                 }
                 if (!!interfaceline.propertytypeline()) {
-                    const propertyTypeBox = scope.deepGet(interfaceline.propertytypeline().varn().getText());
-                    if (!propertyTypeBox || propertyTypeBox.type !== Type.builtinTypes.type) {
+                    const propertyType = scope.deepGet(interfaceline.propertytypeline().varn().getText());
+                    if (!propertyType || !(propertyType instanceof Type)) {
                         console.error(interfaceline.propertytypeline().varn().getText() + " is not a type");
                         process.exit(-52);
                     }
-                    iface.requiredProperties[interfaceline.propertytypeline().VARNAME().getText()] = propertyTypeBox.val;
+                    iface.requiredProperties[interfaceline.propertytypeline().VARNAME().getText()] = propertyType;
                 }
             }
         }
-        return ifaceTypeBox;
+        return ifaceType;
     }
 }
 exports.Interface = Interface;
@@ -12446,7 +12431,7 @@ let Type = /** @class */ (() => {
                     const propertyName = lineAst.VARNAME().getText();
                     const typeName = lineAst.varn().getText();
                     const property = scope.deepGet(lineAst.varn().getText());
-                    if (property == null || property.type.typename !== "type") {
+                    if (!property || !(property instanceof Type)) {
                         if (type.generics.hasOwnProperty(typeName)) {
                             type.properties[propertyName] = new Type(typeName, true, true);
                         }
@@ -12456,7 +12441,7 @@ let Type = /** @class */ (() => {
                         }
                     }
                     else {
-                        type.properties[propertyName] = property.val;
+                        type.properties[propertyName] = property;
                     }
                 }
             }
@@ -12466,12 +12451,12 @@ let Type = /** @class */ (() => {
                     console.error("Type " + typeAst.othertype(0).getText() + " not defined");
                     process.exit(-38);
                 }
-                if (otherTypebox.type !== Type.builtinTypes.type) {
+                if (!(otherTypebox instanceof Type)) {
                     console.error(typeAst.othertype(0).getText() + " is not a valid type");
                     process.exit(-39);
                 }
-                let othertype = otherTypebox.val;
-                if (Object.keys(othertype.generics).length > 0 && typeAst.othertype(0).typegenerics() != null) {
+                let othertype = otherTypebox;
+                if (Object.keys(othertype.generics).length > 0 && !!typeAst.othertype(0).typegenerics()) {
                     let solidTypes = [];
                     for (const fulltypenameAst of typeAst.othertype(0).typegenerics().fulltypename()) {
                         solidTypes.push(fulltypenameAst.getText());
@@ -12491,15 +12476,15 @@ let Type = /** @class */ (() => {
                 let unionTypes = [];
                 for (const othertype of othertypes) {
                     const othertypeBox = scope.deepGet(othertype.typename().getText());
-                    if (othertypeBox == null) {
+                    if (!othertypeBox) {
                         console.error("Type " + othertype.getText() + " not defined");
                         process.exit(-48);
                     }
-                    if (othertypeBox.type !== Type.builtinTypes.type) {
+                    if (!(othertypeBox instanceof Type)) {
                         console.error(othertype.getText() + " is not a valid type");
                         process.exit(-49);
                     }
-                    let othertypeVal = othertypeBox.val;
+                    let othertypeVal = othertypeBox;
                     if (othertypeVal.generics.length > 0 && othertype.typegenerics() != null) {
                         let solidTypes = [];
                         for (const fulltypenameAst of othertype.typegenerics().fulltypename()) {
@@ -12517,11 +12502,11 @@ let Type = /** @class */ (() => {
             let replacementTypes = [];
             for (const typename of genericReplacements) {
                 const typebox = scope.deepGet(typename);
-                if (typebox == null || typebox.type.typename !== "type") {
+                if (!typebox || !(typebox instanceof Type)) {
                     console.error(typename + " type not found");
                     process.exit(-35);
                 }
-                replacementTypes.push(typebox.val);
+                replacementTypes.push(typebox);
             }
             const solidifiedName = this.typename + "<" + genericReplacements.join(", ") + ">";
             let solidified = new Type(solidifiedName, this.builtIn);
@@ -12541,7 +12526,7 @@ let Type = /** @class */ (() => {
                     solidified.properties[propKey] = propValue;
                 }
             }
-            scope.put(solidifiedName, new Box_1.default(solidified, Type.builtinTypes.type));
+            scope.put(solidifiedName, solidified);
             return solidified;
         }
         // This is only necessary for the numeric types. TODO: Can we eliminate it?
@@ -12607,13 +12592,12 @@ exports.Type = Type;
 exports.default = Type;
 
 }).call(this,require('_process'))
-},{"./Box":11,"_process":75}],20:[function(require,module,exports){
+},{"./Operator":14,"_process":74}],19:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const uuid_1 = require("uuid");
 const Ast = require("./Ast");
-const Box_1 = require("./Box");
 const Microstatement_1 = require("./Microstatement");
 const Statement_1 = require("./Statement");
 const StatementType_1 = require("./StatementType");
@@ -12680,15 +12664,16 @@ class UserFunction {
             for (let i = 0; i < arglen; i++) {
                 const argName = argsAst.VARNAME(i).getText();
                 let getArgType = scope.deepGet(argsAst.argtype(i).getText());
-                if (getArgType === null) {
+                if (!getArgType) {
                     if (argsAst.argtype(i).othertype().length === 1) {
                         if (argsAst.argtype(i).othertype(0).typegenerics() !== null) {
-                            getArgType = scope.deepGet(argsAst.argtype(i).othertype(0).typename().getText());
-                            if (getArgType == null) {
+                            getArgType =
+                                scope.deepGet(argsAst.argtype(i).othertype(0).typename().getText());
+                            if (!getArgType) {
                                 console.error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName);
                                 process.exit(-39);
                             }
-                            if (getArgType.type !== Type_1.default.builtinTypes["type"]) {
+                            if (!(getArgType instanceof Type_1.default)) {
                                 console.error("Function argument is not a valid type: " + argsAst.argtype(i).getText());
                                 process.exit(-50);
                             }
@@ -12696,7 +12681,7 @@ class UserFunction {
                             for (const fulltypename of argsAst.argtype(i).othertype(0).typegenerics().fulltypename()) {
                                 genericTypes.push(fulltypename.getText());
                             }
-                            getArgType = new Box_1.default(getArgType.val.solidify(genericTypes, scope), Type_1.default.builtinTypes.type);
+                            getArgType = getArgType.solidify(genericTypes, scope);
                         }
                         else {
                             console.error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName);
@@ -12715,7 +12700,7 @@ class UserFunction {
                                         console.error("Could not find type " + othertype.getText() + " for argument " + argName);
                                         process.exit(-59);
                                     }
-                                    if (othertypeBox.type != Type_1.default.builtinTypes["type"]) {
+                                    if (!(othertypeBox instanceof Type_1.default)) {
                                         console.error("Function argument is not a valid type: " + othertype.getText());
                                         process.exit(-60);
                                     }
@@ -12723,38 +12708,37 @@ class UserFunction {
                                     for (const fulltypename of othertype.typegenerics().fulltypename()) {
                                         genericTypes.push(fulltypename.getText());
                                     }
-                                    othertypeBox = new Box_1.default(othertypeBox.val.solidify(genericTypes, scope), Type_1.default.builtinTypes.type);
+                                    othertypeBox = othertypeBox.solidify(genericTypes, scope);
                                 }
                                 else {
                                     console.error("Could not find type " + othertype.getText() + " for argument " + argName);
                                     process.exit(-51);
                                 }
                             }
-                            unionTypes.push(othertypeBox.val);
+                            unionTypes.push(othertypeBox);
                         }
-                        const union = new Type_1.default(argsAst.argtype(i).getText(), false, unionTypes);
-                        getArgType = new Box_1.default(union, Type_1.default.builtinTypes.type);
+                        getArgType = new Type_1.default(argsAst.argtype(i).getText(), false, unionTypes);
                     }
                 }
-                if (getArgType.type != Type_1.default.builtinTypes["type"]) {
+                if (!(getArgType instanceof Type_1.default)) {
                     console.error("Function argument is not a valid type: " + argsAst.argtype(i).getText());
                     process.exit(-13);
                 }
-                args[argName] = getArgType.val;
+                args[argName] = getArgType;
             }
         }
         let returnType = null;
         if (functionAst.argtype() !== null) {
             if (functionAst.argtype().othertype().length === 1) {
                 let getReturnType = scope.deepGet(functionAst.argtype().getText());
-                if (getReturnType == null || getReturnType.type != Type_1.default.builtinTypes["type"]) {
+                if (getReturnType == null || !(getReturnType instanceof Type_1.default)) {
                     if (functionAst.argtype().othertype(0).typegenerics() != null) {
                         getReturnType = scope.deepGet(functionAst.argtype().othertype(0).typename().getText());
                         if (getReturnType == null) {
                             console.error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText());
                             process.exit(-59);
                         }
-                        if (getReturnType.type !== Type_1.default.builtinTypes["type"]) {
+                        if (!(getReturnType instanceof Type_1.default)) {
                             console.error("Function return is not a valid type: " + functionAst.argtype().getText());
                             process.exit(-60);
                         }
@@ -12762,14 +12746,14 @@ class UserFunction {
                         for (const fulltypename of functionAst.argType().othertype(0).typegenerics().fulltypename()) {
                             genericTypes.push(fulltypename.getText());
                         }
-                        getReturnType = new Box_1.default(getReturnType.val.solidify(genericTypes, scope), Type_1.default.builtinTypes.type);
+                        getReturnType = getReturnType.solidify(genericTypes, scope);
                     }
                     else {
                         console.error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText());
                         process.exit(-61);
                     }
                 }
-                returnType = getReturnType.val;
+                returnType = getReturnType;
             }
             else {
                 const othertypes = functionAst.argtype().othertype();
@@ -12783,7 +12767,7 @@ class UserFunction {
                                 console.error("Could not find return type " + othertype.getText() + " for function " + functionAst.VARNAME().getText());
                                 process.exit(-59);
                             }
-                            if (othertypeBox.type !== Type_1.default.builtinTypes["type"]) {
+                            if (!(othertypeBox instanceof Type_1.default)) {
                                 console.error("Function argument is not a valid type: " + othertype.getText());
                                 process.exit(-60);
                             }
@@ -12791,14 +12775,14 @@ class UserFunction {
                             for (const fulltypename of othertype.typegenerics().fulltypename()) {
                                 genericTypes.push(fulltypename.getText());
                             }
-                            othertypeBox = new Box_1.default(othertypeBox.val.solidify(genericTypes, scope), Type_1.default.builtinTypes.type);
+                            othertypeBox = othertypeBox.solidify(genericTypes, scope);
                         }
                         else {
                             console.error("Could not find return type " + othertype.getText() + " for function " + functionAst.VARNAME().getText());
                             process.exit(-51);
                         }
                     }
-                    unionTypes.push(othertypeBox.val);
+                    unionTypes.push(othertypeBox);
                 }
                 returnType = new Type_1.default(functionAst.argtype().getText(), false, unionTypes);
             }
@@ -12828,24 +12812,26 @@ class UserFunction {
             // TODO: Infer the return type for anything other than calls or object literals
             if (assignablesAst.basicassignables() && assignablesAst.basicassignables().calls()) {
                 const fnCall = scope.deepGet(assignablesAst.basicassignables().calls().varn(0).getText());
-                if (fnCall && fnCall.type === Type_1.default.builtinTypes['function']) {
+                if (fnCall &&
+                    fnCall instanceof Array &&
+                    fnCall[0].microstatementInlining instanceof Function) {
                     // TODO: For now, also take the first matching function name, in the future
                     // figure out the argument types provided recursively to select appropriately
                     // similar to how the Microstatements piece works
-                    returnType = fnCall.val[0].getReturnType();
+                    returnType = fnCall[0].getReturnType();
                 }
             }
             else if (assignablesAst.basicassignables() &&
                 assignablesAst.basicassignables().objectliterals()) {
                 if (assignablesAst.basicassignables().objectliterals().typeliteral()) {
-                    returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().typeliteral().othertype().getText().trim()).val;
+                    returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().typeliteral().othertype().getText().trim());
                 }
                 else if (assignablesAst.basicassignables().objectliterals().mapliteral()) {
-                    returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().mapliteral().othertype().getText().trim()).val;
+                    returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().mapliteral().othertype().getText().trim());
                 }
                 else {
                     if (assignablesAst.basicassignables().objectliterals().arrayliteral().othertype()) {
-                        returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().arrayliteral().othertype().getText().trim()).val;
+                        returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().arrayliteral().othertype().getText().trim());
                     }
                     else {
                         // We're going to use the Microstatement logic here
@@ -12896,7 +12882,7 @@ class UserFunction {
         const condBlockFn = (cond.blocklikes(0).functionbody() ?
             UserFunction.fromFunctionbodyAst(cond.blocklikes(0).functionbody(), scope) :
             cond.blocklikes(0).varn() ?
-                scope.deepGet(cond.blocklikes(0).varn().getText()).val[0] :
+                scope.deepGet(cond.blocklikes(0).varn().getText())[0] :
                 UserFunction.fromFunctionsAst(cond.blocklikes(0).functions(), scope)).maybeTransform();
         if (condBlockFn.statements[condBlockFn.statements.length - 1].isReturnStatement()) {
             hasConditionalReturn = true;
@@ -12911,7 +12897,7 @@ class UserFunction {
                 const elseBlockFn = (cond.blocklikes(1).functionbody() ?
                     UserFunction.fromFunctionbodyAst(cond.blocklikes(1).functionbody(), scope) :
                     cond.blocklikes(1).varn() ?
-                        scope.deepGet(cond.blocklikes(1).varn().getText()).val[0] :
+                        scope.deepGet(cond.blocklikes(1).varn().getText())[0] :
                         UserFunction.fromFunctionsAst(cond.blocklikes(1).functions(), scope)).maybeTransform();
                 if (elseBlockFn.statements[elseBlockFn.statements.length - 1].isReturnStatement()) {
                     hasConditionalReturn = true;
@@ -13150,7 +13136,7 @@ class UserFunction {
             const isNary = fns[i].isNary();
             const args = fns[i].getArguments();
             const argList = Object.values(args);
-            if (!isNary && argList.length != argumentTypeList.length)
+            if (!isNary && argList.length !== argumentTypeList.length)
                 continue;
             if (isNary && argList.length > argumentTypeList.length)
                 continue;
@@ -13211,7 +13197,7 @@ class UserFunction {
 exports.default = UserFunction;
 
 }).call(this,require('_process'))
-},{"../ln":9,"./Ast":10,"./Box":11,"./Microstatement":13,"./Statement":17,"./StatementType":18,"./Type":19,"_process":75,"uuid":80}],21:[function(require,module,exports){
+},{"../ln":9,"./Ast":10,"./Microstatement":12,"./Statement":16,"./StatementType":17,"./Type":18,"_process":74,"uuid":79}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fromString = exports.fromFile = void 0;
@@ -13459,11 +13445,10 @@ const ammFromModuleAsts = (moduleAsts) => {
 exports.fromFile = (filename) => ammFromModuleAsts(moduleAstsFromFile(filename));
 exports.fromString = (str) => ammFromModuleAsts(moduleAstsFromString(str));
 
-},{"./Ast":10,"./Event":12,"./Microstatement":13,"./Module":14,"./StatementType":18,"./Std":1,"./UserFunction":20,"fs":72,"uuid":80}],22:[function(require,module,exports){
+},{"./Ast":10,"./Event":11,"./Microstatement":12,"./Module":13,"./StatementType":17,"./Std":1,"./UserFunction":19,"fs":71,"uuid":79}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const uuid_1 = require("uuid");
-const Box_1 = require("./Box"); // TODO: Eliminate Box
 const Event_1 = require("./Event");
 const Microstatement_1 = require("./Microstatement");
 const Module_1 = require("./Module");
@@ -13474,7 +13459,7 @@ const opcodeScope = new Scope_1.default();
 const opcodeModule = new Module_1.default(opcodeScope);
 // Base types
 const addBuiltIn = (name) => {
-    opcodeScope.put(name, new Box_1.default(Type_1.Type.builtinTypes[name], Type_1.Type.builtinTypes.type));
+    opcodeScope.put(name, Type_1.Type.builtinTypes[name]);
 };
 ([
     'void', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64', 'bool', 'string', 'function',
@@ -13482,13 +13467,13 @@ const addBuiltIn = (name) => {
 ].map(addBuiltIn));
 Type_1.Type.builtinTypes['Array'].solidify(['string'], opcodeScope);
 Type_1.Type.builtinTypes['Map'].solidify(['string', 'string'], opcodeScope);
-opcodeScope.put('any', new Box_1.default(new Type_1.Type('any', true, new Type_1.Interface('any')), Type_1.Type.builtinTypes.type));
+opcodeScope.put('any', new Type_1.Type('any', true, new Type_1.Interface('any')));
 Type_1.Type.builtinTypes['Array'].solidify(['any'], opcodeScope);
 Type_1.Type.builtinTypes['Map'].solidify(['any', 'any'], opcodeScope);
 Type_1.Type.builtinTypes['KeyVal'].solidify(['any', 'any'], opcodeScope);
 Type_1.Type.builtinTypes['Array'].solidify(['KeyVal<any, any>'], opcodeScope);
-opcodeScope.put("start", new Box_1.default(new Event_1.default("_start", Type_1.Type.builtinTypes.void, true), Type_1.Type.builtinTypes.Event));
-const t = (str) => opcodeScope.get(str).val;
+opcodeScope.put("start", new Event_1.default("_start", Type_1.Type.builtinTypes.void, true));
+const t = (str) => opcodeScope.get(str);
 // opcode declarations
 const addopcodes = (opcodes) => {
     const opcodeNames = Object.keys(opcodes);
@@ -13507,7 +13492,7 @@ const addopcodes = (opcodes) => {
                 },
             };
             // Add each opcode
-            opcodeScope.put(opcodeName, new Box_1.default([opcodeObj], Type_1.Type.builtinTypes['function']));
+            opcodeScope.put(opcodeName, [opcodeObj]);
         }
         else {
             const opcodeObj = {
@@ -13564,7 +13549,7 @@ const addopcodes = (opcodes) => {
                 },
             };
             // Add each opcode
-            opcodeScope.put(opcodeName, new Box_1.default([opcodeObj], Type_1.Type.builtinTypes['function']));
+            opcodeScope.put(opcodeName, [opcodeObj]);
         }
     });
 };
@@ -13801,7 +13786,7 @@ addopcodes({
 });
 exports.default = opcodeModule;
 
-},{"./Box":11,"./Event":12,"./Microstatement":13,"./Module":14,"./Scope":16,"./StatementType":18,"./Type":19,"uuid":80}],23:[function(require,module,exports){
+},{"./Event":11,"./Microstatement":12,"./Module":13,"./Scope":15,"./StatementType":17,"./Type":18,"uuid":79}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RangeSet = exports.CharSet = exports.NamedOr = exports.NamedAnd = exports.Or = exports.And = exports.OneOrMore = exports.ZeroOrMore = exports.ZeroOrOne = exports.Not = exports.Token = exports.NulLP = exports.lpError = exports.LP = void 0;
@@ -14402,7 +14387,7 @@ exports.RangeSet = (toRepeat, min, max) => {
     return Or.build(sets);
 };
 
-},{"fs":72}],24:[function(require,module,exports){
+},{"fs":71}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const buildPipeline = (converters) => {
@@ -14531,7 +14516,7 @@ const buildPipeline = (converters) => {
 };
 exports.default = buildPipeline;
 
-},{}],25:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -14908,7 +14893,7 @@ BufferedTokenStream.prototype.fill = function() {
 
 exports.BufferedTokenStream = BufferedTokenStream;
 
-},{"./IntervalSet":31,"./Lexer":33,"./Token":39}],26:[function(require,module,exports){
+},{"./IntervalSet":30,"./Lexer":32,"./Token":38}],25:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -14981,7 +14966,7 @@ var CharStreams = {
 
 exports.CharStreams = CharStreams;
 
-},{"./InputStream":30,"fs":72}],27:[function(require,module,exports){
+},{"./InputStream":29,"fs":71}],26:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -15052,7 +15037,7 @@ CommonTokenFactory.prototype.createThin = function(type, text) {
 
 exports.CommonTokenFactory = CommonTokenFactory;
 
-},{"./Token":39}],28:[function(require,module,exports){
+},{"./Token":38}],27:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -15157,7 +15142,7 @@ CommonTokenStream.prototype.getNumberOfOnChannelTokens = function() {
 };
 
 exports.CommonTokenStream = CommonTokenStream;
-},{"./BufferedTokenStream":25,"./Token":39}],29:[function(require,module,exports){
+},{"./BufferedTokenStream":24,"./Token":38}],28:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -15185,7 +15170,7 @@ FileStream.prototype.constructor = FileStream;
 
 exports.FileStream = FileStream;
 
-},{"./InputStream":30,"fs":72}],30:[function(require,module,exports){
+},{"./InputStream":29,"fs":71}],29:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -15322,7 +15307,7 @@ InputStream.prototype.toString = function() {
 
 exports.InputStream = InputStream;
 
-},{"./Token":39,"./polyfills/codepointat":67,"./polyfills/fromcodepoint":68}],31:[function(require,module,exports){
+},{"./Token":38,"./polyfills/codepointat":66,"./polyfills/fromcodepoint":67}],30:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -15622,7 +15607,7 @@ IntervalSet.prototype.elementName = function(literalNames, symbolicNames, a) {
 exports.Interval = Interval;
 exports.IntervalSet = IntervalSet;
 
-},{"./Token":39}],32:[function(require,module,exports){
+},{"./Token":38}],31:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -15823,7 +15808,7 @@ LL1Analyzer.prototype._LOOK = function(s, stopState , ctx, look, lookBusy, calle
 exports.LL1Analyzer = LL1Analyzer;
 
 
-},{"./IntervalSet":31,"./PredictionContext":36,"./Token":39,"./Utils":40,"./atn/ATNConfig":42,"./atn/ATNState":47,"./atn/Transition":55}],33:[function(require,module,exports){
+},{"./IntervalSet":30,"./PredictionContext":35,"./Token":38,"./Utils":39,"./atn/ATNConfig":41,"./atn/ATNState":46,"./atn/Transition":54}],32:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -16196,7 +16181,7 @@ Lexer.prototype.recover = function(re) {
 
 exports.Lexer = Lexer;
 
-},{"./CommonTokenFactory":27,"./Recognizer":37,"./Token":39,"./error/Errors":64}],34:[function(require,module,exports){
+},{"./CommonTokenFactory":26,"./Recognizer":36,"./Token":38,"./error/Errors":63}],33:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -16871,7 +16856,7 @@ Parser.prototype.setTrace = function(trace) {
 };
 
 exports.Parser = Parser;
-},{"./Lexer":33,"./Recognizer":37,"./Token":39,"./atn/ATNDeserializationOptions":44,"./atn/ATNDeserializer":45,"./error/ErrorStrategy":63,"./tree/Tree":69}],35:[function(require,module,exports){
+},{"./Lexer":32,"./Recognizer":36,"./Token":38,"./atn/ATNDeserializationOptions":43,"./atn/ATNDeserializer":44,"./error/ErrorStrategy":62,"./tree/Tree":68}],34:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -17097,7 +17082,7 @@ InterpreterRuleContext.prototype = Object.create(ParserRuleContext.prototype);
 InterpreterRuleContext.prototype.constructor = InterpreterRuleContext;
 
 exports.ParserRuleContext = ParserRuleContext;
-},{"./IntervalSet":31,"./RuleContext":38,"./tree/Tree":69}],36:[function(require,module,exports){
+},{"./IntervalSet":30,"./RuleContext":37,"./tree/Tree":68}],35:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -17833,7 +17818,7 @@ exports.SingletonPredictionContext = SingletonPredictionContext;
 exports.predictionContextFromRuleContext = predictionContextFromRuleContext;
 exports.getCachedPredictionContext = getCachedPredictionContext;
 
-},{"./RuleContext":38,"./Utils":40}],37:[function(require,module,exports){
+},{"./RuleContext":37,"./Utils":39}],36:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -17982,7 +17967,7 @@ Object.defineProperty(Recognizer.prototype, "state", {
 
 exports.Recognizer = Recognizer;
 
-},{"./Token":39,"./error/ErrorListener":62}],38:[function(require,module,exports){
+},{"./Token":38,"./error/ErrorListener":61}],37:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -18141,7 +18126,7 @@ RuleContext.prototype.toString = function(ruleNames, stop) {
 };
 
 
-},{"./atn/ATN":41,"./tree/Tree":69,"./tree/Trees":70}],39:[function(require,module,exports){
+},{"./atn/ATN":40,"./tree/Tree":68,"./tree/Trees":69}],38:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -18294,7 +18279,7 @@ CommonToken.prototype.toString = function() {
 exports.Token = Token;
 exports.CommonToken = CommonToken;
 
-},{}],40:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -18747,7 +18732,7 @@ exports.arrayToString = arrayToString;
 exports.titleCase = titleCase;
 exports.equalArrays = equalArrays;
 
-},{}],41:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -18890,7 +18875,7 @@ ATN.prototype.getExpectedTokens = function( stateNumber, ctx ) {
 ATN.INVALID_ALT_NUMBER = 0;
 
 exports.ATN = ATN;
-},{"./../IntervalSet":31,"./../LL1Analyzer":32,"./../Token":39}],42:[function(require,module,exports){
+},{"./../IntervalSet":30,"./../LL1Analyzer":31,"./../Token":38}],41:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -19067,7 +19052,7 @@ LexerATNConfig.prototype.checkNonGreedyDecision = function(source, target) {
 
 exports.ATNConfig = ATNConfig;
 exports.LexerATNConfig = LexerATNConfig;
-},{"../Utils":40,"./ATNState":47,"./SemanticContext":54}],43:[function(require,module,exports){
+},{"../Utils":39,"./ATNState":46,"./SemanticContext":53}],42:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -19322,7 +19307,7 @@ OrderedATNConfigSet.prototype.constructor = OrderedATNConfigSet;
 exports.ATNConfigSet = ATNConfigSet;
 exports.OrderedATNConfigSet = OrderedATNConfigSet;
 
-},{"./../PredictionContext":36,"./../Utils":40,"./ATN":41,"./SemanticContext":54}],44:[function(require,module,exports){
+},{"./../PredictionContext":35,"./../Utils":39,"./ATN":40,"./SemanticContext":53}],43:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -19349,7 +19334,7 @@ ATNDeserializationOptions.defaultOptions.readOnly = true;
 
 exports.ATNDeserializationOptions = ATNDeserializationOptions;
 
-},{}],45:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -20028,7 +20013,7 @@ ATNDeserializer.prototype.lexerActionFactory = function(type, data1, data2) {
 
 
 exports.ATNDeserializer = ATNDeserializer;
-},{"./../IntervalSet":31,"./../Token":39,"./ATN":41,"./ATNDeserializationOptions":44,"./ATNState":47,"./ATNType":48,"./LexerAction":50,"./Transition":55}],46:[function(require,module,exports){
+},{"./../IntervalSet":30,"./../Token":38,"./ATN":40,"./ATNDeserializationOptions":43,"./ATNState":46,"./ATNType":47,"./LexerAction":49,"./Transition":54}],45:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -20082,7 +20067,7 @@ ATNSimulator.prototype.getCachedContext = function(context) {
 
 exports.ATNSimulator = ATNSimulator;
 
-},{"./../PredictionContext":36,"./../Utils":40,"./../dfa/DFAState":59,"./ATNConfigSet":43}],47:[function(require,module,exports){
+},{"./../PredictionContext":35,"./../Utils":39,"./../dfa/DFAState":58,"./ATNConfigSet":42}],46:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -20410,7 +20395,7 @@ exports.PlusBlockStartState = PlusBlockStartState;
 exports.StarBlockStartState = StarBlockStartState;
 exports.BasicBlockStartState = BasicBlockStartState;
 
-},{}],48:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -20429,7 +20414,7 @@ ATNType.PARSER = 1;
 exports.ATNType = ATNType;
 
 
-},{}],49:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -21067,7 +21052,7 @@ LexerATNSimulator.prototype.getTokenName = function(tt) {
 
 exports.LexerATNSimulator = LexerATNSimulator;
 
-},{"./../Lexer":33,"./../PredictionContext":36,"./../Token":39,"./../dfa/DFAState":59,"./../error/Errors":64,"./ATN":41,"./ATNConfig":42,"./ATNConfigSet":43,"./ATNSimulator":46,"./ATNState":47,"./LexerActionExecutor":51,"./Transition":55}],50:[function(require,module,exports){
+},{"./../Lexer":32,"./../PredictionContext":35,"./../Token":38,"./../dfa/DFAState":58,"./../error/Errors":63,"./ATN":40,"./ATNConfig":41,"./ATNConfigSet":42,"./ATNSimulator":45,"./ATNState":46,"./LexerActionExecutor":50,"./Transition":54}],49:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -21434,7 +21419,7 @@ exports.LexerTypeAction = LexerTypeAction;
 exports.LexerPushModeAction = LexerPushModeAction;
 exports.LexerPopModeAction = LexerPopModeAction;
 exports.LexerModeAction = LexerModeAction;
-},{}],51:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -21602,7 +21587,7 @@ LexerActionExecutor.prototype.equals = function(other) {
 
 exports.LexerActionExecutor = LexerActionExecutor;
 
-},{"../Utils":40,"./LexerAction":50}],52:[function(require,module,exports){
+},{"../Utils":39,"./LexerAction":49}],51:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -23331,7 +23316,7 @@ ParserATNSimulator.prototype.reportAmbiguity = function(dfa, D, startIndex, stop
 };
 
 exports.ParserATNSimulator = ParserATNSimulator;
-},{"./../IntervalSet":31,"./../ParserRuleContext":35,"./../PredictionContext":36,"./../RuleContext":38,"./../Token":39,"./../Utils":40,"./../dfa/DFAState":59,"./../error/Errors":64,"./ATN":41,"./ATNConfig":42,"./ATNConfigSet":43,"./ATNSimulator":46,"./ATNState":47,"./PredictionMode":53,"./SemanticContext":54,"./Transition":55}],53:[function(require,module,exports){
+},{"./../IntervalSet":30,"./../ParserRuleContext":34,"./../PredictionContext":35,"./../RuleContext":37,"./../Token":38,"./../Utils":39,"./../dfa/DFAState":58,"./../error/Errors":63,"./ATN":40,"./ATNConfig":41,"./ATNConfigSet":42,"./ATNSimulator":45,"./ATNState":46,"./PredictionMode":52,"./SemanticContext":53,"./Transition":54}],52:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -23892,7 +23877,7 @@ PredictionMode.getSingleViableAlt = function(altsets) {
 
 exports.PredictionMode = PredictionMode;
 
-},{"../Utils":40,"./../Utils":40,"./ATN":41,"./ATNConfig":42,"./ATNConfigSet":43,"./ATNState":47,"./SemanticContext":54}],54:[function(require,module,exports){
+},{"../Utils":39,"./../Utils":39,"./ATN":40,"./ATNConfig":41,"./ATNConfigSet":42,"./ATNState":46,"./SemanticContext":53}],53:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -24298,7 +24283,7 @@ exports.SemanticContext = SemanticContext;
 exports.PrecedencePredicate = PrecedencePredicate;
 exports.Predicate = Predicate;
 
-},{"./../Utils":40}],55:[function(require,module,exports){
+},{"./../Utils":39}],54:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -24615,7 +24600,7 @@ exports.WildcardTransition = WildcardTransition;
 exports.PredicateTransition = PredicateTransition;
 exports.PrecedencePredicateTransition = PrecedencePredicateTransition;
 exports.AbstractPredicateTransition = AbstractPredicateTransition;
-},{"./../IntervalSet":31,"./../Token":39,"./SemanticContext":54}],56:[function(require,module,exports){
+},{"./../IntervalSet":30,"./../Token":38,"./SemanticContext":53}],55:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -24627,7 +24612,7 @@ exports.LexerATNSimulator = require('./LexerATNSimulator').LexerATNSimulator;
 exports.ParserATNSimulator = require('./ParserATNSimulator').ParserATNSimulator;
 exports.PredictionMode = require('./PredictionMode').PredictionMode;
 
-},{"./ATN":41,"./ATNDeserializer":45,"./LexerATNSimulator":49,"./ParserATNSimulator":52,"./PredictionMode":53}],57:[function(require,module,exports){
+},{"./ATN":40,"./ATNDeserializer":44,"./LexerATNSimulator":48,"./ParserATNSimulator":51,"./PredictionMode":52}],56:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -24782,7 +24767,7 @@ DFA.prototype.toLexerString = function() {
 
 exports.DFA = DFA;
 
-},{"../Utils":40,"../atn/ATNState":47,"./../atn/ATNConfigSet":43,"./DFASerializer":58,"./DFAState":59}],58:[function(require,module,exports){
+},{"../Utils":39,"../atn/ATNState":46,"./../atn/ATNConfigSet":42,"./DFASerializer":57,"./DFAState":58}],57:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -24863,7 +24848,7 @@ exports.DFASerializer = DFASerializer;
 exports.LexerDFASerializer = LexerDFASerializer;
 
 
-},{}],59:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -25011,7 +24996,7 @@ DFAState.prototype.hashCode = function() {
 exports.DFAState = DFAState;
 exports.PredPrediction = PredPrediction;
 
-},{"./../Utils":40,"./../atn/ATNConfigSet":43}],60:[function(require,module,exports){
+},{"./../Utils":39,"./../atn/ATNConfigSet":42}],59:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -25022,7 +25007,7 @@ exports.DFASerializer = require('./DFASerializer').DFASerializer;
 exports.LexerDFASerializer = require('./DFASerializer').LexerDFASerializer;
 exports.PredPrediction = require('./DFAState').PredPrediction;
 
-},{"./DFA":57,"./DFASerializer":58,"./DFAState":59}],61:[function(require,module,exports){
+},{"./DFA":56,"./DFASerializer":57,"./DFAState":58}],60:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -25134,7 +25119,7 @@ DiagnosticErrorListener.prototype.getConflictingAlts = function(reportedAlts, co
 };
 
 exports.DiagnosticErrorListener = DiagnosticErrorListener;
-},{"./../IntervalSet":31,"./../Utils":40,"./ErrorListener":62}],62:[function(require,module,exports){
+},{"./../IntervalSet":30,"./../Utils":39,"./ErrorListener":61}],61:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -25223,7 +25208,7 @@ exports.ConsoleErrorListener = ConsoleErrorListener;
 exports.ProxyErrorListener = ProxyErrorListener;
 
 
-},{}],63:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -25981,7 +25966,7 @@ BailErrorStrategy.prototype.sync = function(recognizer) {
 exports.BailErrorStrategy = BailErrorStrategy;
 exports.DefaultErrorStrategy = DefaultErrorStrategy;
 
-},{"./../IntervalSet":31,"./../Token":39,"./../atn/ATNState":47,"./Errors":64}],64:[function(require,module,exports){
+},{"./../IntervalSet":30,"./../Token":38,"./../atn/ATNState":46,"./Errors":63}],63:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26152,7 +26137,7 @@ exports.InputMismatchException = InputMismatchException;
 exports.FailedPredicateException = FailedPredicateException;
 exports.ParseCancellationException = ParseCancellationException;
 
-},{"./../atn/Transition":55}],65:[function(require,module,exports){
+},{"./../atn/Transition":54}],64:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26167,7 +26152,7 @@ exports.DiagnosticErrorListener = require('./DiagnosticErrorListener').Diagnosti
 exports.BailErrorStrategy = require('./ErrorStrategy').BailErrorStrategy;
 exports.ErrorListener = require('./ErrorListener').ErrorListener;
 
-},{"./DiagnosticErrorListener":61,"./ErrorListener":62,"./ErrorStrategy":63,"./Errors":64}],66:[function(require,module,exports){
+},{"./DiagnosticErrorListener":60,"./ErrorListener":61,"./ErrorStrategy":62,"./Errors":63}],65:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26192,7 +26177,7 @@ exports.ParserRuleContext = require('./ParserRuleContext').ParserRuleContext;
 exports.Interval = require('./IntervalSet').Interval;
 exports.Utils = require('./Utils');
 
-},{"./CharStreams":26,"./CommonTokenStream":28,"./FileStream":29,"./InputStream":30,"./IntervalSet":31,"./Lexer":33,"./Parser":34,"./ParserRuleContext":35,"./PredictionContext":36,"./Token":39,"./Utils":40,"./atn/index":56,"./dfa/index":60,"./error/index":65,"./polyfills/codepointat":67,"./polyfills/fromcodepoint":68,"./tree/index":71}],67:[function(require,module,exports){
+},{"./CharStreams":25,"./CommonTokenStream":27,"./FileStream":28,"./InputStream":29,"./IntervalSet":30,"./Lexer":32,"./Parser":33,"./ParserRuleContext":34,"./PredictionContext":35,"./Token":38,"./Utils":39,"./atn/index":55,"./dfa/index":59,"./error/index":64,"./polyfills/codepointat":66,"./polyfills/fromcodepoint":67,"./tree/index":70}],66:[function(require,module,exports){
 /*! https://mths.be/codepointat v0.2.0 by @mathias */
 if (!String.prototype.codePointAt) {
 	(function() {
@@ -26248,7 +26233,7 @@ if (!String.prototype.codePointAt) {
 	}());
 }
 
-},{}],68:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 /*! https://mths.be/fromcodepoint v0.2.1 by @mathias */
 if (!String.fromCodePoint) {
 	(function() {
@@ -26312,7 +26297,7 @@ if (!String.fromCodePoint) {
 	}());
 }
 
-},{}],69:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26544,7 +26529,7 @@ exports.ParseTreeVisitor = ParseTreeVisitor;
 exports.ParseTreeWalker = ParseTreeWalker;
 exports.INVALID_INTERVAL = INVALID_INTERVAL;
 
-},{"../Utils.js":40,"./../IntervalSet":31,"./../Token":39}],70:[function(require,module,exports){
+},{"../Utils.js":39,"./../IntervalSet":30,"./../Token":38}],69:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26685,7 +26670,7 @@ Trees.descendants = function(t) {
 
 
 exports.Trees = Trees;
-},{"./../ParserRuleContext":35,"./../RuleContext":38,"./../Token":39,"./../Utils":40,"./../atn/ATN":41,"./Tree":69}],71:[function(require,module,exports){
+},{"./../ParserRuleContext":34,"./../RuleContext":37,"./../Token":38,"./../Utils":39,"./../atn/ATN":40,"./Tree":68}],70:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26698,9 +26683,9 @@ exports.ParseTreeListener = Tree.ParseTreeListener;
 exports.ParseTreeVisitor = Tree.ParseTreeVisitor;
 exports.ParseTreeWalker = Tree.ParseTreeWalker;
 
-},{"./Tree":69,"./Trees":70}],72:[function(require,module,exports){
+},{"./Tree":68,"./Trees":69}],71:[function(require,module,exports){
 
-},{}],73:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -27225,7 +27210,7 @@ function functionBindPolyfill(context) {
   };
 }
 
-},{}],74:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 (function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
@@ -27531,7 +27516,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":75}],75:[function(require,module,exports){
+},{"_process":74}],74:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -27717,7 +27702,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],76:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -27742,14 +27727,14 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],77:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],78:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -28339,7 +28324,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":77,"_process":75,"inherits":76}],79:[function(require,module,exports){
+},{"./support/isBuffer":76,"_process":74,"inherits":75}],78:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28367,7 +28352,7 @@ function bytesToUuid(buf, offset) {
 
 var _default = bytesToUuid;
 exports.default = _default;
-},{}],80:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28407,7 +28392,7 @@ var _v3 = _interopRequireDefault(require("./v4.js"));
 var _v4 = _interopRequireDefault(require("./v5.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-},{"./v1.js":84,"./v3.js":85,"./v4.js":87,"./v5.js":88}],81:[function(require,module,exports){
+},{"./v1.js":83,"./v3.js":84,"./v4.js":86,"./v5.js":87}],80:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28631,7 +28616,7 @@ function md5ii(a, b, c, d, x, s, t) {
 
 var _default = md5;
 exports.default = _default;
-},{}],82:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28653,7 +28638,7 @@ function rng() {
 
   return getRandomValues(rnds8);
 }
-},{}],83:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28755,7 +28740,7 @@ function sha1(bytes) {
 
 var _default = sha1;
 exports.default = _default;
-},{}],84:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28863,7 +28848,7 @@ function v1(options, buf, offset) {
 
 var _default = v1;
 exports.default = _default;
-},{"./bytesToUuid.js":79,"./rng.js":82}],85:[function(require,module,exports){
+},{"./bytesToUuid.js":78,"./rng.js":81}],84:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28880,7 +28865,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const v3 = (0, _v.default)('v3', 0x30, _md.default);
 var _default = v3;
 exports.default = _default;
-},{"./md5.js":81,"./v35.js":86}],86:[function(require,module,exports){
+},{"./md5.js":80,"./v35.js":85}],85:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28957,7 +28942,7 @@ function _default(name, version, hashfunc) {
   generateUUID.URL = URL;
   return generateUUID;
 }
-},{"./bytesToUuid.js":79}],87:[function(require,module,exports){
+},{"./bytesToUuid.js":78}],86:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -29000,7 +28985,7 @@ function v4(options, buf, offset) {
 
 var _default = v4;
 exports.default = _default;
-},{"./bytesToUuid.js":79,"./rng.js":82}],88:[function(require,module,exports){
+},{"./bytesToUuid.js":78,"./rng.js":81}],87:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -29017,7 +29002,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const v5 = (0, _v.default)('v5', 0x50, _sha.default);
 var _default = v5;
 exports.default = _default;
-},{"./sha1.js":83,"./v35.js":86}],"alan-compiler":[function(require,module,exports){
+},{"./sha1.js":82,"./v35.js":85}],"alan-compiler":[function(require,module,exports){
 const { default: buildPipeline, } = require('./dist/pipeline')
 const ammtojs = require('./dist/ammtojs')
 const lntoamm = require('./dist/lntoamm')
@@ -29042,7 +29027,7 @@ module.exports = (inFormat, outFormat, text) => {
   }
 }
 
-},{"./dist/ammtoaga":4,"./dist/ammtojs":5,"./dist/lntoamm":21,"./dist/pipeline":24}],"alan-js-runtime":[function(require,module,exports){
+},{"./dist/ammtoaga":4,"./dist/ammtojs":5,"./dist/lntoamm":20,"./dist/pipeline":23}],"alan-js-runtime":[function(require,module,exports){
 (function (process){
 const EventEmitter = require('events')
 const util = require('util')
@@ -29317,7 +29302,7 @@ module.exports = {
 }
 
 }).call(this,require('_process'))
-},{"_process":75,"child_process":72,"events":73,"util":78}],"alan-runtime":[function(require,module,exports){
+},{"_process":74,"child_process":71,"events":72,"util":77}],"alan-runtime":[function(require,module,exports){
 const r = require('alan-js-runtime')
 
 // Redefined stdoutp and exitop to work in the browser

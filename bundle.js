@@ -560,7 +560,7 @@ const loadClosures = (closures, globalMem) => {
         const eventName = closure.name;
         const memSize = closure.closureMem.memSize;
         const localMem = closure.closureMem.addressMap;
-        let c = `handler for ${eventName} with size ${memSize}\n`;
+        let c = `closure for ${eventName} with size ${memSize}\n`;
         const statements = loadStatements(closure.statements, localMem, globalMem);
         statements.forEach(s => c += `  ${s}\n`);
         vec.push(c);

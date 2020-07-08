@@ -284,12 +284,12 @@ const getFunctionbodyMem = (functionbody) => {
                 }
                 else {
                     addressMap[statement.get('declarations').get('constdeclaration').get('decname').t.trim()] = memSize;
-                    memSize += 8;
+                    memSize += 1;
                 }
             }
             else {
                 addressMap[statement.get('declarations').get('letdeclaration').get('decname').t.trim()] = memSize;
-                memSize += 8;
+                memSize += 1;
             }
         }
     }
@@ -305,8 +305,8 @@ const getHandlersMem = (handlers) => handlers
     const handlerMem = getFunctionbodyMem(handler.get('functions').get('functionbody'));
     if (!(handler.get('functions').get('arg') instanceof lp_1.NulLP)) {
         // Increase the memory usage and shift *everything* down, then add the new address
-        handlerMem.memSize += 8;
-        Object.keys(handlerMem.addressMap).forEach(name => handlerMem.addressMap[name] += 8);
+        handlerMem.memSize += 1;
+        Object.keys(handlerMem.addressMap).forEach(name => handlerMem.addressMap[name] += 1);
         handlerMem.addressMap[handler.get('functions').get('arg').get('variable').t.trim()] = 0;
     }
     return handlerMem;

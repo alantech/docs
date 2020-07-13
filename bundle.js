@@ -9964,7 +9964,7 @@ const Type_1 = require("./Type");
 const UserFunction_1 = require("./UserFunction");
 const ln_1 = require("../ln");
 class Microstatement {
-    constructor(statementType, scope, pure, outputName, outputType = Type_1.default.builtinTypes.void, inputNames = [], fns = [], alias = '', closureStatements = []) {
+    constructor(statementType, scope, pure, outputName, outputType = Type_1.default.builtinTypes.void, inputNames = [], fns = [], alias = '', closureStatements = [], closureArgs = {}) {
         this.statementType = statementType;
         this.scope = scope;
         this.pure = pure;
@@ -9974,6 +9974,7 @@ class Microstatement {
         this.fns = fns;
         this.alias = alias;
         this.closureStatements = closureStatements;
+        this.closureArgs = closureArgs;
     }
     toString() {
         let outString = "";
@@ -10020,7 +10021,15 @@ class Microstatement {
                 }
                 break;
             case StatementType_1.default.CLOSURE:
-                outString = "const " + this.outputName + ": function = fn (): void {\n";
+                outString = "const " + this.outputName + ": function = fn (";
+                let args = [];
+                for (const [name, type] of Object.entries(this.closureArgs)) {
+                    if (name !== "" && type.typename != "") {
+                        args.push(name + ": " + type.typename);
+                    }
+                }
+                outString += args.join(",");
+                outString += "): void {\n";
                 for (const m of this.closureStatements) {
                     const s = m.toString();
                     if (s !== "") {
@@ -10609,8 +10618,16 @@ class Microstatement {
         }
     }
     static closureFromUserFunction(userFunction, scope, microstatements) {
-        // TODO: Add support for closures with arguments
-        let len = microstatements.length;
+        // inject arguments as const declarations into microstatements arrays with the variable names
+        // and remove them later so we can parse the closure and keep the logic contained to this method
+        const idx = microstatements.length;
+        const args = Object.entries(userFunction.args);
+        for (const [name, type] of args) {
+            if (name !== "" && type.typename != "") {
+                microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, name, type));
+            }
+        }
+        const len = microstatements.length - args.length;
         for (const s of userFunction.statements) {
             if (s.statementOrAssignableAst instanceof ln_1.LnParser.StatementsContext) {
                 Microstatement.fromStatementsAst(s.statementOrAssignableAst, scope, microstatements);
@@ -10619,13 +10636,14 @@ class Microstatement {
                 Microstatement.fromAssignablesAst(s.statementOrAssignableAst, scope, microstatements);
             }
         }
-        let newlen = microstatements.length;
+        microstatements.splice(idx, args.length);
+        const newlen = microstatements.length;
         // There might be off-by-one bugs in the conversion here
         const innerMicrostatements = microstatements.slice(len, newlen);
         microstatements.splice(len, newlen - len);
         const constName = "_" + uuid_1.v4().replace(/-/g, "_");
         microstatements.push(new Microstatement(StatementType_1.default.CLOSURE, scope, true, // TODO: Figure out if this is true or not
-        constName, Type_1.default.builtinTypes['function'], [], [], '', innerMicrostatements));
+        constName, Type_1.default.builtinTypes['function'], [], [], '', innerMicrostatements, userFunction.args));
     }
     static closureFromBlocklikesAst(blocklikesAst, // TODO: Eliminate ANTLR
     scope, microstatements) {

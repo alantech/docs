@@ -11022,8 +11022,8 @@ class Microstatement {
                         const lastTypeAst = Ast.fulltypenameAstFromString(last.outputType.typename);
                         const originalTypeGenerics = originalTypeAst.typegenerics();
                         const lastTypeGenerics = lastTypeAst.typegenerics();
-                        const originalSubtypes = originalTypeGenerics ? originalTypeGenerics.fulltypename().map(t => t.getText()) : [];
-                        const lastSubtypes = lastTypeGenerics ? lastTypeGenerics.fulltypename().map(t => t.getText()) : [];
+                        const originalSubtypes = originalTypeGenerics ? originalTypeGenerics.fulltypename().map((t) => t.getText()) : [];
+                        const lastSubtypes = lastTypeGenerics ? lastTypeGenerics.fulltypename().map((t) => t.getText()) : [];
                         const newSubtypes = [];
                         for (let i = 0; i < originalSubtypes.length; i++) {
                             if (originalSubtypes[i] === lastSubtypes[i]) {
@@ -12209,6 +12209,7 @@ var StatementType;
     StatementType["REREF"] = "REREF";
     StatementType["CLOSURE"] = "CLOSURE";
     StatementType["ARG"] = "ARG";
+    StatementType["ENTERFN"] = "ENTERFN";
 })(StatementType || (StatementType = {}));
 exports.default = StatementType;
 
@@ -13123,10 +13124,29 @@ class UserFunction {
         return this;
     }
     microstatementInlining(realArgNames, scope, microstatements) {
+        // Get the current statement length for usage in multiple cleanup routines
+        const originalStatementLength = microstatements.length;
+        // First, check if there are any ENTERFN microstatements indicating a nested inlining, then
+        // check that list for self-containment, which would cause an infinite loop in compilation and
+        // abort with a useful error message.
+        const enterfns = microstatements.filter(m => m.statementType === StatementType_1.default.ENTERFN);
+        const isRecursive = enterfns.some(m => m.fns[0] === this);
+        if (isRecursive) {
+            let path = enterfns
+                .slice(enterfns.findIndex(m => m.fns[0] === this))
+                .map(m => m.fns[0].getName());
+            path.push(this.getName());
+            let pathstr = path.join(' -> ');
+            console.error(`Recursive callstack detected: ${pathstr}. Aborting.`);
+            process.exit(222);
+        }
+        else {
+            // Otherwise, add a marker for this 
+            microstatements.push(new Microstatement_1.default(StatementType_1.default.ENTERFN, scope, true, '', Type_1.default.builtinTypes.void, [], [this]));
+        }
         // Perform a transform, if necessary, before generating the microstatements
         // Resolve circular dependency issue
         const internalNames = Object.keys(this.args);
-        const originalStatementLength = microstatements.length;
         const inputs = realArgNames.map(n => Microstatement_1.default.fromVarName(n, microstatements));
         const inputTypes = inputs.map(i => i.outputType);
         for (let i = 0; i < internalNames.length; i++) {
@@ -13195,6 +13215,16 @@ class UserFunction {
                 }
                 let newLastType = oldLastType.originalType.solidify(lastSubtypes.map((t) => t.typename), scope);
                 last.outputType = newLastType;
+            }
+        }
+        // Now that we're done with this, we need to pop out all of the ENTERFN microstatements created
+        // after this one so we don't mark non-recursive calls to a function multiple times as recursive
+        // TODO: This is not the most efficient way to do things, come up with a better metadata
+        // mechanism to pass around.
+        for (let i = originalStatementLength; i < microstatements.length; i++) {
+            if (microstatements[i].statementType === StatementType_1.default.ENTERFN) {
+                microstatements.splice(i, 1);
+                i--;
             }
         }
     }

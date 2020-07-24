@@ -35,7 +35,7 @@ module.exports = {
   },
 }
 
-},{"../dist/lntoamm/Ast":10,"../dist/lntoamm/Module":13,"../dist/lntoamm/Scope":15,"../dist/lntoamm/opcodes":21,"./stdlibs.json":2}],2:[function(require,module,exports){
+},{"../dist/lntoamm/Ast":10,"../dist/lntoamm/Module":14,"../dist/lntoamm/Scope":16,"../dist/lntoamm/opcodes":22,"./stdlibs.json":2}],2:[function(require,module,exports){
 module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out)\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\"\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status)\n\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n)","deps.ln":"from @std/app import start, print\nfrom @std/cmd import exec\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\nexport fn add(remote: string) {\n  // TODO implement proper error handling\n  const parts = remote.split(':')\n  const repo = parts[length(parts)-1]\n  const repoParts = repo.split('.git')\n  const repoName = repoParts[0]\n  const dest = '/dependencies/' + repoName\n  exec('rm -rf .' + dest)\n  exec('git clone ' + remote + ' .' + dest)\n  exec('rm -rf .' + dest + '/.git')\n}\n\n// Emit the `install` event on app `start`\non start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  exec('rm -rf dependencies')\n  exec('mkdir dependencies')\n  emit install\n}\n","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Default Interfaces\nexport interface any {}\nexport interface anythingElse = any // Same as `any` but doesn't match with it\nexport interface Stringifiable {\n  toString(Stringifiable): string\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n)\nexport fn toFloat64(n: int16) = i16f64(n)\nexport fn toFloat64(n: int32) = i32f64(n)\nexport fn toFloat64(n: int64) = i64f64(n)\nexport fn toFloat64(n: float32) = f32f64(n)\nexport fn toFloat64(n: float64) = n\nexport fn toFloat64(n: string) = strf64(n)\nexport fn toFloat64(n: bool) = boolf64(n)\n\nexport fn toFloat32(n: int8) = i8f32(n)\nexport fn toFloat32(n: int16) = i16f32(n)\nexport fn toFloat32(n: int32) = i32f32(n)\nexport fn toFloat32(n: int64) = i64f32(n)\nexport fn toFloat32(n: float32) = n\nexport fn toFloat32(n: float64) = f64f32(n)\nexport fn toFloat32(n: string) = strf32(n)\nexport fn toFloat32(n: bool) = boolf32(n)\n\nexport fn toInt64(n: int8) = i8i64(n)\nexport fn toInt64(n: int16) = i16i64(n)\nexport fn toInt64(n: int32) = i32i64(n)\nexport fn toInt64(n: int64) = n\nexport fn toInt64(n: float32) = f32i64(n)\nexport fn toInt64(n: float64) = f64i64(n)\nexport fn toInt64(n: string) = stri64(n)\nexport fn toInt64(n: bool) = booli64(n)\n\nexport fn toInt32(n: int8) = i8i32(n)\nexport fn toInt32(n: int16) = i16i32(n)\nexport fn toInt32(n: int32) = n\nexport fn toInt32(n: int64) = i64i32(n)\nexport fn toInt32(n: float32) = f32i32(n)\nexport fn toInt32(n: float64) = f64i32(n)\nexport fn toInt32(n: string) = stri32(n)\nexport fn toInt32(n: bool) = booli32(n)\n\nexport fn toInt16(n: int8) = i8i16(n)\nexport fn toInt16(n: int16) = n\nexport fn toInt16(n: int32) = i32i16(n)\nexport fn toInt16(n: int64) = i64i16(n)\nexport fn toInt16(n: float32) = f32i16(n)\nexport fn toInt16(n: float64) = f64i16(n)\nexport fn toInt16(n: string) = stri16(n)\nexport fn toInt16(n: bool) = booli16(n)\n\nexport fn toInt8(n: int8) = n\nexport fn toInt8(n: int16) = i16i8(n)\nexport fn toInt8(n: int32) = i32i8(n)\nexport fn toInt8(n: int64) = i64i8(n)\nexport fn toInt8(n: float32) = f32i8(n)\nexport fn toInt8(n: float64) = f64i8(n)\nexport fn toInt8(n: string) = stri8(n)\nexport fn toInt8(n: bool) = booli8(n)\n\nexport fn toBool(n: int8) = i8bool(n)\nexport fn toBool(n: int16) = i16bool(n)\nexport fn toBool(n: int32) = i32bool(n)\nexport fn toBool(n: int64) = i64bool(n)\nexport fn toBool(n: float32) = f32bool(n)\nexport fn toBool(n: float64) = f64bool(n)\nexport fn toBool(n: string) = strbool(n)\nexport fn toBool(n: bool) = n\n\nexport fn toString(n: int8) = i8str(n)\nexport fn toString(n: int16) = i16str(n)\nexport fn toString(n: int32) = i32str(n)\nexport fn toString(n: int64) = i64str(n)\nexport fn toString(n: float32) = f32str(n)\nexport fn toString(n: float64) = f64str(n)\nexport fn toString(n: string) = n\nexport fn toString(n: bool) = boolstr(n)\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b)\nexport fn add(a: int16, b: int16) = addi16(a, b)\nexport fn add(a: int32, b: int32) = addi32(a, b)\nexport fn add(a: int64, b: int64) = addi64(a, b)\nexport fn add(a: float32, b: float32) = addf32(a, b)\nexport fn add(a: float64, b: float64) = addf64(a, b)\n\nexport fn sub(a: int8, b: int8) = subi8(a, b)\nexport fn sub(a: int16, b: int16) = subi16(a, b)\nexport fn sub(a: int32, b: int32) = subi32(a, b)\nexport fn sub(a: int64, b: int64) = subi64(a, b)\nexport fn sub(a: float32, b: float32) = subf32(a, b)\nexport fn sub(a: float64, b: float64) = subf64(a, b)\n\nexport fn negate(n: int8) = negi8(n)\nexport fn negate(n: int16) = negi16(n)\nexport fn negate(n: int32) = negi32(n)\nexport fn negate(n: int64) = negi64(n)\nexport fn negate(n: float32) = negf32(n)\nexport fn negate(n: float64) = negf64(n)\n\nexport fn mul(a: int8, b: int8) = muli8(a, b)\nexport fn mul(a: int16, b: int16) = muli16(a, b)\nexport fn mul(a: int32, b: int32) = muli32(a, b)\nexport fn mul(a: int64, b: int64) = muli64(a, b)\nexport fn mul(a: float32, b: float32) = mulf32(a, b)\nexport fn mul(a: float64, b: float64) = mulf64(a, b)\n\nexport fn div(a: int8, b: int8) = divi8(a, b)\nexport fn div(a: int16, b: int16) = divi16(a, b)\nexport fn div(a: int32, b: int32) = divi32(a, b)\nexport fn div(a: int64, b: int64) = divi64(a, b)\nexport fn div(a: float32, b: float32) = divf32(a, b)\nexport fn div(a: float64, b: float64) = divf64(a, b)\n\nexport fn mod(a: int8, b: int8) = modi8(a, b)\nexport fn mod(a: int16, b: int16) = modi16(a, b)\nexport fn mod(a: int32, b: int32) = modi32(a, b)\nexport fn mod(a: int64, b: int64) = modi64(a, b)\n\nexport fn pow(a: int8, b: int8) = powi8(a, b)\nexport fn pow(a: int16, b: int16) = powi16(a, b)\nexport fn pow(a: int32, b: int32) = powi32(a, b)\nexport fn pow(a: int64, b: int64) = powi64(a, b)\nexport fn pow(a: float32, b: float32) = powf32(a, b)\nexport fn pow(a: float64, b: float64) = powf64(a, b)\n\nexport fn sqrt(n: float32) = sqrtf32(n)\nexport fn sqrt(n: float64) = sqrtf64(n)\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b)\nexport fn and(a: int16, b: int16) = andi16(a, b)\nexport fn and(a: int32, b: int32) = andi32(a, b)\nexport fn and(a: int64, b: int64) = andi64(a, b)\nexport fn and(a: bool, b: bool) = andbool(a, b)\n\nexport fn or(a: int8, b: int8) = ori8(a, b)\nexport fn or(a: int16, b: int16) = ori16(a, b)\nexport fn or(a: int32, b: int32) = ori32(a, b)\nexport fn or(a: int64, b: int64) = ori64(a, b)\nexport fn or(a: bool, b: bool) = orbool(a, b)\n\nexport fn xor(a: int8, b: int8) = xori8(a, b)\nexport fn xor(a: int16, b: int16) = xori16(a, b)\nexport fn xor(a: int32, b: int32) = xori32(a, b)\nexport fn xor(a: int64, b: int64) = xori64(a, b)\nexport fn xor(a: bool, b: bool) = xorbool(a, b)\n\nexport fn not(n: int8) = noti8(n)\nexport fn not(n: int16) = noti16(n)\nexport fn not(n: int32) = noti32(n)\nexport fn not(n: int64) = noti64(n)\nexport fn not(n: bool) = notbool(n)\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b)\nexport fn nand(a: int16, b: int16) = nandi16(a, b)\nexport fn nand(a: int32, b: int32) = nandi32(a, b)\nexport fn nand(a: int64, b: int64) = nandi64(a, b)\nexport fn nand(a: bool, b: bool) = nandboo(a, b)\n\nexport fn nor(a: int8, b: int8) = nori8(a, b)\nexport fn nor(a: int16, b: int16) = nori16(a, b)\nexport fn nor(a: int32, b: int32) = nori32(a, b)\nexport fn nor(a: int64, b: int64) = nori64(a, b)\nexport fn nor(a: bool, b: bool) = norbool(a, b)\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b)\nexport fn xnor(a: int16, b: int16) = xnori16(a, b)\nexport fn xnor(a: int32, b: int32) = xnori32(a, b)\nexport fn xnor(a: int64, b: int64) = xnori64(a, b)\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b)\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b)\nexport fn eq(a: int16, b: int16) = eqi16(a, b)\nexport fn eq(a: int32, b: int32) = eqi32(a, b)\nexport fn eq(a: int64, b: int64) = eqi64(a, b)\nexport fn eq(a: float32, b: float32) = eqf32(a, b)\nexport fn eq(a: float64, b: float64) = eqf64(a, b)\nexport fn eq(a: string, b: string) = eqstr(a, b)\nexport fn eq(a: bool, b: bool) = eqbool(a, b)\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b)\nexport fn neq(a: int16, b: int16) = neqi16(a, b)\nexport fn neq(a: int32, b: int32) = neqi32(a, b)\nexport fn neq(a: int64, b: int64) = neqi64(a, b)\nexport fn neq(a: float32, b: float32) = neqf32(a, b)\nexport fn neq(a: float64, b: float64) = neqf64(a, b)\nexport fn neq(a: string, b: string) = neqstr(a, b)\nexport fn neq(a: bool, b: bool) = neqbool(a, b)\n\nexport fn lt(a: int8, b: int8) = lti8(a, b)\nexport fn lt(a: int16, b: int16) = lti16(a, b)\nexport fn lt(a: int32, b: int32) = lti32(a, b)\nexport fn lt(a: int64, b: int64) = lti64(a, b)\nexport fn lt(a: float32, b: float32) = ltf32(a, b)\nexport fn lt(a: float64, b: float64) = ltf64(a, b)\nexport fn lt(a: string, b: string) = ltstr(a, b)\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b)\nexport fn lte(a: int16, b: int16) = ltei16(a, b)\nexport fn lte(a: int32, b: int32) = ltei32(a, b)\nexport fn lte(a: int64, b: int64) = ltei64(a, b)\nexport fn lte(a: float32, b: float32) = ltef32(a, b)\nexport fn lte(a: float64, b: float64) = ltef64(a, b)\nexport fn lte(a: string, b: string) = ltestr(a, b)\n\nexport fn gt(a: int8, b: int8) = gti8(a, b)\nexport fn gt(a: int16, b: int16) = gti16(a, b)\nexport fn gt(a: int32, b: int32) = gti32(a, b)\nexport fn gt(a: int64, b: int64) = gti64(a, b)\nexport fn gt(a: float32, b: float32) = gtf32(a, b)\nexport fn gt(a: float64, b: float64) = gtf64(a, b)\nexport fn gt(a: string, b: string) = gtstr(a, b)\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b)\nexport fn gte(a: int16, b: int16) = gtei16(a, b)\nexport fn gte(a: int32, b: int32) = gtei32(a, b)\nexport fn gte(a: int64, b: int64) = gtei64(a, b)\nexport fn gte(a: float32, b: float32) = gtef32(a, b)\nexport fn gte(a: float64, b: float64) = gtef64(a, b)\nexport fn gte(a: string, b: string) = gtestr(a, b)\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n))\nexport fn wait(n: int16) = waitop(i16i64(n))\nexport fn wait(n: int32) = waitop(i32i64(n))\nexport fn wait(n: int64) = waitop(n)\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b)\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n)\nexport fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t)\nexport fn length(s: string) = lenstr(s)\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b)\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n)\nexport fn index(arr: Array<any>, val: any) = indarrv(arr, val)\nexport fn index(arr: Array<int8>, val: int8) = indarrf(arr, val)\nexport fn index(arr: Array<int16>, val: int16) = indarrf(arr, val)\nexport fn index(arr: Array<int32>, val: int32) = indarrf(arr, val)\nexport fn index(arr: Array<int64>, val: int64) = indarrf(arr, val)\nexport fn index(arr: Array<float32>, val: float32) = indarrf(arr, val)\nexport fn index(arr: Array<float64>, val: float64) = indarrf(arr, val)\nexport fn index(arr: Array<bool>, val: bool) = indarrf(arr, val)\nexport fn length(arr: Array<any>) = lenarr(arr)\nexport fn push(arr: Array<any>, val: any) {\n  pusharr(arr, val, 0)\n  return arr\n}\nexport fn push(arr: Array<int8>, val: int8) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<int16>, val: int16) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<int32>, val: int32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<int64>, val: int64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<float32>, val: float32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<float64>, val: float64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<bool>, val: bool) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn pop(arr: Array<any>): any = poparr(arr, val)\nexport each // opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport map // opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport reduce // opcode with signature `fn reduce(arr: Array<any>, cb: function): any`\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): any`\nexport every // opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport some // opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\n\n// Map functions\nexport keyVal // opcode with signature `fn keyVal(map: Map<any, any>): Array<KeyVal<any, any>>`\nexport keys // opcode with signature `fn keys(map: Map<any, any>): Array<any>`\nexport values // opcode with signature `fn values(map: Map<any, any>): Array<any>`\n\n// Ternary functions\nexport fn pair(trueval: any, falseval: any) = new Array<any> [ trueval, falseval ]\nexport fn cond(c: bool, options: Array<any>) = options[1 - c.toInt64()]\nexport fn cond(c: bool, optional: function): void = condfn(c, optional)\n\n// \"assign\" function useful for hoisting assignments\nexport fn assign(a: any) = copyarr(a)\nexport fn assign(a: Array<any>) = copyarr(a)\nexport fn assign(a: void) = copyvoid(a) // TODO: Eliminate this, covering up a weird error\nexport fn assign() = zeroed() // TODO: Used for conditionals, eliminate with more clever compiler\nexport fn assign(a: int8) = copyi8(a)\nexport fn assign(a: int16) = copyi16(a)\nexport fn assign(a: int32) = copyi32(a)\nexport fn assign(a: int64) = copyi64(a)\nexport fn assign(a: float32) = copyf32(a)\nexport fn assign(a: float64) = copyf64(a)\nexport fn assign(a: bool) = copybool(a)\nexport fn assign(a: string) = copystr(a)\n\n// Error, Maybe, Result, and Either types and functions\nexport type Error { // TODO: Give this type special behavior to report stack info?\n  msg: string\n}\n\nexport fn noerr() = new Error {\n  msg = \"No Error\"\n}\n\nexport type Maybe<T> {\n  val: Array<T>\n}\n\nexport fn some(val: any) = new Maybe<any> {\n  val = [ val, ]\n}\n\nexport fn none() = new Maybe<void> {\n  val = new Array<void> []\n}\n\nexport fn isSome(maybe: Maybe<any>) = length(maybe.val).gt(0)\n\nexport fn isNone(maybe: Maybe<any>) = length(maybe.val).eq(0)\n\nexport fn getOr(maybe: Maybe<any>, default: any): any {\n  if maybe.isSome() {\n    return maybe.val[0]\n  } else {\n    return default\n  }\n}\n\nexport type Result<T> {\n  val: Maybe<T>\n  err: Maybe<Error>\n}\n\nexport fn ok(val: any) = new Result<any> {\n  val = some(val)\n  err = none()\n}\n\nexport fn err(msg: string) = new Result<any> {\n  val = none()\n  err = some(new Error {\n    msg = msg\n  })\n}\n\nexport fn isOk(result: Result<any>) = isSome(result.val)\n\nexport fn isErr(result: Result<any>) = isSome(result.err)\n\nexport fn getOr(result: Result<any>, default: any) = getOr(result.val, default)\n\nexport fn getErr(result: Result<any>, default: Error): Error = getOr(result.err, default)\n\nexport type Either<T, U> {\n  main: Maybe<T>\n  alt: Maybe<U>\n}\n\nexport fn main(m: any) = new Either<any, void> {\n  main = some(m)\n  alt = none()\n}\n\nexport fn alt(a: any) = new Either<void, any> {\n  main = none()\n  alt = some(a)\n}\n\nexport fn isMain(either: Either<any, anythingElse>) = isSome(either.main)\n\nexport fn isAlt(either: Either<any, anythingElse>) = isSome(either.alt)\n\nexport fn getMainOr(either: Either<any, anythingElse>, default: any) = getOr(either.main, default)\n\nexport fn getAltOr(either: Either<any, anythingElse>, default: anythingElse) = getOr(either.alt, default)\n\n// Operator declarations\nexport infix add as + precedence 2\nexport infix concat as + precedence 2\nexport infix sub as - precedence 2\nexport prefix negate as - precedence 1\nexport infix mul as * precedence 3\nexport infix repeat as * precedence 3\nexport infix div as / precedence 3\nexport infix split as / precedence 3\nexport infix mod as % precedence 3\nexport infix template as % precedence 3\nexport infix pow as ** precedence 4\nexport infix and as & precedence 3\nexport infix and as && precedence 3\nexport infix or as | precedence 2\nexport infix or as || precedence 2\nexport infix xor as ^ precedence 2\nexport prefix not as ! precedence 4\nexport infix nand as !& precedence 3\nexport infix nor as !| precedence 2\nexport infix xnor as !^ precedence 2\nexport infix eq as == precedence 1\nexport infix neq as != precedence 1\nexport infix lt as < precedence 1\nexport infix lte as <= precedence 1\nexport infix gt as > precedence 1\nexport infix gte as >= precedence 1\nexport infix matches as ~ precedence 1\nexport infix index as @ precedence 1\nexport prefix length as # precedence 4\nexport prefix trim as ` precedence 4\nexport infix pair as : precedence 5\nexport infix push as : precedence 6\nexport infix cond as ? precedence 0\nexport infix getOr as | precedence 2\nexport infix getOr as || precedence 2\n"}
 
 },{}],3:[function(require,module,exports){
@@ -190,7 +190,7 @@ const amm = lp_1.NamedAnd.build({
 });
 exports.default = amm;
 
-},{"./lp":22}],4:[function(require,module,exports){
+},{"./lp":23}],4:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -619,7 +619,7 @@ exports.fromString = (str) => {
 };
 
 }).call(this,require('_process'))
-},{"./amm":3,"./lp":22,"_process":74}],5:[function(require,module,exports){
+},{"./amm":3,"./lp":23,"_process":75}],5:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -727,7 +727,7 @@ exports.fromString = (str) => {
 };
 
 }).call(this,require('_process'))
-},{"./amm":3,"./lp":22,"_process":74,"alan-js-runtime":"alan-js-runtime"}],6:[function(require,module,exports){
+},{"./amm":3,"./lp":23,"_process":75,"alan-js-runtime":"alan-js-runtime"}],6:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -1053,7 +1053,7 @@ LnLexer.prototype.ruleNames = ["IMPORT", "FROM", "TYPE", "FN", "EVENT",
 LnLexer.prototype.grammarFileName = "Ln.g4";
 exports.LnLexer = LnLexer;
 
-},{"antlr4/index":65}],7:[function(require,module,exports){
+},{"antlr4/index":66}],7:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -1462,7 +1462,7 @@ LnListener.prototype.exitArrayaccess = function (ctx) {
 };
 exports.LnListener = LnListener;
 
-},{"antlr4/index":65}],8:[function(require,module,exports){
+},{"antlr4/index":66}],8:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -9685,7 +9685,7 @@ LnParser.prototype.arrayaccess = function () {
 };
 exports.LnParser = LnParser;
 
-},{"./LnListener":7,"antlr4/index":65}],9:[function(require,module,exports){
+},{"./LnListener":7,"antlr4/index":66}],9:[function(require,module,exports){
 module.exports = {
     LnLexer: require('./LnLexer').LnLexer,
     LnParser: require('./LnParser').LnParser,
@@ -9913,7 +9913,27 @@ exports.fulltypenameAstFromString = (s) => {
 };
 
 }).call(this,require('_process'))
-},{"../ln":9,"_process":74,"antlr4":65,"fs":71,"path":73}],11:[function(require,module,exports){
+},{"../ln":9,"_process":75,"antlr4":66,"fs":72,"path":74}],11:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+class Constant {
+    constructor(name, assignablesAst, scope) {
+        this.name = name;
+        this.assignablesAst = assignablesAst;
+        this.scope = scope;
+    }
+    static fromAst(constdeclaration, scope) {
+        const name = constdeclaration.VARNAME() ?
+            constdeclaration.VARNAME().getText() :
+            constdeclaration.assignments().varn().getText();
+        const outConst = new Constant(name, constdeclaration.assignments().assignables(), scope);
+        scope.put(name, outConst);
+        return outConst;
+    }
+}
+exports.default = Constant;
+
+},{}],12:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -9950,7 +9970,7 @@ let Event = /** @class */ (() => {
 exports.default = Event;
 
 }).call(this,require('_process'))
-},{"./Type":18,"_process":74}],12:[function(require,module,exports){
+},{"./Type":19,"_process":75}],13:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -9958,6 +9978,7 @@ const uuid_1 = require("uuid");
 const Ast = require("./Ast");
 const Event_1 = require("./Event");
 const Operator_1 = require("./Operator");
+const Constant_1 = require("./Constant");
 const Scope_1 = require("./Scope");
 const StatementType_1 = require("./StatementType");
 const Type_1 = require("./Type");
@@ -10046,7 +10067,7 @@ class Microstatement {
         }
         return outString;
     }
-    static fromVarName(varName, microstatements) {
+    static fromVarName(varName, scope, microstatements) {
         let original = null;
         for (let i = microstatements.length - 1; i > -1; i--) {
             const microstatement = microstatements[i];
@@ -10069,12 +10090,23 @@ class Microstatement {
                 break;
             }
         }
+        // Check if this is a module constant that should be un-hoisted
+        if (original === null &&
+            !!scope.deepGet(varName) &&
+            scope.deepGet(varName) instanceof Constant_1.default) {
+            const globalConst = scope.deepGet(varName);
+            Microstatement.fromAssignablesAst(globalConst.assignablesAst, globalConst.scope, // Eval this in its original scope in case it was an exported const
+            microstatements // that was dependent on unexported internal functions or constants
+            );
+            const last = microstatements[microstatements.length - 1];
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, last.outputName, last.outputType, [], [], globalConst.name));
+        }
         return original;
     }
     // TODO: Eliminate ANTLR
     static fromVarAst(varAst, scope, microstatements) {
         // Short-circuit if this exact var was already loaded
-        let original = Microstatement.fromVarName(varAst.getText(), microstatements);
+        let original = Microstatement.fromVarName(varAst.getText(), scope, microstatements);
         if (!original) {
             // Otherwise, we're digging in piece by piece to find the relevant microstatement.
             const segments = varAst.varsegment();
@@ -10087,7 +10119,7 @@ class Microstatement {
                     // access instead
                     name += segment.VARNAME().getText();
                     if (!original || !original.outputType || original.outputType.builtIn) {
-                        original = Microstatement.fromVarName(name, microstatements);
+                        original = Microstatement.fromVarName(name, scope, microstatements);
                     }
                     else {
                         // Next, figure out which field number this is
@@ -10810,7 +10842,7 @@ class Microstatement {
                     scopePath += varSegs[j] + ".";
                 }
                 scopePath = scopePath.substring(0, scopePath.length - 1);
-                firstArg = Microstatement.fromVarName(scopePath, microstatements);
+                firstArg = Microstatement.fromVarName(scopePath, scope, microstatements);
                 if (firstArg == null) { // It wasn't this, either, just return the same error
                     console.error("Undefined function called: " + callsAst.varn(0).getText());
                     process.exit(-140);
@@ -10931,7 +10963,7 @@ class Microstatement {
                     break;
                 }
                 else if (microstatement.statementType === StatementType_1.default.REREF) {
-                    original = Microstatement.fromVarName(microstatement.outputName, microstatements);
+                    original = Microstatement.fromVarName(microstatement.outputName, scope, microstatements);
                     break;
                 }
                 else {
@@ -11350,7 +11382,7 @@ class Microstatement {
             // and mutate that, instead
             let val = microstatements[microstatements.length - 1];
             if (val.statementType === StatementType_1.default.REREF) {
-                val = Microstatement.fromVarName(val.alias, microstatements);
+                val = Microstatement.fromVarName(val.alias, scope, microstatements);
             }
             val.statementType = StatementType_1.default.LETDEC;
             microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, val.outputName, val.outputType, [], [], letAlias));
@@ -11364,7 +11396,7 @@ class Microstatement {
             // and mutate that, instead
             let val = microstatements[microstatements.length - 1];
             if (val.statementType === StatementType_1.default.REREF) {
-                val = Microstatement.fromVarName(val.alias, microstatements);
+                val = Microstatement.fromVarName(val.alias, scope, microstatements);
             }
             val.statementType = StatementType_1.default.LETDEC;
             microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, val.outputName, val.outputType, [], [], letAlias));
@@ -11486,11 +11518,12 @@ class Microstatement {
 exports.default = Microstatement;
 
 }).call(this,require('_process'))
-},{"../ln":9,"./Ast":10,"./Event":11,"./Operator":14,"./Scope":15,"./StatementType":17,"./Type":18,"./UserFunction":19,"./opcodes":21,"_process":74,"uuid":79}],13:[function(require,module,exports){
+},{"../ln":9,"./Ast":10,"./Constant":11,"./Event":12,"./Operator":15,"./Scope":16,"./StatementType":18,"./Type":19,"./UserFunction":20,"./opcodes":22,"_process":75,"uuid":80}],14:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Ast = require("./Ast");
+const Constant_1 = require("./Constant");
 const Event_1 = require("./Event");
 const Operator_1 = require("./Operator");
 const Scope_1 = require("./Scope");
@@ -11610,12 +11643,9 @@ class Module {
             // Automatically inserts the interface into the module scope, we're done.
         }
         // Next, constants
-        // TODO: Need to restore this functionality once compile-time-eval is implemented
         const constdeclarations = ast.constdeclaration();
-        if (constdeclarations.length > 0) {
-            console.error('Module-scope constants not yet implemented');
-            console.error(constdeclarations().getText());
-            process.exit(2);
+        for (const constdeclaration of constdeclarations) {
+            Constant_1.default.fromAst(constdeclaration, module.moduleScope);
         }
         // Next, events
         const events = ast.events();
@@ -11683,8 +11713,8 @@ class Module {
                 module.exportScope.put(interfaceBox.typename, interfaceBox);
             }
             else if (exportAst.constdeclaration() != null) {
-                console.error('Module-scope constants not yet implemented');
-                process.exit(2);
+                const constVal = Constant_1.default.fromAst(exportAst.constdeclaration(), module.moduleScope);
+                module.exportScope.put(constVal.name, constVal);
             }
             else if (exportAst.functions() != null) {
                 const newFunc = UserFunction_1.default.fromAst(exportAst.functions(), module.moduleScope);
@@ -11860,7 +11890,7 @@ class Module {
 exports.default = Module;
 
 }).call(this,require('_process'))
-},{"./Ast":10,"./Event":11,"./Operator":14,"./Scope":15,"./Type":18,"./UserFunction":19,"_process":74}],14:[function(require,module,exports){
+},{"./Ast":10,"./Constant":11,"./Event":12,"./Operator":15,"./Scope":16,"./Type":19,"./UserFunction":20,"_process":75}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Ast = require("./Ast");
@@ -11938,7 +11968,7 @@ class Operator {
 }
 exports.default = Operator;
 
-},{"./Ast":10,"./Type":18}],15:[function(require,module,exports){
+},{"./Ast":10,"./Type":19}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class Scope {
@@ -11991,7 +12021,7 @@ class Scope {
 }
 exports.default = Scope;
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -12022,8 +12052,8 @@ class Statement {
         if (a.basicassignables())
             return Statement.basicAssignableHasObjectLiteral(a.basicassignables());
         return a.withoperators().operatororassignable()
-            .filter(oa => !!oa.basicassignables())
-            .some(oa => Statement.basicAssignableHasObjectLiteral(oa.basicassignables()));
+            .filter((oa) => !!oa.basicassignables())
+            .some((oa) => Statement.basicAssignableHasObjectLiteral(oa.basicassignables()));
     }
     static assignmentsHasObjectLiteral(assignmentsAst) {
         return Statement.assignablesHasObjectLiteral(assignmentsAst.assignables());
@@ -12040,7 +12070,7 @@ class Statement {
             if (s.assignments())
                 return Statement.assignmentsHasObjectLiteral(s.assignments());
             if (s.calls() && s.calls().assignables() > 0)
-                s.calls().assignables().some(a => Statement.assignablesHasObjectLiteral(a));
+                s.calls().assignables().some((a) => Statement.assignablesHasObjectLiteral(a));
             if (s.exits() && s.exits().assignables())
                 return Statement.assignablesHasObjectLiteral(s.exits().assignables());
             if (s.emits() && s.emits().assignables())
@@ -12196,7 +12226,7 @@ class Statement {
 exports.default = Statement;
 
 }).call(this,require('_process'))
-},{"../ln":9,"./Operator":14,"_process":74}],17:[function(require,module,exports){
+},{"../ln":9,"./Operator":15,"_process":75}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var StatementType;
@@ -12213,7 +12243,7 @@ var StatementType;
 })(StatementType || (StatementType = {}));
 exports.default = StatementType;
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -12655,7 +12685,7 @@ exports.Type = Type;
 exports.default = Type;
 
 }).call(this,require('_process'))
-},{"./Ast":10,"./Operator":14,"_process":74}],19:[function(require,module,exports){
+},{"./Ast":10,"./Operator":15,"_process":75}],20:[function(require,module,exports){
 (function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -13147,7 +13177,7 @@ class UserFunction {
         // Perform a transform, if necessary, before generating the microstatements
         // Resolve circular dependency issue
         const internalNames = Object.keys(this.args);
-        const inputs = realArgNames.map(n => Microstatement_1.default.fromVarName(n, microstatements));
+        const inputs = realArgNames.map(n => Microstatement_1.default.fromVarName(n, scope, microstatements));
         const inputTypes = inputs.map(i => i.outputType);
         for (let i = 0; i < internalNames.length; i++) {
             const realArgName = realArgNames[i];
@@ -13297,7 +13327,7 @@ class UserFunction {
 exports.default = UserFunction;
 
 }).call(this,require('_process'))
-},{"../ln":9,"./Ast":10,"./Microstatement":12,"./Statement":16,"./StatementType":17,"./Type":18,"_process":74,"uuid":79}],20:[function(require,module,exports){
+},{"../ln":9,"./Ast":10,"./Microstatement":13,"./Statement":17,"./StatementType":18,"./Type":19,"_process":75,"uuid":80}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fromString = exports.fromFile = void 0;
@@ -13468,7 +13498,6 @@ const ammFromModuleAsts = (moduleAsts) => {
         eventTypes.add(type);
         // Determine if any of the properties of the type should be added to the list
         for (const propType of Object.values(type.properties)) {
-            // TODO: Convert `Type` to TS
             // Skip built-in types, too
             if (propType.builtIn)
                 continue;
@@ -13552,7 +13581,7 @@ const ammFromModuleAsts = (moduleAsts) => {
 exports.fromFile = (filename) => ammFromModuleAsts(moduleAstsFromFile(filename));
 exports.fromString = (str) => ammFromModuleAsts(moduleAstsFromString(str));
 
-},{"./Ast":10,"./Event":11,"./Microstatement":12,"./Module":13,"./StatementType":17,"./Std":1,"./UserFunction":19,"fs":71,"uuid":79}],21:[function(require,module,exports){
+},{"./Ast":10,"./Event":12,"./Microstatement":13,"./Module":14,"./StatementType":18,"./Std":1,"./UserFunction":20,"fs":72,"uuid":80}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const uuid_1 = require("uuid");
@@ -13607,7 +13636,7 @@ const addopcodes = (opcodes) => {
                 getReturnType: () => returnType,
                 isPure: () => true,
                 microstatementInlining: (realArgNames, scope, microstatements) => {
-                    const inputs = realArgNames.map(n => Microstatement_1.default.fromVarName(n, microstatements));
+                    const inputs = realArgNames.map(n => Microstatement_1.default.fromVarName(n, scope, microstatements));
                     const inputTypes = inputs.map(i => i.outputType);
                     microstatements.push(new Microstatement_1.default(StatementType_1.default.CONSTDEC, scope, true, "_" + uuid_1.v4().replace(/-/g, "_"), ((inputTypes, scope) => {
                         if (!!returnType.iface) {
@@ -13895,7 +13924,7 @@ addopcodes({
 });
 exports.default = opcodeModule;
 
-},{"./Event":11,"./Microstatement":12,"./Module":13,"./Scope":15,"./StatementType":17,"./Type":18,"uuid":79}],22:[function(require,module,exports){
+},{"./Event":12,"./Microstatement":13,"./Module":14,"./Scope":16,"./StatementType":18,"./Type":19,"uuid":80}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RangeSet = exports.CharSet = exports.NamedOr = exports.NamedAnd = exports.Or = exports.And = exports.OneOrMore = exports.ZeroOrMore = exports.ZeroOrOne = exports.Not = exports.Token = exports.NulLP = exports.lpError = exports.LP = void 0;
@@ -14496,7 +14525,7 @@ exports.RangeSet = (toRepeat, min, max) => {
     return Or.build(sets);
 };
 
-},{"fs":71}],23:[function(require,module,exports){
+},{"fs":72}],24:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const buildPipeline = (converters) => {
@@ -14625,7 +14654,7 @@ const buildPipeline = (converters) => {
 };
 exports.default = buildPipeline;
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -15002,7 +15031,7 @@ BufferedTokenStream.prototype.fill = function() {
 
 exports.BufferedTokenStream = BufferedTokenStream;
 
-},{"./IntervalSet":30,"./Lexer":32,"./Token":38}],25:[function(require,module,exports){
+},{"./IntervalSet":31,"./Lexer":33,"./Token":39}],26:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -15075,7 +15104,7 @@ var CharStreams = {
 
 exports.CharStreams = CharStreams;
 
-},{"./InputStream":29,"fs":71}],26:[function(require,module,exports){
+},{"./InputStream":30,"fs":72}],27:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -15146,7 +15175,7 @@ CommonTokenFactory.prototype.createThin = function(type, text) {
 
 exports.CommonTokenFactory = CommonTokenFactory;
 
-},{"./Token":38}],27:[function(require,module,exports){
+},{"./Token":39}],28:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -15251,7 +15280,7 @@ CommonTokenStream.prototype.getNumberOfOnChannelTokens = function() {
 };
 
 exports.CommonTokenStream = CommonTokenStream;
-},{"./BufferedTokenStream":24,"./Token":38}],28:[function(require,module,exports){
+},{"./BufferedTokenStream":25,"./Token":39}],29:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -15279,7 +15308,7 @@ FileStream.prototype.constructor = FileStream;
 
 exports.FileStream = FileStream;
 
-},{"./InputStream":29,"fs":71}],29:[function(require,module,exports){
+},{"./InputStream":30,"fs":72}],30:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -15416,7 +15445,7 @@ InputStream.prototype.toString = function() {
 
 exports.InputStream = InputStream;
 
-},{"./Token":38,"./polyfills/codepointat":66,"./polyfills/fromcodepoint":67}],30:[function(require,module,exports){
+},{"./Token":39,"./polyfills/codepointat":67,"./polyfills/fromcodepoint":68}],31:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -15716,7 +15745,7 @@ IntervalSet.prototype.elementName = function(literalNames, symbolicNames, a) {
 exports.Interval = Interval;
 exports.IntervalSet = IntervalSet;
 
-},{"./Token":38}],31:[function(require,module,exports){
+},{"./Token":39}],32:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -15917,7 +15946,7 @@ LL1Analyzer.prototype._LOOK = function(s, stopState , ctx, look, lookBusy, calle
 exports.LL1Analyzer = LL1Analyzer;
 
 
-},{"./IntervalSet":30,"./PredictionContext":35,"./Token":38,"./Utils":39,"./atn/ATNConfig":41,"./atn/ATNState":46,"./atn/Transition":54}],32:[function(require,module,exports){
+},{"./IntervalSet":31,"./PredictionContext":36,"./Token":39,"./Utils":40,"./atn/ATNConfig":42,"./atn/ATNState":47,"./atn/Transition":55}],33:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -16290,7 +16319,7 @@ Lexer.prototype.recover = function(re) {
 
 exports.Lexer = Lexer;
 
-},{"./CommonTokenFactory":26,"./Recognizer":36,"./Token":38,"./error/Errors":63}],33:[function(require,module,exports){
+},{"./CommonTokenFactory":27,"./Recognizer":37,"./Token":39,"./error/Errors":64}],34:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -16965,7 +16994,7 @@ Parser.prototype.setTrace = function(trace) {
 };
 
 exports.Parser = Parser;
-},{"./Lexer":32,"./Recognizer":36,"./Token":38,"./atn/ATNDeserializationOptions":43,"./atn/ATNDeserializer":44,"./error/ErrorStrategy":62,"./tree/Tree":68}],34:[function(require,module,exports){
+},{"./Lexer":33,"./Recognizer":37,"./Token":39,"./atn/ATNDeserializationOptions":44,"./atn/ATNDeserializer":45,"./error/ErrorStrategy":63,"./tree/Tree":69}],35:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -17191,7 +17220,7 @@ InterpreterRuleContext.prototype = Object.create(ParserRuleContext.prototype);
 InterpreterRuleContext.prototype.constructor = InterpreterRuleContext;
 
 exports.ParserRuleContext = ParserRuleContext;
-},{"./IntervalSet":30,"./RuleContext":37,"./tree/Tree":68}],35:[function(require,module,exports){
+},{"./IntervalSet":31,"./RuleContext":38,"./tree/Tree":69}],36:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -17927,7 +17956,7 @@ exports.SingletonPredictionContext = SingletonPredictionContext;
 exports.predictionContextFromRuleContext = predictionContextFromRuleContext;
 exports.getCachedPredictionContext = getCachedPredictionContext;
 
-},{"./RuleContext":37,"./Utils":39}],36:[function(require,module,exports){
+},{"./RuleContext":38,"./Utils":40}],37:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -18076,7 +18105,7 @@ Object.defineProperty(Recognizer.prototype, "state", {
 
 exports.Recognizer = Recognizer;
 
-},{"./Token":38,"./error/ErrorListener":61}],37:[function(require,module,exports){
+},{"./Token":39,"./error/ErrorListener":62}],38:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -18235,7 +18264,7 @@ RuleContext.prototype.toString = function(ruleNames, stop) {
 };
 
 
-},{"./atn/ATN":40,"./tree/Tree":68,"./tree/Trees":69}],38:[function(require,module,exports){
+},{"./atn/ATN":41,"./tree/Tree":69,"./tree/Trees":70}],39:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -18388,7 +18417,7 @@ CommonToken.prototype.toString = function() {
 exports.Token = Token;
 exports.CommonToken = CommonToken;
 
-},{}],39:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -18841,7 +18870,7 @@ exports.arrayToString = arrayToString;
 exports.titleCase = titleCase;
 exports.equalArrays = equalArrays;
 
-},{}],40:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -18984,7 +19013,7 @@ ATN.prototype.getExpectedTokens = function( stateNumber, ctx ) {
 ATN.INVALID_ALT_NUMBER = 0;
 
 exports.ATN = ATN;
-},{"./../IntervalSet":30,"./../LL1Analyzer":31,"./../Token":38}],41:[function(require,module,exports){
+},{"./../IntervalSet":31,"./../LL1Analyzer":32,"./../Token":39}],42:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -19161,7 +19190,7 @@ LexerATNConfig.prototype.checkNonGreedyDecision = function(source, target) {
 
 exports.ATNConfig = ATNConfig;
 exports.LexerATNConfig = LexerATNConfig;
-},{"../Utils":39,"./ATNState":46,"./SemanticContext":53}],42:[function(require,module,exports){
+},{"../Utils":40,"./ATNState":47,"./SemanticContext":54}],43:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -19416,7 +19445,7 @@ OrderedATNConfigSet.prototype.constructor = OrderedATNConfigSet;
 exports.ATNConfigSet = ATNConfigSet;
 exports.OrderedATNConfigSet = OrderedATNConfigSet;
 
-},{"./../PredictionContext":35,"./../Utils":39,"./ATN":40,"./SemanticContext":53}],43:[function(require,module,exports){
+},{"./../PredictionContext":36,"./../Utils":40,"./ATN":41,"./SemanticContext":54}],44:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -19443,7 +19472,7 @@ ATNDeserializationOptions.defaultOptions.readOnly = true;
 
 exports.ATNDeserializationOptions = ATNDeserializationOptions;
 
-},{}],44:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -20122,7 +20151,7 @@ ATNDeserializer.prototype.lexerActionFactory = function(type, data1, data2) {
 
 
 exports.ATNDeserializer = ATNDeserializer;
-},{"./../IntervalSet":30,"./../Token":38,"./ATN":40,"./ATNDeserializationOptions":43,"./ATNState":46,"./ATNType":47,"./LexerAction":49,"./Transition":54}],45:[function(require,module,exports){
+},{"./../IntervalSet":31,"./../Token":39,"./ATN":41,"./ATNDeserializationOptions":44,"./ATNState":47,"./ATNType":48,"./LexerAction":50,"./Transition":55}],46:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -20176,7 +20205,7 @@ ATNSimulator.prototype.getCachedContext = function(context) {
 
 exports.ATNSimulator = ATNSimulator;
 
-},{"./../PredictionContext":35,"./../Utils":39,"./../dfa/DFAState":58,"./ATNConfigSet":42}],46:[function(require,module,exports){
+},{"./../PredictionContext":36,"./../Utils":40,"./../dfa/DFAState":59,"./ATNConfigSet":43}],47:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -20504,7 +20533,7 @@ exports.PlusBlockStartState = PlusBlockStartState;
 exports.StarBlockStartState = StarBlockStartState;
 exports.BasicBlockStartState = BasicBlockStartState;
 
-},{}],47:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -20523,7 +20552,7 @@ ATNType.PARSER = 1;
 exports.ATNType = ATNType;
 
 
-},{}],48:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -21161,7 +21190,7 @@ LexerATNSimulator.prototype.getTokenName = function(tt) {
 
 exports.LexerATNSimulator = LexerATNSimulator;
 
-},{"./../Lexer":32,"./../PredictionContext":35,"./../Token":38,"./../dfa/DFAState":58,"./../error/Errors":63,"./ATN":40,"./ATNConfig":41,"./ATNConfigSet":42,"./ATNSimulator":45,"./ATNState":46,"./LexerActionExecutor":50,"./Transition":54}],49:[function(require,module,exports){
+},{"./../Lexer":33,"./../PredictionContext":36,"./../Token":39,"./../dfa/DFAState":59,"./../error/Errors":64,"./ATN":41,"./ATNConfig":42,"./ATNConfigSet":43,"./ATNSimulator":46,"./ATNState":47,"./LexerActionExecutor":51,"./Transition":55}],50:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -21528,7 +21557,7 @@ exports.LexerTypeAction = LexerTypeAction;
 exports.LexerPushModeAction = LexerPushModeAction;
 exports.LexerPopModeAction = LexerPopModeAction;
 exports.LexerModeAction = LexerModeAction;
-},{}],50:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -21696,7 +21725,7 @@ LexerActionExecutor.prototype.equals = function(other) {
 
 exports.LexerActionExecutor = LexerActionExecutor;
 
-},{"../Utils":39,"./LexerAction":49}],51:[function(require,module,exports){
+},{"../Utils":40,"./LexerAction":50}],52:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -23425,7 +23454,7 @@ ParserATNSimulator.prototype.reportAmbiguity = function(dfa, D, startIndex, stop
 };
 
 exports.ParserATNSimulator = ParserATNSimulator;
-},{"./../IntervalSet":30,"./../ParserRuleContext":34,"./../PredictionContext":35,"./../RuleContext":37,"./../Token":38,"./../Utils":39,"./../dfa/DFAState":58,"./../error/Errors":63,"./ATN":40,"./ATNConfig":41,"./ATNConfigSet":42,"./ATNSimulator":45,"./ATNState":46,"./PredictionMode":52,"./SemanticContext":53,"./Transition":54}],52:[function(require,module,exports){
+},{"./../IntervalSet":31,"./../ParserRuleContext":35,"./../PredictionContext":36,"./../RuleContext":38,"./../Token":39,"./../Utils":40,"./../dfa/DFAState":59,"./../error/Errors":64,"./ATN":41,"./ATNConfig":42,"./ATNConfigSet":43,"./ATNSimulator":46,"./ATNState":47,"./PredictionMode":53,"./SemanticContext":54,"./Transition":55}],53:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -23986,7 +24015,7 @@ PredictionMode.getSingleViableAlt = function(altsets) {
 
 exports.PredictionMode = PredictionMode;
 
-},{"../Utils":39,"./../Utils":39,"./ATN":40,"./ATNConfig":41,"./ATNConfigSet":42,"./ATNState":46,"./SemanticContext":53}],53:[function(require,module,exports){
+},{"../Utils":40,"./../Utils":40,"./ATN":41,"./ATNConfig":42,"./ATNConfigSet":43,"./ATNState":47,"./SemanticContext":54}],54:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -24392,7 +24421,7 @@ exports.SemanticContext = SemanticContext;
 exports.PrecedencePredicate = PrecedencePredicate;
 exports.Predicate = Predicate;
 
-},{"./../Utils":39}],54:[function(require,module,exports){
+},{"./../Utils":40}],55:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -24709,7 +24738,7 @@ exports.WildcardTransition = WildcardTransition;
 exports.PredicateTransition = PredicateTransition;
 exports.PrecedencePredicateTransition = PrecedencePredicateTransition;
 exports.AbstractPredicateTransition = AbstractPredicateTransition;
-},{"./../IntervalSet":30,"./../Token":38,"./SemanticContext":53}],55:[function(require,module,exports){
+},{"./../IntervalSet":31,"./../Token":39,"./SemanticContext":54}],56:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -24721,7 +24750,7 @@ exports.LexerATNSimulator = require('./LexerATNSimulator').LexerATNSimulator;
 exports.ParserATNSimulator = require('./ParserATNSimulator').ParserATNSimulator;
 exports.PredictionMode = require('./PredictionMode').PredictionMode;
 
-},{"./ATN":40,"./ATNDeserializer":44,"./LexerATNSimulator":48,"./ParserATNSimulator":51,"./PredictionMode":52}],56:[function(require,module,exports){
+},{"./ATN":41,"./ATNDeserializer":45,"./LexerATNSimulator":49,"./ParserATNSimulator":52,"./PredictionMode":53}],57:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -24876,7 +24905,7 @@ DFA.prototype.toLexerString = function() {
 
 exports.DFA = DFA;
 
-},{"../Utils":39,"../atn/ATNState":46,"./../atn/ATNConfigSet":42,"./DFASerializer":57,"./DFAState":58}],57:[function(require,module,exports){
+},{"../Utils":40,"../atn/ATNState":47,"./../atn/ATNConfigSet":43,"./DFASerializer":58,"./DFAState":59}],58:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -24957,7 +24986,7 @@ exports.DFASerializer = DFASerializer;
 exports.LexerDFASerializer = LexerDFASerializer;
 
 
-},{}],58:[function(require,module,exports){
+},{}],59:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -25105,7 +25134,7 @@ DFAState.prototype.hashCode = function() {
 exports.DFAState = DFAState;
 exports.PredPrediction = PredPrediction;
 
-},{"./../Utils":39,"./../atn/ATNConfigSet":42}],59:[function(require,module,exports){
+},{"./../Utils":40,"./../atn/ATNConfigSet":43}],60:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -25116,7 +25145,7 @@ exports.DFASerializer = require('./DFASerializer').DFASerializer;
 exports.LexerDFASerializer = require('./DFASerializer').LexerDFASerializer;
 exports.PredPrediction = require('./DFAState').PredPrediction;
 
-},{"./DFA":56,"./DFASerializer":57,"./DFAState":58}],60:[function(require,module,exports){
+},{"./DFA":57,"./DFASerializer":58,"./DFAState":59}],61:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -25228,7 +25257,7 @@ DiagnosticErrorListener.prototype.getConflictingAlts = function(reportedAlts, co
 };
 
 exports.DiagnosticErrorListener = DiagnosticErrorListener;
-},{"./../IntervalSet":30,"./../Utils":39,"./ErrorListener":61}],61:[function(require,module,exports){
+},{"./../IntervalSet":31,"./../Utils":40,"./ErrorListener":62}],62:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -25317,7 +25346,7 @@ exports.ConsoleErrorListener = ConsoleErrorListener;
 exports.ProxyErrorListener = ProxyErrorListener;
 
 
-},{}],62:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 //
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
@@ -26075,7 +26104,7 @@ BailErrorStrategy.prototype.sync = function(recognizer) {
 exports.BailErrorStrategy = BailErrorStrategy;
 exports.DefaultErrorStrategy = DefaultErrorStrategy;
 
-},{"./../IntervalSet":30,"./../Token":38,"./../atn/ATNState":46,"./Errors":63}],63:[function(require,module,exports){
+},{"./../IntervalSet":31,"./../Token":39,"./../atn/ATNState":47,"./Errors":64}],64:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26246,7 +26275,7 @@ exports.InputMismatchException = InputMismatchException;
 exports.FailedPredicateException = FailedPredicateException;
 exports.ParseCancellationException = ParseCancellationException;
 
-},{"./../atn/Transition":54}],64:[function(require,module,exports){
+},{"./../atn/Transition":55}],65:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26261,7 +26290,7 @@ exports.DiagnosticErrorListener = require('./DiagnosticErrorListener').Diagnosti
 exports.BailErrorStrategy = require('./ErrorStrategy').BailErrorStrategy;
 exports.ErrorListener = require('./ErrorListener').ErrorListener;
 
-},{"./DiagnosticErrorListener":60,"./ErrorListener":61,"./ErrorStrategy":62,"./Errors":63}],65:[function(require,module,exports){
+},{"./DiagnosticErrorListener":61,"./ErrorListener":62,"./ErrorStrategy":63,"./Errors":64}],66:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26286,7 +26315,7 @@ exports.ParserRuleContext = require('./ParserRuleContext').ParserRuleContext;
 exports.Interval = require('./IntervalSet').Interval;
 exports.Utils = require('./Utils');
 
-},{"./CharStreams":25,"./CommonTokenStream":27,"./FileStream":28,"./InputStream":29,"./IntervalSet":30,"./Lexer":32,"./Parser":33,"./ParserRuleContext":34,"./PredictionContext":35,"./Token":38,"./Utils":39,"./atn/index":55,"./dfa/index":59,"./error/index":64,"./polyfills/codepointat":66,"./polyfills/fromcodepoint":67,"./tree/index":70}],66:[function(require,module,exports){
+},{"./CharStreams":26,"./CommonTokenStream":28,"./FileStream":29,"./InputStream":30,"./IntervalSet":31,"./Lexer":33,"./Parser":34,"./ParserRuleContext":35,"./PredictionContext":36,"./Token":39,"./Utils":40,"./atn/index":56,"./dfa/index":60,"./error/index":65,"./polyfills/codepointat":67,"./polyfills/fromcodepoint":68,"./tree/index":71}],67:[function(require,module,exports){
 /*! https://mths.be/codepointat v0.2.0 by @mathias */
 if (!String.prototype.codePointAt) {
 	(function() {
@@ -26342,7 +26371,7 @@ if (!String.prototype.codePointAt) {
 	}());
 }
 
-},{}],67:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 /*! https://mths.be/fromcodepoint v0.2.1 by @mathias */
 if (!String.fromCodePoint) {
 	(function() {
@@ -26406,7 +26435,7 @@ if (!String.fromCodePoint) {
 	}());
 }
 
-},{}],68:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26638,7 +26667,7 @@ exports.ParseTreeVisitor = ParseTreeVisitor;
 exports.ParseTreeWalker = ParseTreeWalker;
 exports.INVALID_INTERVAL = INVALID_INTERVAL;
 
-},{"../Utils.js":39,"./../IntervalSet":30,"./../Token":38}],69:[function(require,module,exports){
+},{"../Utils.js":40,"./../IntervalSet":31,"./../Token":39}],70:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26779,7 +26808,7 @@ Trees.descendants = function(t) {
 
 
 exports.Trees = Trees;
-},{"./../ParserRuleContext":34,"./../RuleContext":37,"./../Token":38,"./../Utils":39,"./../atn/ATN":40,"./Tree":68}],70:[function(require,module,exports){
+},{"./../ParserRuleContext":35,"./../RuleContext":38,"./../Token":39,"./../Utils":40,"./../atn/ATN":41,"./Tree":69}],71:[function(require,module,exports){
 /* Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
  * Use of this file is governed by the BSD 3-clause license that
  * can be found in the LICENSE.txt file in the project root.
@@ -26792,9 +26821,9 @@ exports.ParseTreeListener = Tree.ParseTreeListener;
 exports.ParseTreeVisitor = Tree.ParseTreeVisitor;
 exports.ParseTreeWalker = Tree.ParseTreeWalker;
 
-},{"./Tree":68,"./Trees":69}],71:[function(require,module,exports){
+},{"./Tree":69,"./Trees":70}],72:[function(require,module,exports){
 
-},{}],72:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -27319,7 +27348,7 @@ function functionBindPolyfill(context) {
   };
 }
 
-},{}],73:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 (function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
@@ -27625,7 +27654,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":74}],74:[function(require,module,exports){
+},{"_process":75}],75:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -27811,7 +27840,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],75:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -27836,14 +27865,14 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],76:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],77:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -28433,7 +28462,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":76,"_process":74,"inherits":75}],78:[function(require,module,exports){
+},{"./support/isBuffer":77,"_process":75,"inherits":76}],79:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28461,7 +28490,7 @@ function bytesToUuid(buf, offset) {
 
 var _default = bytesToUuid;
 exports.default = _default;
-},{}],79:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28501,7 +28530,7 @@ var _v3 = _interopRequireDefault(require("./v4.js"));
 var _v4 = _interopRequireDefault(require("./v5.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-},{"./v1.js":83,"./v3.js":84,"./v4.js":86,"./v5.js":87}],80:[function(require,module,exports){
+},{"./v1.js":84,"./v3.js":85,"./v4.js":87,"./v5.js":88}],81:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28725,7 +28754,7 @@ function md5ii(a, b, c, d, x, s, t) {
 
 var _default = md5;
 exports.default = _default;
-},{}],81:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28747,7 +28776,7 @@ function rng() {
 
   return getRandomValues(rnds8);
 }
-},{}],82:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28849,7 +28878,7 @@ function sha1(bytes) {
 
 var _default = sha1;
 exports.default = _default;
-},{}],83:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28957,7 +28986,7 @@ function v1(options, buf, offset) {
 
 var _default = v1;
 exports.default = _default;
-},{"./bytesToUuid.js":78,"./rng.js":81}],84:[function(require,module,exports){
+},{"./bytesToUuid.js":79,"./rng.js":82}],85:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -28974,7 +29003,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const v3 = (0, _v.default)('v3', 0x30, _md.default);
 var _default = v3;
 exports.default = _default;
-},{"./md5.js":80,"./v35.js":85}],85:[function(require,module,exports){
+},{"./md5.js":81,"./v35.js":86}],86:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -29051,7 +29080,7 @@ function _default(name, version, hashfunc) {
   generateUUID.URL = URL;
   return generateUUID;
 }
-},{"./bytesToUuid.js":78}],86:[function(require,module,exports){
+},{"./bytesToUuid.js":79}],87:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -29094,7 +29123,7 @@ function v4(options, buf, offset) {
 
 var _default = v4;
 exports.default = _default;
-},{"./bytesToUuid.js":78,"./rng.js":81}],87:[function(require,module,exports){
+},{"./bytesToUuid.js":79,"./rng.js":82}],88:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -29111,7 +29140,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const v5 = (0, _v.default)('v5', 0x50, _sha.default);
 var _default = v5;
 exports.default = _default;
-},{"./sha1.js":82,"./v35.js":85}],"alan-compiler":[function(require,module,exports){
+},{"./sha1.js":83,"./v35.js":86}],"alan-compiler":[function(require,module,exports){
 const { default: buildPipeline, } = require('./dist/pipeline')
 const ammtojs = require('./dist/ammtojs')
 const lntoamm = require('./dist/lntoamm')
@@ -29136,7 +29165,7 @@ module.exports = (inFormat, outFormat, text) => {
   }
 }
 
-},{"./dist/ammtoaga":4,"./dist/ammtojs":5,"./dist/lntoamm":20,"./dist/pipeline":23}],"alan-js-runtime":[function(require,module,exports){
+},{"./dist/ammtoaga":4,"./dist/ammtojs":5,"./dist/lntoamm":21,"./dist/pipeline":24}],"alan-js-runtime":[function(require,module,exports){
 (function (process){
 const EventEmitter = require('events')
 const util = require('util')
@@ -29413,7 +29442,7 @@ module.exports = {
 }
 
 }).call(this,require('_process'))
-},{"_process":74,"child_process":71,"events":72,"util":77}],"alan-runtime":[function(require,module,exports){
+},{"_process":75,"child_process":72,"events":73,"util":78}],"alan-runtime":[function(require,module,exports){
 const r = require('alan-js-runtime')
 
 // Redefined stdoutp and exitop to work in the browser

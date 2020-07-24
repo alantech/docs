@@ -71,6 +71,7 @@ const variable = lp_1.And.build([
     lp_1.OneOrMore.build(lp_1.Or.build([under, lower, upper])),
     lp_1.ZeroOrMore.build(lp_1.Or.build([under, lower, upper, natural])),
 ]);
+const exit = lp_1.Token.build('return');
 const t = lp_1.Token.build('true');
 const f = lp_1.Token.build('false');
 const bool = lp_1.Or.build([t, f]);
@@ -111,6 +112,7 @@ const emits = lp_1.NamedAnd.build({ emit, blank, variable, value: lp_1.ZeroOrOne
         blank, variable
     })) });
 const events = lp_1.NamedAnd.build({ event, blank, variable, a: optblank, colon, b: optblank, fulltypename });
+const exits = lp_1.NamedAnd.build({ exit, blank, variable, a: optblank });
 const calllist = lp_1.ZeroOrMore.build(lp_1.NamedAnd.build({ variable, optcomma, optblank }));
 const calls = lp_1.NamedAnd.build({
     variable,
@@ -160,6 +162,7 @@ const statements = lp_1.OneOrMore.build(lp_1.NamedOr.build({
     assignments,
     calls,
     emits,
+    exits,
     whitespace,
 }));
 const functionbody = lp_1.NamedAnd.build({
@@ -176,7 +179,7 @@ const functions = lp_1.NamedAnd.build({
     a: optblank,
     colon,
     b: optblank,
-    voidn,
+    fulltypename,
     c: optblank,
     functionbody,
 });
@@ -9986,7 +9989,7 @@ const UserFunction_1 = require("./UserFunction");
 const ln_1 = require("../ln");
 const FIXED_TYPES = ['int64', 'int32', 'int16', 'int8', 'float64', 'float32', 'bool', 'void'];
 class Microstatement {
-    constructor(statementType, scope, pure, outputName, outputType = Type_1.default.builtinTypes.void, inputNames = [], fns = [], alias = '', closureStatements = [], closureArgs = {}) {
+    constructor(statementType, scope, pure, outputName, outputType = Type_1.default.builtinTypes.void, inputNames = [], fns = [], alias = '', closureStatements = [], closureArgs = {}, closureOutputType = Type_1.default.builtinTypes.void) {
         this.statementType = statementType;
         this.scope = scope;
         this.pure = pure;
@@ -9997,6 +10000,7 @@ class Microstatement {
         this.alias = alias;
         this.closureStatements = closureStatements;
         this.closureArgs = closureArgs;
+        this.closureOutputType = closureOutputType;
     }
     toString() {
         let outString = "";
@@ -10042,6 +10046,9 @@ class Microstatement {
                     outString += this.inputNames[0]; // Doesn't appear the list is ever used here
                 }
                 break;
+            case StatementType_1.default.EXIT:
+                outString = "return " + this.outputName;
+                break;
             case StatementType_1.default.CLOSURE:
                 outString = "const " + this.outputName + ": function = fn (";
                 let args = [];
@@ -10051,7 +10058,7 @@ class Microstatement {
                     }
                 }
                 outString += args.join(",");
-                outString += "): void {\n";
+                outString += "): " + this.closureOutputType.typename + " {\n";
                 for (const m of this.closureStatements) {
                     const s = m.toString();
                     if (s !== "") {
@@ -10672,57 +10679,13 @@ class Microstatement {
         const innerMicrostatements = microstatements.slice(len, newlen);
         microstatements.splice(len, newlen - len);
         const constName = "_" + uuid_1.v4().replace(/-/g, "_");
+        // if closure is not void return the last inner statement
+        if (userFunction.returnType !== Type_1.default.builtinTypes.void) {
+            const last = innerMicrostatements[innerMicrostatements.length - 1];
+            innerMicrostatements.push(new Microstatement(StatementType_1.default.EXIT, scope, true, last.outputName, last.outputType));
+        }
         microstatements.push(new Microstatement(StatementType_1.default.CLOSURE, scope, true, // TODO: Figure out if this is true or not
-        constName, Type_1.default.builtinTypes['function'], [], [], '', innerMicrostatements, userFunction.args));
-    }
-    static closureFromBlocklikesAst(blocklikesAst, // TODO: Eliminate ANTLR
-    scope, microstatements) {
-        // There are roughly two paths for closure generation of the blocklike. If it's a var reference
-        // to another function, use the scope to grab the function definition directly, run the inlining
-        // logic on it, then attach them to a new microstatement declaring the closure. If it's closure
-        // that could (probably usually will) reference the outer scope, the inner statements should be
-        // converted as normal, but with the current length of the microstatements array tracked so they
-        // can be pruned back off of the list to be reattached to a closure microstatement type.
-        const constName = "_" + uuid_1.v4().replace(/-/g, "_");
-        if (!!blocklikesAst.varn()) { // TODO: Port to fromVarAst
-            const fnToClose = scope.deepGet(blocklikesAst.varn().getText());
-            if (fnToClose == null ||
-                !(fnToClose instanceof Array && fnToClose[0].microstatementInlining instanceof Function)) {
-                console.error(blocklikesAst.varn().getText() + " is not a function");
-                process.exit(-111);
-            }
-            // TODO: Revisit this on resolving the appropriate function if multiple match, right now just
-            // take the first one.
-            const closureFn = fnToClose[0];
-            let innerMicrostatements = [];
-            closureFn.microstatementInlining([], scope, innerMicrostatements);
-            microstatements.push(new Microstatement(StatementType_1.default.CLOSURE, scope, true, // Guaranteed true in this case, it's not really a closure
-            constName, Type_1.default.builtinTypes.void, [], [], '', innerMicrostatements));
-        }
-        else {
-            let len = microstatements.length;
-            if (blocklikesAst.functionbody() != null) {
-                for (const s of blocklikesAst.functionbody().statements()) {
-                    Microstatement.fromStatementsAst(s, scope, microstatements);
-                }
-            }
-            else {
-                if (blocklikesAst.functions().fullfunctionbody().functionbody() != null) {
-                    for (const s of blocklikesAst.functions().fullfunctionbody().functionbody().statements()) {
-                        Microstatement.fromStatementsAst(s, scope, microstatements);
-                    }
-                }
-                else {
-                    Microstatement.fromAssignablesAst(blocklikesAst.functions().fullfunctionbody().assignables(), scope, microstatements);
-                }
-            }
-            let newlen = microstatements.length;
-            // There might be off-by-one bugs in the conversion here
-            const innerMicrostatements = microstatements.slice(len, newlen);
-            microstatements.splice(len, newlen - len);
-            microstatements.push(new Microstatement(StatementType_1.default.CLOSURE, scope, true, // Guaranteed true in this case, it's not really a closure
-            constName, Type_1.default.builtinTypes.void, [], [], '', innerMicrostatements));
-        }
+        constName, Type_1.default.builtinTypes['function'], [], [], '', innerMicrostatements, userFunction.args, userFunction.returnType));
     }
     static fromEmitsAst(emitsAst, // TODO: Eliminate ANTLR
     scope, microstatements) {
@@ -10782,7 +10745,7 @@ class Microstatement {
     }
     static fromExitsAst(exitsAst, // TODO: Eliminate ANTLR
     scope, microstatements) {
-        // `alan--` doesn't have the concept of a `return` statement, the functions are all inlined
+        // `alan--` handlers don't have the concept of a `return` statement, the functions are all inlined
         // and the last assigned value for the function *is* the return statement
         if (exitsAst.assignables() != null) {
             // If there's an assignable value here, add it to the list of microstatements
@@ -10903,7 +10866,7 @@ class Microstatement {
                     if (microstatements[i].outputName === actualFnName &&
                         microstatements[i].closureStatements &&
                         microstatements[i].closureStatements.length > 0) {
-                        microstatements.push(...microstatements[i].closureStatements);
+                        microstatements.push(...microstatements[i].closureStatements.filter(s => s.statementType !== StatementType_1.default.EXIT));
                         return;
                     }
                 }
@@ -12240,6 +12203,7 @@ var StatementType;
     StatementType["CLOSURE"] = "CLOSURE";
     StatementType["ARG"] = "ARG";
     StatementType["ENTERFN"] = "ENTERFN";
+    StatementType["EXIT"] = "EXIT";
 })(StatementType || (StatementType = {}));
 exports.default = StatementType;
 

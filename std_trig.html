@@ -1,0 +1,484 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+<head>
+    <!-- Book generated using mdBook -->
+    <meta charset="UTF-8">
+    <title>@std/trig - Alan Interactive Documentation</title>
+
+    <!-- Custom HTML head -->
+    
+
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff" />
+
+    <link rel="shortcut icon" href="favicon.png">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/general.css">
+    <link rel="stylesheet" href="css/chrome.css">
+
+    <!-- Fonts -->
+    <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+    
+
+    <!-- Highlight.js Stylesheets -->
+    <link rel="stylesheet" href="highlight.css">
+    <link rel="stylesheet" href="tomorrow-night.css">
+    <link rel="stylesheet" href="ayu-highlight.css">
+
+    <!-- Custom theme stylesheets -->
+    
+        <link rel="stylesheet" href="css/solarized-light-hljs.css">
+    
+        <link rel="stylesheet" href="css/solarized-dark-hljs.css">
+    
+
+    
+</head>
+<body>
+<!-- Provide site root to javascript -->
+<script type="text/javascript">
+    var path_to_root = "";
+    var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "solarized-dark" : "solarized-light";
+</script>
+
+<!-- Work around some values being stored in localStorage wrapped in quotes -->
+<script type="text/javascript">
+    try {
+        var sidebar = localStorage.getItem('mdbook-sidebar');
+
+        if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+            localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+        }
+    } catch (e) { }
+</script>
+
+<!-- Set the theme before any content is loaded, prevents flash -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    html.classList.remove('no-js')
+    html.classList.add(default_theme);
+    html.classList.add('js');
+</script>
+
+<!-- Hide / unhide sidebar before it is displayed -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    var sidebar = 'hidden';
+    if (document.body.clientWidth >= 1080) {
+        try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+        sidebar = sidebar || 'visible';
+    }
+    html.classList.remove('sidebar-visible');
+    html.classList.add("sidebar-" + sidebar);
+</script>
+
+<nav id="sidebar" class="sidebar" aria-label="Table of contents">
+    <div class="sidebar-scrollbox">
+        <ol class="chapter"><li class="chapter-item expanded "><a href="getting_started.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li class="chapter-item expanded "><a href="about_alan.html"><strong aria-hidden="true">2.</strong> About alan</a></li><li class="chapter-item expanded "><a href="language_reference.html"><strong aria-hidden="true">3.</strong> Language Reference</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="file_structure.html"><strong aria-hidden="true">3.1.</strong> Syntax and File Structure</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="scope.html"><strong aria-hidden="true">3.1.1.</strong> Implied Structure: Scope</a></li><li class="chapter-item expanded "><a href="imports.html"><strong aria-hidden="true">3.1.2.</strong> Imports</a></li><li class="chapter-item expanded "><a href="types.html"><strong aria-hidden="true">3.1.3.</strong> Types</a></li><li class="chapter-item expanded "><a href="constants.html"><strong aria-hidden="true">3.1.4.</strong> Constants</a></li><li class="chapter-item expanded "><a href="events.html"><strong aria-hidden="true">3.1.5.</strong> Events</a></li><li class="chapter-item expanded "><a href="functions.html"><strong aria-hidden="true">3.1.6.</strong> Functions</a></li><li class="chapter-item expanded "><a href="operators.html"><strong aria-hidden="true">3.1.7.</strong> Operators</a></li><li class="chapter-item expanded "><a href="statements.html"><strong aria-hidden="true">3.1.8.</strong> Statements</a></li><li class="chapter-item expanded "><a href="interfaces.html"><strong aria-hidden="true">3.1.9.</strong> Interfaces</a></li><li class="chapter-item expanded "><a href="handlers.html"><strong aria-hidden="true">3.1.10.</strong> Handlers</a></li><li class="chapter-item expanded "><a href="exports.html"><strong aria-hidden="true">3.1.11.</strong> Exports</a></li><li class="chapter-item expanded "><a href="keywords.html"><strong aria-hidden="true">3.1.12.</strong> List of Keywords and Reserved Symbols</a></li></ol></li><li class="chapter-item expanded "><a href="modules.html"><strong aria-hidden="true">3.2.</strong> Module System</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="module_definition.html"><strong aria-hidden="true">3.2.1.</strong> Definition</a></li><li class="chapter-item expanded "><a href="module_resolution.html"><strong aria-hidden="true">3.2.2.</strong> Resolution</a></li><li class="chapter-item expanded "><a href="module_acquisition.html"><strong aria-hidden="true">3.2.3.</strong> Acquisition</a></li><li class="chapter-item expanded "><a href="module_testing.html"><strong aria-hidden="true">3.2.4.</strong> Testing and Mocking</a></li><li class="chapter-item expanded "><a href="module_mutation.html"><strong aria-hidden="true">3.2.5.</strong> Mutation and Permissioning</a></li></ol></li><li class="chapter-item expanded "><a href="standard_library.html"><strong aria-hidden="true">3.3.</strong> Standard Library</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="built_ins.html"><strong aria-hidden="true">3.3.1.</strong> Built-ins</a></li><li class="chapter-item expanded "><a href="std_app.html"><strong aria-hidden="true">3.3.2.</strong> @std/app</a></li><li class="chapter-item expanded "><a href="std_cmd.html"><strong aria-hidden="true">3.3.3.</strong> @std/cmd</a></li><li class="chapter-item expanded "><a href="std_deps.html"><strong aria-hidden="true">3.3.4.</strong> @std/deps</a></li><li class="chapter-item expanded "><a href="std_trig.html" class="active"><strong aria-hidden="true">3.3.5.</strong> @std/trig</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="examples_with_explanations.html"><strong aria-hidden="true">4.</strong> Examples with Explanations</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="many_forms_hello_world.html"><strong aria-hidden="true">4.1.</strong> The many forms of &quot;Hello, World!&quot;</a></li><li class="chapter-item expanded "><a href="advanced_examples.html"><strong aria-hidden="true">4.2.</strong> More advanced examples</a></li></ol></li><li class="chapter-item expanded "><a href="contributing.html"><strong aria-hidden="true">5.</strong> Contributing to alan</a></li></ol>
+    </div>
+    <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+</nav>
+
+<div id="page-wrapper" class="page-wrapper">
+
+    <div class="page">
+        
+        <div id="menu-bar-hover-placeholder"></div>
+        <div id="menu-bar" class="menu-bar sticky bordered">
+            <div class="left-buttons">
+                <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                    <i class="fa fa-bars"></i>
+                </button>
+                
+                    <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <i class="fa fa-search"></i>
+                    </button>
+                
+            </div>
+
+            <h1 class="menu-title">Alan Interactive Documentation</h1>
+
+            <div class="right-buttons">
+                <a href="https://alan-lang.org" title="Home">
+                    <i>Home</i>
+                </a>
+                <a href="https://alan-lang.org/blog.html" title="Blog">
+                    <i>Blog</i>
+                </a>
+                <a href="https://github.com/alantech" title="Git repository" aria-label="Git repository">
+                    <i id="git-repository-button" class="fa fa-github"></i>
+                </a>
+            </div>
+        </div>
+
+        
+            <div id="search-wrapper" class="hidden">
+                <form id="searchbar-outer" class="searchbar-outer">
+                    <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                </form>
+                <div id="searchresults-outer" class="searchresults-outer hidden">
+                    <div id="searchresults-header" class="searchresults-header"></div>
+                    <ul id="searchresults">
+                    </ul>
+                </div>
+            </div>
+        
+
+        <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+        <script type="text/javascript">
+            document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+            document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+            Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+            });
+        </script>
+
+        <div id="content" class="content">
+            <main>
+                <h3><a class="header" href="#stdtrig" id="stdtrig">@std/trig</a></h3>
+<p>This standard library provides the constants <a href="https://simple.wikipedia.org/wiki/E_(mathematical_constant)">e</a>, <a href="https://en.wikipedia.org/wiki/Pi">pi</a>, and <a href="https://math.wikia.org/wiki/Tau_(constant)">tau</a>, <a href="https://en.wikipedia.org/wiki/List_of_trigonometric_identities">all of the trigonometric functions</a>, the <a href="https://en.wikipedia.org/wiki/Hyperbolic_functions">hyperbolic functions</a>, the <a href="https://en.wikipedia.org/wiki/Common_logarithm">common</a> and <a href="https://en.wikipedia.org/wiki/Natural_logarithm">natural</a> logarithms, and the <a href="https://en.wikipedia.org/wiki/Exponential_function">exp function</a>.</p>
+<p>All of the trigonometric functions are exported with both <code>float32</code> and <code>float64</code> support, and with both a short 3-5 character name common in textbooks and a fully-spelled out name. Eg, <code>sin</code> is the same as <code>sine</code> and <code>ahcc</code> is the same as <code>archacovercosine</code>. The meanings and uses of the trigonometric functions will not be covered in here as the Wikipedia links in the first paragraph provide a far better and in-depth explanation, including some <a href="https://upload.wikimedia.org/wikipedia/commons/9/9d/Circle-trig6.svg">great visual diagrams</a> that can elucidate things quickly for those already familiar with the classic <code>sin</code>, <code>cos</code>, and <code>tan</code>. Instead, below will be a listing of the signatures of everything exported by the library.</p>
+<pre><pre class="playpen"><code class="language-rust">
+<span class="boring">#![allow(unused_variables)]
+</span><span class="boring">fn main() {
+</span>e: float64
+pi: float64
+tau: float64
+
+fn exp(float64): float64
+fn exp(float32): float32
+
+fn ln(x: float64): float64
+fn ln(x: float32): float32
+
+fn log(x: float64): float64
+fn log(x: float32): float32
+
+fn sin(x: float64): float64
+fn sin(x: float32): float32
+fn sine(x: float64): float64
+fn sine(x: float32): float32
+
+fn cos(x: float64): float64
+fn cos(x: float32): float32
+fn cosine(x: float64): float64
+fn cosine(x: float32): float32
+
+fn tan(x: float64): float64
+fn tan(x: float32): float32
+fn tangent(x: float64): float64
+fn tangent(x: float32): float32
+
+fn sec(x: float64): float64
+fn sec(x: float32): float32
+fn secant(x: float64): float64
+fn secant(x: float32): float32
+
+fn csc(x: float64): float64
+fn csc(x: float32): float32
+fn cosecant(x: float64): float64
+fn cosecant(x: float32): float32
+
+fn cot(x: float64): float64
+fn cot(x: float32): float32
+fn cotangent(x: float64): float64
+fn cotangent(x: float32): float32
+
+fn asin(x: float64): float64
+fn asin(x: float32): float32
+fn arcsine(x: float64): float64
+fn arcsine(x: float32): float32
+
+fn acos(x: float64): float64
+fn acos(x: float32): float32
+fn arccosine(x: float64): float64
+fn arccosine(x: float32): float32
+
+fn atan(x: float64): float64
+fn atan(x: float32): float32
+fn arctangent(x: float64): float64
+fn arctangent(x: float32): float32
+
+fn asec(x: float64): float64
+fn asec(x: float32): float32
+fn arcsecant(x: float64): float64
+fn arcsecant(x: float32): float32
+
+fn acsc(x: float64): float64
+fn acsc(x: float32): float32
+fn arccosecant(x: float64): float64
+fn arccosecant(x: float32): float32
+
+fn acot(x: float64): float64
+fn acot(x: float32): float32
+fn arccotangent(x: float64): float64
+fn arccotangent(x: float32): float32
+
+fn ver(x: float64): float64
+fn ver(x: float32): float32
+fn versine(x: float64): float64
+fn versine(x: float32): float32
+
+fn vcs(x: float64): float64
+fn vcs(x: float32): float32
+fn vercosine(x: float64): float64
+fn vercosine(x: float32): float32
+
+fn cvs(x: float64): float64
+fn cvs(x: float32): float32
+fn coversine(x: float64): float64
+fn coversine(x: float32): float32
+
+fn cvc(x: float64): float64
+fn cvc(x: float32): float32
+fn covercosine(x: float64): float64
+fn covercosine(x: float32): float32
+
+fn hav(x: float64): float64
+fn hav(x: float32): float32
+fn haversine(x: float64): float64
+fn haversine(x: float32): float32
+
+fn hvc(x: float64): float64
+fn hvc(x: float32): float32
+fn havercosine(x: float64): float64
+fn havercosine(x: float32): float32
+
+fn hcv(x: float64): float64
+fn hcv(x: float32): float32
+fn hacoversine(x: float64): float64
+fn hacoversine(x: float32): float32
+
+fn hcc(x: float64): float64
+fn hcc(x: float32): float32
+fn hacovercosine(x: float64): float64
+fn hacovercosine(x: float32): float32
+
+fn exs(x: float64): float64
+fn exs(x: float32): float32
+fn exsecant(x: float64): float64
+fn exsecant(x: float32): float32
+
+fn exc(x: float64): float64
+fn exc(x: float32): float32
+fn excosecant(x: float64): float64
+fn excosecant(x: float32): float32
+
+fn crd(x: float64): float64
+fn crd(x: float32): float32
+fn chord(x: float64): float64
+fn chord(x: float32): float32
+
+fn aver(x: float64): float64
+fn aver(x: float32): float32
+fn arcversine(x: float64): float64
+fn arcversine(x: float32): float32
+
+fn avcs(x: float64): float64
+fn avcs(x: float32): float32
+fn arcvercosine(x: float64): float64
+fn arcvercosine(x: float32): float32
+
+fn acvs(x: float64): float64
+fn acvs(x: float32): float32
+fn arccoversine(x: float64): float64
+fn arccoversine(x: float32): float32
+
+fn acvc(x: float64): float64
+fn acvc(x: float32): float32
+fn arccovercosine(x: float64): float64
+fn arccovercosine(x: float32): float32
+
+fn ahav(x: float64): float64
+fn ahav(x: float32): float32
+fn archaversine(x: float64): float64
+fn archaversine(x: float32): float32
+
+fn ahvc(x: float64): float64
+fn ahvc(x: float32): float32
+fn archavercosine(x: float64): float64
+fn archavercosine(x: float32): float32
+
+fn ahcv(x: float64): float64
+fn ahcv(x: float32): float32
+fn archacoversine(x: float64): float64
+fn archacoversine(x: float32): float32
+
+fn ahcc(x: float64): float64
+fn ahcc(x: float32): float32
+fn archacovercosine(x: float64): float64
+fn archacovercosine(x: float32): float32
+
+fn aexs(x: float64): float64
+fn aexs(x: float32): float32
+fn arcexsecant(x: float64): float64
+fn arcexsecant(x: float32): float32
+
+fn aexc(x: float64): float64
+fn aexc(x: float32): float32
+fn arcexcosecant(x: float64): float64
+fn arcexcosecant(x: float32): float32
+
+fn acrd(x: float64): float64
+fn acrd(x: float32): float32
+fn arcchord(x: float64): float64
+fn arcchord(x: float32): float32
+
+fn sinh(x: float64): float64
+fn sinh(x: float32): float32
+fn hyperbolicSine(x: float64): float64
+fn hyperbolicSine(x: float32): float32
+
+fn cosh(x: float64): float64
+fn cosh(x: float32): float32
+fn hyperbolicCosine(x: float64): float64
+fn hyperbolicCosine(x: float32): float32
+
+fn tanh(x: float64): float64
+fn tanh(x: float32): float32
+fn hyperbolicTangent(x: float64): float64
+fn hyperbolicTangent(x: float32): float32
+
+fn sech(x: float64): float64
+fn sech(x: float32): float32
+fn hyperbolicSecant(x: float64): float64
+fn hyperbolicSecant(x: float32): float32
+
+fn csch(x: float64): float64
+fn csch(x: float32): float32
+fn hyperbolicCosecant(x: float64): float64
+fn hyperbolicCosecant(x: float32): float32
+
+fn coth(x: float64): float64
+fn coth(x: float32): float32
+fn hyperbolicCotangent(x: float64): float64
+fn hyperbolicCotangent(x: float32): float32
+
+fn asinh(x: float64): float64
+fn asinh(x: float32): float32
+fn hyperbolicArcsine(x: float64): float64
+fn hyperbolicArcsine(x: float32): float32
+
+fn acosh(x: float64): float64
+fn acosh(x: float32): float32
+fn hyperbolicArccosine(x: float64): float64
+fn hyperbolicArccosine(x: float32): float32
+
+fn atanh(x: float64): float64
+fn atanh(x: float32): float32
+fn hyperbolicArctangent(x: float64): float64
+fn hyperbolicArctangent(x: float32): float32
+
+fn asech(x: float64): float64
+fn asech(x: float32): float32
+fn hyperbolicArcsecant(x: float64): float64
+fn hyperbolicArcsecant(x: float32): float32
+
+fn acsch(x: float64): float64
+fn acsch(x: float32): float32
+fn hyperbolicArccosecant(x: float64): float64
+fn hyperbolicArccosecant(x: float32): float32
+
+fn acoth(x: float64): float64
+fn acoth(x: float32): float32
+fn hyperbolicArccotangent(x: float64): float64
+fn hyperbolicArccotangent(x: float32): float32
+<span class="boring">}
+</span></code></pre></pre>
+
+            </main>
+
+            <nav class="nav-wrapper" aria-label="Page navigation">
+                <!-- Mobile navigation buttons -->
+                
+                    <a rel="prev" href="std_deps.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="examples_with_explanations.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+                <div style="clear: both"></div>
+            </nav>
+        </div>
+    </div>
+
+    <nav class="nav-wide-wrapper" aria-label="Page navigation">
+        
+            <a rel="prev" href="std_deps.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        
+            <a rel="next" href="examples_with_explanations.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </nav>
+
+</div>
+
+
+
+<!-- Analytics Tag -->
+<script type="text/javascript">
+    var localAddrs = ["localhost", "127.0.0.1", ""];
+
+    // make sure we don't activate analytics if the developer is
+    // inspecting the book locally...
+    if (localAddrs.indexOf(document.location.hostname) === -1) {
+        !function(){var analytics=window.analytics=window.analytics||[];if(!analytics.initialize)if(analytics.invoked)window.console&&console.error&&console.error("Segment snippet included twice.");else{analytics.invoked=!0;analytics.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify","reset","group","track","ready","alias","debug","page","once","off","on","addSourceMiddleware","addIntegrationMiddleware","setAnonymousId","addDestinationMiddleware"];analytics.factory=function(e){return function(){var t=Array.prototype.slice.call(arguments);t.unshift(e);analytics.push(t);return analytics}};for(var e=0;e<analytics.methods.length;e++){var t=analytics.methods[e];analytics[t]=analytics.factory(t)}analytics.load=function(e,t){var n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src="https://cdn.segment.com/analytics.js/v1/"+e+"/analytics.min.js";var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(n,a);analytics._loadOptions=t};analytics.SNIPPET_VERSION="4.1.0";
+            analytics.load("fGya8GY5wLqdnLzyXnGM2HjYglPszWS0");
+            analytics.page("Docs", "@std/trig");
+        }}();
+    }
+</script>
+
+
+    <script type="text/javascript">
+        window.playpen_line_numbers = true;
+    </script>
+
+
+
+    <script type="text/javascript">
+        window.playpen_copyable = true;
+    </script>
+
+
+
+    <script src="ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="editor.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mode-rust.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-dawn.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-tomorrow_night.js" type="text/javascript" charset="utf-8"></script>
+
+
+
+    <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+
+<!-- Custom JS scripts -->
+
+    <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_dark.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_light.js"></script>
+
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+<script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+</body>
+</html>

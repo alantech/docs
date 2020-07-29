@@ -171,11 +171,15 @@ const functionbody = lp_1.NamedAnd.build({
     statements,
     closeCurly,
 });
+const arg = lp_1.NamedAnd.build({ variable, a: optblank, colon, b: optblank, fulltypename, });
 const functions = lp_1.NamedAnd.build({
     fn,
     blank,
     openParen,
-    arg: lp_1.ZeroOrOne.build(lp_1.NamedAnd.build({ variable, a: optblank, colon, b: optblank, fulltypename, })),
+    args: lp_1.And.build([
+        lp_1.ZeroOrMore.build(lp_1.NamedAnd.build({ arg, a: optblank, comma, b: optblank })),
+        lp_1.ZeroOrOne.build(lp_1.NamedAnd.build({ arg, optblank, }))
+    ]),
     closeParen,
     a: optblank,
     colon,
@@ -205,6 +209,7 @@ const amm_1 = require("./amm");
 // and does not work in the browser. It would be possible to implement a browser-compatible version
 // but there is no need for it and it would make it harder to work with.
 const ceil8 = (n) => Math.ceil(n / 8) * 8;
+const CLOSURE_ARG_MEM_START = BigInt(Math.pow(-2, 63));
 const loadGlobalMem = (globalMemAst, addressMap) => {
     const globalMem = {};
     let currentOffset = -1;
@@ -307,11 +312,15 @@ const getHandlersMem = (handlers) => handlers
     .filter(h => h instanceof lp_1.NamedAnd)
     .map(handler => {
     const handlerMem = getFunctionbodyMem(handler.get('functions').get('functionbody'));
-    if (!(handler.get('functions').get('arg') instanceof lp_1.NulLP)) {
+    let arg = handler.get('functions').get('args').get(0).get(0).get('arg');
+    if (arg instanceof lp_1.NulLP) {
+        arg = handler.get('functions').get('args').get(1).get('arg');
+    }
+    if (!(arg instanceof lp_1.NulLP)) {
         // Increase the memory usage and shift *everything* down, then add the new address
         handlerMem.memSize += 1;
         Object.keys(handlerMem.addressMap).forEach(name => handlerMem.addressMap[name] += 1);
-        handlerMem.addressMap[handler.get('functions').get('arg').get('variable').t.trim()] = 0;
+        handlerMem.addressMap[arg.get('variable').t.trim()] = 0;
     }
     return handlerMem;
 });
@@ -368,9 +377,9 @@ const loadStatements = (statements, localMem, globalMem) => {
     let vec = [];
     let line = 0;
     let localMemToLine = {};
-    for (const statement of statements) {
-        if (statement.has('whitespace'))
-            continue;
+    statements = statements.filter(s => !s.has('whitespace'));
+    for (let idx = 0; idx < statements.length; idx++) {
+        const statement = statements[idx];
         if (statement.has('declarations') &&
             statement.get('declarations').has('constdeclaration') &&
             statement.get('declarations').get('constdeclaration').get('assignables').has('functions')) {
@@ -382,7 +391,10 @@ const loadStatements = (statements, localMem, globalMem) => {
             const dec = statement.get('declarations').has('constdeclaration') ?
                 statement.get('declarations').get('constdeclaration') :
                 statement.get('declarations').get('letdeclaration');
-            let resultAddress = localMem[dec.get('decname').t.trim()];
+            // if this is 2nd to last statement and last statement exits this is a closure
+            const isClosureExit = idx === statements.length - 2 && statements[idx + 1].has('exits');
+            let resultAddress = isClosureExit ?
+                CLOSURE_ARG_MEM_START : localMem[dec.get('decname').t.trim()];
             localMemToLine[dec.get('decname').t.trim()] = line;
             const assignables = dec.get('assignables');
             if (assignables.has('functions')) {
@@ -393,11 +405,19 @@ const loadStatements = (statements, localMem, globalMem) => {
                 const call = assignables.get('calls');
                 const fn = call.get('variable').t.trim();
                 const vars = (call.has('calllist') ? call.get('calllist').getAll() : []).map(v => v.get('variable').t.trim());
-                const args = vars.map(v => localMem.hasOwnProperty(v) ?
-                    localMem[v] :
-                    globalMem.hasOwnProperty(v) ?
-                        globalMem[v] :
-                        v).map(a => typeof a === 'string' ? a : `@${a}`);
+                let numArgs = 0n;
+                const args = vars.map(v => {
+                    if (localMem.hasOwnProperty(v))
+                        return localMem[v];
+                    else if (globalMem.hasOwnProperty(v))
+                        return globalMem[v];
+                    else if (isClosureExit) {
+                        numArgs = numArgs + 1n;
+                        return CLOSURE_ARG_MEM_START + numArgs;
+                    }
+                    else
+                        return v;
+                }).map(a => typeof a === 'string' ? a : `@${a}`);
                 while (args.length < 2)
                     args.push('@0');
                 const deps = vars
@@ -664,13 +684,24 @@ const functionbodyToJsText = (fnbody, indent) => {
             const arg = emit.has('value') ? emit.get('value').get('variable').t : 'undefined';
             outText += `r.emit('${name}', ${arg})\n`;
         }
+        else if (statement.has('exits')) {
+            outText += `${statement.get('exits').t.trim()}\n`;
+        }
     }
     return outText;
 };
 const assignableToJsText = (assignable, indent) => {
     let outText = "";
     if (assignable.has('functions')) {
-        outText += '() => {\n'; // All assignable functions/closures take no arguments
+        const args = assignable.get('functions').get('args');
+        const argnames = [];
+        for (const arg of args.get(0).getAll()) {
+            argnames.push(arg.get('arg').get('variable').t);
+        }
+        if (args.get(1)) {
+            argnames.push(args.get(1).get('arg').get('variable').t);
+        }
+        outText += `(${argnames.join(', ')}) => {\n`;
         outText += functionbodyToJsText(assignable.get('functions').get('functionbody'), indent + "  ");
         outText += indent + '  }'; // End this closure
     }
@@ -702,8 +733,12 @@ const ammToJsText = (amm) => {
         const rec = handler.get();
         if (!(rec instanceof lp_1.NamedAnd))
             continue;
-        const eventVarName = rec.get('functions').has('arg') ?
-            rec.get('functions').get('arg').get('variable').t : "";
+        let arg = rec.get('functions').get('args').get(0).get(0).get('arg');
+        if (arg instanceof lp_1.NulLP) {
+            arg = rec.get('functions').get('args').get(1).get('arg');
+        }
+        const eventVarName = !(arg instanceof lp_1.NulLP) ?
+            arg.get('variable').t : "";
         outFile += `r.on('${rec.get('variable').t}', async (${eventVarName}) => {\n`;
         outFile += functionbodyToJsText(rec.get('functions').get('functionbody'), '');
         outFile += '})\n'; // End this handler
@@ -29405,6 +29440,7 @@ module.exports = {
   indarrf:(arr, val) => arr.indexOf(val),
   indarrv:(arr, val) => arr.indexOf(val),
   join:   (arr, sep) => arr.join(sep),
+  map:    (arr, fn) => arr.map(fn),
 
   // Map opcodes TODO after maps are figured out
 

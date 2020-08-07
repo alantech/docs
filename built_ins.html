@@ -660,6 +660,20 @@ index(Array&lt;bool&gt;, bool): int64
 <pre><pre class="playpen"><code class="language-rust">
 <span class="boring">#![allow(unused_variables)]
 </span><span class="boring">fn main() {
+</span>// Returns true if the array has the specified value or false otherwise
+has(Array&lt;any&gt;, any): int64
+has(Array&lt;int8&gt;, int8): int64
+has(Array&lt;int16&gt;, int16): int64
+has(Array&lt;int32&gt;, int32): int64
+has(Array&lt;int64&gt;, int64): int64
+has(Array&lt;float32&gt;, float32): int64
+has(Array&lt;float64&gt;, float64): int64
+has(Array&lt;bool&gt;, bool): int64
+<span class="boring">}
+</span></code></pre></pre>
+<pre><pre class="playpen"><code class="language-rust">
+<span class="boring">#![allow(unused_variables)]
+</span><span class="boring">fn main() {
 </span>// Push a value into the array and return the updated array
 push(Array&lt;any&gt;, any): Array&lt;any&gt;
 push(Array&lt;int8&gt;, int8): Array&lt;int8&gt;

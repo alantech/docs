@@ -422,7 +422,7 @@ const loadStatements = (statements, localMem, globalMem, fn, isClosure) => {
                     else if (globalMem.hasOwnProperty(v))
                         return globalMem[v];
                     else if (hasClosureArgs) {
-                        return CLOSURE_ARG_MEM_START + 1n + BigInt(fnArgs.indexOf(v));
+                        return CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v));
                     }
                     else
                         return v;
@@ -506,7 +506,7 @@ const loadStatements = (statements, localMem, globalMem, fn, isClosure) => {
                     else if (globalMem.hasOwnProperty(v))
                         return globalMem[v];
                     else if (hasClosureArgs) {
-                        return CLOSURE_ARG_MEM_START + 1n + BigInt(fnArgs.indexOf(v));
+                        return CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v));
                     }
                     else
                         return v;
@@ -543,7 +543,7 @@ const loadStatements = (statements, localMem, globalMem, fn, isClosure) => {
                 else if (globalMem.hasOwnProperty(v))
                     return globalMem[v];
                 else if (hasClosureArgs) {
-                    return CLOSURE_ARG_MEM_START + 1n + BigInt(fnArgs.indexOf(v));
+                    return CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v));
                 }
                 else
                     return v;

@@ -199,7 +199,6 @@ const amm = lp_1.NamedAnd.build({
 exports.default = amm;
 
 },{"./lp":23}],4:[function(require,module,exports){
-(function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fromString = exports.fromFile = void 0;
@@ -254,8 +253,7 @@ const loadGlobalMem = (globalMemAst, addressMap) => {
                 currentOffset -= 8;
                 break;
             default:
-                console.error(rec.get('fulltypename').t + " not yet implemented");
-                process.exit(1);
+                throw new Error(rec.get('fulltypename').t + ' not yet implemented');
         }
     }
     return globalMem;
@@ -409,8 +407,7 @@ const loadStatements = (statements, localMem, globalMem, fn, isClosure) => {
             localMemToLine[dec.get('decname').t.trim()] = line;
             const assignables = dec.get('assignables');
             if (assignables.has('functions')) {
-                console.error("This shouldn't be possible!");
-                process.exit(2);
+                throw new Error("This shouldn't be possible!");
             }
             else if (assignables.has('calls')) {
                 const call = assignables.get('calls');
@@ -482,8 +479,7 @@ const loadStatements = (statements, localMem, globalMem, fn, isClosure) => {
                 s += `@${resultAddress} = ${fn}(${val}, @0) #${line}`;
             }
             else if (assignables.has('variable')) {
-                console.error("This should have been squashed");
-                process.exit(5);
+                throw new Error('This should have been squashed');
             }
         }
         else if (statement.has('assignments')) {
@@ -492,8 +488,7 @@ const loadStatements = (statements, localMem, globalMem, fn, isClosure) => {
             localMemToLine[resultAddress] = line;
             const assignables = asgn.get('assignables');
             if (assignables.has('functions')) {
-                console.error("This shouldn't be possible!");
-                process.exit(2);
+                throw new Error("This shouldn't be possible!");
             }
             else if (assignables.has('calls')) {
                 const call = assignables.get('calls');
@@ -524,12 +519,10 @@ const loadStatements = (statements, localMem, globalMem, fn, isClosure) => {
                 }
             }
             else if (assignables.has('constants')) {
-                console.error("This should have been hoisted");
-                process.exit(3);
+                throw new Error('This should have been hoisted');
             }
             else if (assignables.has('variable')) {
-                console.error("This should have been squashed");
-                process.exit(5);
+                throw new Error('This should have been squashed');
             }
         }
         else if (statement.has('calls')) {
@@ -650,8 +643,7 @@ exports.fromFile = (filename) => {
     const lp = new lp_1.LP(filename);
     const ast = amm_1.default.apply(lp);
     if (ast instanceof Error) {
-        console.error(ast);
-        process.exit(1);
+        throw ast;
     }
     return ammToAga(ast);
 };
@@ -659,15 +651,12 @@ exports.fromString = (str) => {
     const lp = lp_1.LP.fromText(str);
     const ast = amm_1.default.apply(lp);
     if (ast instanceof Error) {
-        console.error(ast);
-        process.exit(1);
+        throw ast;
     }
     return ammToAga(ast);
 };
 
-}).call(this,require('_process'))
-},{"./amm":3,"./lp":23,"_process":81}],5:[function(require,module,exports){
-(function (process){
+},{"./amm":3,"./lp":23}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fromString = exports.fromFile = void 0;
@@ -773,8 +762,7 @@ exports.fromFile = (filename) => {
     const lp = new lp_1.LP(filename);
     const ast = amm_1.default.apply(lp);
     if (ast instanceof Error) {
-        console.error(ast);
-        process.exit(1);
+        throw ast;
     }
     return ammToJsText(ast);
 };
@@ -782,14 +770,12 @@ exports.fromString = (str) => {
     const lp = lp_1.LP.fromText(str);
     const ast = amm_1.default.apply(lp);
     if (ast instanceof Error) {
-        console.error(ast);
-        process.exit(1);
+        throw ast;
     }
     return ammToJsText(ast);
 };
 
-}).call(this,require('_process'))
-},{"./amm":3,"./lp":23,"_process":81,"alan-js-runtime":"alan-js-runtime"}],6:[function(require,module,exports){
+},{"./amm":3,"./lp":23,"alan-js-runtime":"alan-js-runtime"}],6:[function(require,module,exports){
 // Generated from Ln.g4 by ANTLR 4.7.2
 // jshint ignore: start
 var antlr4 = require('antlr4/index');
@@ -9754,7 +9740,6 @@ module.exports = {
 };
 
 },{"./LnLexer":6,"./LnParser":8}],10:[function(require,module,exports){
-(function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fulltypenameAstFromString = exports.statementAstFromString = exports.functionAstFromString = exports.resolveImports = exports.resolveDependency = exports.fromFile = exports.fromString = void 0;
@@ -9804,10 +9789,9 @@ exports.resolveDependency = (modulePath, dependency) => {
         }
         if (importPath === null) {
             // Should I do anything else here?
-            console.error("The dependency " +
+            throw new Error("The dependency " +
                 dependency.localdependency().getText().toString() +
                 " could not be found.");
-            process.exit(-2);
         }
     }
     // If the dependency is a global dependency, there's a more complicated resolution to find it.
@@ -9920,10 +9904,9 @@ exports.resolveDependency = (modulePath, dependency) => {
             }
             if (importPath == null) {
                 // Should I do anything else here?
-                console.error("The dependency " +
+                throw new Error("The dependency " +
                     dependency.globaldependency().getText().toString() +
                     " could not be found.");
-                process.exit(-2);
             }
         }
     }
@@ -9944,8 +9927,7 @@ exports.resolveImports = (modulePath, ast) => {
         }
         if (dependency == null) {
             // Should I do anything else here?
-            console.error("Things are horribly broken!");
-            process.exit(-2);
+            throw new Error("Things are horribly broken!");
         }
         const importPath = exports.resolveDependency(modulePath, dependency);
         resolvedImports.push(importPath);
@@ -9974,8 +9956,7 @@ exports.fulltypenameAstFromString = (s) => {
     return langParser.fulltypename();
 };
 
-}).call(this,require('_process'))
-},{"../ln":9,"_process":81,"antlr4":66,"fs":73,"path":80}],11:[function(require,module,exports){
+},{"../ln":9,"antlr4":66,"fs":73,"path":80}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class Constant {
@@ -9996,7 +9977,6 @@ class Constant {
 exports.default = Constant;
 
 },{}],12:[function(require,module,exports){
-(function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Type_1 = require("./Type");
@@ -10016,12 +9996,10 @@ let Event = /** @class */ (() => {
             const name = eventAst.VARNAME().getText();
             const type = scope.deepGet(eventAst.varn().getText());
             if (!type) {
-                console.error("Could not find specified type: " + eventAst.varn().getText());
-                process.exit(-8);
+                throw new Error("Could not find specified type: " + eventAst.varn().getText());
             }
             else if (!(type instanceof Type_1.default)) {
-                console.error(eventAst.varn().getText() + " is not a type");
-                process.exit(-9);
+                throw new Error(eventAst.varn().getText() + " is not a type");
             }
             return new Event(name, type, false);
         }
@@ -10031,9 +10009,7 @@ let Event = /** @class */ (() => {
 })();
 exports.default = Event;
 
-}).call(this,require('_process'))
-},{"./Type":19,"_process":81}],13:[function(require,module,exports){
-(function (process){
+},{"./Type":19}],13:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const uuid_1 = require("uuid");
@@ -10196,13 +10172,8 @@ class Microstatement {
                         const fieldNum = fields.indexOf(fieldName);
                         if (fieldNum < 0) {
                             // Invalid object access
-                            console.error(`${name} does not have a field named ${fieldName}`);
-                            console.error(varAst.getText() +
-                                " on line " +
-                                varAst.start.line +
-                                ":" +
-                                varAst.start.column);
-                            process.exit(-205);
+                            throw new Error(`${name} does not have a field named ${fieldName}
+${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
                         }
                         // Create a new variable to hold the address within the array literal
                         const addrName = "_" + uuid_1.v4().replace(/-/g, "_");
@@ -10231,13 +10202,8 @@ class Microstatement {
                 if (segment.arrayaccess()) {
                     if (original == null || !(original instanceof Microstatement)) {
                         // This is all moot if we didn't resolve a variable to dig into
-                        console.error(`${name} cannot be found`);
-                        console.error(varAst.getText() +
-                            " on line " +
-                            varAst.start.line +
-                            ":" +
-                            varAst.start.column);
-                        process.exit(-204);
+                        throw new Error(`${name} cannot be found
+${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
                     }
                     // We're still ID'ing it with the raw text to make the short-circuit work
                     name += segment.arrayaccess().getText();
@@ -10247,13 +10213,8 @@ class Microstatement {
                     // TODO: Map support, which requires figuring out if the outer memory object is an array
                     // or a map.
                     if (lookup.outputType.typename !== 'int64') {
-                        console.error(`${segment.getText()} cannot be used in an array lookup as it is not an int64`);
-                        console.error(varAst.getText() +
-                            " on line " +
-                            varAst.start.line +
-                            ":" +
-                            varAst.start.column);
-                        process.exit(-205);
+                        throw new Error(`${segment.getText()} cannot be used in an array lookup as it is not an int64
+${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
                     }
                     // Insert a `copyfrom` opcode.
                     const opcodes = require('./opcodes').default;
@@ -10269,13 +10230,8 @@ class Microstatement {
             }
         }
         if (original == null || !(original instanceof Microstatement)) {
-            console.error(varAst.getText() + " cannot be found");
-            console.error(varAst.getText() +
-                " on line " +
-                varAst.start.line +
-                ":" +
-                varAst.start.column);
-            process.exit(-104);
+            throw new Error(`${varAst.getText()} cannot be found
+${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
         }
         // When a variable is reassigned (or was referenced in a function call or operator statement,
         // instead of duplicating its data, add a microstatement to rereference that data (all of the
@@ -10396,13 +10352,8 @@ class Microstatement {
                         if (basicAssignablesAst.objectliterals().arrayliteral().othertype().typegenerics()) {
                             const outerTypeBox = scope.deepGet(basicAssignablesAst.objectliterals().arrayliteral().othertype().typename().getText().trim());
                             if (!outerTypeBox) {
-                                console.error(`${basicAssignablesAst.objectliterals().arrayliteral().othertype().getText()}  is not defined`);
-                                console.error(basicAssignablesAst.getText() +
-                                    " on line " +
-                                    basicAssignablesAst.start.line +
-                                    ":" +
-                                    basicAssignablesAst.start.column);
-                                process.exit(-105);
+                                throw new Error(`${basicAssignablesAst.objectliterals().arrayliteral().othertype().getText()}  is not defined
+${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
                             }
                             outerTypeBox.solidify(basicAssignablesAst.objectliterals().arrayliteral().othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                             ), scope);
@@ -10410,13 +10361,8 @@ class Microstatement {
                         }
                     }
                     if (!(typeBox instanceof Type_1.default)) {
-                        console.error(basicAssignablesAst.objectliterals().arrayliteral().othertype().getText().trim() + " is not a type");
-                        console.error(basicAssignablesAst.getText() +
-                            " on line " +
-                            basicAssignablesAst.start.line +
-                            ":" +
-                            basicAssignablesAst.start.column);
-                        process.exit(-106);
+                        throw new Error(`${basicAssignablesAst.objectliterals().arrayliteral().othertype().getText().trim()} is not a type
+${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
                     }
                 }
                 else if (arrayLiteralContents.length > 0) {
@@ -10425,13 +10371,8 @@ class Microstatement {
                     typeBox = scope.deepGet(`Array<${innerType}>`);
                 }
                 else {
-                    console.error('Ambiguous array type, please specify the type for an empty array with the syntax `new Array<MyType> []');
-                    console.error(basicAssignablesAst.getText() +
-                        " on line " +
-                        basicAssignablesAst.start.line +
-                        ":" +
-                        basicAssignablesAst.start.column);
-                    process.exit(-106);
+                    throw new Error(`Ambiguous array type, please specify the type for an empty array with the syntax \`new Array<MyType> []\`
+${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
                 }
                 // Create a new variable to hold the size of the array literal
                 const lenName = "_" + uuid_1.v4().replace(/-/g, "_");
@@ -10478,13 +10419,8 @@ class Microstatement {
                     if (basicAssignablesAst.objectliterals().typeliteral().othertype().typegenerics()) {
                         const outerTypeBox = scope.deepGet(basicAssignablesAst.objectliterals().typeliteral().othertype().typename().getText().trim());
                         if (outerTypeBox === null) {
-                            console.error(`${basicAssignablesAst.objectliterals().typeliteral().othertype().getText()}  is not defined`);
-                            console.error(basicAssignablesAst.getText() +
-                                " on line " +
-                                basicAssignablesAst.start.line +
-                                ":" +
-                                basicAssignablesAst.start.column);
-                            process.exit(-105);
+                            throw new Error(`${basicAssignablesAst.objectliterals().typeliteral().othertype().getText()}  is not defined
+${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
                         }
                         outerTypeBox.solidify(basicAssignablesAst.objectliterals().typeliteral().othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                         ), scope);
@@ -10492,26 +10428,16 @@ class Microstatement {
                     }
                 }
                 if (!(typeBox instanceof Type_1.default)) {
-                    console.error(basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim() + " is not a type");
-                    console.error(basicAssignablesAst.getText() +
-                        " on line " +
-                        basicAssignablesAst.start.line +
-                        ":" +
-                        basicAssignablesAst.start.column);
-                    process.exit(-106);
+                    throw new Error(`${basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim()} is not a type
+${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
                 }
                 const assignmentAsts = basicAssignablesAst.objectliterals().typeliteral().assignments();
                 // First check that the assignments are well-formed and actually have an assignables field
                 for (const assignmentAst of assignmentAsts) {
                     if (!assignmentAst.assignables()) {
-                        console.error(`${basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim()} object literal improperly defined`);
-                        console.error(`${assignmentAst.varn().getText()} not set`);
-                        console.error(basicAssignablesAst.getText() +
-                            " on line " +
-                            basicAssignablesAst.start.line +
-                            ":" +
-                            basicAssignablesAst.start.column);
-                        process.exit(-109);
+                        throw new Error(`${basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim()} object literal improperly defined
+${assignmentAst.varn().getText()} not set
+${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
                     }
                 }
                 const fields = Object.keys(typeBox.properties);
@@ -10536,19 +10462,20 @@ class Microstatement {
                     }
                 }
                 if (missingFields.length > 0 || extraFields.length > 0) {
-                    console.error(`${basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim()} object literal improperly defined`);
+                    let errMsg = `${basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim()} object literal improperly defined`;
                     if (missingFields.length > 0) {
-                        console.error(`Missing fields: ${missingFields.join(', ')}`);
+                        errMsg += '\n' + `Missing fields: ${missingFields.join(', ')}`;
                     }
                     if (extraFields.length > 0) {
-                        console.error(`Extra fields: ${extraFields.join(', ')}`);
+                        errMsg += '\n' + `Extra fields: ${extraFields.join(', ')}`;
                     }
-                    console.error(basicAssignablesAst.getText() +
+                    errMsg += '\n' +
+                        basicAssignablesAst.getText() +
                         " on line " +
                         basicAssignablesAst.start.line +
                         ":" +
-                        basicAssignablesAst.start.column);
-                    process.exit(-108);
+                        basicAssignablesAst.start.column;
+                    throw new Error(errMsg);
                 }
                 // The assignment looks good, now we'll mimic the array literal logic mostly
                 const arrayLiteralContents = [];
@@ -10581,13 +10508,8 @@ class Microstatement {
                 return;
             }
             // If object literal parsing has made it this far, it's a Map literal that is not yet supported
-            console.error(`${basicAssignablesAst.objectliterals().mapliteral().othertype().getText().trim()} not yet supported`);
-            console.error(basicAssignablesAst.getText() +
-                " on line " +
-                basicAssignablesAst.start.line +
-                ":" +
-                basicAssignablesAst.start.column);
-            process.exit(-107);
+            throw new Error(`${basicAssignablesAst.objectliterals().mapliteral().othertype().getText().trim()} not yet supported
+${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
         }
     }
     static fromWithOperatorsAst(withOperatorsAst, // TODO: Eliminate ANTLR
@@ -10603,8 +10525,7 @@ class Microstatement {
                 const operator = operatorOrAssignable.operators();
                 const op = scope.deepGet(operator.getText());
                 if (op == null || !(op instanceof Array && op[0] instanceof Operator_1.default)) {
-                    console.error("Operator " + operator.getText() + " is not defined");
-                    process.exit(-34);
+                    throw new Error("Operator " + operator.getText() + " is not defined");
                 }
                 withOperatorsList.push(op);
             }
@@ -10678,8 +10599,8 @@ class Microstatement {
                 }
             }
             if (maxPrecedence == -1 || maxOperatorLoc == -1) {
-                console.error("Cannot resolve operators with remaining statement");
-                console.error(withOperatorsAst.getText());
+                let errMsg = `Cannot resolve operators with remaining statement
+${withOperatorsAst.getText()}`;
                 let withOperatorsTranslation = [];
                 for (let i = 0; i < withOperatorsList.length; i++) {
                     const node = withOperatorsList[i];
@@ -10690,8 +10611,8 @@ class Microstatement {
                         withOperatorsTranslation.push("<" + node.outputType.typename + ">");
                     }
                 }
-                console.error(withOperatorsTranslation.join(" "));
-                process.exit(-34);
+                errMsg += '\n' + withOperatorsTranslation.join(' ');
+                throw new Error(errMsg);
             }
             const op = withOperatorsList[maxOperatorLoc][maxOperatorListLoc];
             let realArgNames = [];
@@ -10762,27 +10683,14 @@ class Microstatement {
             Microstatement.fromAssignablesAst(emitsAst.assignables(), scope, microstatements);
             const eventBox = scope.deepGet(emitsAst.varn().getText()); // TODO: Port to fromVarAst when Box is removed
             if (!(eventBox instanceof Event_1.default)) {
-                console.error(emitsAst.varn().getText() + " is not an event!");
-                console.error(emitsAst.getText() +
-                    " on line " +
-                    emitsAst.start.line +
-                    ":" +
-                    emitsAst.start.column);
-                process.exit(-101);
+                throw new Error(`${emitsAst.varn().getText()} is not an event!
+${emitsAst.getText()} on line ${emitsAst.start.line}:${emitsAst.start.column}`);
             }
             const last = microstatements[microstatements.length - 1];
             if (last.outputType != eventBox.type &&
                 !eventBox.type.castable(last.outputType)) {
-                console.error("Attempting to assign a value of type " +
-                    last.outputType.typename +
-                    " to an event of type " +
-                    eventBox.type.typename);
-                console.error(emitsAst.getText() +
-                    " on line " +
-                    emitsAst.start.line +
-                    ":" +
-                    emitsAst.start.column);
-                process.exit(-103);
+                throw new Error(`Attempting to assign a value of type ${last.outputType.typename} to an event of type ${eventBox.type.typename}
+${emitsAst.getText()} on line ${emitsAst.start.line}:${emitsAst.start.column}`);
             }
             microstatements.push(new Microstatement(StatementType_1.default.EMIT, scope, true, eventBox.name, eventBox.type, [last.outputName], []));
         }
@@ -10790,22 +10698,12 @@ class Microstatement {
             // Otherwise, create an emit statement with no value
             const eventBox = scope.deepGet(emitsAst.varn().getText()); // TODO: Port to fromVarAst
             if (!(eventBox instanceof Event_1.default)) {
-                console.error(emitsAst.varn().getText() + " is not an event!");
-                console.error(emitsAst.getText() +
-                    " on line " +
-                    emitsAst.start.line +
-                    ":" +
-                    emitsAst.start.column);
-                process.exit(-102);
+                throw new Error(`${emitsAst.varn().getText()} is not an event!
+${emitsAst.getText()} on line ${emitsAst.start.line}:${emitsAst.start.column}`);
             }
             if (eventBox.type != Type_1.default.builtinTypes.void) {
-                console.error(emitsAst.varn().getText() + " must have a value emitted to it!");
-                console.error(emitsAst.getText() +
-                    " on line " +
-                    emitsAst.start.line +
-                    ":" +
-                    emitsAst.start.column);
-                process.exit(-103);
+                throw new Error(`${emitsAst.varn().getText()} must have a value emitted to it!
+${emitsAst.getText()} on line ${emitsAst.start.line}:${emitsAst.start.column}`);
             }
             microstatements.push(new Microstatement(StatementType_1.default.EMIT, scope, true, eventBox.name, Type_1.default.builtinTypes.void, [], []));
         }
@@ -10874,8 +10772,7 @@ class Microstatement {
                 scopePath = scopePath.substring(0, scopePath.length - 1);
                 firstArg = Microstatement.fromVarName(scopePath, scope, microstatements);
                 if (firstArg == null) { // It wasn't this, either, just return the same error
-                    console.error("Undefined function called: " + callsAst.varn(0).getText());
-                    process.exit(-140);
+                    throw new Error("Undefined function called: " + callsAst.varn(0).getText());
                 }
                 fnBox = scope.deepGet(methodName);
             }
@@ -10940,13 +10837,8 @@ class Microstatement {
             }
             if (!fnBox ||
                 !(fnBox instanceof Array && fnBox[0].microstatementInlining instanceof Function)) {
-                console.error(callsAst.varn(i).getText() + " is not a function!");
-                console.error(callsAst.getText() +
-                    " on line " +
-                    callsAst.start.line +
-                    ":" +
-                    callsAst.start.column);
-                process.exit(-106);
+                throw new Error(`${callsAst.varn(i).getText()} is not a function!
+${callsAst.getText()} on line ${callsAst.start.line}:${callsAst.start.column}`);
             }
             // Generate the relevant microstatements for this function. UserFunctions get inlined with the
             // return statement turned into a const assignment as the last statement, while built-in
@@ -10997,24 +10889,14 @@ class Microstatement {
                     break;
                 }
                 else {
-                    console.error("Attempting to reassign a non-let variable.");
-                    console.error(letName +
-                        " on line " +
-                        assignmentsAst.start.line +
-                        ":" +
-                        assignmentsAst.start.column);
-                    process.exit(104);
+                    throw new Error(`Attempting to reassign a non-let variable.
+${letName} on line ${assignmentsAst.start.line}:${assignmentsAst.start.column}`);
                 }
             }
         }
         if (!original) {
-            console.error('Attempting to reassign to an undeclared variable');
-            console.error(letName +
-                " on line " +
-                assignmentsAst.line +
-                ":" +
-                assignmentsAst.start.column);
-            process.exit(105);
+            throw new Error(`Attempting to reassign to an undeclared variable
+${letName} on line ${assignmentsAst.line}:${assignmentsAst.start.column}`);
         }
         if (segments.length === 1) { // Could be a simple let variable
             const letName = segments[0].getText();
@@ -11030,13 +10912,8 @@ class Microstatement {
                         break;
                     }
                     else {
-                        console.error("Attempting to reassign a non-let variable.");
-                        console.error(letName +
-                            " on line " +
-                            assignmentsAst.line +
-                            ":" +
-                            assignmentsAst.start.column);
-                        process.exit(100);
+                        throw new Error(`Attempting to reassign a non-let variable.
+${letName} on line ${assignmentsAst.line}:${assignmentsAst.start.column}`);
                     }
                 }
             }
@@ -11044,13 +10921,8 @@ class Microstatement {
             // parser is bad here, but necessary for let declarations because of the weird re-use of
             // stuff.
             if (assignmentsAst.assignables() == null) {
-                console.error("Let variable re-assignment without a value specified.");
-                console.error(letName +
-                    " on line " +
-                    assignmentsAst.start.line +
-                    ":" +
-                    assignmentsAst.start.column);
-                process.exit(101);
+                throw new Error(`Let variable re-assignment without a value specified.
+${letName} on line ${assignmentsAst.start.line}:${assignmentsAst.start.column}`);
             }
             // An assignable may either be a basic constant or could be broken down into other
             // microstatements. The classification with assignables is: if it's a `withoperators` type it
@@ -11177,24 +11049,14 @@ class Microstatement {
                 return;
             }
             // This should not be reachable
-            console.error('Unknown malformed input in re-assignment');
-            console.error(letName +
-                " on line " +
-                assignmentsAst.start.line +
-                ":" +
-                assignmentsAst.start.column);
-            process.exit(102);
+            throw new Error(`Unknown malformed input in re-assignment
+${letName} on line ${assignmentsAst.start.line}:${assignmentsAst.start.column}`);
         }
         // The more complicated path. First, rule out that the first segment is not a `scope`.
         const testBox = scope.deepGet(segments[0].getText());
         if (!!testBox && testBox instanceof Scope_1.default) {
-            console.error('Atempting to reassign to variable from another module');
-            console.error(assignmentsAst.varn().getText() +
-                " on line " +
-                assignmentsAst.start.line +
-                ":" +
-                assignmentsAst.start.column);
-            process.exit(103);
+            throw new Error(`Atempting to reassign to variable from another module
+${assignmentsAst.varn().getText()} on line ${assignmentsAst.start.line}:${assignmentsAst.start.column}`);
         }
         let nestedLetType = original.outputType;
         for (let i = 1; i < segments.length - 1; i++) {
@@ -11205,8 +11067,7 @@ class Microstatement {
             // An array access. Until the grammar definition is reworked, this will parse correctly, but
             // it is banned in alan (due to being unable to catch and report assignment errors to arrays)
             if (segment.arrayaccess()) {
-                console.error(`${segments.join('')} cannot be written to. Please use 'set' to mutate arrays and hash tables`);
-                process.exit(-204);
+                throw new Error(`${segments.join('')} cannot be written to. Please use 'set' to mutate arrays and hash tables`);
             }
             // If it's a varname here, then we're accessing an inner property type. We need to figure out
             // which index it is in the underlying array structure and then `register` that piece (since
@@ -11217,13 +11078,8 @@ class Microstatement {
                 const fieldNum = fields.indexOf(fieldName);
                 if (fieldNum < 0) {
                     // Invalid object access
-                    console.error(`${letName} does not have a field named ${fieldName}`);
-                    console.error(assignmentsAst.varn().getText() +
-                        " on line " +
-                        assignmentsAst.varn().start.line +
-                        ":" +
-                        assignmentsAst.varn().start.column);
-                    process.exit(-205);
+                    throw new Error(`${letName} does not have a field named ${fieldName}
+${assignmentsAst.varn().getText()} on line ${assignmentsAst.varn().start.line}:${assignmentsAst.varn().start.column}`);
                 }
                 // Create a new variable to hold the address within the array literal
                 const addrName = "_" + uuid_1.v4().replace(/-/g, "_");
@@ -11241,13 +11097,8 @@ class Microstatement {
         // TODO: Clean up the const/let declarations and assignments. That this is possible with the
         // parser is bad here, but necessary for let declarations because of the weird re-use of stuff.
         if (assignmentsAst.assignables() == null) {
-            console.error("Let variable re-assignment without a value specified.");
-            console.error(letName +
-                " on line " +
-                assignmentsAst.start.line +
-                ":" +
-                assignmentsAst.start.column);
-            process.exit(101);
+            throw new Error(`Let variable re-assignment without a value specified.
+${letName} on line ${assignmentsAst.start.line}:${assignmentsAst.start.column}`);
         }
         // An assignable may either be a basic constant or could be broken down into other microstatements
         // The classification with assignables is: if it's a `withoperators` type it *always* becomes
@@ -11277,13 +11128,8 @@ class Microstatement {
             // TODO: Map support, which requires figuring out if the outer memory object is an array
             // or a map.
             if (lookup.outputType.typename !== 'int64') {
-                console.error(`${finalSegment.getText()} cannot be used in an array lookup as it is not an int64`);
-                console.error(letName +
-                    " on line " +
-                    assignmentsAst.start.line +
-                    ":" +
-                    assignmentsAst.start.column);
-                process.exit(-205);
+                throw new Error(`${finalSegment.getText()} cannot be used in an array lookup as it is not an int64
+${letName} on line ${assignmentsAst.start.line}:${assignmentsAst.start.column}`);
             }
             // Insert a `copytof` or `copytov` opcode.
             const opcodes = require('./opcodes').default;
@@ -11295,13 +11141,8 @@ class Microstatement {
             const fieldNum = fields.indexOf(fieldName);
             if (fieldNum < 0) {
                 // Invalid object access
-                console.error(`${name} does not have a field named ${fieldName}`);
-                console.error(letName +
-                    " on line " +
-                    assignmentsAst.start.line +
-                    ":" +
-                    assignmentsAst.start.column);
-                process.exit(-205);
+                throw new Error(`${name} does not have a field named ${fieldName}
+${letName} on line ${assignmentsAst.start.line}:${assignmentsAst.start.column}`);
             }
             // Create a new variable to hold the address within the array literal
             const addrName = "_" + uuid_1.v4().replace(/-/g, "_");
@@ -11311,13 +11152,8 @@ class Microstatement {
             opcodes.exportScope.get(copytoop)[0].microstatementInlining([original.outputName, addrName, assign.outputName], scope, microstatements);
         }
         else {
-            console.error(`${finalSegment.getText()} cannot be the final piece in a reassignment statement`);
-            console.error(letName +
-                " on line " +
-                assignmentsAst.start.line +
-                ":" +
-                assignmentsAst.start.column);
-            process.exit(-205);
+            throw new Error(`${finalSegment.getText()} cannot be the final piece in a reassignment statement
+${letName} on line ${assignmentsAst.start.line}:${assignmentsAst.start.column}`);
         }
     }
     static fromLetdeclarationAst(letdeclarationAst, // TODO: Eliminate ANTLR
@@ -11340,13 +11176,8 @@ class Microstatement {
                 if (letdeclarationAst.assignments().typegenerics()) {
                     const outerTypeBox = scope.deepGet(letdeclarationAst.assignments().varn().getText());
                     if (outerTypeBox === null) {
-                        console.error(`${letdeclarationAst.assignments().varn().getText()}  is not defined`);
-                        console.error(letdeclarationAst.getText() +
-                            " on line " +
-                            letdeclarationAst.start.line +
-                            ":" +
-                            letdeclarationAst.start.column);
-                        process.exit(-105);
+                        throw new Error(`${letdeclarationAst.assignments().varn().getText()}  is not defined
+${letdeclarationAst.getText()} on line ${letdeclarationAst.start.line}:${letdeclarationAst.start.column}`);
                     }
                     outerTypeBox.solidify(letdeclarationAst.assignments().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                     ), scope);
@@ -11361,8 +11192,7 @@ class Microstatement {
             // This is the situation where a variable is declared but no value is yet assigned.
             // We have decided to not permit this at all and consider it an error case. TODO: Block this
             // at the parser level
-            console.error('Let declaration must have an initial value');
-            process.exit(112);
+            throw new Error('Let declaration must have an initial value');
         }
         // An assignable may either be a basic constant or could be broken down into other microstatements
         // The classification with assignables is: if it's a `withoperators` type it *always* becomes
@@ -11419,13 +11249,8 @@ class Microstatement {
                 if (constdeclarationAst.assignments().typegenerics()) {
                     const outerTypeBox = scope.deepGet(constdeclarationAst.assignments().varn().getText());
                     if (outerTypeBox === null) {
-                        console.error(`${constdeclarationAst.assignments().varn().getText()}  is not defined`);
-                        console.error(constdeclarationAst.getText() +
-                            " on line " +
-                            constdeclarationAst.start.line +
-                            ":" +
-                            constdeclarationAst.start.column);
-                        process.exit(-105);
+                        throw new Error(`${constdeclarationAst.assignments().varn().getText()}  is not defined
+${constdeclarationAst.getText()} on line ${constdeclarationAst.start.line}:${constdeclarationAst.start.column}`);
                     }
                     outerTypeBox.solidify(constdeclarationAst.assignments().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                     ), scope);
@@ -11520,9 +11345,7 @@ class Microstatement {
 }
 exports.default = Microstatement;
 
-}).call(this,require('_process'))
-},{"../ln":9,"./Ast":10,"./Constant":11,"./Event":12,"./Operator":15,"./Scope":16,"./Statement":17,"./StatementType":18,"./Type":19,"./UserFunction":20,"./opcodes":22,"_process":81,"uuid":86}],14:[function(require,module,exports){
-(function (process){
+},{"../ln":9,"./Ast":10,"./Constant":11,"./Event":12,"./Operator":15,"./Scope":16,"./Statement":17,"./StatementType":18,"./Type":19,"./UserFunction":20,"./opcodes":22,"uuid":86}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Ast = require("./Ast");
@@ -11581,8 +11404,7 @@ class Module {
                 }
                 else {
                     // What?
-                    console.error("This path should be impossible");
-                    process.exit(-3);
+                    throw new Error("This path should be impossible");
                 }
                 const importedModule = modules[Ast.resolveDependency(path, standardImport.dependency())];
                 module.moduleScope.put(importName, importedModule.exportScope);
@@ -11670,8 +11492,7 @@ class Module {
         for (const functionAst of functions) {
             const newFunc = UserFunction_1.default.fromAst(functionAst, module.moduleScope);
             if (newFunc.getName() == null) {
-                console.error("Module-level functions must have a name");
-                process.exit(-19);
+                throw new Error("Module-level functions must have a name");
             }
             let fns = module.moduleScope.get(newFunc.getName());
             if (fns == null) {
@@ -11689,8 +11510,7 @@ class Module {
             const precedence = parseInt(operatorAst.opprecedence().NUMBERCONSTANT().getText(), 10);
             const fns = module.moduleScope.deepGet(operatorAst.fntoop().varn().getText());
             if (fns == null) {
-                console.error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
-                process.exit(-31);
+                throw new Error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
             }
             const op = new Operator_1.default(name, precedence, isPrefix, fns);
             const opsBox = module.moduleScope.deepGet(name);
@@ -11731,8 +11551,7 @@ class Module {
             else if (exportAst.functions() != null) {
                 const newFunc = UserFunction_1.default.fromAst(exportAst.functions(), module.moduleScope);
                 if (newFunc.getName() == null) {
-                    console.error("Module-level functions must have a name");
-                    process.exit(-19);
+                    throw new Error("Module-level functions must have a name");
                 }
                 // Exported scope must be checked first because it will fall through to the not-exported
                 // scope by default. Should probably create a `getShallow` for this case, but reordering
@@ -11761,15 +11580,13 @@ class Module {
                 if (!fns) {
                     fns = module.moduleScope.deepGet(operatorAst.fntoop().varn().getText());
                     if (!!fns) {
-                        console.error("Exported operator " +
+                        throw new Error("Exported operator " +
                             name +
                             " wrapping unexported function " +
                             operatorAst.varn().getText() +
                             " which is not allowed, please export the function, as well.");
-                        process.exit(-32);
                     }
-                    console.error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
-                    process.exit(-33);
+                    throw new Error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
                 }
                 const op = new Operator_1.default(name, precedence, isPrefix, fns);
                 let modOpsBox = module.moduleScope.deepGet(name);
@@ -11798,8 +11615,7 @@ class Module {
             }
             else {
                 // What?
-                console.error("What should be an impossible export state has been reached.");
-                process.exit(-8);
+                throw new Error("What should be an impossible export state has been reached.");
             }
         }
         // Finally, event handlers, so they can depend on events that are exported from the same module
@@ -11810,29 +11626,24 @@ class Module {
                 evt = module.moduleScope.deepGet(handlerAst.eventref().varn().getText());
             }
             else if (handlerAst.eventref().calls() != null) {
-                console.error("Not yet implemented!");
-                process.exit(-19);
+                throw new Error("Not yet implemented!");
                 // evt = AFunction.callFromAst(handlerAst.eventref().calls(), module.moduleScope)
             }
             if (!evt) {
-                console.error("Could not find specified event: " + handlerAst.eventref().getText());
-                process.exit(-20);
+                throw new Error("Could not find specified event: " + handlerAst.eventref().getText());
             }
             if (!(evt instanceof Event_1.default)) {
-                console.error(handlerAst.eventref().getText() + " is not an event");
-                process.exit(-21);
+                throw new Error(handlerAst.eventref().getText() + " is not an event");
             }
             let fn = null;
             if (handlerAst.varn() != null) {
                 const fnName = handlerAst.varn().getText();
                 const fns = module.moduleScope.deepGet(handlerAst.varn().getText());
                 if (!fns) {
-                    console.error("Could not find specified function: " + fnName);
-                    process.exit(-22);
+                    throw new Error("Could not find specified function: " + fnName);
                 }
                 if (!(fns instanceof Array && fns[0].microstatementInlining instanceof Function)) {
-                    console.error(fnName + " is not a function");
-                    process.exit(-23);
+                    throw new Error(fnName + " is not a function");
                 }
                 for (let i = 0; i < fns.length; i++) {
                     if (evt.type.typename === "void" && Object.values(fns[i].getArguments()).length === 0) {
@@ -11848,8 +11659,7 @@ class Module {
                     }
                 }
                 if (fn == null) {
-                    console.error("Could not find function named " + fnName + " with matching function signature");
-                    process.exit(-35);
+                    throw new Error("Could not find function named " + fnName + " with matching function signature");
                 }
             }
             if (handlerAst.functions() != null) {
@@ -11860,13 +11670,11 @@ class Module {
             }
             if (fn == null) {
                 // Shouldn't be possible
-                console.error("Impossible state reached processing event handler");
-                process.exit(-24);
+                throw new Error("Impossible state reached processing event handler");
             }
             if (Object.keys(fn.getArguments()).length > 1 ||
                 (evt.type === Type_1.Type.builtinTypes["void"] && Object.keys(fn.getArguments()).length !== 0)) {
-                console.error("Function provided for " + handlerAst.eventref().getText() + " has invalid argument signature");
-                process.exit(-25);
+                throw new Error("Function provided for " + handlerAst.eventref().getText() + " has invalid argument signature");
             }
             evt.handlers.push(fn);
         }
@@ -11901,8 +11709,7 @@ class Module {
 }
 exports.default = Module;
 
-}).call(this,require('_process'))
-},{"./Ast":10,"./Constant":11,"./Event":12,"./Operator":15,"./Scope":16,"./Type":19,"./UserFunction":20,"_process":81}],15:[function(require,module,exports){
+},{"./Ast":10,"./Constant":11,"./Event":12,"./Operator":15,"./Scope":16,"./Type":19,"./UserFunction":20}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Ast = require("./Ast");
@@ -12041,7 +11848,6 @@ class Scope {
 exports.default = Scope;
 
 },{}],17:[function(require,module,exports){
-(function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Operator_1 = require("./Operator");
@@ -12111,8 +11917,7 @@ class Statement {
             return false;
         }
         if (!(fn instanceof Array && fn[0].microstatementInlining instanceof Function)) {
-            console.error(callAst.varn(0).getText() + " is not a function");
-            process.exit(-17);
+            throw new Error(callAst.varn(0).getText() + " is not a function");
         }
         // TODO: Add all of the logic to determine which function to use in here, too. For now,
         // let's just assume they all have the same purity state, which is a terrible assumption, but
@@ -12135,8 +11940,7 @@ class Statement {
                 const operator = operatorOrAssignable.operators();
                 const op = scope.deepGet(operator.getText());
                 if (!op || !(op instanceof Array && op[0] instanceof Operator_1.default)) {
-                    console.error("Operator " + operator.getText() + " is not defined");
-                    process.exit(-33);
+                    throw new Error("Operator " + operator.getText() + " is not defined");
                 }
                 // TODO: Similar to the above, need to figure out logic to determine which particular function
                 // will be the one called. For now, just assume the first one and fix this later.
@@ -12182,8 +11986,7 @@ class Statement {
             return Statement.isWithOperatorsPure(assignableAst.withoperators(), scope);
         }
         // This should never be reached
-        console.error("Impossible assignment situation");
-        process.exit(-14);
+        throw new Error("Impossible assignment situation");
     }
     static create(statementOrAssignableAst, scope) {
         if (statementOrAssignableAst instanceof ln_1.LnParser.AssignablesContext) {
@@ -12208,8 +12011,7 @@ class Statement {
                     }
                 }
                 else {
-                    console.error("Bad assignment somehow reached");
-                    process.exit(-18);
+                    throw new Error("Bad assignment somehow reached");
                 }
             }
             if (statementAst.assignments() != null) {
@@ -12234,8 +12036,7 @@ class Statement {
         }
         else {
             // What?
-            console.error("This should not be possible");
-            process.exit(-19);
+            throw new Error("This should not be possible");
         }
     }
     toString() {
@@ -12244,8 +12045,7 @@ class Statement {
 }
 exports.default = Statement;
 
-}).call(this,require('_process'))
-},{"../ln":9,"./Operator":15,"_process":81}],18:[function(require,module,exports){
+},{"../ln":9,"./Operator":15}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var StatementType;
@@ -12264,7 +12064,6 @@ var StatementType;
 exports.default = StatementType;
 
 },{}],19:[function(require,module,exports){
-(function (process){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Type = exports.Interface = exports.OperatorType = exports.FunctionType = void 0;
@@ -12308,8 +12107,7 @@ class Interface {
             if (!potentialFunctions ||
                 !(potentialFunctions instanceof Array &&
                     potentialFunctions[0].microstatementInlining instanceof Function)) {
-                console.error(functionType.functionname + " is not the name of a function");
-                process.exit(-48);
+                throw new Error(functionType.functionname + " is not the name of a function");
             }
             let functionFound = false;
             for (const potentialFunction of potentialFunctions) {
@@ -12354,8 +12152,7 @@ class Interface {
             if (!potentialOperators ||
                 !(potentialOperators instanceof Array &&
                     potentialOperators[0] instanceof Operator_1.default)) {
-                console.error(`${operatorType.operatorname} is not an operator`);
-                process.exit(-52);
+                throw new Error(`${operatorType.operatorname} is not an operator`);
             }
             let operatorFound = false;
             for (const potentialOperator of potentialOperators) {
@@ -12411,15 +12208,13 @@ class Interface {
                     const typenames = functiontypeline.functiontype().varn();
                     const returnType = scope.deepGet(typenames[typenames.length - 1].getText());
                     if (!returnType || !(returnType instanceof Type)) {
-                        console.error(typenames.get(typenames.size() - 1).getText() + " is not a type");
-                        process.exit(-48);
+                        throw new Error(typenames.get(typenames.size() - 1).getText() + " is not a type");
                     }
                     let args = [];
                     for (let i = 0; i < typenames.length - 1; i++) {
                         const argument = scope.deepGet(typenames[i].getText());
                         if (!argument || !(argument instanceof Type)) {
-                            console.error(typenames.get(i).getText() + " is not a type");
-                            process.exit(-49);
+                            throw new Error(typenames.get(i).getText() + " is not a type");
                         }
                         args.push(argument);
                     }
@@ -12438,15 +12233,13 @@ class Interface {
                     const args = argTypenames.map(n => {
                         const box = scope.deepGet(n);
                         if (!box || !(box instanceof Type)) {
-                            console.error(`${n} is not a type`);
-                            process.exit(-50);
+                            throw new Error(`${n} is not a type`);
                         }
                         return box;
                     });
                     const returnType = scope.deepGet(returnTypename);
                     if (!returnType || !(returnType instanceof Type)) {
-                        console.error(`${returnTypename} is not a type`);
-                        process.exit(-51);
+                        throw new Error(`${returnTypename} is not a type`);
                     }
                     const operatorType = new OperatorType(operatorname, isPrefix, args, returnType);
                     iface.operatorTypes.push(operatorType);
@@ -12454,8 +12247,7 @@ class Interface {
                 if (!!interfaceline.propertytypeline()) {
                     const propertyType = scope.deepGet(interfaceline.propertytypeline().varn().getText());
                     if (!propertyType || !(propertyType instanceof Type)) {
-                        console.error(interfaceline.propertytypeline().varn().getText() + " is not a type");
-                        process.exit(-52);
+                        throw new Error(interfaceline.propertytypeline().varn().getText() + " is not a type");
                     }
                     iface.requiredProperties[interfaceline.propertytypeline().VARNAME().getText()] = propertyType;
                 }
@@ -12465,8 +12257,7 @@ class Interface {
             // It's an alias, so grab it and give it the new name
             const otherInterface = scope.deepGet(interfaceAst.varn().getText());
             if (!(otherInterface instanceof Type) || !otherInterface.iface) {
-                console.error(`${interfaceAst.varn().getText()} is not an interface`);
-                process.exit(123);
+                throw new Error(`${interfaceAst.varn().getText()} is not an interface`);
             }
             // Replace the interface with the other one
             ifaceType.iface = otherInterface.iface;
@@ -12546,16 +12337,14 @@ let Type = /** @class */ (() => {
                                 const innerBaseTypeName = generic.varn().getText();
                                 const innerBaseType = typeScope.deepGet(innerBaseTypeName);
                                 if (!innerBaseType) {
-                                    console.error('wut');
-                                    process.exit(-1);
+                                    throw new Error('wut');
                                 }
                                 innerBaseType.solidify(generic.typegenerics().fulltypename().map((t) => t.getText()), typeScope);
                             }
                         }
                         const baseType = scope.deepGet(baseTypeName);
                         if (!baseType || !(baseType instanceof Type)) {
-                            console.error(lineAst.fulltypename().getText() + " is not a type");
-                            process.exit(-4);
+                            throw new Error(lineAst.fulltypename().getText() + " is not a type");
                         }
                         type.properties[propertyName] = baseType.solidify(innerGenerics.map((t) => t.getText()), typeScope);
                     }
@@ -12567,12 +12356,10 @@ let Type = /** @class */ (() => {
             if (typeAst.othertype() != null) {
                 const otherTypebox = scope.deepGet(typeAst.othertype().typename().getText());
                 if (!otherTypebox) {
-                    console.error("Type " + typeAst.othertype().getText() + " not defined");
-                    process.exit(-38);
+                    throw new Error("Type " + typeAst.othertype().getText() + " not defined");
                 }
                 if (!(otherTypebox instanceof Type)) {
-                    console.error(typeAst.othertype().getText() + " is not a valid type");
-                    process.exit(-39);
+                    throw new Error(typeAst.othertype().getText() + " is not a valid type");
                 }
                 let othertype = otherTypebox;
                 if (Object.keys(othertype.generics).length > 0 && !!typeAst.othertype().typegenerics()) {
@@ -12605,8 +12392,7 @@ let Type = /** @class */ (() => {
                         const generics = fulltypename.typegenerics().fulltypename().map((t) => t.getText());
                         const baseType = scope.deepGet(basename);
                         if (!baseType || !(baseType instanceof Type)) {
-                            console.error(basename + " type not found");
-                            process.exit(-34);
+                            throw new Error(basename + " type not found");
                         }
                         else {
                             const newtype = baseType.solidify(generics, scope);
@@ -12614,8 +12400,7 @@ let Type = /** @class */ (() => {
                         }
                     }
                     else {
-                        console.error(typename + " type not found");
-                        process.exit(-35);
+                        throw new Error(typename + " type not found");
                     }
                 }
                 else {
@@ -12777,9 +12562,7 @@ let Type = /** @class */ (() => {
 exports.Type = Type;
 exports.default = Type;
 
-}).call(this,require('_process'))
-},{"./Ast":10,"./Operator":15,"./Scope":16,"_process":81}],20:[function(require,module,exports){
-(function (process){
+},{"./Ast":10,"./Operator":15,"./Scope":16}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const uuid_1 = require("uuid");
@@ -12798,13 +12581,8 @@ class UserFunction {
         for (let i = 0; i < statements.length - 1; i++) {
             if (statements[i].isReturnStatement()) {
                 // There are unreachable statements after this line, abort
-                console.error(`Unreachable code in function '${name}' after:`);
-                console.error(statements[i].statementOrAssignableAst.getText().trim() +
-                    " on line " +
-                    statements[i].statementOrAssignableAst.start.line +
-                    ":" +
-                    statements[i].statementOrAssignableAst.start.column);
-                process.exit(-201);
+                throw new Error(`Unreachable code in function '${name}' after:
+${statements[i].statementOrAssignableAst.getText().trim()} on line ${statements[i].statementOrAssignableAst.start.line}:${statements[i].statementOrAssignableAst.start.column}`);
             }
         }
         this.statements = statements;
@@ -12856,12 +12634,10 @@ class UserFunction {
                             getArgType =
                                 scope.deepGet(argsAst.argtype(i).othertype(0).typename().getText());
                             if (!getArgType) {
-                                console.error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName);
-                                process.exit(-39);
+                                throw new Error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName);
                             }
                             if (!(getArgType instanceof Type_1.default)) {
-                                console.error("Function argument is not a valid type: " + argsAst.argtype(i).getText());
-                                process.exit(-50);
+                                throw new Error("Function argument is not a valid type: " + argsAst.argtype(i).getText());
                             }
                             let genericTypes = [];
                             for (const fulltypename of argsAst.argtype(i).othertype(0).typegenerics().fulltypename()) {
@@ -12870,14 +12646,12 @@ class UserFunction {
                             getArgType = getArgType.solidify(genericTypes, scope);
                         }
                         else {
-                            console.error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName);
-                            process.exit(-51);
+                            throw new Error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName);
                         }
                     }
                 }
                 if (!(getArgType instanceof Type_1.default)) {
-                    console.error("Function argument is not a valid type: " + argsAst.argtype(i).getText());
-                    process.exit(-13);
+                    throw new Error("Function argument is not a valid type: " + argsAst.argtype(i).getText());
                 }
                 args[argName] = getArgType;
             }
@@ -12890,12 +12664,10 @@ class UserFunction {
                     if (functionAst.argtype().othertype(0).typegenerics() != null) {
                         getReturnType = scope.deepGet(functionAst.argtype().othertype(0).typename().getText());
                         if (getReturnType == null) {
-                            console.error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText());
-                            process.exit(-59);
+                            throw new Error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText());
                         }
                         if (!(getReturnType instanceof Type_1.default)) {
-                            console.error("Function return is not a valid type: " + functionAst.argtype().getText());
-                            process.exit(-60);
+                            throw new Error("Function return is not a valid type: " + functionAst.argtype().getText());
                         }
                         let genericTypes = [];
                         for (const fulltypename of functionAst.argtype().othertype(0).typegenerics().fulltypename()) {
@@ -12904,8 +12676,7 @@ class UserFunction {
                         getReturnType = getReturnType.solidify(genericTypes, scope);
                     }
                     else {
-                        console.error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText());
-                        process.exit(-61);
+                        throw new Error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText());
                     }
                 }
                 returnType = getReturnType;
@@ -12953,8 +12724,7 @@ class UserFunction {
                         const fulltypeAst = Ast.fulltypenameAstFromString(assignablesAst.basicassignables().objectliterals().typeliteral().othertype().getText());
                         const baseType = scope.deepGet(fulltypeAst.varn().getText());
                         if (!baseType) {
-                            console.error(`Return type ${baseType} not defined`);
-                            process.exit(111);
+                            throw new Error(`Return type ${baseType} not defined`);
                         }
                         returnType = baseType.solidify(fulltypeAst.typegenerics().fulltypename().map((f) => f.getText()), scope);
                     }
@@ -12965,8 +12735,7 @@ class UserFunction {
                         const fulltypeAst = Ast.fulltypenameAstFromString(assignablesAst.basicassignables().objectliterals().mapliteral().othertype().getText());
                         const baseType = scope.deepGet(fulltypeAst.varn().getText());
                         if (!baseType) {
-                            console.error(`Return type ${baseType} not defined`);
-                            process.exit(111);
+                            throw new Error(`Return type ${baseType} not defined`);
                         }
                         returnType = baseType.solidify(fulltypeAst.typegenerics().fulltypename().map((f) => f.getText()), scope);
                     }
@@ -12981,8 +12750,7 @@ class UserFunction {
                             const fulltypeAst = Ast.fulltypenameAstFromString(assignablesAst.basicassignables().objectliterals().mapliteral().othertype().getText());
                             const baseType = scope.deepGet(fulltypeAst.varn().getText());
                             if (!baseType) {
-                                console.error(`Return type ${baseType} not defined`);
-                                process.exit(111);
+                                throw new Error(`Return type ${baseType} not defined`);
                             }
                             returnType = baseType.solidify(fulltypeAst.typegenerics().fulltypename().map((f) => f.getText()), scope);
                         }
@@ -13147,8 +12915,7 @@ class UserFunction {
                         const generics = typeAst.typegenerics().fulltypename().map((g) => g.getText());
                         const baseType = this.scope.deepGet(baseTypeName);
                         if (!baseType || !(baseType instanceof Type_1.default)) { // Now we panic
-                            console.error('This should be impossible');
-                            process.exit(111);
+                            throw new Error('This should be impossible');
                         }
                         originalType = baseType.solidify(generics, this.scope);
                     }
@@ -13165,8 +12932,7 @@ class UserFunction {
                         const generics = typeAst.typegenerics().fulltypename().map((g) => g.getText());
                         const baseType = this.scope.deepGet(baseTypeName);
                         if (!baseType || !(baseType instanceof Type_1.default)) { // Now we panic
-                            console.error('This should be impossible');
-                            process.exit(111);
+                            throw new Error('This should be impossible');
                         }
                         originalType = baseType.solidify(generics, this.scope);
                     }
@@ -13278,8 +13044,7 @@ class UserFunction {
                 .map(m => m.fns[0].getName());
             path.push(this.getName());
             let pathstr = path.join(' -> ');
-            console.error(`Recursive callstack detected: ${pathstr}. Aborting.`);
-            process.exit(222);
+            throw new Error(`Recursive callstack detected: ${pathstr}. Aborting.`);
         }
         else {
             // Otherwise, add a marker for this
@@ -13395,21 +13160,20 @@ class UserFunction {
             fn = fns[i];
         }
         if (fn == null) {
-            console.error("Unable to find matching function for name and argument type set");
+            let errMsg = "Unable to find matching function for name and argument type set";
             let argTypes = [];
             for (let i = 0; i < argumentTypeList.length; i++) {
                 argTypes.push("<" + argumentTypeList[i].typename + ">");
             }
-            console.error(fns[0].getName() + "(" + argTypes.join(", ") + ")");
-            process.exit(-40);
+            errMsg += '\n' + fns[0].getName() + "(" + argTypes.join(", ") + ")";
+            throw new Error(errMsg);
         }
         return fn;
     }
 }
 exports.default = UserFunction;
 
-}).call(this,require('_process'))
-},{"../ln":9,"./Ast":10,"./Microstatement":13,"./Statement":17,"./StatementType":18,"./Type":19,"_process":81,"uuid":86}],21:[function(require,module,exports){
+},{"../ln":9,"./Ast":10,"./Microstatement":13,"./Statement":17,"./StatementType":18,"./Type":19,"uuid":86}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fromString = exports.fromFile = void 0;

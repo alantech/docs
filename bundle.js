@@ -10178,9 +10178,9 @@ ${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
                         // Create a new variable to hold the address within the array literal
                         const addrName = "_" + uuid_1.v4().replace(/-/g, "_");
                         microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, addrName, Type_1.default.builtinTypes['int64'], [`${fieldNum}`], []));
-                        // Insert a `copyfrom` opcode.
+                        // Insert a `register` opcode.
                         const opcodes = require('./opcodes').default;
-                        opcodes.exportScope.get('copyfrom')[0].microstatementInlining([original.outputName, addrName], scope, microstatements);
+                        opcodes.exportScope.get('register')[0].microstatementInlining([original.outputName, addrName], scope, microstatements);
                         // We'll need a reference to this for later
                         const typeRecord = original;
                         // Set the original to this newly-generated microstatement
@@ -10196,7 +10196,7 @@ ${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
                 }
                 // An array access. This requires resolving the contents of the array access variable and
                 // then using that value to find the correct index to read from. For now, that will be
-                // emitting a `copyfrom` opcode call. Also for now it is an error if the resolved type is
+                // emitting a `resfrom` opcode call. Also for now it is an error if the resolved type is
                 // anything but `int64` for the array access path. Maps use the same syntax with the type
                 // being the Map's Key type.
                 if (segment.arrayaccess()) {
@@ -10216,7 +10216,7 @@ ${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
                         throw new Error(`${segment.getText()} cannot be used in an array lookup as it is not an int64
 ${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
                     }
-                    // Insert a `copyfrom` opcode.
+                    // Insert a `resfrom` opcode.
                     const opcodes = require('./opcodes').default;
                     opcodes.exportScope.get('resfrom')[0].microstatementInlining([original.outputName, lookup.outputName], scope, microstatements);
                     // We'll need a reference to this for later
@@ -10855,7 +10855,7 @@ ${callsAst.getText()} on line ${callsAst.start.line}:${callsAst.start.column}`);
         // For reassigning to a variable, we need to determine that the root variable is a
         // `let`-defined mutable variable and then tease out if any array or property accesses are done,
         // and if so we need to `register` a mutable reference to the array memory space and then update
-        // the value with a `copyfrom` call from the assignables result address to the relevant inner
+        // the value with a `register` call from the assignables result address to the relevant inner
         // address of the last access argument. The format of a `varn` can only be the following:
         // `{moduleScope}.varName[arrayAccess].userProperty` where the array accesses and userProperties
         // can come in any order after the preamble. *Fortunately,* for this scenario, any situation
@@ -10867,7 +10867,7 @@ ${callsAst.getText()} on line ${callsAst.start.line}:${callsAst.start.column}`);
         // beyond the first one, we simply take the `assignable` microstatement output and turn it into
         // an `ASSIGNMENT` StatementType, otherwise we need to go through a more complicated procedure
         // to `register` the `n-1` remaining inner array segments to new variables as references and
-        // finally `copyfrom` the `assignable` into the location the last segment indicates.
+        // finally `register` the `assignable` into the location the last segment indicates.
         const segments = assignmentsAst.varn().varsegment();
         // Now, find the original variable and confirm that it actually is a let declaration
         const letName = segments[0].getText();

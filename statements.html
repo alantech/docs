@@ -329,6 +329,10 @@ if condition right else wrong
     <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
 
 
+<!-- BigInt is not defined in Safari. Define it before loading bundle.js -->
+<script type="text/javascript">
+    window.BigInt = window.BigInt || function() {}
+</script>
 <!-- Custom JS scripts -->
 
     <script type="text/javascript" src="bundle.js"></script>

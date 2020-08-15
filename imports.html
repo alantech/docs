@@ -251,6 +251,10 @@ from @std/app import start, print as println, exit
     <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
 
 
+<!-- BigInt is not defined in Safari. Define it before loading bundle.js -->
+<script type="text/javascript">
+    window.BigInt = window.BigInt || function() {}
+</script>
 <!-- Custom JS scripts -->
 
     <script type="text/javascript" src="bundle.js"></script>

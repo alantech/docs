@@ -476,8 +476,8 @@ template(string, HashMap&lt;string, string&gt;): string
 <pre><code class="language-rust ignore">// Check if the first string matches the regular expression defined by the second string
 matches(string, string): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Returns the location of the second string within the first string, or `-1`
-index(string, string): int64
+<pre><code class="language-rust ignore">// Returns the location of the second string within the first string as a Result, or errors
+index(string, string): Result&lt;int64&gt;
 </code></pre>
 <pre><code class="language-rust ignore">// Returns the length of the string (as a byte array, not UTF codepoints)
 length(string): int64
@@ -495,25 +495,25 @@ repeat(Array&lt;any&gt;, int16): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int32): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int64): Array&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Find the index of the specified value in the array or return `-1`
-index(Array&lt;any&gt;, any): int64
-index(Array&lt;int8&gt;, int8): int64
-index(Array&lt;int16&gt;, int16): int64
-index(Array&lt;int32&gt;, int32): int64
-index(Array&lt;int64&gt;, int64): int64
-index(Array&lt;float32&gt;, float32): int64
-index(Array&lt;float64&gt;, float64): int64
-index(Array&lt;bool&gt;, bool): int64
+<pre><code class="language-rust ignore">// Find the index of the specified value in the array in a Result, or errors
+index(Array&lt;any&gt;, any): Result&lt;int64&gt;
+index(Array&lt;int8&gt;, int8): Result&lt;int64&gt;
+index(Array&lt;int16&gt;, int16): Result&lt;int64&gt;
+index(Array&lt;int32&gt;, int32): Result&lt;int64&gt;
+index(Array&lt;int64&gt;, int64): Result&lt;int64&gt;
+index(Array&lt;float32&gt;, float32): Result&lt;int64&gt;
+index(Array&lt;float64&gt;, float64): Result&lt;int64&gt;
+index(Array&lt;bool&gt;, bool): Result&lt;int64&gt;
 </code></pre>
 <pre><code class="language-rust ignore">// Returns true if the array has the specified value or false otherwise
-has(Array&lt;any&gt;, any): int64
-has(Array&lt;int8&gt;, int8): int64
-has(Array&lt;int16&gt;, int16): int64
-has(Array&lt;int32&gt;, int32): int64
-has(Array&lt;int64&gt;, int64): int64
-has(Array&lt;float32&gt;, float32): int64
-has(Array&lt;float64&gt;, float64): int64
-has(Array&lt;bool&gt;, bool): int64
+has(Array&lt;any&gt;, any): bool
+has(Array&lt;int8&gt;, int8): bool 
+has(Array&lt;int16&gt;, int16): bool
+has(Array&lt;int32&gt;, int32): bool 
+has(Array&lt;int64&gt;, int64): bool
+has(Array&lt;float32&gt;, float32): bool
+has(Array&lt;float64&gt;, float64): bool
+has(Array&lt;bool&gt;, bool): bool
 </code></pre>
 <pre><code class="language-rust ignore">// Push a value into the array and return the updated array
 push(Array&lt;any&gt;, any): Array&lt;any&gt;

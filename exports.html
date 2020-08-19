@@ -147,10 +147,10 @@
 <p>The <code>export</code> syntax can only be used at the module level, which means it is impossible to have non-deterministic exports. While this can be annoying with collating files that simply import files to only re-export all of their contents, it eliminates whole classes of ambiguity where certain functions, types, etc are only available depending on the state of the runtime environment.</p>
 <p>Constants, types, functions, operators, events, and interfaces are exportable while event handlers are not. (However, importing a module that registers event handlers will cause a side-effect of including those event handlers in your application.)</p>
 <p>This can either be done in-line with the declaration of the item in question:</p>
-<pre><code>export const foo: bool = true
+<pre><code class="language-rust ignore">export const foo: bool = true
 </code></pre>
 <p>Or it can be done by referencing the name of the thing to be exported after it has been declared:</p>
-<pre><code>type Foo {
+<pre><code class="language-rust ignore">type Foo {
   bar: string
   baz: bool
 }

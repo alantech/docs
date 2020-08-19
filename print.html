@@ -144,9 +144,9 @@
         <div id="content" class="content">
             <main>
                 <h1><a class="header" href="#getting-started" id="getting-started">Getting Started</a></h1>
-<p>This guide walks you through the steps needed to get the <code>alan</code> compiler and runtimes on your local machine. To work on <code>alan</code> itself, see <a href="./contributing.html">Contributing to <code>alan</code></a>.</p>
+<p>This guide walks you through the steps needed to get the Alan compiler and runtimes on your local machine. To work on Alan itself, see <a href="./contributing.html">Contributing to Alan</a>.</p>
 <h2><a class="header" href="#prerequisites" id="prerequisites">Prerequisites</a></h2>
-<p>As <code>alan</code> is not self-hosting, other languages runtimes are necessary for the compiler and runtimes. For <code>alan-compile</code> and <code>alan-js-runtime</code> Node.js is required, with a minimum version of 10.20.1. For <code>alan-runtime</code> Rust is required, with a minimum version of 1.41.1.</p>
+<p>As Alan is not self-hosting, other languages runtimes are necessary for the compiler and runtimes. For <code>alan-compile</code> and <code>alan-js-runtime</code> Node.js is required, with a minimum version of 10.20.1. For <code>alan-runtime</code> Rust is required, with a minimum version of 1.41.1.</p>
 <h2><a class="header" href="#installation" id="installation">Installation</a></h2>
 <p>To install <code>alan-compile</code>, run:</p>
 <pre><code class="language-bash">npm i -g alan-compile
@@ -193,70 +193,8 @@ real    0m0.008s
 user    0m0.001s
 sys     0m0.016s
 </code></pre>
-<h3><a class="header" href="#comparing-hello-worlds" id="comparing-hello-worlds">Comparing Hello, Worlds</a></h3>
-<p>If you peek at generated Javascript, you may think that comparison is unfair, when you see something like this being what it runs:</p>
-<pre><code class="language-js">const r = require('alan-js-runtime')
-const _e332e563_7301_4665_ad53_9a3444ba5571 = &quot;Hello, World!&quot;
-const _f0b689c1_4d9b_42c5_b134_1aec3e1fe535 = &quot;\n&quot;
-const _59772927_cc4c_443d_9ad7_101e3d33f8e9 = 0
-r.on('_start', async () =&gt; {
-    const _f379f964_34d5_47f6_b674_8f5c6a79a8db = r.catstr(_e332e563_7301_4665_ad53_9a3444ba5571, _f0b689c1_4d9b_42c5_b134_1aec3e1fe535)
-    r.emit('stdout', _f379f964_34d5_47f6_b674_8f5c6a79a8db)
-    r.emit('exit', _59772927_cc4c_443d_9ad7_101e3d33f8e9)
-  })
-r.on('stdout', async (out) =&gt; {
-    const _46c022ed_9427_4fcd_a73d_8c1fa6832984 = r.stdoutp(out)
-  })
-r.on('exit', async (status) =&gt; {
-    const _47773080_2a4a_4c42_a54a_00acf2e42264 = r.exitop(status)
-  })
-r.emit('_start', undefined)
-</code></pre>
-<p>However the performance penalty of the compiler output and js-runtime is much less than you'd imagine.</p>
-<p>If you write a <code>hello_world_native.js</code> file with the following contents:</p>
-<pre><code class="language-js">console.log(&quot;Hello, World!&quot;)
-</code></pre>
-<p>and then time that:</p>
-<pre><code class="language-bash">time node hello_world_native.js
-Hello, World!
-
-real    0m0.088s
-user    0m0.074s
-sys     0m0.016s
-</code></pre>
-<p>You see that the majority of time is spent on Node.js VM spinup and teardown, not parsing or running the code in this example.</p>
-<p>This means <code>alan</code>'s runtime overhead is significantly lower than most other languages with runtimes. For example, Java with the following <code>HelloWorld.java</code>:</p>
-<pre><code class="language-java">public class HelloWorld {
-  public static void main(String[] args) {
-    System.out.println(&quot;Hello, World!&quot;);
-  }
-}
-</code></pre>
-<p>produces a runtime of:</p>
-<pre><code class="language-bash">time java HelloWorld
-Hello, World!
-
-real    0m0.081s
-user    0m0.081s
-sys     0m0.039s
-</code></pre>
-<p>only a few milliseconds faster than Node.js despite not needing to parse the AST of the code to be run.</p>
-<p><code>alan</code>'s startup time compares more closely to statically-compiled languages like Rust, for example this <code>hello_world.rs</code> file:</p>
-<pre><pre class="playpen"><code class="language-rust">fn main() {
-  println!(&quot;Hello, World!&quot;);
-}
-</code></pre></pre>
-<p>produces a runtime of:</p>
-<pre><code class="language-bash">time ./hello_world 
-Hello, World!
-
-real    0m0.003s
-user    0m0.003s
-sys     0m0.001s
-</code></pre>
-<p><code>alan</code> is still very young, so it will not win all of the performance benchmarks, but the language is designed to be able to get very close while being easier to work with than regular systems languages.</p>
-<h1><a class="header" href="#about-alan" id="about-alan">About <code>alan</code></a></h1>
-<p><code>alan</code> is a natively-parallel, statically-compiled, type-inferred language with a familiar syntax and many compile-time and run-time safety guarantees.</p>
+<h1><a class="header" href="#about-alan" id="about-alan">About Alan</a></h1>
+<p>Alan is a natively-parallel, statically-compiled, type-inferred language with a familiar syntax and many compile-time and run-time safety guarantees.</p>
 <ul>
 <li>The compiler can determine which array operations are safely parallelizable and automatically distributes them across a threadpool.</li>
 <li>The runtime can determine which operations are IO operations and automatically <code>async/await</code> them, as well as automatically batch IO operations that can be executed in parallel safely.</li>
@@ -265,17 +203,17 @@ sys     0m0.001s
 <li>The module system has a built-in mocking mechanism (with no runtime performance penalty) that can be used for fine-grained permissioning of access to the standard library for third-party libraries.</li>
 <li>Aggressive function inlining and dead-code removal to make sure unused code isn't even available in the output to potentially exploit.</li>
 </ul>
-<p>To accomplish this, <code>alan</code> makes one single, significant trade-off versus other programming languages: Functions in <code>alan</code> are all acyclic directed graphs. No arbitrary loops or recursion are allowed.</p>
+<p>To accomplish this, Alan makes one single, significant trade-off versus other programming languages: Functions in Alan are all acyclic directed graphs. No arbitrary loops or recursion are allowed.</p>
 <p>This does not mean that you can't loop over data or write recursive algorithms, just that they are provided through controlled built-in functions that the compiler and runtime can reason about to provide automatic parallelization when possible, or to force handling a recursion error instead of crashing on a stack overflow.</p>
-<p>This means that the code that you write in <code>alan</code> is not <em>quite</em> Turing-complete<sup class="footnote-reference"><a href="#1">1</a></sup>. But we believe that we have cut &quot;close enough&quot; to Turing-completeness and provided enough controlled mechanisms to fill the gaps that the advantages in having predictable functions outweigh the few places where <code>alan</code>'s syntax is slightly more awkward than its peers'.This allows the runtime to be able to judge when parallelization makes sense based on the data to be processed and the complexity of the code to be executed.</p>
-<p><code>alan</code> solves the Halting Problem -- by sidestepping it. <code>alan</code> pushes you to write deterministic code with known execution patterns, and forces eventual halting of non-deterministic code by wrapping it in constructs that demand a maximum number of loops before erroring out. We believe this is what the vast majority of developers and companies alike want from their language because while not every question you can ask of a computer will ever return an answer, only those that do are useful to humanity.</p>
+<p>This means that the code that you write in Alan is not <em>quite</em> Turing-complete<sup class="footnote-reference"><a href="#1">1</a></sup>. But we believe that we have cut &quot;close enough&quot; to Turing-completeness and provided enough controlled mechanisms to fill the gaps that the advantages in having predictable functions outweigh the few places where Alan's syntax is slightly more awkward than its peers'.This allows the runtime to be able to judge when parallelization makes sense based on the data to be processed and the complexity of the code to be executed.</p>
+<p>Alan solves the Halting Problem -- by sidestepping it. Alan pushes you to write deterministic code with known execution patterns, and forces eventual halting of non-deterministic code by wrapping it in constructs that demand a maximum number of loops before erroring out. We believe this is what the vast majority of developers and companies alike want from their language because while not every question you can ask of a computer will ever return an answer, only those that do are useful to humanity.</p>
 <div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
 <p>Technically an escape hatch through the event loop has been left open for very awkward recursive calls. This does not impact the advantages of the runtime for the language, however, and can be useful if absolutely necessary, but please reach out if you feel the need to use it, as that means either you're doing something wrong, or there's something missing to the language that should be added.</p>
 </div>
 <h1><a class="header" href="#language-reference" id="language-reference">Language Reference</a></h1>
-<p>This reference is broken into three major sections: the <a href="./file_structure.html">Syntax and File Structure</a> of the <code>alan</code> source files that you as the developer would directly write, the <a href="./modules.html">Module System</a> that <code>alan</code> uses to link your various source files and dependencies together which influences how you structure and reason about your codebase, and the <a href="./standard_library.html">Standard Library</a> that provides the building blocks necessary to be productive in the language and how they work.</p>
+<p>This reference is broken into three major sections: the <a href="./file_structure.html">Syntax and File Structure</a> of the Alan source files that you as the developer would directly write, the <a href="./modules.html">Module System</a> that Alan uses to link your various source files and dependencies together which influences how you structure and reason about your codebase, and the <a href="./standard_library.html">Standard Library</a> that provides the building blocks necessary to be productive in the language and how they work.</p>
 <p>The examples will be given as code snippets for clarity. To see the grammar definitions, please review <a href="https://github.com/alantech/alan/blob/master/compiler/src/ln/Ln.g4">the parser definition in the compiler</a> as that is guaranteed to be the correct grammar. The sole exception is the <a href="./keywords.html">List of Keywords and Reserved Symbols</a> as a quick reference to what is disallowed as variable, function, or operator names.</p>
-<p>However, this reference assumes this isn't your first introduction to programming. With the exception of the <a href="./modules.html">Module System</a>, as that brings in something new, there won't be any explanations for <em>why</em> something is useful or <em>when</em> to use one particular construct versus another. There are many excellent Intro to Programming tutorials out there that have been refined for years for more popular programming languages, and we as the authors of <code>alan</code> would recommend that you learn to program with one of these well-thought-out tutorials:</p>
+<p>However, this reference assumes this isn't your first introduction to programming. With the exception of the <a href="./modules.html">Module System</a>, as that brings in something new, there won't be any explanations for <em>why</em> something is useful or <em>when</em> to use one particular construct versus another. There are many excellent Intro to Programming tutorials out there that have been refined for years for more popular programming languages, and we as the authors of Alan would recommend that you learn to program with one of these well-thought-out tutorials:</p>
 <ul>
 <li>Structure and Interpretation of Computer Programs, a classic that is available in both <a href="https://wizardforcel.gitbooks.io/sicp-in-python/content/index.html">Python</a> and <a href="https://mitpress.mit.edu/sites/default/files/sicp/index.html">Scheme</a>. Using both at the same time is great for separating the concepts from the specific syntax of any given language.</li>
 <li><a href="https://poignant.guide/">Why's Poignant Guide to Ruby</a> is excellent for those who want a more conversational style or have had problems with the &quot;Professorial&quot; style of other intro to programming books.</li>
@@ -283,20 +221,20 @@ sys     0m0.001s
 <li><a href="http://math.hws.edu/javanotes/">Introduction to Programming Using Java</a> is good for those who want to get immediately-employable skills and those who want to better understand what exactly their computer is doing, as this is the first typed and compiled language on the list, though that makes it much stricter and requires the learner to have more patience.</li>
 </ul>
 <p>We would also highly recommend that anyone wishing to learn how to program become a programming language &quot;polyglot.&quot; Not only will you better understand the fundamental concepts better, but you'll appreciate which programming languages are more appropriate for particular tasks than other programming languages.</p>
-<p>We believe in <code>alan</code> and we believe that it can handle more use-cases better than most languages most of the time, but we also know that <code>alan</code> is very young and if you are just starting to program, we are not ready to support you, yet. But do come back once you've grown as a developer, and you start to get frustrated at the complexity needed to take full advantage of your computing resources. That's what <code>alan</code> is here for. :)</p>
+<p>We believe in Alan and we believe that it can handle more use-cases better than most languages most of the time, but we also know that Alan is very young and if you are just starting to program, we are not ready to support you, yet. But do come back once you've grown as a developer, and you start to get frustrated at the complexity needed to take full advantage of your computing resources. That's what Alan is here for. :)</p>
 <h3><a class="header" href="#syntax-and-file-structure" id="syntax-and-file-structure">Syntax and File structure</a></h3>
-<p>Every <code>alan</code> file is made up of two parts, the <code>imports</code> and <code>body</code>. In <code>alan</code> all imports must be declared at the beginning of the file, and once anything else is declared <code>imports</code> are no longer allowed.</p>
+<p>Every Alan file is made up of two parts, the <code>imports</code> and <code>body</code>. In Alan all imports must be declared at the beginning of the file, and once anything else is declared <code>imports</code> are no longer allowed.</p>
 <p>The <code>body</code> is simply everything else that can be declared in the file: <code>types</code>, <code>constants</code>, <code>functions</code>, <code>operators</code>, <code>interfaces</code>, <code>events</code>, and <code>event handlers</code>. Of these everything but <code>event handlers</code> can be <code>exports</code> that can be used by other modules, even things simply imported from another module. These two levels of &quot;visibility&quot; in the file are part of an implied structure: scope.</p>
 <h4><a class="header" href="#implied-structure-scope" id="implied-structure-scope">Implied Structure: Scope</a></h4>
 <p>Scoping is a concept common in many programming languages, it is a way to determine what is available for use in your code or not, and can be thought of as a tree of maps you can check for a specified name. Module-less languages like C have a single primary scope defined across the entire project (as all source files are simply concatenated together) while functions and blocks<sup class="footnote-reference"><a href="#1">1</a></sup> have their own nested scopes.</p>
 <p>Module-based languages tend to have two scopes per module, the private module-level scope and the public export scope. Java allows only a single exported element per file (but multiple files per module, remember) declared <code>public</code> while private elements are simply left undeclared. Node.js, Python, etc all have this two scope set for each module.</p>
-<p><code>alan</code> continues that tradition here for ease of use, and like many of the languages does have a wholly-internal root scope that built-in types, functions, etc are defined in that all scopes eventually inherit from. The <a href="./built_ins.html">Built-ins</a> section is documenttion of this root scope and what it automatically brings to every module.</p>
-<p>TODO: Add some diagrams of scope as different nested sets via Venn diagrams.</p>
+<p>Alan continues that tradition here for ease of use, and like many of the languages does have a wholly-internal root scope that built-in types, functions, etc are defined in that all scopes eventually inherit from. The <a href="./built_ins.html">Built-ins</a> section is documenttion of this root scope and what it automatically brings to every module.</p>
+<!-- TODO: Add some diagrams of scope as different nested sets via Venn diagrams. -->
 <div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
-<p>For those who don't know what blocks are, they are the inner bodies of if statements, while/for loops, etc in C, Java, Javascript, Python, etc, and usually surrounded by curly braces. For those who still don't know and must live in some parallel universe where LISP won, they're like immediately-invoked function expressions (IIFEs), and this is exactly how <code>alan</code> implements that concept under the hood.</p>
+<p>For those who don't know what blocks are, they are the inner bodies of if statements, while/for loops, etc in C, Java, Javascript, Python, etc, and usually surrounded by curly braces. For those who still don't know and must live in some parallel universe where LISP won, they're like immediately-invoked function expressions (IIFEs), and this is exactly how Alan implements that concept under the hood.</p>
 </div>
 <h4><a class="header" href="#imports" id="imports">Imports</a></h4>
-<p>To import the exports of other modules, <code>alan</code> provides two different syntaxes to select the exports to import. There are also two different syntaxes to identify the module you wish to import from. These two syntaxes are completely interchangeable leading to four different syntactic combinations.</p>
+<p>To import the exports of other modules, Alan provides two different syntaxes to select the exports to import. There are also two different syntaxes to identify the module you wish to import from. These two syntaxes are completely interchangeable leading to four different syntactic combinations.</p>
 <h5><a class="header" href="#identifying-modules" id="identifying-modules">Identifying Modules</a></h5>
 <p>Let's start with the module identifying syntax. That would be either:</p>
 <pre><code>./some/module
@@ -308,165 +246,110 @@ sys     0m0.001s
 <p>The second form begins with an <code>@</code> and is a <code>named import</code>. It uses a more advanced search pattern that will be discussed in detail in the <a href="./module_resolution.html">Module Resolution</a> section. This is useful for referencing third-party code and your own code that is a cross-cutting concern for many modules in your project, like a custom logging wrapper module.</p>
 <h5><a class="header" href="#importing-modules" id="importing-modules">Importing Modules</a></h5>
 <p>Once you've identified the module you want to import, now it's time to decide how you want to import it. There's the basic scoped import and the &quot;plucking&quot; unscoped import. These syntaxes are essentially lifted wholesale from Python:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>import @std/http
+<pre><code class="language-rust ignore">import @std/http
 import ./my/module as myModule
 from @std/app import start, print as println, exit
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>Simply stating <code>import ./some/module</code> will automatically create a new variable named &quot;module&quot; (the text after the last slash, or after the <code>@</code> if no slashes at all).</p>
 <p>The exported items are accessible with the conventional dot notation, like <code>module.someFunction()</code>.</p>
 <p>Sometimes the automatically-generated import name is going to collide with another module, or sometimes you just don't think it's a descriptive name, so you have the option to rename it within your module using the <code>as newName</code> syntax.</p>
 <p>If you write <code>from ./some/module import var1, var2, ...</code> you will pull the exported variable directly out of the export scope and place it within your module scope with that name, and you also have the option to ue the <code>as newName</code> syntax on any of these imports, as well.</p>
 <p>That's it.</p>
 <p>Those with experience in other module-based languages may be wondering where the <code>*</code> syntax is. That has been intentionally left out. It makes reading your own module more difficult as it can be unclear, especially when there are multiple <code>*</code> imports, where a specified name came from.</p>
-<p>The exception is when a data structure and a collection of functions and operators that work on that data are bundled together. Needing to explicitly import each of those separately would be painful, so when importing an <code>interface</code>, if that module defines a type and all functions and operators needed for that type and also exports them, <code>alan</code> will automatically pull those along as well in a quasi-Class-like fashion.</p>
+<p>The exception is when a data structure and a collection of functions and operators that work on that data are bundled together. Needing to explicitly import each of those separately would be painful, so when importing an <code>interface</code>, if that module defines a type and all functions and operators needed for that type and also exports them, Alan will automatically pull those along as well in a quasi-Class-like fashion.</p>
 <h4><a class="header" href="#types" id="types">Types</a></h4>
-<p>There are two major categories of types in <code>alan</code>: built-in types and user-defined types. User-defined types are similar to <code>struct</code>s in C as they are simply named compound types made up of other user-defined types or built-in types. They can also be only partially-defined as generic types, more on that later.</p>
+<p>There are two major categories of types in Alan: built-in types and user-defined types. User-defined types are similar to <code>struct</code>s in C as they are simply named compound types made up of other user-defined types or built-in types. They can also be only partially-defined as generic types, more on that later.</p>
 <p>Built-in types also divide into a few categories: basic types, strings, and special types.</p>
 <h5><a class="header" href="#basic-types" id="basic-types">Basic Types</a></h5>
 <p>Basic types include integers (<code>int8</code>, <code>int16</code>, <code>int32</code>, and <code>int64</code>), floating point numbers (<code>float32</code> and <code>float64</code>), booleans (<code>bool</code>), and the <code>void</code> (no value) type. The numbers refer to the number of bits consumed by the basic type. There are currently no unsigned variants of the integer types, though that may change if there is demand for it.</p>
 <p>The four &quot;main&quot; basic types (<code>int64</code>, <code>float64</code>, <code>bool</code> and <code>void</code>) have constant representations that you can easily type. The non-64-bit numeric types are considered specialized types and are discouraged (the runtime does not take advantage of the potential space optimizations they provide to keep the internal memory addressing system simpler), so constants for those types must be explicitly casted using the <code>to&lt;Type&gt;</code> functions discussed in the <a href="./built_ins.html">Built-ins</a> section.</p>
 <p>The integers have basic base-10 integer form as well as hexadecimal form. Binary and Octal forms are not implemented but that may change if there is demand for it.</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const base10 = 12345
+<pre><code class="language-rust ignore">const base10 = 12345
 const base16 = 0xabcde
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>The floating point numbers have only basic base-10 with a decimal point form, no scientific notation form yet, but that may change if there is demand for it.</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const floating = 1.2345
-<span class="boring">}
-</span></code></pre></pre>
+<pre><code class="language-rust ignore">const floating = 1.2345
+</code></pre>
 <p>Booleans are represented by the keywords <code>true</code> and <code>false</code>. <code>void</code> has no representation beyond <code>void</code>. It can't be assigned to, and is meant to represent functions that return nothing.</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const boolean = true
+<pre><code class="language-rust ignore">const boolean = true
 const someVoid = void
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>The basic types are included in the root scope and never need to be explicitly defined, they always exist.</p>
 <h5><a class="header" href="#strings" id="strings">Strings</a></h5>
-<p>Strings (<code>string</code>) are a bit beyond the basic type. From the perspective of the user of <code>alan</code> they are <code>utf-8</code> byte arrays (multi-byte code points increase the string length by 2 or 3, not 1). If there is significant demand for it, string length checks and other operations will be switched to the codepoint model versus the byte array model.</p>
+<p>Strings (<code>string</code>) are a bit beyond the basic type. From the perspective of the user of Alan they are <code>utf-8</code> byte arrays (multi-byte code points increase the string length by 2 or 3, not 1). If there is significant demand for it, string length checks and other operations will be switched to the codepoint model versus the byte array model.</p>
 <p>Strings are defined by wrapping double or single quotes (<code>&quot;</code> or <code>'</code>) around text. They work identically to Javascript strings, with the same sorts of C-style escape codes. Within the runtime, however, they are represented as Pascal strings with a 64-bit header, which makes certain operations faster than their C-string counterparts (particularly length checking, which is O(1)) but means 8 extra bytes are required for each string versus C-string's traditional 1 extra byte, so lots of small strings will consume more memory.</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const myString = &quot;My string's string&quot;
+<pre><code class="language-rust ignore">const myString = &quot;My string's string&quot;
 const myOtherString = 'My other string\'s string'
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>Strings are also included in the root scope and never need to be explicitly defined.</p>
 <h5><a class="header" href="#user-defined-types" id="user-defined-types">User-Defined Types</a></h5>
 <p>User-defined types must be declared by the user and they follow the following syntax:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>type typename {
+<pre><code class="language-rust ignore">type typename {
   propertyName: propertyType
   otherProperty: otherType
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>The syntax to construct a new instance of a user type is as follows:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const myVal: typename = new typename {
+<pre><code class="language-rust ignore">const myVal: typename = new typename {
   propertyName = propertyValue
   otherProperty = otherValue
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>The redundant <code>typename</code> in that example will also eventually be eliminated by type inference, reducing it to just:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const myVal = new typename {
+<pre><code class="language-rust ignore">const myVal = new typename {
   propertyName = propertyValue
   otherProperty = otherValue
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>User-defined types have another interesting feature: they can be generic. That means one or more of the actual sub-types used by the type is not yet defined, but will be &quot;solidified&quot; later on with the creation of a new type based on it.</p>
 <p>Generic types look like this:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>type typename&lt;A, B&gt; {
+<pre><code class="language-rust ignore">type typename&lt;A, B&gt; {
   propertyName: A
   otherProperty: B
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>Where later on you can &quot;solidify&quot; that type either by creating an alias with the types filled in:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>type typenameIntStr = typename&lt;int64, string&gt;
-<span class="boring">}
-</span></code></pre></pre>
+<pre><code class="language-rust ignore">type typenameIntStr = typename&lt;int64, string&gt;
+</code></pre>
 <p>or just declaring a variable that uses a &quot;solidified&quot; type:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>let myVar = new typename&lt;bool, float64&gt; {
+<pre><code class="language-rust ignore">let myVar = new typename&lt;bool, float64&gt; {
   propertyName = true
   otherProperty = 0.0
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>Functions cannot operate on Generic types directly, but they can work on Generics that have been &quot;solidified&quot; with interfaces. More on this in the <a href="./interfaces.html">Interfaces</a> section.</p>
 <h5><a class="header" href="#special-types" id="special-types">Special Types</a></h5>
-<p>In a language with no looping or recursion, every function has a predictable runtime, but they also can't do very much, as evidenced by the limited utility of eBPF (but also the lack of an issue with it running in kernel-space). It is essentially impossible to implement any real computing algorithms yourself.</p>
+<p>In a language with no looping or recursion, every function has a predictable runtime, but they also can't do very much, as evidenced by the limited utility of <a href="http://www.brendangregg.com/ebpf.html">eBPF</a> (but also the lack of an issue with it running in kernel-space). It is essentially impossible to implement any real computing algorithms yourself.</p>
 <p>But if there were the right built-in primitives with the right built-in functionality, you could combine them to create the algorithms you need without the looping construct. The special built-in types are covered in depth in <a href="./built_ins.html">Built-ins</a>, but they can be used within your own types like any other.</p>
 <h4><a class="header" href="#constants" id="constants">Constants</a></h4>
 <p>Module-level constants allow the user to define fixed data that is shared across functions (or exported to be shared across modules). The syntax is simply:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const varname: typename = constvalue
+<pre><code class="language-rust ignore">const varname: typename = constvalue
 const othervar = otherconstval
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>The <code>typename</code> is not required due to type inference, but can be added for clarity.</p>
-<p>For those coming from Javascript/Typescript, <code>const</code> in <code>alan</code> is much more strict. A constant is truly constant, not just a variable that can't be reassigned with a new struct. This means the following is invalid:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const pushedVals = new Array&lt;int64&gt; [ ]
+<p>For those coming from Javascript/Typescript, <code>const</code> in Alan is much more strict. A constant is truly constant, not just a variable that can't be reassigned with a new struct. This means the following is invalid:</p>
+<pre><code class="language-rust ignore">const pushedVals = new Array&lt;int64&gt; [ ]
 
 fn saveForLater(val: int64) {
   pushedVals.push(val)
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>Shared mutable global state inherently prevents parallelization, so it is discouraged.</p>
 <h4><a class="header" href="#events" id="events">Events</a></h4>
-<p>Events are sources for activity in <code>alan</code>. No code is run that isn't triggered by an event. Event declaration is relatively simple:</p>
-<pre><code>event eventName: typename
+<p>Events are sources for activity in Alan. No code is run that isn't triggered by an event. Event declaration is relatively simple:</p>
+<pre><code class="language-rust ignore">event eventName: typename
 </code></pre>
 <p>where <code>eventName</code> is the name of the event. The <code>typename</code> annotation for events is required, unlike other places within the codebase. This requirement may change in the future as the event handler(s) listening to the event, and/or the event emit statement(s) emitting to the event could determine the type of the event, but it would impact the clarity of code surrounding the event as well as make the parser more complex.</p>
 <h4><a class="header" href="#functions" id="functions">Functions</a></h4>
 <p>Functions are where actual work happens. There are built-in functions and user-defined functions. The user-defined functions consist of a sequence of statements composing other functions, operators, types, etc.</p>
 <h5><a class="header" href="#function-declarations" id="function-declarations">Function Declarations</a></h5>
 <p>Declaration of functions works like so:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// A named function with two arguments and a particular return type
+<pre><code class="language-rust ignore">// A named function with two arguments and a particular return type
 fn functionName (firstArgument: argumentType, secondArgument: anotherType): returnType {
   ...statements...
 }
 
-// The return type can always be inferred in `alan` so it is optional
+// The return type can always be inferred in Alan so it is optional
 fn functionName(firstArgument: argumentType, secondArgument: anotherType) {
   ...statements...
 }
@@ -512,42 +395,37 @@ on eventname {
 on eventname fn (): void {
   ...statements...
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h5><a class="header" href="#function-dispatch" id="function-dispatch">Function Dispatch</a></h5>
-<p><code>alan</code> uses multiple dispatch for determining which function to use when a function name is called. This means that the argument types and count are taken into consideration. Multiple functions with the same name may be declared as long as the argument types and/or counts are different between them. For example:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>fn someFn (arg1: string, arg2: bool): string {
+<p>Alan uses multiple dispatch for determining which function to use when a function name is called. This means that the argument types and count are taken into consideration. Multiple functions with the same name may be declared as long as the argument types and/or counts are different between them. For example:</p>
+<pre><code class="language-rust ignore">fn someFn (arg1: string, arg2: bool): string {
   ...
 }
 
 fn someFn (arg1: int64, arg2: float64): int64 {
   ...
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>If you provide a <code>string</code> and <code>bool</code> to <code>someFn</code> it will use the first definition, and if provided an <code>int64</code> and <code>float64</code> it will use the second, while if you use any other combination of argument types or number of arguments, it will fail to compile.</p>
 <h5><a class="header" href="#function-type" id="function-type">Function Type</a></h5>
-<p>A function's type is simply <code>function</code> right now. The compiler will complain if the provided function's argument signature does not match the types the higher-order function expects, but it is not clearly documented by the type signature, itself. It is intended to expand this to use a syntax allowing more precise argument matching when passing functions to higher-order functions, so the user can know what arguments and return type their function is expected to have. This type syntax would look like:</p>
-<pre><code>(firstType, secondType): returnType
+<p>A function's type is simply <code>function</code> right now. The compiler will complain if the provided function's argument signature does not match the types the higher-order function expects, but it is not clearly documented by the type signature, itself. It is intended to expand this to use a syntax allowing more precise argument matching when passing functions to higher-order functions, so the user can know what arguments and return type their function is expected to have. This type syntax is proposed to look like:</p>
+<pre><code>fn (firstType, secondType): returnType
 </code></pre>
 <p>Essentially the argument list with only the types specified and the return type. In this case, the parenthesis and <code>void</code> would be required to prevent ambiguity (and keep it easier to follow), so a side-effect-only function type would look like this:</p>
-<pre><code>(): void
+<pre><code>fn (): void
 </code></pre>
 <p>Because type names are specified in very specific situations, the extra colon and space in the type name should not be unambiguous to the compiler.</p>
 <h5><a class="header" href="#function-calls" id="function-calls">Function Calls</a></h5>
 <p>One of the kinds of statements you can write inside of a function is a function call. There are actually two syntaxes for function calls, standard form and method form.</p>
 <p>Standard form looks like this:</p>
-<pre><code>add(3, 2)
+<pre><code class="language-rust ignore">add(3, 2)
 </code></pre>
 <p>while method form looks like this:</p>
-<pre><code>3.add(2)
+<pre><code class="language-rust ignore">3.add(2)
 </code></pre>
 <p>Method form allows you to pull the first argument out of the function and treat the function call like an Object-Oriented Language's method syntax. This allows method chaining, which can be much more legible when the output of one function is the input of the next, without requiring a custom chaining syntax that some functional languages have adopted (eg <code>|&gt;</code> in F#). Eg, <code>3.add(2).mul(5).mod(3)</code> is equivalent to <code>mod(mul(add(3, 2), 5), 3)</code>.</p>
 <h4><a class="header" href="#operators" id="operators">Operators</a></h4>
-<p>In <code>alan</code>, operators are just a special form of function.</p>
+<p>In Alan, operators are just a special form of function.</p>
 <p>All operators are made up of only the symbols: <code>+, -, /, *, ^, ., ~, `, !, @, #, $, %, &amp;, |, :, ;, &lt;, &gt;, ?, =</code> (excluding the commas used to separate them from each other, they are reserved for list separators only). See the <a href="./built_ins.html#built-in-operators">built-in operators here</a></p>
 <p>Operators have operator precedence to determine how they are implicitly grouped by parenthesis.</p>
 <p>Any exported operator <em>must</em> also export its implementing functions, so users can choose to use the more descriptive function names instead of the terse-but-cryptic operator symbols.</p>
@@ -575,25 +453,14 @@ infix precedence &lt;precedenceNumber&gt; functionName as &lt;operatorSymbol&gt;
 <p>Statements must be on different lines, but statements can span multiple lines. There are six types of statements: variable declarations, variable assignments, function calls, function returns, event emission, and conditionals (if statements).</p>
 <h5><a class="header" href="#variable-declarations" id="variable-declarations">Variable Declarations</a></h5>
 <p>There are two types of variables, constants and mutable variables. Constants are declared with these two syntaxes:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const varname: typename = constantOrFunctionCallOrExpression
+<pre><code class="language-rust ignore">const varname: typename = constantOrFunctionCallOrExpression
 const varname = constantOrFunctionCallOrExpression
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>The typename is optional as it can be inferred from the value being assigned. Providing the type can be useful to make sure your code is doing what you expected, though, and not using an unexpected type. By default all numeric constants are automatically the highest definition version possible. (<code>int64</code> or <code>float64</code>) Explicitly setting a smaller bit size for the constant <em>will not</em> coerce the constant automatically, you must explicitly declare the down coersion, eg:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const someI32: int32 = 5.toInt32()
-<span class="boring">}
-</span></code></pre></pre>
+<pre><code class="language-rust ignore">const someI32: int32 = 5.toInt32()
+</code></pre>
 <p>Any type that exists in the language can be assigned. Simple constants are simply declared, or produced via function calls or operator expressions. User-defined types can be assigned to constants through the use of a constructor function and calling it, through an expression involving operators that produces the user-defined type, or through the user-type literal syntax. Arrays and HashMaps have similar but slightly different syntaxes, as they deal with inherently plural data versus the struct-like user-defined types:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const simpleConstant: bool = true
+<pre><code class="language-rust ignore">const simpleConstant: bool = true
 const simpleConstant2 = &quot;simple&quot;
 const expressionResult: int64 = 3 + 5 * 2 + fnCall2(3, 1)
 const fnResult: someType = functioncall(3, 5)
@@ -608,63 +475,58 @@ const mapTypeLiteral = new HashMap&lt;bool, string&gt; {
   true: &quot;It's true!&quot;
   false: &quot;Nuh uh!&quot;
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>All three complex type literals begin with the <code>new</code> keyword, followed by the type name, which must be a realized generic if it is a generic type. If the original generic type was an <code>Array</code> or <code>HashMap</code> it gets a special syntax. Arrays are surrounded by brackets (<code>[</code>, <code>]</code>) instead of curly braces (<code>{</code>, <code>}</code>) and are simply a comma-delimited list of values (they could also be generated by functions or operator expressions, or be a user-defined type literal). Arrays are also the only special type that can be unambiguously declared without the <code>new Type</code> prefix, so that is also allowed. HashMaps keep the curly braces, but the <code>key</code> and <code>value</code> pairs are separated by a colon (<code>:</code>) instead of an equal sign (<code>=</code>), which fits more closely to the Map/Object syntax popularized by JSON (but able to have more than just <code>string</code> values for the keys).</p>
 <p>Beyond that, there is also the ability to assign the type name of another variable, but the constant <em>must</em> be a string in that case:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const typename: string = type otherVariable
-<span class="boring">}
-</span></code></pre></pre>
+<pre><code class="language-rust ignore">const typename: string = type otherVariable
+</code></pre>
 <p>For mutable variables, the syntax is nearly identical:</p>
-<pre><code>let varname: typename = constantOrFunctionCallOrExpression 
+<pre><code class="language-rust ignore">let varname: typename = constantOrFunctionCallOrExpression 
 let varname = constantOrFunctionCallOrExpression
 </code></pre>
 <p>Where <code>const</code> is replaced with <code>let</code>, making it clear that this variable's value can be changed.</p>
 <h5><a class="header" href="#variable-assignments" id="variable-assignments">Variable Assignments</a></h5>
 <p>This syntax only works with mutable variables:</p>
-<pre><code>varname = constantOrFunctionCallOrExpression
+<pre><code class="language-rust ignore">varname = constantOrFunctionCallOrExpression
 varname.propertyName = constantOrFunctionCallOrExpression
-varname[integerOrMapKey] = constantOrFunctionCallOrExpression
 </code></pre>
-<p>Since the variable type is already known, it is no longer included. Anything that could be assigned at declaration time is assignable in future assignments. When re-assigning to the properties of user-defined types, you use the dot notation. When re-assigning to <code>Array</code>s or <code>Map</code>s, you use the array-accessor notation.</p>
+<p>Since the variable type is already known, it is no longer included. Anything that could be assigned at declaration time is assignable in future assignments. When re-assigning to the properties of user-defined types, you use the dot notation.</p>
 <h5><a class="header" href="#function-calls-1" id="function-calls-1">Function Calls</a></h5>
 <p>Because functions can have side effects that might be desirable, and functions defined within the scope of the current function could potentially mutate multiple variables, and so on, it's allowed to call them without storing a return value. It simply looks like this:</p>
-<pre><code>someFunction(arg1, arg2)
+<pre><code class="language-rust ignore">someFunction(arg1, arg2)
 </code></pre>
 <p>where the arguments themselves could be constants, variable names, other function calls, operator statements, and variable type selection.</p>
 <h5><a class="header" href="#function-returns" id="function-returns">Function Returns</a></h5>
 <p>A return statement sets the value of the return type for the function and ends execution:</p>
-<pre><code>return constantOrFunctionCallOrExpression
+<pre><code class="language-rust ignore">return constantOrFunctionCallOrExpression
 </code></pre>
 <p>If the function has no return value, you can also trigger an exit without assigning a return value by simply stating:</p>
-<pre><code>return
+<pre><code class="language-rust ignore">return
 </code></pre>
+<p>If you have any statements after the <code>return</code> it will not compile, however (except if the <code>return</code> is within a conditional statement, described below).</p>
 <h5><a class="header" href="#event-emission" id="event-emission">Event Emission</a></h5>
 <p>A function can trigger new events to occur by emitting one:</p>
-<pre><code>emit eventName
+<pre><code class="language-rust ignore">emit eventName
 emit eventName constantOrFunctionCallOrExpression
 </code></pre>
 <p>If the event is a void event (no arguments given to the handler functions) then you use the simple first syntax. If there is a value provided to the handler, then as with the other statements it could be a constant or variable name or function call or operator expression or type name of a variable that is provided.</p>
 <h5><a class="header" href="#conditionals" id="conditionals">Conditionals</a></h5>
 <p>Conditionals optionally run one block of code (or potentially another) based on a condition. Since this language is intended to run statements in dependency order, the scope the conditions run in are actually functions to prevent them from being run ahead of time. This also means all scopes once you enter a function scope are function scopes, which makes things simpler to reason about. If one of these functions returns a value, the outer function immediately returns that value from the conditional statement.</p>
 <p>The conditional syntax is:</p>
-<pre><code>if booleanConstantOrFunctionCallOrExpression thenFunction
+<pre><code class="language-rust ignore">if booleanConstantOrFunctionCallOrExpression thenFunction
 if booleanConstantOrFunctionCallOrExpression thenFunction else elseFunction
 if booleanConstantOrFunctionCallOrExpression thenFunction else if ...
 </code></pre>
 <p>where the constant, function call, or operational expression <em>must</em> evaluate to a boolean (so no type checking, unless it is within an equality check against an expected type name).</p>
 <p>Conditionals are one of the two places (the other being event handler declarations) where the <code>fn</code> may be omitted from a purely-side-effect function (no arguments, no return value), so the above can look exactly as one would expect:</p>
-<pre><code>if 1 == 2 {
+<pre><code class="language-rust ignore">if 1 == 2 {
   print(&quot;Wrong&quot;)
 } else {
   print(&quot;Right&quot;)
 }
 </code></pre>
 <p>The conditional has two anonymous functions declared inline. But it could just as easily be something like:</p>
-<pre><code>fn right() {
+<pre><code class="language-rust ignore">fn right() {
   print(&quot;Right&quot;)
 }
 
@@ -678,7 +540,7 @@ if condition right else wrong
 </code></pre>
 <h4><a class="header" href="#interfaces" id="interfaces">Interfaces</a></h4>
 <p>In order to make generic types more useful, there must be a way to declare what operations/functions are possible to apply to the generic type in question so functions working with said generic are able to be checked even if the generic function is not &quot;solidified&quot; (for example, it is an exported library meant to be used by other code). Interfaces are the proposed solution, and they'll look something like this:</p>
-<pre><code>interface interfaceName {
+<pre><code class="language-rust ignore">interface interfaceName {
   functionname (concreteType, interfaceName): concreteType
   function2 (interfaceName, interfaceName): interfaceName
   interfaceName &lt;operatorSymbol&gt; interfaceName: interfaceName
@@ -692,101 +554,61 @@ if condition right else wrong
 <p>This is because invocation of the function in that scope also counts as definition of that function within the scope, with the original being used as a template for the function, and the current module's scope being injected between the export scope of the module it was pulled from (if it was imported across scope boundaries).</p>
 <p>When interfaces are used in a function, they are matched against the incoming argument types. Once it is &quot;realized&quot; as a concrete type, the compiler assumes any other usage of that same interface will be the same realized type.</p>
 <p>This means writing a constructor function to make a <code>KeyVal</code> object like so:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>fn makeKV(key: any, val: any) = new KeyVal&lt;any, any&gt; {
+<pre><code class="language-rust ignore">fn makeKV(key: any, val: any) = new KeyVal&lt;any, any&gt; {
   key = key
   val = val
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>will fail to compile unless both the <code>key</code> and the <code>val</code> are the same type, which may be unexpected. However, an identical interface with a different name will be matched separately, so if you have the following two otherwise identical interfaces:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>interface any {}
+<pre><code class="language-rust ignore">interface any {}
 interface anythingElse {}
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>That both would match <em>any</em> type given to them, you can then use them in the <code>KeyVal</code> constructor like this:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>fn makeKv(key: any, val: anythingElse) = new KeyVal&lt;any, anythingElse&gt; {
+<pre><code class="language-rust ignore">fn makeKv(key: any, val: anythingElse) = new KeyVal&lt;any, anythingElse&gt; {
   key = key
   val = val
 }
-<span class="boring">}
-</span></code></pre></pre>
-<p>Currently the interfaces have to be redeclared for this to work, but if there is demand for it, we can add an interface aliasing feature, so one could simply write:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>interface anythingElse = any
-<span class="boring">}
-</span></code></pre></pre>
-<p>and have it do the right thing.</p>
+</code></pre>
+<p>There is an interface aliasing feature, so one could simply write:</p>
+<pre><code class="language-rust ignore">interface anythingElse = any
+</code></pre>
+<p>and have it do the right thing. Not super useful for the <code>any</code> interface, but for complex interfaces that you want to use in functions with the variables &quot;unlinked&quot; from each other, it can be quite useful.</p>
 <h4><a class="header" href="#handlers" id="handlers">Handlers</a></h4>
-<p>Handlers are special functions that are triggered by events emitted to the event loop. They are the root of all stacks in <code>alan</code>. Like many languages with event loops, multiple handlers can exist for a single event.</p>
+<p>Handlers are special functions that are triggered by events emitted to the event loop. They are the root of all stacks in Alan. Like many languages with event loops, multiple handlers can exist for a single event.</p>
 <p>Event handler functions <em>must</em> always have a <code>void</code> return. From the perspective of the language, handlers are self-contained side-effects.</p>
 <p>Handlers can only be registered at the module level, not within a function. This is both to discourage abuse of the event loop and make a more intelligent execution planning possible in the future (such as switching from minimizing total latency for any given event to maximizing the total throughput of event processing if the event loop queue is backing up).</p>
 <p>Furthermore, function calls within the handler run may trigger multiple simultaneous executions and IO operations can break up the handler call into multiple fragments to be re-scheduled onto the event loop. The vast majority of the time, direct control on how work is scheduled onto the event loop is abstracted from the developer.</p>
 <p>The event handler syntax is relatively simple:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>on eventName function
-<span class="boring">}
-</span></code></pre></pre>
+<pre><code class="language-rust ignore">on eventName function
+</code></pre>
 <p>where <code>eventName</code> is the name of the event to register a handler for and <code>function</code> is either the name of a function, or an in-line defined function, eg:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>on event fn namedHandler(argument: eventType) {
+<pre><code class="language-rust ignore">on event fn namedHandler(argument: eventType) {
   ...
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>for a fully-named in-line defined function with an event payload. Without a payload, the argument list can be dropped:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>on event fn namedHandler {
+<pre><code class="language-rust ignore">on event fn namedHandler {
   ...
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>In both cases, the name is also optional because it is being registered immediately:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>on event fn (argument: eventType) {
+<pre><code class="language-rust ignore">on event fn (argument: eventType) {
   ...
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>or</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>on event fn {
+<pre><code class="language-rust ignore">on event fn {
   ...
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>The latter purely-side-effect-only function can also omit the <code>fn</code> if desired as it is unambiguous in this context:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>on event {
+<pre><code class="language-rust ignore">on event {
   ...
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h5><a class="header" href="#special-events-stdappstart-stdappexit-and-stdappstdout" id="special-events-stdappstart-stdappexit-and-stdappstdout">Special Events: @std/app.start, @std/app.exit, and @std/app.stdout</a></h5>
-<p>There are events that are particularly special for <code>alan</code>. The <code>start</code>, <code>exit</code>, and <code>stdout</code> events in the <code>@std/app</code> standard library module. They are separated from the built-ins because most modules should not need to ever touch them, but the root module of your project may.</p>
-<p>When <code>alan</code> has finished loading your code and has the event loop set up, it emits a single <code>start</code> event (of type <code>void</code>). That should trigger a special function used to set up the rest of your program: loading configuration, starting up an http server, or what have you.</p>
+<p>There are events that are particularly special for Alan. The <code>start</code>, <code>exit</code>, and <code>stdout</code> events in the <code>@std/app</code> standard library module. They are separated from the built-ins because most modules should not need to ever touch them, but the root module of your project may.</p>
+<p>When Alan has finished loading your code and has the event loop set up, it emits a single <code>start</code> event (of type <code>void</code>). That should trigger a special function used to set up the rest of your program: loading configuration, starting up an http server, or what have you.</p>
 <p>Once the event loop is running, it will run forever. Only if an <code>int8</code> value (the exit code, where 0 is successful and anything else is an error) is emitted to the <code>exit</code> event will the process tear itself down and terminate.</p>
 <p>If you want to write raw text to <code>stdout</code> you can <code>emit</code> to a string to it (this is what the <code>print</code> function does, but with an appended newline character after converting your argument to a string).</p>
 <p>This is why basically all of the small examples import these events from <code>@std/app</code>, but most modules in most larger projects never will.</p>
@@ -794,10 +616,10 @@ interface anythingElse {}
 <p>The <code>export</code> syntax can only be used at the module level, which means it is impossible to have non-deterministic exports. While this can be annoying with collating files that simply import files to only re-export all of their contents, it eliminates whole classes of ambiguity where certain functions, types, etc are only available depending on the state of the runtime environment.</p>
 <p>Constants, types, functions, operators, events, and interfaces are exportable while event handlers are not. (However, importing a module that registers event handlers will cause a side-effect of including those event handlers in your application.)</p>
 <p>This can either be done in-line with the declaration of the item in question:</p>
-<pre><code>export const foo: bool = true
+<pre><code class="language-rust ignore">export const foo: bool = true
 </code></pre>
 <p>Or it can be done by referencing the name of the thing to be exported after it has been declared:</p>
-<pre><code>type Foo {
+<pre><code class="language-rust ignore">type Foo {
   bar: string
   baz: bool
 }
@@ -844,9 +666,9 @@ export Foo
 <li>//</li>
 </ul>
 <h3><a class="header" href="#modules" id="modules">Modules</a></h3>
-<p>The details of the definition of modules in <code>alan</code> has already been discussed in their <a href="./file_structure.html">Syntax and File Structure</a>. This section focuses more on how modules relate to one another, the kinds of project structures allowed (and of those encouraged), and functionality baked into the module system that requires more invasive, unsound runtime activities not necessary (or even allowed) in <code>alan</code>.</p>
+<p>The details of the definition of modules in Alan has already been discussed in their <a href="./file_structure.html">Syntax and File Structure</a>. This section focuses more on how modules relate to one another, the kinds of project structures allowed (and of those encouraged), and functionality baked into the module system that requires more invasive, unsound runtime activities not necessary (or even allowed) in Alan.</p>
 <h4><a class="header" href="#definition" id="definition">Definition</a></h4>
-<p>Modules are defined by simply creating an <code>alan</code> source file. The name of the module is simply the name of the file minus the extension, unless the file is named <code>index.ln</code> in which case the name of the module is it's parent directory for anything referencing it. (This allows a former <code>something.ln</code> module to become <code>something/index.ln</code> and have a companion <code>something/submodule.ln</code> if it grows too big but should still be thought of as a singular unit.)</p>
+<p>Modules are defined by simply creating an Alan source file. The name of the module is simply the name of the file minus the extension, unless the file is named <code>index.ln</code> in which case the name of the module is it's parent directory for anything referencing it. (This allows a former <code>something.ln</code> module to become <code>something/index.ln</code> and have a companion <code>something/submodule.ln</code> if it grows too big but should still be thought of as a singular unit.)</p>
 <p>The portions of a module that are private to that module are not exported, while the portions intended to be public have an <code>export</code> keyword prefixed to them.</p>
 <h4><a class="header" href="#resolution" id="resolution">Resolution</a></h4>
 <p>The module resolution algorithm is inspired by multiple languages, but primarily Node.js. The recursive module resolution system makes it much easier to upgrade dependencies even if some of your own dependencies still depend on an older version of them.</p>
@@ -854,8 +676,8 @@ export Foo
 <p>However, one of the issues with a tree-based module resolution system is many duplicate dependencies. Dependency hoisting and keeping the hierarchy as flat as possible helps eliminate this.</p>
 <p>The other major issue with Node.js's module model is reducing the friction on using third-party modules so much that it is <em>easier</em> to use third party modules than your own code. Third party modules can be loaded with a memorable name that doesn't change no matter where you are in the codebase, while your own code has to keep track of its relative location in the filesystem hierarchy anywhere it is used.</p>
 <p>Combine that with Node.js's intentionally small standard library and there are lots of tiny modules that implement basic functionality because it wasn't available and people wrote and released their own implementations and other people installed the first ones they found, since it is so easy to do, and such cross-cutting core dependencies would show up in many different places in your project, each requiring a slightly different relative path invocation if it was a home-grown source file.</p>
-<p><code>alan</code>'s module resolution system attempts to address these concerns by having separate directories for third-party dependencies you install and being able to uniformly name modules within your own codebase clearly.</p>
-<p>While relative pathing is necessary for a module to reference its submodule and it is possible to traverse up the tree and back down, having <code>../</code> in your import path should be considered an anti-pattern in <code>alan</code>.</p>
+<p>Alan's module resolution system attempts to address these concerns by having separate directories for third-party dependencies you install and being able to uniformly name modules within your own codebase clearly.</p>
+<p>While relative pathing is necessary for a module to reference its submodule and it is possible to traverse up the tree and back down, having <code>../</code> in your import path should be considered an anti-pattern in Alan.</p>
 <p>A project directory structure like this:</p>
 <pre><code>ecommerceco/
 ├── dependencies/
@@ -893,9 +715,9 @@ export Foo
 <li>Ruby and Node have fully centralized module repositories, dependency management (though there is a split between NPM and Yarn, but Yarn intentionally mirrors NPM and focuses on speed), and dependency installation. The dependencies are declared in a special JSON file for Node and a &quot;Gemfile&quot; Ruby source file in Ruby.</li>
 <li>Go and the experimental Deno have taken different paths. Go originally ignored dependency management, as well, but is adopting one based on URLs to Git repositories. Deno goes one step further and uses HTTP/HTTPS URLs to raw source code, itself, with no explicit dependency declaration file.</li>
 </ul>
-<p><code>alan</code> follows Ruby most closely in managing dependencies. Dependencies are specified in a <code>.dependencies.ln</code> file by convention that uses the <code>@std/deps</code> standard library to declare which dependencies are required and acquire them. Using <code>alan</code> itself as the dependency declaration file makes it possible to typecheck and validate the validity of the dependency configuration to an extent that is not possible in the declarative formats popular in Java, Python, Node, and Go.</p>
-<p>Beyond that, <code>alan</code> automatically assumes all dependencies are listed as git URLs and that git is available for use locally to access the third-party libraries. This makes acquisition and version pinning much simpler and without any requirement of a centralized host.</p>
-<p>Long-term, though, <code>alan</code> intends to have a centralized package hosting system because there are several advantages to the community for such a thing:</p>
+<p>Alan follows Ruby most closely in managing dependencies. Dependencies are specified in a <code>.dependencies.ln</code> file by convention that uses the <code>@std/deps</code> standard library to declare which dependencies are required and acquire them. Using Alan itself as the dependency declaration file makes it possible to typecheck and validate the validity of the dependency configuration to an extent that is not possible in the declarative formats popular in Java, Python, Node, and Go.</p>
+<p>Beyond that, Alan automatically assumes all dependencies are listed as git URLs and that git is available for use locally to access the third-party libraries. This makes acquisition and version pinning much simpler and without any requirement of a centralized host.</p>
+<p>Long-term, though, Alan intends to have a centralized package hosting system because there are several advantages to the community for such a thing:</p>
 <ul>
 <li>The packages can be guaranteed immutable to make sure production deployments are more reliable.</li>
 <li>The central repository can require package signing to make it harder for popular packages to be hijacked and have malware injected into them (and also raise the bar to make sure only more serious projects are submitted).</li>
@@ -909,19 +731,19 @@ export Foo
 <p>Simply from the dependency resolution system, isolated test dependencies and mocks are possible without reflection or run-time manipulation of the compiled code.</p>
 <h4><a class="header" href="#mutation-and-permissions" id="mutation-and-permissions">Mutation and Permissions</a></h4>
 <p>Sometimes a third-party library or even a module you have written yourself needs to have its behavior adjusted, and simply defining new functions to use in method syntax is not enough to accomplish it. Perhaps you wish to modify the types involved or prevent an internal event from being registered.</p>
-<p><code>alan</code> does not allow loops in the module dependency graph, it must be a directed acyclic graph, but it does have a special exception for a module attempting to import &quot;itself.&quot; In this case, the module will instead &quot;skip over&quot; itself and look across the rest of the <code>modules</code> and <code>dependencies</code> elsewhere in the graph for what it should pull in. This allows for defining a wrapper module that can export the same (or different) types, functions, etc but with different behavior, something in between a mock and the real thing (or something that intercepts a logger and also attaches stats tracing to it, as an example where this could be used in production).</p>
+<p>Alan does not allow loops in the module dependency graph, it must be a directed acyclic graph, but it does have a special exception for a module attempting to import &quot;itself.&quot; In this case, the module will instead &quot;skip over&quot; itself and look across the rest of the <code>modules</code> and <code>dependencies</code> elsewhere in the graph for what it should pull in. This allows for defining a wrapper module that can export the same (or different) types, functions, etc but with different behavior, something in between a mock and the real thing (or something that intercepts a logger and also attaches stats tracing to it, as an example where this could be used in production).</p>
 <p>This would work similarly in that only code that sees the <code>modules</code> directory containing this wrapper module would get the behavior, so to do an integration test using it, you need to wrap (or just symlink if left unchanged) all modules involved in the integration test.</p>
 <p>This allows re-exporting the &quot;same&quot; module to your codebase after partial modification of it, and is even permitted on the standard library modules.</p>
 <p>This mechanism can be used to deny third party libraries access to parts of the standard library you are not comfortable with. By simply creating a <code>modules</code> directory within the third-party dependency and then defining an <code>std/app.ln</code> file that re-exports non-functional versions of the types, functions, and events of the original standard library, you can prevent that library from being able to use standard library features you would not expect them to have access to. For instance, if you have imported a very popular utility library for, say, curve fitting. You would not expect it to want to have access to your filesystem or creating a child process, so you could inject nonfunctional mocks of <code>@std/fs</code> and <code>@std/cmd</code>.</p>
-<p>It is intended to eventually make this kind of permissioning logic a built-in operation in the <code>@std/deps</code> standard library, but it is another piece of functionality that falls out of <code>alan</code>'s dependency resolution.</p>
+<p>It is intended to eventually make this kind of permissioning logic a built-in operation in the <code>@std/deps</code> standard library, but it is another piece of functionality that falls out of Alan's dependency resolution.</p>
 <h2><a class="header" href="#standard-library" id="standard-library">Standard Library</a></h2>
-<p>The <code>alan</code> Standard Library is still small and barely complete enough to make non-trivial programs with, at the moment. We intend to follow the &quot;batteries included&quot; ethos of Python and Java and include many libraries such that &quot;normal&quot; usage of the language only requires libraries for access to third-party services, and then only as a convenience.</p>
+<p>The Alan Standard Library is still small and barely complete enough to make non-trivial programs with, at the moment. We intend to follow the &quot;batteries included&quot; ethos of Python and Java and include many libraries such that &quot;normal&quot; usage of the language only requires libraries for access to third-party services, and then only as a convenience.</p>
 <p>If you are interested in contributing please drop us a line on <a href="https://discord.gg/XatB9we">Discord</a>.</p>
 <h3><a class="header" href="#built-ins" id="built-ins">Built-ins</a></h3>
-<p>All module-based languages have some things that are included without specifically importing anything. Some keep it to a minimum (Java) and some have a pretty high rate of inclusion (Python). <code>alan</code> biases more towards the Python end of the spectrum. Concepts and functionality common across many modules should not be manually imported all of the time, especially with the requirement that imports are fully qualified to improve legibility.</p>
-<p>The built-ins for <code>alan</code> all involve the built-in types and the functions and operators to manipulate them.</p>
+<p>All module-based languages have some things that are included without specifically importing anything. Some keep it to a minimum (Java) and some have a pretty high rate of inclusion (Python). Alan biases more towards the Python end of the spectrum. Concepts and functionality common across many modules should not be manually imported all of the time, especially with the requirement that imports are fully qualified to improve legibility.</p>
+<p>The built-ins for Alan all involve the built-in types and the functions and operators to manipulate them.</p>
 <h4><a class="header" href="#built-in-types" id="built-in-types">Built-in Types</a></h4>
-<p>The built-in <a href="./types.html">types</a> for <code>alan</code> are:</p>
+<p>The built-in <a href="./types.html">types</a> for Alan are:</p>
 <ul>
 <li><code>void</code></li>
 <li><code>int8</code></li>
@@ -941,52 +763,33 @@ export Foo
 <li><code>Result&lt;T&gt;</code></li>
 <li><code>Either&lt;T, U&gt;</code></li>
 </ul>
-<p>The <code>int64</code> and <code>float64</code> types are special among the numeric types, as these are the types that any numeric constant will be represented as, depending on whether or not it has a decimal.</p>
+<p>The <code>int64</code> and <code>float64</code> types are special among the numeric types, as these are the types that any numeric constant will be represented as, depending on whether or not it has a decimal. They have been given aliases of <code>int</code> and <code>float</code> respectively for that reason.</p>
 <h4><a class="header" href="#built-in-interfaces" id="built-in-interfaces">Built-in Interfaces</a></h4>
 <p>There are a few built-in <a href="./interfaces.html">interfaces</a> meant for working with several built-in types and functions.</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// An empty interface, it can match any value, but you can only accept it and pass it along to
+<pre><code class="language-rust ignore">// An empty interface, it can match any value, but you can only accept it and pass it along to
 // something else. Useful for logical &quot;glue&quot; functions like `pair`, `cond`, `map`, `reduce`, etc.
 interface any {}
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// A second empty interface, useful to allow functions to declare that it accepts two arguments of
+</code></pre>
+<pre><code class="language-rust ignore">// A second empty interface, useful to allow functions to declare that it accepts two arguments of
 // any kind and they don't need to match each other.
 interface anythingElse {}
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// An interface that restricts valid types to only those that can be converted into strings. Useful
+</code></pre>
+<pre><code class="language-rust ignore">// An interface that restricts valid types to only those that can be converted into strings. Useful
 // for printing.
 interface Stringifiable {
   toString(Stringifiable): string
 }
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// An interface that determines if a type is hashable and comparable. Used by HashMap for the keys.
+</code></pre>
+<pre><code class="language-rust ignore">// An interface that determines if a type is hashable and comparable. Used by HashMap for the keys.
 interface Hashable {
   toHash(Hashable): int64
   eq(Hashable, Hashable): bool
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h4><a class="header" href="#built-in-functions" id="built-in-functions">Built-in Functions</a></h4>
-<p>The <a href="./functions.html">function</a> signatures will be written in the form <code>functionName(argumentType, argumentType): returnType</code> with a brief description above each. These functions will be grouped into general categories, such as type coersion, arithmetic, etc.</p>
+<p>The <a href="./functions.html">function</a> signatures will be written in the form <code>functionName(argumentType, argumentType): returnType</code> with a brief description above each. These functions will be grouped into general categories, such as type coersion, arithmetic, etc. Because of <a href="./functions.html#function-dispatch">multiple dispatch</a> you may see the same function name repeated multiple times, while other times you may see the use of the <code>any</code> interface for a function that operates on multiple types. When you see multiple dispatch being used with specific types, that means there's an optimized implementation for that specific type, while the use of the <code>any</code> interface means that this was not done (many times because it was not necessary).</p>
 <h5><a class="header" href="#type-coersion" id="type-coersion">Type Coersion</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to 64-bit floats
+<pre><code class="language-rust ignore">// Converts the built-in basic types to 64-bit floats
 toFloat64(int8): float64
 toFloat64(int16): float64
 toFloat64(int32): float64
@@ -995,12 +798,8 @@ toFloat64(float32): float64
 toFloat64(float64): float64
 toFloat64(bool): float64
 toFloat64(string): float64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to 32-bit floats
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in basic types to 32-bit floats
 toFloat32(int8): float32
 toFloat32(int16): float32
 toFloat32(int32): float32
@@ -1009,12 +808,8 @@ toFloat32(float32): float32
 toFloat32(float64): float32
 toFloat32(bool): float32
 toFloat32(string): float32
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to 64-bit integers
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in basic types to 64-bit integers
 toInt64(int8): int64
 toInt64(int16): int64
 toInt64(int32): int64
@@ -1023,12 +818,8 @@ toInt64(float32): int64
 toInt64(float64): int64
 toInt64(bool): int64
 toInt64(string): int64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to 32-bit integers
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in basic types to 32-bit integers
 toInt32(int8): int32
 toInt32(int16): int32
 toInt32(int32): int32
@@ -1037,12 +828,8 @@ toInt32(float32): int32
 toInt32(float64): int32
 toInt32(bool): int32
 toInt32(string): int32
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to 16-bit integers
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in basic types to 16-bit integers
 toInt16(int8): int16
 toInt16(int16): int16
 toInt16(int32): int16
@@ -1051,12 +838,8 @@ toInt16(float32): int16
 toInt16(float64): int16
 toInt16(bool): int16
 toInt16(string): int16
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to 8-bit integers
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in basic types to 8-bit integers
 toInt8(int8): int8
 toInt8(int16): int8
 toInt8(int32): int8
@@ -1065,12 +848,8 @@ toInt8(float32): int8
 toInt8(float64): int8
 toInt8(bool): int8
 toInt8(string): int8
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to booleans
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in basic types to booleans
 toBool(int8): bool
 toBool(int16): bool
 toBool(int32): bool
@@ -1079,12 +858,8 @@ toBool(float32): bool
 toBool(float64): bool
 toBool(bool): bool
 toBool(string): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to strings
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in types to strings
 toString(int8): string
 toString(int16): string
 toString(int32): string
@@ -1093,171 +868,129 @@ toString(float32): string
 toString(float64): string
 toString(bool): string
 toString(string): string
-<span class="boring">}
-</span></code></pre></pre>
-<p>These coersions will not fail. When converting down into an integer of a smaller bitsize, numbers larger than that integer's <code>INT_MAX</code> are pegged at <code>INT_MAX</code>, smaller than <code>INT_MIN</code> pegged at <code>INT_MIN</code> and <code>NaN</code> or strings that aren't actually integers are converted to <code>0</code>. This may be changed to a <code>Result</code> type that requires a user-defined default value on failure.</p>
+toString(Error): string
+toString(Result&lt;Stringifiable&gt;): string
+</code></pre>
+<p>These coersions will not fail. When converting down into an integer of a smaller bitsize, numbers larger than that integer's <code>INT_MAX</code> are pegged at <code>INT_MAX</code>, smaller than <code>INT_MIN</code> pegged at <code>INT_MIN</code> and <code>NaN</code> or strings that aren't actually integers are converted to <code>0</code>. This may be changed to a <code>Result</code> type that requires a user-defined default value on failure. <code>Result</code> types wrapping a type that can also be converted to a string directly, with either the string version of the result, or the error message.</p>
 <h5><a class="header" href="#arithmetic" id="arithmetic">Arithmetic</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Adds two numbers
+<pre><code class="language-rust ignore">// Adds two numbers
 add(int8, int8): int8
 add(int16, int16): int16
 add(int32, int32): int32
 add(int64, int64): int64
 add(float32, float32): float32
 add(float64, float64): float64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Subtracts two numbers
+</code></pre>
+<pre><code class="language-rust ignore">// Subtracts two numbers
 sub(int8, int8): int8
 sub(int16, int16): int16
 sub(int32, int32): int32
 sub(int64, int64): int64
 sub(float32, float32): float32
 sub(float64, float64): float64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Multiplies two numbers
+</code></pre>
+<pre><code class="language-rust ignore">// Negates the number
+negate(int8, int8): int8
+negate(int16, int16): int16
+negate(int32, int32): int32
+negate(int64, int64): int64
+negate(float32, float32): float32
+negate(float64, float64): float64
+</code></pre>
+<pre><code class="language-rust ignore">// Returns the absolute value of the number
+abs(int8, int8): int8
+abs(int16, int16): int16
+abs(int32, int32): int32
+abs(int64, int64): int64
+abs(float32, float32): float32
+abs(float64, float64): float64
+</code></pre>
+<pre><code class="language-rust ignore">// Multiplies two numbers
 mul(int8, int8): int8
 mul(int16, int16): int16
 mul(int32, int32): int32
 mul(int64, int64): int64
 mul(float32, float32): float32
 mul(float64, float64): float64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Divides two numbers
+</code></pre>
+<pre><code class="language-rust ignore">// Divides two numbers
 div(int8, int8): int8
 div(int16, int16): int16
 div(int32, int32): int32
 div(int64, int64): int64
 div(float32, float32): float32
 div(float64, float64): float64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Raises the first number to the power of the second number
+</code></pre>
+<pre><code class="language-rust ignore">// Raises the first number to the power of the second number
 pow(int8, int8): int8
 pow(int16, int16): int16
 pow(int32, int32): int32
 pow(int64, int64): int64
 pow(float32, float32): float32
 pow(float64, float64): float64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns the modulus (remainder) of an integer division
+</code></pre>
+<pre><code class="language-rust ignore">// Returns the modulus (remainder) of an integer division
 mod(int8, int8): int8
 mod(int16, int16): int16
 mod(int32, int32): int32
 mod(int64, int64): int64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns the square root of a number
+</code></pre>
+<pre><code class="language-rust ignore">// Returns the square root of a number
 sqrt(float32): float32
 sqrt(float64): float64
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h5><a class="header" href="#logical-and-bitwise" id="logical-and-bitwise">Logical and Bitwise</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `and`
+<pre><code class="language-rust ignore">// Return the logical or bitwise `and`
 and(int8, int8): int8
 and(int16, int16): int16
 and(int32, int32): int32
 and(int64, int64): int64
 and(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `or`
+</code></pre>
+<pre><code class="language-rust ignore">// Return the logical or bitwise `or`
 or(int8, int8): int8
 or(int16, int16): int16
 or(int32, int32): int32
 or(int64, int64): int64
 or(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `xor`
+</code></pre>
+<pre><code class="language-rust ignore">// Return the logical or bitwise `xor`
 xor(int8, int8): int8
 xor(int16, int16): int16
 xor(int32, int32): int32
 xor(int64, int64): int64
 xor(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `not`
+</code></pre>
+<pre><code class="language-rust ignore">// Return the logical or bitwise `not`
 not(int8): int8
 not(int16): int16
 not(int32): int32
 not(int64): int64
 not(bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `nand`
+</code></pre>
+<pre><code class="language-rust ignore">// Return the logical or bitwise `nand`
 nand(int8, int8): int8
 nand(int16, int16): int16
 nand(int32, int32): int32
 nand(int64, int64): int64
 nand(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `nor`
+</code></pre>
+<pre><code class="language-rust ignore">// Return the logical or bitwise `nor`
 nor(int8, int8): int8
 nor(int16, int16): int16
 nor(int32, int32): int32
 nor(int64, int64): int64
 nor(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `xnor`
+</code></pre>
+<pre><code class="language-rust ignore">// Return the logical or bitwise `xnor`
 xnor(int8, int8): int8
 xnor(int16, int16): int16
 xnor(int32, int32): int32
 xnor(int64, int64): int64
 xnor(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h5><a class="header" href="#comparators" id="comparators">Comparators</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the two values are equal
+<pre><code class="language-rust ignore">// Checks if the two values are equal
 eq(int8, int8): bool
 eq(int16, int16): bool
 eq(int32, int32): bool
@@ -1266,12 +999,8 @@ eq(float32, float32): bool
 eq(float64, float64): bool
 eq(string, string): bool
 eq(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the two values are not equal
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the two values are not equal
 neq(int8, int8): bool
 neq(int16, int16): bool
 neq(int32, int32): bool
@@ -1280,12 +1009,8 @@ neq(float32, float32): bool
 neq(float64, float64): bool
 neq(string, string): bool
 neq(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the first value is less than the second
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the first value is less than the second
 lt(int8, int8): bool
 lt(int16, int16): bool
 lt(int32, int32): bool
@@ -1293,12 +1018,8 @@ lt(int64, int64): bool
 lt(float32, float32): bool
 lt(float64, float64): bool
 lt(string, string): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the first value is less than or equal to the second
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the first value is less than or equal to the second
 lte(int8, int8): bool
 lte(int16, int16): bool
 lte(int32, int32): bool
@@ -1306,12 +1027,8 @@ lte(int64, int64): bool
 lte(float32, float32): bool
 lte(float64, float64): bool
 lte(string, string): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the first value is greater than the second
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the first value is greater than the second
 gt(int8, int8): bool
 gt(int16, int16): bool
 gt(int32, int32): bool
@@ -1319,12 +1036,8 @@ gt(int64, int64): bool
 gt(float32, float32): bool
 gt(float64, float64): bool
 gt(string, string): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the first value is greater than or equal to the second
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the first value is greater than or equal to the second
 gte(int8, int8): bool
 gte(int16, int16): bool
 gte(int32, int32): bool
@@ -1332,101 +1045,53 @@ gte(int64, int64): bool
 gte(float32, float32): bool
 gte(float64, float64): bool
 gte(string, string): bool
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h5><a class="header" href="#wait-functions" id="wait-functions">Wait functions</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Waits the specified number of milliseconds and then continues execution
+<pre><code class="language-rust ignore">// Waits the specified number of milliseconds and then continues execution
 wait(int8): void
 wait(int16): void
 wait(int32): void
 wait(int64): void
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h5><a class="header" href="#string-manipulation" id="string-manipulation">String Manipulation</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Concatenate two strings together
+<pre><code class="language-rust ignore">// Concatenate two strings together
 concat(string, string): string
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Splits the first string into an array of strings divided by the second delimiter string
+</code></pre>
+<pre><code class="language-rust ignore">// Splits the first string into an array of strings divided by the second delimiter string
 split(string, string): Array&lt;string&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Repeats the contents of the string `n` times (so `repeat(&quot;hello&quot;, 1)` returns `&quot;hello&quot;`)
+</code></pre>
+<pre><code class="language-rust ignore">// Repeats the contents of the string `n` times (so `repeat(&quot;hello&quot;, 1)` returns `&quot;hello&quot;`)
 repeat(string, int8): string
 repeat(string, int16): string
 repeat(string, int32): string
 repeat(string, int64): string
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a string template and a HashMap of string keys to string values to substitute in
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a string template and a HashMap of string keys to string values to substitute in
 template(string, HashMap&lt;string, string&gt;): string
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Check if the first string matches the regular expression defined by the second string
+</code></pre>
+<pre><code class="language-rust ignore">// Check if the first string matches the regular expression defined by the second string
 matches(string, string): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns the location of the second string within the first string, or `-1`
+</code></pre>
+<pre><code class="language-rust ignore">// Returns the location of the second string within the first string, or `-1`
 index(string, string): int64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns the length of the string (as a byte array, not UTF codepoints)
+</code></pre>
+<pre><code class="language-rust ignore">// Returns the length of the string (as a byte array, not UTF codepoints)
 length(string): int64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Removes the whitespace on either end of the string
+</code></pre>
+<pre><code class="language-rust ignore">// Removes the whitespace on either end of the string
 trim(string): string
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h5><a class="header" href="#array-manipulation" id="array-manipulation">Array Manipulation</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Concatenate two arrays into a new array containing the values of both
+<pre><code class="language-rust ignore">// Concatenate two arrays into a new array containing the values of both
 concat(Array&lt;any&gt;, Array&lt;any&gt;): Array&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Create a new array with the contents of the original array repeated `n` times
+</code></pre>
+<pre><code class="language-rust ignore">// Create a new array with the contents of the original array repeated `n` times
 repeat(Array&lt;any&gt;, int8): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int16): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int32): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int64): Array&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Find the index of the specified value in the array or return `-1`
+</code></pre>
+<pre><code class="language-rust ignore">// Find the index of the specified value in the array or return `-1`
 index(Array&lt;any&gt;, any): int64
 index(Array&lt;int8&gt;, int8): int64
 index(Array&lt;int16&gt;, int16): int64
@@ -1435,12 +1100,8 @@ index(Array&lt;int64&gt;, int64): int64
 index(Array&lt;float32&gt;, float32): int64
 index(Array&lt;float64&gt;, float64): int64
 index(Array&lt;bool&gt;, bool): int64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns true if the array has the specified value or false otherwise
+</code></pre>
+<pre><code class="language-rust ignore">// Returns true if the array has the specified value or false otherwise
 has(Array&lt;any&gt;, any): int64
 has(Array&lt;int8&gt;, int8): int64
 has(Array&lt;int16&gt;, int16): int64
@@ -1449,12 +1110,8 @@ has(Array&lt;int64&gt;, int64): int64
 has(Array&lt;float32&gt;, float32): int64
 has(Array&lt;float64&gt;, float64): int64
 has(Array&lt;bool&gt;, bool): int64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Push a value into the array and return the updated array
+</code></pre>
+<pre><code class="language-rust ignore">// Push a value into the array and return the updated array
 push(Array&lt;any&gt;, any): Array&lt;any&gt;
 push(Array&lt;int8&gt;, int8): Array&lt;int8&gt;
 push(Array&lt;int16&gt;, int16): Array&lt;int16&gt;
@@ -1463,271 +1120,180 @@ push(Array&lt;int64&gt;, int64): Array&lt;int64&gt;
 push(Array&lt;float32&gt;, float32): Array&lt;float32&gt;
 push(Array&lt;float64&gt;, float64): Array&lt;float64&gt;
 push(Array&lt;bool&gt;, bool): Array&lt;bool&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Pop a value from an array and return that value
-pop(Array&lt;any&gt;): any
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the provided side-effect function on each element of the array
-each(Array&lt;any&gt;, function): void
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the provided converter function on each element of the array and return a new array
-map(Array&lt;any&gt;, function): Array&lt;anythingElse&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the combining function on the array and return the new value
-reduce(Array&lt;any&gt;, function): anythingElse
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the filtering function on the array and return a new array with the allowed values
-filter(Array&lt;any&gt;, function): Array&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the comparison function on the array and return the first element that passes the check
-find(Array&lt;any&gt;, function): any
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the comparison function on the array and return `true` if all elements pass the check
-every(Array&lt;any&gt;, function): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the comparison function on the array and return `true` if any element passes the check
-some(Array&lt;any&gt;, function): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Take an array of strings and merge them into one string separated by the separator string. The
+</code></pre>
+<pre><code class="language-rust ignore">// Pop a value from an array and return that value wrapped in a result (or an error result)
+pop(Array&lt;any&gt;): Result&lt;any&gt;
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the provided side-effect function on each element of the array
+each(Array&lt;any&gt;, function): void // Parallel if possible and worthwhile
+eachLin(Array&lt;any&gt;, function): void // Forced linear execution
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the provided converter function on each element of the array and return a new array
+map(Array&lt;any&gt;, function): Array&lt;anythingElse&gt; // Parallel if possible and worthwhile
+mapLin(Array&lt;any&gt;, function): Array&lt;anythingElse&gt; // Forced linear execution
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the combining function on the array and return the new value
+// The two argument reduce functions reduce into the same type as the input, while the
+// three and four argument reduce functions reduce into a new type. The three argument reduce
+// function is sequential and only requires an initial value to kick off the reduction, while the
+// four argument reducer requires one function and an initial value to kick off the reduction into
+// the new type, and then it requires a second function that reduces the new type into itself to
+// merge the various threads of execution back together.
+reduce(Array&lt;any&gt;, function): any // Forced linear execution
+reducePar(Array&lt;any&gt;, function): any // Parallel if possible and worthwhile
+reduce(Array&lt;any&gt;, function, anythingElse): anythingElse // Forced linear execution
+reducePar(Array&lt;any&gt;, function, function, anythingElse): anythingElse // Parallel if possible and worthwhile
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the filtering function on the array and return a new array with the allowed values
+filter(Array&lt;any&gt;, function): Array&lt;any&gt; // Parallel if possible and worthwhile
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the comparison function on the array and return the first element that passes the check,
+// or an error
+find(Array&lt;any&gt;, function): Result&lt;any&gt; // Parallel if possible and worthwhile
+findLin(Array&lt;any&gt;, function): Result&lt;any&gt; // Forced linear execution
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the comparison function on the array and return `true` if all elements pass the check
+every(Array&lt;any&gt;, function): bool // Parallel if possible and worthwhile
+everyLin(Array&lt;any&gt;, function): bool // Forced linear execution
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the comparison function on the array and return `true` if any element passes the check
+some(Array&lt;any&gt;, function): bool // Parallel if possible and worthwhile
+someLin(Array&lt;any&gt;, function): bool // Forced linear execution
+</code></pre>
+<pre><code class="language-rust ignore">// Take an array of strings and merge them into one string separated by the separator string. The
 // inverse of the `split` function
 join(Array&lt;string&gt;, string): string
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
+<pre><code class="language-rust ignore">// Override the value of an array element with a new value
+set(Array&lt;any&gt;, int64, any): Result&lt;Array&lt;any&gt;&gt;
+set(Array&lt;int8&gt;, int64, int8): Result&lt;Array&lt;int8&gt;&gt;
+set(Array&lt;int16&gt;, int64, int16): Result&lt;Array&lt;int16&gt;&gt;
+set(Array&lt;int32&gt;, int64, int32): Result&lt;Array&lt;int32&gt;&gt;
+set(Array&lt;int64&gt;, int64, int64): Result&lt;Array&lt;int64&gt;&gt;
+set(Array&lt;float32&gt;, int64, float32): Result&lt;Array&lt;float32&gt;&gt;
+set(Array&lt;float64&gt;, int64, float64): Result&lt;Array&lt;float64&gt;&gt;
+set(Array&lt;bool&gt;, int64, bool): Result&lt;Array&lt;bool&gt;&gt;
+</code></pre>
 <h5><a class="header" href="#hashmap-manipulation" id="hashmap-manipulation">HashMap Manipulation</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a HashMap and returns an Array of KeyVal pairs
+<pre><code class="language-rust ignore">// Converts a value into a hash using the [xxh64](https://cyan4973.github.io/xxHash/) algorithm.
+// No user code ever has to overload the `toHash` function with their own implementation, but it is
+// required that the `eq` function is for user-defined types to check for hash collisions.
+toHash(any): int64
+toHash(int8): int64
+toHash(int16): int64
+toHash(int32): int64
+toHash(float32): int64
+toHash(float64): int64
+toHash(bool): int64
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a HashMap and returns an Array of KeyVal pairs
 keyVal(HashMap&lt;Hashable, any&gt;): Array&lt;KeyVal&lt;Hashable, any&gt;&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a HashMap and returns an Array of keys
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a HashMap and returns an Array of keys
 keys(HashMap&lt;Hashable, any&gt;): Array&lt;Hashable&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a HashMap and returns an Array of values
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a HashMap and returns an Array of values
 values(HashMap&lt;Hashable, any&gt;: Array&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a HashMap and returns the number of KeyVal pairs contained
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a HashMap and returns the number of KeyVal pairs contained
 length(HashMap&lt;Hashable, any&gt;): int64
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
+<pre><code class="language-rust ignore">// Sets a key-value pair in the HashMap and returns the HashMap for chaining
+set(HashMap&lt;Hashable, any&gt;, Hashable, any): HashMap&lt;Hashable, any&gt;
+</code></pre>
+<pre><code class="language-rust ignore">// Gets the value for a given key or an error
+get(HashMap&lt;Hashable,any&gt;, Hashable): Result&lt;any&gt;
+</code></pre>
+<pre><code class="language-rust ignore">// Creates a new HashMap object with the first key-val pair and a decently-sized set of defaults for
+// the indexing
+newHashMap(Hashable, any): HashMap&lt;Hashable, any&gt;
+</code></pre>
+<pre><code class="language-rust ignore">// The inverse of `keyVal`, takes an `Array&lt;KeyVal&lt;Hashable, any&gt;&gt;` and reindexes it as HashMap
+toHashMap(Array&lt;KeyVal&lt;Hashable, any&gt;&gt;): HashMap&lt;Hashable, any&gt;
+</code></pre>
 <h5><a class="header" href="#ternary-functions" id="ternary-functions">&quot;Ternary&quot; Functions</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes two values of the same type and returns an array of those two values
+<pre><code class="language-rust ignore">// Takes two values of the same type and returns an array of those two values
 pair(any, any): Array&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a boolean and an array of two values and returns the first value on `true` and the second
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a boolean and an array of two values and returns the first value on `true` and the second
 // on `false`
 cond(bool, Array&lt;any&gt;): any
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a boolean and a function and conditionally executes that function if the bool is `true`
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a boolean and a function and conditionally executes that function if the bool is `true`
 cond(bool, function): void
-<span class="boring">}
-</span></code></pre></pre>
-<h5><a class="header" href="#assign-functions" id="assign-functions">Assign Functions</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Explicitly duplicates the provided value and returns it
-assign(any): any
-assign(Array&lt;any&gt;): Array&lt;any&gt;
-assign(void): void
-assign(int8): int8
-assign(int16): int16
-assign(int32): int32
-assign(int64): int64
-assign(float32): float32
-assign(float64): float64
-assign(bool): bool
-assign(string): string
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
+<h5><a class="header" href="#clone-functions" id="clone-functions">Clone Functions</a></h5>
+<pre><code class="language-rust ignore">// Explicitly duplicates the provided value and returns it, useful when you don't want to mutate
+// the original value
+clone(any): any
+clone(Array&lt;any&gt;): Array&lt;any&gt;
+clone(void): void
+clone(int8): int8
+clone(int16): int16
+clone(int32): int32
+clone(int64): int64
+clone(float32): float32
+clone(float64): float64
+clone(bool): bool
+clone(string): string
+</code></pre>
 <h5><a class="header" href="#error-maybe-result-and-either-functions" id="error-maybe-result-and-either-functions">Error, Maybe, Result, and Either Functions</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns a non-error error object
+<pre><code class="language-rust ignore">// Returns a non-error error object
 noerr(): Error
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Wraps a given value into a Maybe type
+</code></pre>
+<pre><code class="language-rust ignore">// Wraps a given value into a Maybe type
 some(any): Maybe&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Creates an unassigned Maybe type
+</code></pre>
+<pre><code class="language-rust ignore">// Creates an unassigned Maybe type
 none(): Maybe&lt;void&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Determines if the Maybe has a value
+</code></pre>
+<pre><code class="language-rust ignore">// Determines if the Maybe has a value
 isSome(Maybe&lt;any&gt;): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Determines if the Maybe has no value
+</code></pre>
+<pre><code class="language-rust ignore">// Determines if the Maybe has no value
 isNone(Maybe&lt;any&gt;): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns the Maybe's value, or the default value if there is no value
+</code></pre>
+<pre><code class="language-rust ignore">// Returns the Maybe's value, or the default value if there is no value
 getOr(Maybe&lt;any&gt;, any): any
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Creates a Result with a value
+</code></pre>
+<pre><code class="language-rust ignore">// Creates a Result with a value
 ok(any): Result&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Creates a Result with an Error
+</code></pre>
+<pre><code class="language-rust ignore">// Creates a Result with an Error
 err(string): Result&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the Result has a value
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the Result has a value
 isOk(Result&lt;any&gt;): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the Result has an Error
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the Result has an Error
 isErr(Result&lt;any&gt;): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Gets the Result's value or default if it is an Error
+</code></pre>
+<pre><code class="language-rust ignore">// Gets the Result's value or default if it is an Error
 getOr(Result&lt;any&gt;, any): any
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Gets the Result's Error or default if it is a value
+</code></pre>
+<pre><code class="language-rust ignore">// Gets the Result's Error or default if it is a value
 getErr(Result&lt;any&gt;, Error): Error
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Creates an Either with the main (first) type set
+</code></pre>
+<pre><code class="language-rust ignore">// Creates an Either with the main (first) type set
 main(any): Either&lt;any, void&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Creates and Either with the alternative (second) type set
+</code></pre>
+<pre><code class="language-rust ignore">// Creates and Either with the alternative (second) type set
 alt(any): Either&lt;void, any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the Either's main type is set
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the Either's main type is set
 isMain(Either&lt;any, anythingElse&gt;): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the Either's alt type is set
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the Either's alt type is set
 isAlt(Either&lt;any, anythingElse&gt;): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Gets the main type or the default if it is the alt type
+</code></pre>
+<pre><code class="language-rust ignore">// Gets the main type or the default if it is the alt type
 getMainOr(Either&lt;any, anythingElse&gt;, any): any
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Gets the alt type or the default if it is the main type
+</code></pre>
+<pre><code class="language-rust ignore">// Gets the alt type or the default if it is the main type
 getAltOr(Either&lt;any, anythingElse&gt;, anythingElse): anythingElse
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h4><a class="header" href="#built-in-operators" id="built-in-operators">Built-in Operators</a></h4>
-<p>As <a href="./operators.html">operators</a> in <code>alan</code> are simply aliases for functions with a precedence value associated, all of the following operators have their underlying implementation defined above.</p>
+<p>As <a href="./operators.html">operators</a> in Alan are simply aliases for functions with a precedence value associated, all of the following operators have their underlying implementation defined above.</p>
 <table>
   <thead>
     <tr>
@@ -1845,26 +1411,33 @@ getAltOr(Either&lt;any, anythingElse&gt;, anythingElse): anythingElse
 <h3><a class="header" href="#stdapp" id="stdapp">@std/app</a></h3>
 <p>Currently very bare, only a single <code>print</code> function that takes all of the basic types and puts it on the console, and threeevents <code>start</code>, <code>exit</code>, and <code>stdout</code>. <code>start</code> intended to be handled by the user as it is automatically emitted <em>once</em> and <code>exit</code> to be emitted by the user when the program should finish. <code>stdout</code> is for more direct streaming of characters to standard out.</p>
 <p>The formal declarations:</p>
-<p><code>fn print(Stringifiable): void</code></p>
-<p><code>event start: void</code></p>
-<p><code>event exit: int8</code></p>
-<p><code>event stdout: string</code></p>
-<h3><a class="header" href="#stdcmd" id="stdcmd">@std/cmd</a></h3>
-<p>Also very bare, only a single function: <code>exec</code> with the signature:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>exec(string): void
-<span class="boring">}
-</span></code></pre></pre>
-<p>It simply side-effect executes the provided shell string.</p>
-<h3><a class="header" href="#stddeps" id="stddeps">@std/deps</a></h3>
-<p>This library provides code to manage the dependencies of an <code>alan</code> project.</p>
-<p>It exports one event, <code>install</code> that scripts managing dependencies should use instead of <code>start</code>.</p>
-<p>It also exports one function <code>add</code>, with the following signature:</p>
-<pre><code>add(string): void
+<pre><code class="language-rust ignore">fn print(Stringifiable): void
 </code></pre>
-<p>This function takes the given string, treats it as a <code>git</code> URL and acquires the specified repository. Currently assumes a Github-like URL format ending with <code>accountName/projectName.git</code> and uses this namespacing to place the git repository into the project dependency tree such that it is accessible to import as <code>@accountName/projectName</code>.</p>
+<pre><code class="language-rust ignore">event start: void
+</code></pre>
+<pre><code class="language-rust ignore">event exit: int8
+</code></pre>
+<pre><code class="language-rust ignore">event stdout: string
+</code></pre>
+<h3><a class="header" href="#stdcmd" id="stdcmd">@std/cmd</a></h3>
+<p>Also very bare, only a single type <code>ExecRes</code>, and a function: <code>exec</code> with the signature:</p>
+<pre><code class="language-rust ignore">type ExecRes {
+  exitCode: int64
+  stdout: string
+  stderr: string
+}
+</code></pre>
+<pre><code class="language-rust ignore">exec(string): ExecRes
+</code></pre>
+<p>It simply executes the provided shell string and returns the outputs from it.</p>
+<h3><a class="header" href="#stddeps" id="stddeps">@std/deps</a></h3>
+<p>This library provides code to manage the dependencies of an Alan project.</p>
+<p>It exports one event, <code>install</code> that scripts managing dependencies should use instead of <code>start</code>.</p>
+<p>It also exports two functions <code>add</code>, and <code>commit</code> with the following signature:</p>
+<pre><code>add(string): void
+commit(): void
+</code></pre>
+<p>The <code>add</code> function takes the given string, treats it as a <code>git</code> URL and acquires the specified repository. Currently assumes a Github-like URL format ending with <code>accountName/projectName.git</code> and uses this namespacing to place the git repository into the project dependency tree such that it is accessible to import as <code>@accountName/projectName</code>. The <code>commit</code> function indicates that all changes to the dependency tree are done and allows the dependency management program to commit and close out.</p>
 <h3><a class="header" href="#stdtrig" id="stdtrig">@std/trig</a></h3>
 <p>This standard library provides the constants <a href="https://simple.wikipedia.org/wiki/E_(mathematical_constant)">e</a>, <a href="https://en.wikipedia.org/wiki/Pi">pi</a>, and <a href="https://math.wikia.org/wiki/Tau_(constant)">tau</a>, <a href="https://en.wikipedia.org/wiki/List_of_trigonometric_identities">all of the trigonometric functions</a>, the <a href="https://en.wikipedia.org/wiki/Hyperbolic_functions">hyperbolic functions</a>, the <a href="https://en.wikipedia.org/wiki/Common_logarithm">common</a> and <a href="https://en.wikipedia.org/wiki/Natural_logarithm">natural</a> logarithms, and the <a href="https://en.wikipedia.org/wiki/Exponential_function">exp function</a>.</p>
 <p>All of the trigonometric functions are exported with both <code>float32</code> and <code>float64</code> support, and with both a short 3-5 character name common in textbooks and a fully-spelled out name. Eg, <code>sin</code> is the same as <code>sine</code> and <code>ahcc</code> is the same as <code>archacovercosine</code>. The meanings and uses of the trigonometric functions will not be covered in here as the Wikipedia links in the first paragraph provide a far better and in-depth explanation, including some <a href="https://upload.wikimedia.org/wikipedia/commons/9/9d/Circle-trig6.svg">great visual diagrams</a> that can elucidate things quickly for those already familiar with the classic <code>sin</code>, <code>cos</code>, and <code>tan</code>. Instead, below will be a listing of the signatures of everything exported by the library.</p>
@@ -2116,12 +1689,12 @@ fn hyperbolicArccotangent(x: float32): float32
 <span class="boring">}
 </span></code></pre></pre>
 <h1><a class="header" href="#examples-with-explanations" id="examples-with-explanations">Examples with Explanations</a></h1>
-<p>In this section, several examples will be demonstrated with the <code>alan</code> language. Some of them will be repetitious, showing multiple ways to accomplish the same thing.</p>
+<p>In this section, several examples will be demonstrated with the Alan language. Some of them will be repetitious, showing multiple ways to accomplish the same thing.</p>
 <p>Attempting to force a single way to do things, as Python pushes for, can make things easy things easier, but breaking those patterns to be more concise in a particular problem domain can raise the actual clarity of what is happening and why for those working on it, and is why all fields of endeavour develop their own terminology and notation over time.</p>
-<p><code>alan</code> attempts to make these situations clearer by requiring the explicit declaration of the notation in use so people new to the notation can read that mapping and understand what's going on better.</p>
+<p>Alan attempts to make these situations clearer by requiring the explicit declaration of the notation in use so people new to the notation can read that mapping and understand what's going on better.</p>
 <h2><a class="header" href="#the-many-forms-of-hello-world" id="the-many-forms-of-hello-world">The Many Forms of 'Hello, World!'</a></h2>
 <p>The classic &quot;Hello, World!&quot; examples are a simple way to understand the minimum of structure you need to have in any code you write in a given language, with Java being famously heavyweight and Python famously featherweight.</p>
-<p><code>alan</code> is in the middle, requiring some concepts from the get-go that would be confusing to absolute beginners, but not requiring as many concepts as Java.</p>
+<p>Alan is in the middle, requiring some concepts from the get-go that would be confusing to absolute beginners, but not requiring as many concepts as Java.</p>
 <h3><a class="header" href="#hello_world_1ln" id="hello_world_1ln"><code>hello_world_1.ln</code></a></h3>
 <pre><pre class="playpen"><code class="language-rust editable">import @std/app
 
@@ -2178,7 +1751,7 @@ on start {
 on start fn {
   const hello: string = &quot;Hello&quot;
   const world: string = &quot;World&quot;
-  print(concat(hello, &quot;, &quot;, world, &quot;!&quot;))
+  print(hello + &quot;, &quot; + world + &quot;!&quot;))
   emit exit 0
 }
 </code></pre></pre>
@@ -2203,18 +1776,6 @@ fn main() {
 on start main
 </code></pre></pre>
 <p>This example demonstrates that the functions passed to an event handler don't have to be inline declared.</p>
-<h3><a class="header" href="#hello_world_9ln" id="hello_world_9ln"><code>hello_world_9.ln</code></a></h3>
-<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
-
-prefix $&gt; 1 print
-
-on start {
-  _ = $&gt; &quot;Hello, World!&quot;
-  emit exit 0
-}
-</code></pre></pre>
-<p>This example introduces the <code>_</code> special variable and prefix operators, effectively renaming <code>print</code> to <code>$&gt;</code> and letting you print &quot;Hello, World!&quot; with another syntax.</p>
-<p>Because the statement would be ambiguous otherwise, the operator expression <em>must</em> be assigned to something. Since we don't care what value <code>print</code> returns (hint: <code>void</code>), we assign to the <code>_</code> variable to throw it away.</p>
 <h2><a class="header" href="#more-advanced-examples" id="more-advanced-examples">More advanced examples</a></h2>
 <p>These examples are still relatively simple (they fit in a single file) but they demonstrate more concepts that cannot be easily shown in just a &quot;Hello, World!&quot; application.</p>
 <h3><a class="header" href="#mathln" id="mathln"><code>math.ln</code></a></h3>
@@ -2271,24 +1832,20 @@ on start {
   print(test3[1])
   print(test3[2])
 
-  let test4 = new Array&lt;int64&gt; [ 0, 1, 2, 3 ]
-  test4[0] = 1
+  let test4 = [ 0, 1, 2, 3 ]
+  test4.set(0, 1)
   print(test4[0])
 
-  print(&quot;Map literal assignment&quot;)
-  const test5 = new Map&lt;bool, int64&gt; {
-    true: 1
-    false: 0
-  }
+  print(&quot;HashMap literal assignment&quot;)
+  const test5 = newHashMap(true, 1)
+  test5.set(false, 0)
 
-  print(test5[true])
-  print(test5[false])
+  print(test5.get(true))
+  print(test5.get(false))
 
-  let test6 = new Map&lt;string, string&gt; {
-    &quot;foo&quot;: &quot;bar&quot;
-  }
-  test6[&quot;foo&quot;] = &quot;baz&quot;
-  print(test6[&quot;foo&quot;])
+  let test6 = newHashMap(&quot;foo&quot;, &quot;bar&quot;)
+  test6.set(&quot;foo&quot;, &quot;baz&quot;)
+  print(test6.get(&quot;foo&quot;))
 
   emit exit 0
 }
@@ -2359,8 +1916,11 @@ on start {
 }
 </code></pre></pre>
 <p>This example demonstrates conditionals (if statements) and shows that the conditional &quot;scopes&quot; are actually functions, but due to how nested scope rules work, they can still manipulate the parent function scope as needed for execution to function. It also demonstrates &quot;ternary&quot; operators and how they are composed of <code>pair</code> and <code>cond</code> function calls.</p>
-<h3><a class="header" href="#datetimeln" id="datetimeln"><code>datetime.ln</code></a></h3>
-<pre><pre class="playpen"><code class="language-rust editable">from @std/app import print
+<!-- TODO: Restore these once we figure out how to do multi-file examples in mdbook and our browser-transpiled compiler
+### `datetime.ln`
+
+```rust,editable
+from @std/app import print
 
 export type Year {
   year: int32
@@ -2528,15 +2088,15 @@ export fn makeDateTimeTimezoneRev(dt: DateTime, timezone: HourMinute): DateTime 
 export fn print(dt: DateTime) {
   // TODO: Work on formatting stuff
   let timezoneOffsetSymbol: string
-  if (dt.timezone.hour &lt; toInt8(0)) {
-    timezoneOffsetSymbol = &quot;-&quot;
+  if (dt.timezone.hour < toInt8(0)) {
+    timezoneOffsetSymbol = "-"
   } else {
-    timezoneOffsetSymbol = &quot;+&quot;
+    timezoneOffsetSymbol = "+"
   }
   let str: string = concat(
-    toString(dt.date.year), &quot;-&quot;, toString(dt.date.month), &quot;-&quot;, toString(dt.date.day), &quot;@&quot;,
-    toString(dt.time.hour), &quot;:&quot;, toString(dt.time.minute), &quot;:&quot;, toString(dt.time.second),
-    timezoneOffsetSymbol, abs(dt.timezone.hour).toString(), &quot;:&quot;, dt.timezone.minute.toString()
+    toString(dt.date.year), "-", toString(dt.date.month), "-", toString(dt.date.day), "@",
+    toString(dt.time.hour), ":", toString(dt.time.minute), ":", toString(dt.time.second),
+    timezoneOffsetSymbol, abs(dt.timezone.hour).toString(), ":", dt.timezone.minute.toString()
   )
   print(str)
 }
@@ -2556,10 +2116,14 @@ export infix @ 2 makeDateTime
 export infix + 2 makeDateTimeTimezone
 
 export infix - 2 makeDateTimeTimezoneRev
-</code></pre></pre>
-<p>This more complex example defines a simplistic DateTime type and associated types, as well as various constructor functions and mappings of those onto operators.</p>
-<h3><a class="header" href="#test_datetimeln" id="test_datetimeln"><code>test_datetime.ln</code></a></h3>
-<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, exit
+```
+
+This more complex example defines a simplistic DateTime type and associated types, as well as various constructor functions and mappings of those onto operators.
+
+### `test_datetime.ln`
+
+```rust,editable
+from @std/app import start, exit
 
 from ./datetime import DateTime, print, #, -, :, @, +
 
@@ -2568,10 +2132,14 @@ on start fn {
   print(dt)
   emit exit 0
 }
-</code></pre></pre>
-<p>This file uses the <code>datetime.ln</code> file to very concisely define a time in ISO format and then print it out. It is a demonstration of how operators can be used to create compact-but-clear DSLs where you can still go to the source code to find out how and why it works.</p>
-<h3><a class="header" href="#methodln" id="methodln"><code>method.ln</code></a></h3>
-<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+```
+
+This file uses the `datetime.ln` file to very concisely define a time in ISO format and then print it out. It is a demonstration of how operators can be used to create compact-but-clear DSLs where you can still go to the source code to find out how and why it works.
+
+### `method.ln`
+
+```rust,editable
+from @std/app import start, print, exit
 
 from ./datetime import DateTime, print, #, -, :, @, +
 
@@ -2579,7 +2147,7 @@ on start fn {
   true.print()
   1.print()
   3.14159.print()
-  &quot;Hello, World!&quot;.print()
+  "Hello, World!".print()
 
   const dt: DateTime = #2020-01-17@16:15:00-08:00
   dt.print()
@@ -2590,8 +2158,11 @@ on start fn {
 
   emit exit 0
 }
-</code></pre></pre>
-<p>This example introduces method syntax, and shows multiple variants of the same statement at the end.</p>
+```
+
+This example introduces method syntax, and shows multiple variants of the same statement at the end.
+
+-->
 <h3><a class="header" href="#stringln" id="stringln"><code>string.ln</code></a></h3>
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
@@ -2607,17 +2178,10 @@ on start fn {
   print(helloWorldArr2[0])
   print(helloWorldArr2[1])
 
-  const helloWorldMap = new Map&lt;string, string&gt; {
-    &quot;hello&quot;: &quot;Hello&quot;
-    &quot;world&quot;: &quot;World&quot;
-  }
-  print(template(&quot;${hello}, ${world}!&quot;, helloWorldMap))
-  print(&quot;${hello}, ${world}!&quot; % helloWorldMap)
-
   print(&quot;Hi &quot; * 5)
   print(repeat(&quot;Hi &quot;, 5))
 
-  print(helloWorld ~ &quot;or&quot;) // Java's regex engine is whack, this returns false, replace with PCRE
+  print(helloWorld ~ &quot;or&quot;)
   print(helloWorld.matches(&quot;or&quot;))
 
   print(helloWorld @ &quot;or&quot;)
@@ -2629,92 +2193,62 @@ on start fn {
   helloWorld.length().print()
 
   print(&quot;'&quot; + `(&quot;Hi &quot; * 5) + &quot;'&quot;)
-  print(concat(&quot;'&quot;, trim(repeat(&quot;Hi &quot;, 5)), &quot;'&quot;))
+  print(&quot;'&quot; + trim(repeat(&quot;Hi &quot;, 5)) + &quot;'&quot;)
 
   emit exit 0
 }
 </code></pre></pre>
 <p>This example exercises many string manipulation mechanisms and alternate syntaxes using operators and method style function calls.</p>
-<h3><a class="header" href="#typeofln" id="typeofln"><code>typeof.ln</code></a></h3>
-<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
-
-type foo&lt;A, B&gt; {
-  bar: A
-  baz: B
-}
-
-type foo2 = foo&lt;int64, float64&gt;
-
-on start fn {
-  print(type 3)
-  print(type 3.14)
-  print(type (1 + 2))
-  print(type &quot;str&quot;)
-  print(type true)
-  print(type true == &quot;bool&quot;)
-  
-  let a: foo&lt;string, int64&gt;
-  let b: foo&lt;int64, bool&gt;
-  let c: foo2
-  let d: foo&lt;int64, float64&gt;
-  print(type a)
-  print(type b)
-  print(type type a)
-  print(type c)
-  print(type d)
-  print(type c == type d)
-
-  emit exit 0
-}
-</code></pre></pre>
-<p>This example demonstrates acquiring the type of constants and variables, as well as the basics of generic types.</p>
 <h3><a class="header" href="#boxln" id="boxln"><code>box.ln</code></a></h3>
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
-type box&lt;V&gt; {
+// Generic types don't need to be capitalized, but it tends to look nicer
+type Box&lt;V&gt; {
   set: bool
   val: V
 }
 
 on start fn {
-  let int8Box: box&lt;int8&gt;
-  int8Box.val = 8
-  int8Box.set = true
+  let int8Box = new Box&lt;int64&gt; {
+    val = 8
+    set = true
+  }
   print(int8Box.val)
   print(int8Box.set)
 
-  let stringBox: box&lt;string&gt;
-  stringBox.val = &quot;hello, generics!&quot;
-  stringBox.set = true
+  let stringBox = new Box&lt;string&gt; {
+    val = &quot;hello, generics!&quot;
+    set = true
+  }
   print(stringBox.val)
   print(stringBox.set)
 
-  const stringBoxBox = new box&lt;box&lt;string&gt;&gt; {
-    val = new box&lt;string&gt; {
+  const stringBoxBox = new Box&lt;Box&lt;string&gt;&gt; {
+    val = new Box&lt;string&gt; {
       val = &quot;hello, nested generics!&quot;
       set = true
     }
     set = true
   }
-  stringBoxBox.set.print()
-  stringBoxBox.val.set.print()
-  stringBoxBox.val.val.print()
+  print(stringBoxBox.set)
+  print(stringBoxBox.val.set)
+  print(stringBoxBox.val.val)
 
-  // The following should crash, later will be a compile-time error
-  stringBox.val = 8
+  // The following is a compile time error, uncomment to see!
+  // stringBox.val = 8
 
   emit exit 0
 }
 </code></pre></pre>
 <p>This example uses generics to define a Box type and how to work with it at a basic assignment level.</p>
-<h3><a class="header" href="#big_loopln" id="big_loopln"><code>big_loop.ln</code></a></h3>
+<h3><a class="header" href="#loopln" id="loopln"><code>loop.ln</code></a></h3>
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
 event loop: int64
 
 on loop fn looper(val: int64) {
   print(val)
-  if val &gt;= 1000000 {
+  if val &gt;= 10 {
     emit exit 0
   } else {
     emit loop val + 1
@@ -2725,19 +2259,25 @@ on start {
   emit loop 0
 }
 </code></pre></pre>
-<p>This example defines a custom event type and then uses it to implement a recursive function that prints to 1 million and then quits. It also usesif statements to accomplish this.</p>
-<p>This is slow and intentionally awkward because this is an escape hatch to Turing-completeness and not the intended primary use case, as <code>alan</code>'s execution planner will not be able to properly optimize the parallelization of this approach (it is by definition a sequential operation, though the body of the recursive function may be parallelized). It shouldn't be necessary to accomplish your needs in the language, but it is there.</p>
-<h3><a class="header" href="#httpln" id="httpln"><code>http.ln</code></a></h3>
-<pre><pre class="playpen"><code class="language-rust editable">import @std/http
+<p>This example defines a custom event type and then uses it to implement a recursive function that prints to 10 and then quits. It also usesif statements to accomplish this.</p>
+<p>This is slow and intentionally awkward because this is an escape hatch to Turing-completeness and not the intended primary use case, as Alan's execution planner will not be able to properly optimize the parallelization of this approach (it is by definition a sequential operation, though the body of the recursive function may be parallelized). It shouldn't be necessary to accomplish your needs in the language, but it is there.</p>
+<!-- TODO: Should we even have an http server example in here? We can't run it. Also this syntax is very wrong
+### `http.ln`
+
+```rust,editable
+import @std/http
 
 on http.port(8080) fn (socket: http.Socket) {
   socket.response.statusCode = 200
-  socket.response.body = &quot;Hello, World!&quot;
+  socket.response.body = "Hello, World!"
   http.close(socket)
 }
-</code></pre></pre>
-<p>This example defines a <code>Hello, World!</code> http server on port 8080.</p>
-<h1><a class="header" href="#contributing-to-alan" id="contributing-to-alan">Contributing to <code>alan</code></a></h1>
+```
+
+This example defines a `Hello, World!` http server on port 8080.
+
+-->
+<h1><a class="header" href="#contributing-to-alan" id="contributing-to-alan">Contributing to Alan</a></h1>
 <p>TBD</p>
 
             </main>

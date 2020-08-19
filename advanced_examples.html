@@ -199,24 +199,20 @@ on start {
   print(test3[1])
   print(test3[2])
 
-  let test4 = new Array&lt;int64&gt; [ 0, 1, 2, 3 ]
-  test4[0] = 1
+  let test4 = [ 0, 1, 2, 3 ]
+  test4.set(0, 1)
   print(test4[0])
 
-  print(&quot;Map literal assignment&quot;)
-  const test5 = new Map&lt;bool, int64&gt; {
-    true: 1
-    false: 0
-  }
+  print(&quot;HashMap literal assignment&quot;)
+  const test5 = newHashMap(true, 1)
+  test5.set(false, 0)
 
-  print(test5[true])
-  print(test5[false])
+  print(test5.get(true))
+  print(test5.get(false))
 
-  let test6 = new Map&lt;string, string&gt; {
-    &quot;foo&quot;: &quot;bar&quot;
-  }
-  test6[&quot;foo&quot;] = &quot;baz&quot;
-  print(test6[&quot;foo&quot;])
+  let test6 = newHashMap(&quot;foo&quot;, &quot;bar&quot;)
+  test6.set(&quot;foo&quot;, &quot;baz&quot;)
+  print(test6.get(&quot;foo&quot;))
 
   emit exit 0
 }
@@ -287,8 +283,11 @@ on start {
 }
 </code></pre></pre>
 <p>This example demonstrates conditionals (if statements) and shows that the conditional &quot;scopes&quot; are actually functions, but due to how nested scope rules work, they can still manipulate the parent function scope as needed for execution to function. It also demonstrates &quot;ternary&quot; operators and how they are composed of <code>pair</code> and <code>cond</code> function calls.</p>
-<h3><a class="header" href="#datetimeln" id="datetimeln"><code>datetime.ln</code></a></h3>
-<pre><pre class="playpen"><code class="language-rust editable">from @std/app import print
+<!-- TODO: Restore these once we figure out how to do multi-file examples in mdbook and our browser-transpiled compiler
+### `datetime.ln`
+
+```rust,editable
+from @std/app import print
 
 export type Year {
   year: int32
@@ -456,15 +455,15 @@ export fn makeDateTimeTimezoneRev(dt: DateTime, timezone: HourMinute): DateTime 
 export fn print(dt: DateTime) {
   // TODO: Work on formatting stuff
   let timezoneOffsetSymbol: string
-  if (dt.timezone.hour &lt; toInt8(0)) {
-    timezoneOffsetSymbol = &quot;-&quot;
+  if (dt.timezone.hour < toInt8(0)) {
+    timezoneOffsetSymbol = "-"
   } else {
-    timezoneOffsetSymbol = &quot;+&quot;
+    timezoneOffsetSymbol = "+"
   }
   let str: string = concat(
-    toString(dt.date.year), &quot;-&quot;, toString(dt.date.month), &quot;-&quot;, toString(dt.date.day), &quot;@&quot;,
-    toString(dt.time.hour), &quot;:&quot;, toString(dt.time.minute), &quot;:&quot;, toString(dt.time.second),
-    timezoneOffsetSymbol, abs(dt.timezone.hour).toString(), &quot;:&quot;, dt.timezone.minute.toString()
+    toString(dt.date.year), "-", toString(dt.date.month), "-", toString(dt.date.day), "@",
+    toString(dt.time.hour), ":", toString(dt.time.minute), ":", toString(dt.time.second),
+    timezoneOffsetSymbol, abs(dt.timezone.hour).toString(), ":", dt.timezone.minute.toString()
   )
   print(str)
 }
@@ -484,10 +483,14 @@ export infix @ 2 makeDateTime
 export infix + 2 makeDateTimeTimezone
 
 export infix - 2 makeDateTimeTimezoneRev
-</code></pre></pre>
-<p>This more complex example defines a simplistic DateTime type and associated types, as well as various constructor functions and mappings of those onto operators.</p>
-<h3><a class="header" href="#test_datetimeln" id="test_datetimeln"><code>test_datetime.ln</code></a></h3>
-<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, exit
+```
+
+This more complex example defines a simplistic DateTime type and associated types, as well as various constructor functions and mappings of those onto operators.
+
+### `test_datetime.ln`
+
+```rust,editable
+from @std/app import start, exit
 
 from ./datetime import DateTime, print, #, -, :, @, +
 
@@ -496,10 +499,14 @@ on start fn {
   print(dt)
   emit exit 0
 }
-</code></pre></pre>
-<p>This file uses the <code>datetime.ln</code> file to very concisely define a time in ISO format and then print it out. It is a demonstration of how operators can be used to create compact-but-clear DSLs where you can still go to the source code to find out how and why it works.</p>
-<h3><a class="header" href="#methodln" id="methodln"><code>method.ln</code></a></h3>
-<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+```
+
+This file uses the `datetime.ln` file to very concisely define a time in ISO format and then print it out. It is a demonstration of how operators can be used to create compact-but-clear DSLs where you can still go to the source code to find out how and why it works.
+
+### `method.ln`
+
+```rust,editable
+from @std/app import start, print, exit
 
 from ./datetime import DateTime, print, #, -, :, @, +
 
@@ -507,7 +514,7 @@ on start fn {
   true.print()
   1.print()
   3.14159.print()
-  &quot;Hello, World!&quot;.print()
+  "Hello, World!".print()
 
   const dt: DateTime = #2020-01-17@16:15:00-08:00
   dt.print()
@@ -518,8 +525,11 @@ on start fn {
 
   emit exit 0
 }
-</code></pre></pre>
-<p>This example introduces method syntax, and shows multiple variants of the same statement at the end.</p>
+```
+
+This example introduces method syntax, and shows multiple variants of the same statement at the end.
+
+-->
 <h3><a class="header" href="#stringln" id="stringln"><code>string.ln</code></a></h3>
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
@@ -535,17 +545,10 @@ on start fn {
   print(helloWorldArr2[0])
   print(helloWorldArr2[1])
 
-  const helloWorldMap = new Map&lt;string, string&gt; {
-    &quot;hello&quot;: &quot;Hello&quot;
-    &quot;world&quot;: &quot;World&quot;
-  }
-  print(template(&quot;${hello}, ${world}!&quot;, helloWorldMap))
-  print(&quot;${hello}, ${world}!&quot; % helloWorldMap)
-
   print(&quot;Hi &quot; * 5)
   print(repeat(&quot;Hi &quot;, 5))
 
-  print(helloWorld ~ &quot;or&quot;) // Java's regex engine is whack, this returns false, replace with PCRE
+  print(helloWorld ~ &quot;or&quot;)
   print(helloWorld.matches(&quot;or&quot;))
 
   print(helloWorld @ &quot;or&quot;)
@@ -557,92 +560,62 @@ on start fn {
   helloWorld.length().print()
 
   print(&quot;'&quot; + `(&quot;Hi &quot; * 5) + &quot;'&quot;)
-  print(concat(&quot;'&quot;, trim(repeat(&quot;Hi &quot;, 5)), &quot;'&quot;))
+  print(&quot;'&quot; + trim(repeat(&quot;Hi &quot;, 5)) + &quot;'&quot;)
 
   emit exit 0
 }
 </code></pre></pre>
 <p>This example exercises many string manipulation mechanisms and alternate syntaxes using operators and method style function calls.</p>
-<h3><a class="header" href="#typeofln" id="typeofln"><code>typeof.ln</code></a></h3>
-<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
-
-type foo&lt;A, B&gt; {
-  bar: A
-  baz: B
-}
-
-type foo2 = foo&lt;int64, float64&gt;
-
-on start fn {
-  print(type 3)
-  print(type 3.14)
-  print(type (1 + 2))
-  print(type &quot;str&quot;)
-  print(type true)
-  print(type true == &quot;bool&quot;)
-  
-  let a: foo&lt;string, int64&gt;
-  let b: foo&lt;int64, bool&gt;
-  let c: foo2
-  let d: foo&lt;int64, float64&gt;
-  print(type a)
-  print(type b)
-  print(type type a)
-  print(type c)
-  print(type d)
-  print(type c == type d)
-
-  emit exit 0
-}
-</code></pre></pre>
-<p>This example demonstrates acquiring the type of constants and variables, as well as the basics of generic types.</p>
 <h3><a class="header" href="#boxln" id="boxln"><code>box.ln</code></a></h3>
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
-type box&lt;V&gt; {
+// Generic types don't need to be capitalized, but it tends to look nicer
+type Box&lt;V&gt; {
   set: bool
   val: V
 }
 
 on start fn {
-  let int8Box: box&lt;int8&gt;
-  int8Box.val = 8
-  int8Box.set = true
+  let int8Box = new Box&lt;int64&gt; {
+    val = 8
+    set = true
+  }
   print(int8Box.val)
   print(int8Box.set)
 
-  let stringBox: box&lt;string&gt;
-  stringBox.val = &quot;hello, generics!&quot;
-  stringBox.set = true
+  let stringBox = new Box&lt;string&gt; {
+    val = &quot;hello, generics!&quot;
+    set = true
+  }
   print(stringBox.val)
   print(stringBox.set)
 
-  const stringBoxBox = new box&lt;box&lt;string&gt;&gt; {
-    val = new box&lt;string&gt; {
+  const stringBoxBox = new Box&lt;Box&lt;string&gt;&gt; {
+    val = new Box&lt;string&gt; {
       val = &quot;hello, nested generics!&quot;
       set = true
     }
     set = true
   }
-  stringBoxBox.set.print()
-  stringBoxBox.val.set.print()
-  stringBoxBox.val.val.print()
+  print(stringBoxBox.set)
+  print(stringBoxBox.val.set)
+  print(stringBoxBox.val.val)
 
-  // The following should crash, later will be a compile-time error
-  stringBox.val = 8
+  // The following is a compile time error, uncomment to see!
+  // stringBox.val = 8
 
   emit exit 0
 }
 </code></pre></pre>
 <p>This example uses generics to define a Box type and how to work with it at a basic assignment level.</p>
-<h3><a class="header" href="#big_loopln" id="big_loopln"><code>big_loop.ln</code></a></h3>
+<h3><a class="header" href="#loopln" id="loopln"><code>loop.ln</code></a></h3>
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
 event loop: int64
 
 on loop fn looper(val: int64) {
   print(val)
-  if val &gt;= 1000000 {
+  if val &gt;= 10 {
     emit exit 0
   } else {
     emit loop val + 1
@@ -653,18 +626,24 @@ on start {
   emit loop 0
 }
 </code></pre></pre>
-<p>This example defines a custom event type and then uses it to implement a recursive function that prints to 1 million and then quits. It also usesif statements to accomplish this.</p>
-<p>This is slow and intentionally awkward because this is an escape hatch to Turing-completeness and not the intended primary use case, as <code>alan</code>'s execution planner will not be able to properly optimize the parallelization of this approach (it is by definition a sequential operation, though the body of the recursive function may be parallelized). It shouldn't be necessary to accomplish your needs in the language, but it is there.</p>
-<h3><a class="header" href="#httpln" id="httpln"><code>http.ln</code></a></h3>
-<pre><pre class="playpen"><code class="language-rust editable">import @std/http
+<p>This example defines a custom event type and then uses it to implement a recursive function that prints to 10 and then quits. It also usesif statements to accomplish this.</p>
+<p>This is slow and intentionally awkward because this is an escape hatch to Turing-completeness and not the intended primary use case, as Alan's execution planner will not be able to properly optimize the parallelization of this approach (it is by definition a sequential operation, though the body of the recursive function may be parallelized). It shouldn't be necessary to accomplish your needs in the language, but it is there.</p>
+<!-- TODO: Should we even have an http server example in here? We can't run it. Also this syntax is very wrong
+### `http.ln`
+
+```rust,editable
+import @std/http
 
 on http.port(8080) fn (socket: http.Socket) {
   socket.response.statusCode = 200
-  socket.response.body = &quot;Hello, World!&quot;
+  socket.response.body = "Hello, World!"
   http.close(socket)
 }
-</code></pre></pre>
-<p>This example defines a <code>Hello, World!</code> http server on port 8080.</p>
+```
+
+This example defines a `Hello, World!` http server on port 8080.
+
+-->
 
             </main>
 

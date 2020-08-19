@@ -144,8 +144,8 @@
         <div id="content" class="content">
             <main>
                 <h4><a class="header" href="#events" id="events">Events</a></h4>
-<p>Events are sources for activity in <code>alan</code>. No code is run that isn't triggered by an event. Event declaration is relatively simple:</p>
-<pre><code>event eventName: typename
+<p>Events are sources for activity in Alan. No code is run that isn't triggered by an event. Event declaration is relatively simple:</p>
+<pre><code class="language-rust ignore">event eventName: typename
 </code></pre>
 <p>where <code>eventName</code> is the name of the event. The <code>typename</code> annotation for events is required, unlike other places within the codebase. This requirement may change in the future as the event handler(s) listening to the event, and/or the event emit statement(s) emitting to the event could determine the type of the event, but it would impact the clarity of code surrounding the event as well as make the parser more complex.</p>
 

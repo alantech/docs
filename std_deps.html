@@ -144,12 +144,13 @@
         <div id="content" class="content">
             <main>
                 <h3><a class="header" href="#stddeps" id="stddeps">@std/deps</a></h3>
-<p>This library provides code to manage the dependencies of an <code>alan</code> project.</p>
+<p>This library provides code to manage the dependencies of an Alan project.</p>
 <p>It exports one event, <code>install</code> that scripts managing dependencies should use instead of <code>start</code>.</p>
-<p>It also exports one function <code>add</code>, with the following signature:</p>
+<p>It also exports two functions <code>add</code>, and <code>commit</code> with the following signature:</p>
 <pre><code>add(string): void
+commit(): void
 </code></pre>
-<p>This function takes the given string, treats it as a <code>git</code> URL and acquires the specified repository. Currently assumes a Github-like URL format ending with <code>accountName/projectName.git</code> and uses this namespacing to place the git repository into the project dependency tree such that it is accessible to import as <code>@accountName/projectName</code>.</p>
+<p>The <code>add</code> function takes the given string, treats it as a <code>git</code> URL and acquires the specified repository. Currently assumes a Github-like URL format ending with <code>accountName/projectName.git</code> and uses this namespacing to place the git repository into the project dependency tree such that it is accessible to import as <code>@accountName/projectName</code>. The <code>commit</code> function indicates that all changes to the dependency tree are done and allows the dependency management program to commit and close out.</p>
 
             </main>
 

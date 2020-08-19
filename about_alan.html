@@ -143,8 +143,8 @@
 
         <div id="content" class="content">
             <main>
-                <h1><a class="header" href="#about-alan" id="about-alan">About <code>alan</code></a></h1>
-<p><code>alan</code> is a natively-parallel, statically-compiled, type-inferred language with a familiar syntax and many compile-time and run-time safety guarantees.</p>
+                <h1><a class="header" href="#about-alan" id="about-alan">About Alan</a></h1>
+<p>Alan is a natively-parallel, statically-compiled, type-inferred language with a familiar syntax and many compile-time and run-time safety guarantees.</p>
 <ul>
 <li>The compiler can determine which array operations are safely parallelizable and automatically distributes them across a threadpool.</li>
 <li>The runtime can determine which operations are IO operations and automatically <code>async/await</code> them, as well as automatically batch IO operations that can be executed in parallel safely.</li>
@@ -153,10 +153,10 @@
 <li>The module system has a built-in mocking mechanism (with no runtime performance penalty) that can be used for fine-grained permissioning of access to the standard library for third-party libraries.</li>
 <li>Aggressive function inlining and dead-code removal to make sure unused code isn't even available in the output to potentially exploit.</li>
 </ul>
-<p>To accomplish this, <code>alan</code> makes one single, significant trade-off versus other programming languages: Functions in <code>alan</code> are all acyclic directed graphs. No arbitrary loops or recursion are allowed.</p>
+<p>To accomplish this, Alan makes one single, significant trade-off versus other programming languages: Functions in Alan are all acyclic directed graphs. No arbitrary loops or recursion are allowed.</p>
 <p>This does not mean that you can't loop over data or write recursive algorithms, just that they are provided through controlled built-in functions that the compiler and runtime can reason about to provide automatic parallelization when possible, or to force handling a recursion error instead of crashing on a stack overflow.</p>
-<p>This means that the code that you write in <code>alan</code> is not <em>quite</em> Turing-complete<sup class="footnote-reference"><a href="#1">1</a></sup>. But we believe that we have cut &quot;close enough&quot; to Turing-completeness and provided enough controlled mechanisms to fill the gaps that the advantages in having predictable functions outweigh the few places where <code>alan</code>'s syntax is slightly more awkward than its peers'.This allows the runtime to be able to judge when parallelization makes sense based on the data to be processed and the complexity of the code to be executed.</p>
-<p><code>alan</code> solves the Halting Problem -- by sidestepping it. <code>alan</code> pushes you to write deterministic code with known execution patterns, and forces eventual halting of non-deterministic code by wrapping it in constructs that demand a maximum number of loops before erroring out. We believe this is what the vast majority of developers and companies alike want from their language because while not every question you can ask of a computer will ever return an answer, only those that do are useful to humanity.</p>
+<p>This means that the code that you write in Alan is not <em>quite</em> Turing-complete<sup class="footnote-reference"><a href="#1">1</a></sup>. But we believe that we have cut &quot;close enough&quot; to Turing-completeness and provided enough controlled mechanisms to fill the gaps that the advantages in having predictable functions outweigh the few places where Alan's syntax is slightly more awkward than its peers'.This allows the runtime to be able to judge when parallelization makes sense based on the data to be processed and the complexity of the code to be executed.</p>
+<p>Alan solves the Halting Problem -- by sidestepping it. Alan pushes you to write deterministic code with known execution patterns, and forces eventual halting of non-deterministic code by wrapping it in constructs that demand a maximum number of loops before erroring out. We believe this is what the vast majority of developers and companies alike want from their language because while not every question you can ask of a computer will ever return an answer, only those that do are useful to humanity.</p>
 <div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
 <p>Technically an escape hatch through the event loop has been left open for very awkward recursive calls. This does not impact the advantages of the runtime for the language, however, and can be useful if absolutely necessary, but please reach out if you feel the need to use it, as that means either you're doing something wrong, or there's something missing to the language that should be added.</p>
 </div>

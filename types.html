@@ -144,108 +144,68 @@
         <div id="content" class="content">
             <main>
                 <h4><a class="header" href="#types" id="types">Types</a></h4>
-<p>There are two major categories of types in <code>alan</code>: built-in types and user-defined types. User-defined types are similar to <code>struct</code>s in C as they are simply named compound types made up of other user-defined types or built-in types. They can also be only partially-defined as generic types, more on that later.</p>
+<p>There are two major categories of types in Alan: built-in types and user-defined types. User-defined types are similar to <code>struct</code>s in C as they are simply named compound types made up of other user-defined types or built-in types. They can also be only partially-defined as generic types, more on that later.</p>
 <p>Built-in types also divide into a few categories: basic types, strings, and special types.</p>
 <h5><a class="header" href="#basic-types" id="basic-types">Basic Types</a></h5>
 <p>Basic types include integers (<code>int8</code>, <code>int16</code>, <code>int32</code>, and <code>int64</code>), floating point numbers (<code>float32</code> and <code>float64</code>), booleans (<code>bool</code>), and the <code>void</code> (no value) type. The numbers refer to the number of bits consumed by the basic type. There are currently no unsigned variants of the integer types, though that may change if there is demand for it.</p>
 <p>The four &quot;main&quot; basic types (<code>int64</code>, <code>float64</code>, <code>bool</code> and <code>void</code>) have constant representations that you can easily type. The non-64-bit numeric types are considered specialized types and are discouraged (the runtime does not take advantage of the potential space optimizations they provide to keep the internal memory addressing system simpler), so constants for those types must be explicitly casted using the <code>to&lt;Type&gt;</code> functions discussed in the <a href="./built_ins.html">Built-ins</a> section.</p>
 <p>The integers have basic base-10 integer form as well as hexadecimal form. Binary and Octal forms are not implemented but that may change if there is demand for it.</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const base10 = 12345
+<pre><code class="language-rust ignore">const base10 = 12345
 const base16 = 0xabcde
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>The floating point numbers have only basic base-10 with a decimal point form, no scientific notation form yet, but that may change if there is demand for it.</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const floating = 1.2345
-<span class="boring">}
-</span></code></pre></pre>
+<pre><code class="language-rust ignore">const floating = 1.2345
+</code></pre>
 <p>Booleans are represented by the keywords <code>true</code> and <code>false</code>. <code>void</code> has no representation beyond <code>void</code>. It can't be assigned to, and is meant to represent functions that return nothing.</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const boolean = true
+<pre><code class="language-rust ignore">const boolean = true
 const someVoid = void
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>The basic types are included in the root scope and never need to be explicitly defined, they always exist.</p>
 <h5><a class="header" href="#strings" id="strings">Strings</a></h5>
-<p>Strings (<code>string</code>) are a bit beyond the basic type. From the perspective of the user of <code>alan</code> they are <code>utf-8</code> byte arrays (multi-byte code points increase the string length by 2 or 3, not 1). If there is significant demand for it, string length checks and other operations will be switched to the codepoint model versus the byte array model.</p>
+<p>Strings (<code>string</code>) are a bit beyond the basic type. From the perspective of the user of Alan they are <code>utf-8</code> byte arrays (multi-byte code points increase the string length by 2 or 3, not 1). If there is significant demand for it, string length checks and other operations will be switched to the codepoint model versus the byte array model.</p>
 <p>Strings are defined by wrapping double or single quotes (<code>&quot;</code> or <code>'</code>) around text. They work identically to Javascript strings, with the same sorts of C-style escape codes. Within the runtime, however, they are represented as Pascal strings with a 64-bit header, which makes certain operations faster than their C-string counterparts (particularly length checking, which is O(1)) but means 8 extra bytes are required for each string versus C-string's traditional 1 extra byte, so lots of small strings will consume more memory.</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const myString = &quot;My string's string&quot;
+<pre><code class="language-rust ignore">const myString = &quot;My string's string&quot;
 const myOtherString = 'My other string\'s string'
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>Strings are also included in the root scope and never need to be explicitly defined.</p>
 <h5><a class="header" href="#user-defined-types" id="user-defined-types">User-Defined Types</a></h5>
 <p>User-defined types must be declared by the user and they follow the following syntax:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>type typename {
+<pre><code class="language-rust ignore">type typename {
   propertyName: propertyType
   otherProperty: otherType
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>The syntax to construct a new instance of a user type is as follows:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const myVal: typename = new typename {
+<pre><code class="language-rust ignore">const myVal: typename = new typename {
   propertyName = propertyValue
   otherProperty = otherValue
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>The redundant <code>typename</code> in that example will also eventually be eliminated by type inference, reducing it to just:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const myVal = new typename {
+<pre><code class="language-rust ignore">const myVal = new typename {
   propertyName = propertyValue
   otherProperty = otherValue
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>User-defined types have another interesting feature: they can be generic. That means one or more of the actual sub-types used by the type is not yet defined, but will be &quot;solidified&quot; later on with the creation of a new type based on it.</p>
 <p>Generic types look like this:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>type typename&lt;A, B&gt; {
+<pre><code class="language-rust ignore">type typename&lt;A, B&gt; {
   propertyName: A
   otherProperty: B
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>Where later on you can &quot;solidify&quot; that type either by creating an alias with the types filled in:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>type typenameIntStr = typename&lt;int64, string&gt;
-<span class="boring">}
-</span></code></pre></pre>
+<pre><code class="language-rust ignore">type typenameIntStr = typename&lt;int64, string&gt;
+</code></pre>
 <p>or just declaring a variable that uses a &quot;solidified&quot; type:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>let myVar = new typename&lt;bool, float64&gt; {
+<pre><code class="language-rust ignore">let myVar = new typename&lt;bool, float64&gt; {
   propertyName = true
   otherProperty = 0.0
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>Functions cannot operate on Generic types directly, but they can work on Generics that have been &quot;solidified&quot; with interfaces. More on this in the <a href="./interfaces.html">Interfaces</a> section.</p>
 <h5><a class="header" href="#special-types" id="special-types">Special Types</a></h5>
-<p>In a language with no looping or recursion, every function has a predictable runtime, but they also can't do very much, as evidenced by the limited utility of eBPF (but also the lack of an issue with it running in kernel-space). It is essentially impossible to implement any real computing algorithms yourself.</p>
+<p>In a language with no looping or recursion, every function has a predictable runtime, but they also can't do very much, as evidenced by the limited utility of <a href="http://www.brendangregg.com/ebpf.html">eBPF</a> (but also the lack of an issue with it running in kernel-space). It is essentially impossible to implement any real computing algorithms yourself.</p>
 <p>But if there were the right built-in primitives with the right built-in functionality, you could combine them to create the algorithms you need without the looping construct. The special built-in types are covered in depth in <a href="./built_ins.html">Built-ins</a>, but they can be used within your own types like any other.</p>
 
             </main>

@@ -144,14 +144,16 @@
         <div id="content" class="content">
             <main>
                 <h3><a class="header" href="#stdcmd" id="stdcmd">@std/cmd</a></h3>
-<p>Also very bare, only a single function: <code>exec</code> with the signature:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>exec(string): void
-<span class="boring">}
-</span></code></pre></pre>
-<p>It simply side-effect executes the provided shell string.</p>
+<p>Also very bare, only a single type <code>ExecRes</code>, and a function: <code>exec</code> with the signature:</p>
+<pre><code class="language-rust ignore">type ExecRes {
+  exitCode: int64
+  stdout: string
+  stderr: string
+}
+</code></pre>
+<pre><code class="language-rust ignore">exec(string): ExecRes
+</code></pre>
+<p>It simply executes the provided shell string and returns the outputs from it.</p>
 
             </main>
 

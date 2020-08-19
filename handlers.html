@@ -144,65 +144,41 @@
         <div id="content" class="content">
             <main>
                 <h4><a class="header" href="#handlers" id="handlers">Handlers</a></h4>
-<p>Handlers are special functions that are triggered by events emitted to the event loop. They are the root of all stacks in <code>alan</code>. Like many languages with event loops, multiple handlers can exist for a single event.</p>
+<p>Handlers are special functions that are triggered by events emitted to the event loop. They are the root of all stacks in Alan. Like many languages with event loops, multiple handlers can exist for a single event.</p>
 <p>Event handler functions <em>must</em> always have a <code>void</code> return. From the perspective of the language, handlers are self-contained side-effects.</p>
 <p>Handlers can only be registered at the module level, not within a function. This is both to discourage abuse of the event loop and make a more intelligent execution planning possible in the future (such as switching from minimizing total latency for any given event to maximizing the total throughput of event processing if the event loop queue is backing up).</p>
 <p>Furthermore, function calls within the handler run may trigger multiple simultaneous executions and IO operations can break up the handler call into multiple fragments to be re-scheduled onto the event loop. The vast majority of the time, direct control on how work is scheduled onto the event loop is abstracted from the developer.</p>
 <p>The event handler syntax is relatively simple:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>on eventName function
-<span class="boring">}
-</span></code></pre></pre>
+<pre><code class="language-rust ignore">on eventName function
+</code></pre>
 <p>where <code>eventName</code> is the name of the event to register a handler for and <code>function</code> is either the name of a function, or an in-line defined function, eg:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>on event fn namedHandler(argument: eventType) {
+<pre><code class="language-rust ignore">on event fn namedHandler(argument: eventType) {
   ...
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>for a fully-named in-line defined function with an event payload. Without a payload, the argument list can be dropped:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>on event fn namedHandler {
+<pre><code class="language-rust ignore">on event fn namedHandler {
   ...
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>In both cases, the name is also optional because it is being registered immediately:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>on event fn (argument: eventType) {
+<pre><code class="language-rust ignore">on event fn (argument: eventType) {
   ...
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>or</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>on event fn {
+<pre><code class="language-rust ignore">on event fn {
   ...
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>The latter purely-side-effect-only function can also omit the <code>fn</code> if desired as it is unambiguous in this context:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>on event {
+<pre><code class="language-rust ignore">on event {
   ...
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h5><a class="header" href="#special-events-stdappstart-stdappexit-and-stdappstdout" id="special-events-stdappstart-stdappexit-and-stdappstdout">Special Events: @std/app.start, @std/app.exit, and @std/app.stdout</a></h5>
-<p>There are events that are particularly special for <code>alan</code>. The <code>start</code>, <code>exit</code>, and <code>stdout</code> events in the <code>@std/app</code> standard library module. They are separated from the built-ins because most modules should not need to ever touch them, but the root module of your project may.</p>
-<p>When <code>alan</code> has finished loading your code and has the event loop set up, it emits a single <code>start</code> event (of type <code>void</code>). That should trigger a special function used to set up the rest of your program: loading configuration, starting up an http server, or what have you.</p>
+<p>There are events that are particularly special for Alan. The <code>start</code>, <code>exit</code>, and <code>stdout</code> events in the <code>@std/app</code> standard library module. They are separated from the built-ins because most modules should not need to ever touch them, but the root module of your project may.</p>
+<p>When Alan has finished loading your code and has the event loop set up, it emits a single <code>start</code> event (of type <code>void</code>). That should trigger a special function used to set up the rest of your program: loading configuration, starting up an http server, or what have you.</p>
 <p>Once the event loop is running, it will run forever. Only if an <code>int8</code> value (the exit code, where 0 is successful and anything else is an error) is emitted to the <code>exit</code> event will the process tear itself down and terminate.</p>
 <p>If you want to write raw text to <code>stdout</code> you can <code>emit</code> to a string to it (this is what the <code>print</code> function does, but with an appended newline character after converting your argument to a string).</p>
 <p>This is why basically all of the small examples import these events from <code>@std/app</code>, but most modules in most larger projects never will.</p>

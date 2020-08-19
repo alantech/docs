@@ -145,25 +145,17 @@
             <main>
                 <h4><a class="header" href="#constants" id="constants">Constants</a></h4>
 <p>Module-level constants allow the user to define fixed data that is shared across functions (or exported to be shared across modules). The syntax is simply:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const varname: typename = constvalue
+<pre><code class="language-rust ignore">const varname: typename = constvalue
 const othervar = otherconstval
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>The <code>typename</code> is not required due to type inference, but can be added for clarity.</p>
-<p>For those coming from Javascript/Typescript, <code>const</code> in <code>alan</code> is much more strict. A constant is truly constant, not just a variable that can't be reassigned with a new struct. This means the following is invalid:</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>const pushedVals = new Array&lt;int64&gt; [ ]
+<p>For those coming from Javascript/Typescript, <code>const</code> in Alan is much more strict. A constant is truly constant, not just a variable that can't be reassigned with a new struct. This means the following is invalid:</p>
+<pre><code class="language-rust ignore">const pushedVals = new Array&lt;int64&gt; [ ]
 
 fn saveForLater(val: int64) {
   pushedVals.push(val)
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <p>Shared mutable global state inherently prevents parallelization, so it is discouraged.</p>
 
             </main>

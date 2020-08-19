@@ -144,10 +144,10 @@
         <div id="content" class="content">
             <main>
                 <h3><a class="header" href="#built-ins" id="built-ins">Built-ins</a></h3>
-<p>All module-based languages have some things that are included without specifically importing anything. Some keep it to a minimum (Java) and some have a pretty high rate of inclusion (Python). <code>alan</code> biases more towards the Python end of the spectrum. Concepts and functionality common across many modules should not be manually imported all of the time, especially with the requirement that imports are fully qualified to improve legibility.</p>
-<p>The built-ins for <code>alan</code> all involve the built-in types and the functions and operators to manipulate them.</p>
+<p>All module-based languages have some things that are included without specifically importing anything. Some keep it to a minimum (Java) and some have a pretty high rate of inclusion (Python). Alan biases more towards the Python end of the spectrum. Concepts and functionality common across many modules should not be manually imported all of the time, especially with the requirement that imports are fully qualified to improve legibility.</p>
+<p>The built-ins for Alan all involve the built-in types and the functions and operators to manipulate them.</p>
 <h4><a class="header" href="#built-in-types" id="built-in-types">Built-in Types</a></h4>
-<p>The built-in <a href="./types.html">types</a> for <code>alan</code> are:</p>
+<p>The built-in <a href="./types.html">types</a> for Alan are:</p>
 <ul>
 <li><code>void</code></li>
 <li><code>int8</code></li>
@@ -167,52 +167,33 @@
 <li><code>Result&lt;T&gt;</code></li>
 <li><code>Either&lt;T, U&gt;</code></li>
 </ul>
-<p>The <code>int64</code> and <code>float64</code> types are special among the numeric types, as these are the types that any numeric constant will be represented as, depending on whether or not it has a decimal.</p>
+<p>The <code>int64</code> and <code>float64</code> types are special among the numeric types, as these are the types that any numeric constant will be represented as, depending on whether or not it has a decimal. They have been given aliases of <code>int</code> and <code>float</code> respectively for that reason.</p>
 <h4><a class="header" href="#built-in-interfaces" id="built-in-interfaces">Built-in Interfaces</a></h4>
 <p>There are a few built-in <a href="./interfaces.html">interfaces</a> meant for working with several built-in types and functions.</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// An empty interface, it can match any value, but you can only accept it and pass it along to
+<pre><code class="language-rust ignore">// An empty interface, it can match any value, but you can only accept it and pass it along to
 // something else. Useful for logical &quot;glue&quot; functions like `pair`, `cond`, `map`, `reduce`, etc.
 interface any {}
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// A second empty interface, useful to allow functions to declare that it accepts two arguments of
+</code></pre>
+<pre><code class="language-rust ignore">// A second empty interface, useful to allow functions to declare that it accepts two arguments of
 // any kind and they don't need to match each other.
 interface anythingElse {}
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// An interface that restricts valid types to only those that can be converted into strings. Useful
+</code></pre>
+<pre><code class="language-rust ignore">// An interface that restricts valid types to only those that can be converted into strings. Useful
 // for printing.
 interface Stringifiable {
   toString(Stringifiable): string
 }
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// An interface that determines if a type is hashable and comparable. Used by HashMap for the keys.
+</code></pre>
+<pre><code class="language-rust ignore">// An interface that determines if a type is hashable and comparable. Used by HashMap for the keys.
 interface Hashable {
   toHash(Hashable): int64
   eq(Hashable, Hashable): bool
 }
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h4><a class="header" href="#built-in-functions" id="built-in-functions">Built-in Functions</a></h4>
-<p>The <a href="./functions.html">function</a> signatures will be written in the form <code>functionName(argumentType, argumentType): returnType</code> with a brief description above each. These functions will be grouped into general categories, such as type coersion, arithmetic, etc.</p>
+<p>The <a href="./functions.html">function</a> signatures will be written in the form <code>functionName(argumentType, argumentType): returnType</code> with a brief description above each. These functions will be grouped into general categories, such as type coersion, arithmetic, etc. Because of <a href="./functions.html#function-dispatch">multiple dispatch</a> you may see the same function name repeated multiple times, while other times you may see the use of the <code>any</code> interface for a function that operates on multiple types. When you see multiple dispatch being used with specific types, that means there's an optimized implementation for that specific type, while the use of the <code>any</code> interface means that this was not done (many times because it was not necessary).</p>
 <h5><a class="header" href="#type-coersion" id="type-coersion">Type Coersion</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to 64-bit floats
+<pre><code class="language-rust ignore">// Converts the built-in basic types to 64-bit floats
 toFloat64(int8): float64
 toFloat64(int16): float64
 toFloat64(int32): float64
@@ -221,12 +202,8 @@ toFloat64(float32): float64
 toFloat64(float64): float64
 toFloat64(bool): float64
 toFloat64(string): float64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to 32-bit floats
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in basic types to 32-bit floats
 toFloat32(int8): float32
 toFloat32(int16): float32
 toFloat32(int32): float32
@@ -235,12 +212,8 @@ toFloat32(float32): float32
 toFloat32(float64): float32
 toFloat32(bool): float32
 toFloat32(string): float32
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to 64-bit integers
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in basic types to 64-bit integers
 toInt64(int8): int64
 toInt64(int16): int64
 toInt64(int32): int64
@@ -249,12 +222,8 @@ toInt64(float32): int64
 toInt64(float64): int64
 toInt64(bool): int64
 toInt64(string): int64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to 32-bit integers
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in basic types to 32-bit integers
 toInt32(int8): int32
 toInt32(int16): int32
 toInt32(int32): int32
@@ -263,12 +232,8 @@ toInt32(float32): int32
 toInt32(float64): int32
 toInt32(bool): int32
 toInt32(string): int32
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to 16-bit integers
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in basic types to 16-bit integers
 toInt16(int8): int16
 toInt16(int16): int16
 toInt16(int32): int16
@@ -277,12 +242,8 @@ toInt16(float32): int16
 toInt16(float64): int16
 toInt16(bool): int16
 toInt16(string): int16
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to 8-bit integers
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in basic types to 8-bit integers
 toInt8(int8): int8
 toInt8(int16): int8
 toInt8(int32): int8
@@ -291,12 +252,8 @@ toInt8(float32): int8
 toInt8(float64): int8
 toInt8(bool): int8
 toInt8(string): int8
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to booleans
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in basic types to booleans
 toBool(int8): bool
 toBool(int16): bool
 toBool(int32): bool
@@ -305,12 +262,8 @@ toBool(float32): bool
 toBool(float64): bool
 toBool(bool): bool
 toBool(string): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Converts the built-in basic types to strings
+</code></pre>
+<pre><code class="language-rust ignore">// Converts the built-in types to strings
 toString(int8): string
 toString(int16): string
 toString(int32): string
@@ -319,171 +272,129 @@ toString(float32): string
 toString(float64): string
 toString(bool): string
 toString(string): string
-<span class="boring">}
-</span></code></pre></pre>
-<p>These coersions will not fail. When converting down into an integer of a smaller bitsize, numbers larger than that integer's <code>INT_MAX</code> are pegged at <code>INT_MAX</code>, smaller than <code>INT_MIN</code> pegged at <code>INT_MIN</code> and <code>NaN</code> or strings that aren't actually integers are converted to <code>0</code>. This may be changed to a <code>Result</code> type that requires a user-defined default value on failure.</p>
+toString(Error): string
+toString(Result&lt;Stringifiable&gt;): string
+</code></pre>
+<p>These coersions will not fail. When converting down into an integer of a smaller bitsize, numbers larger than that integer's <code>INT_MAX</code> are pegged at <code>INT_MAX</code>, smaller than <code>INT_MIN</code> pegged at <code>INT_MIN</code> and <code>NaN</code> or strings that aren't actually integers are converted to <code>0</code>. This may be changed to a <code>Result</code> type that requires a user-defined default value on failure. <code>Result</code> types wrapping a type that can also be converted to a string directly, with either the string version of the result, or the error message.</p>
 <h5><a class="header" href="#arithmetic" id="arithmetic">Arithmetic</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Adds two numbers
+<pre><code class="language-rust ignore">// Adds two numbers
 add(int8, int8): int8
 add(int16, int16): int16
 add(int32, int32): int32
 add(int64, int64): int64
 add(float32, float32): float32
 add(float64, float64): float64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Subtracts two numbers
+</code></pre>
+<pre><code class="language-rust ignore">// Subtracts two numbers
 sub(int8, int8): int8
 sub(int16, int16): int16
 sub(int32, int32): int32
 sub(int64, int64): int64
 sub(float32, float32): float32
 sub(float64, float64): float64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Multiplies two numbers
+</code></pre>
+<pre><code class="language-rust ignore">// Negates the number
+negate(int8, int8): int8
+negate(int16, int16): int16
+negate(int32, int32): int32
+negate(int64, int64): int64
+negate(float32, float32): float32
+negate(float64, float64): float64
+</code></pre>
+<pre><code class="language-rust ignore">// Returns the absolute value of the number
+abs(int8, int8): int8
+abs(int16, int16): int16
+abs(int32, int32): int32
+abs(int64, int64): int64
+abs(float32, float32): float32
+abs(float64, float64): float64
+</code></pre>
+<pre><code class="language-rust ignore">// Multiplies two numbers
 mul(int8, int8): int8
 mul(int16, int16): int16
 mul(int32, int32): int32
 mul(int64, int64): int64
 mul(float32, float32): float32
 mul(float64, float64): float64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Divides two numbers
+</code></pre>
+<pre><code class="language-rust ignore">// Divides two numbers
 div(int8, int8): int8
 div(int16, int16): int16
 div(int32, int32): int32
 div(int64, int64): int64
 div(float32, float32): float32
 div(float64, float64): float64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Raises the first number to the power of the second number
+</code></pre>
+<pre><code class="language-rust ignore">// Raises the first number to the power of the second number
 pow(int8, int8): int8
 pow(int16, int16): int16
 pow(int32, int32): int32
 pow(int64, int64): int64
 pow(float32, float32): float32
 pow(float64, float64): float64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns the modulus (remainder) of an integer division
+</code></pre>
+<pre><code class="language-rust ignore">// Returns the modulus (remainder) of an integer division
 mod(int8, int8): int8
 mod(int16, int16): int16
 mod(int32, int32): int32
 mod(int64, int64): int64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns the square root of a number
+</code></pre>
+<pre><code class="language-rust ignore">// Returns the square root of a number
 sqrt(float32): float32
 sqrt(float64): float64
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h5><a class="header" href="#logical-and-bitwise" id="logical-and-bitwise">Logical and Bitwise</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `and`
+<pre><code class="language-rust ignore">// Return the logical or bitwise `and`
 and(int8, int8): int8
 and(int16, int16): int16
 and(int32, int32): int32
 and(int64, int64): int64
 and(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `or`
+</code></pre>
+<pre><code class="language-rust ignore">// Return the logical or bitwise `or`
 or(int8, int8): int8
 or(int16, int16): int16
 or(int32, int32): int32
 or(int64, int64): int64
 or(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `xor`
+</code></pre>
+<pre><code class="language-rust ignore">// Return the logical or bitwise `xor`
 xor(int8, int8): int8
 xor(int16, int16): int16
 xor(int32, int32): int32
 xor(int64, int64): int64
 xor(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `not`
+</code></pre>
+<pre><code class="language-rust ignore">// Return the logical or bitwise `not`
 not(int8): int8
 not(int16): int16
 not(int32): int32
 not(int64): int64
 not(bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `nand`
+</code></pre>
+<pre><code class="language-rust ignore">// Return the logical or bitwise `nand`
 nand(int8, int8): int8
 nand(int16, int16): int16
 nand(int32, int32): int32
 nand(int64, int64): int64
 nand(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `nor`
+</code></pre>
+<pre><code class="language-rust ignore">// Return the logical or bitwise `nor`
 nor(int8, int8): int8
 nor(int16, int16): int16
 nor(int32, int32): int32
 nor(int64, int64): int64
 nor(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Return the logical or bitwise `xnor`
+</code></pre>
+<pre><code class="language-rust ignore">// Return the logical or bitwise `xnor`
 xnor(int8, int8): int8
 xnor(int16, int16): int16
 xnor(int32, int32): int32
 xnor(int64, int64): int64
 xnor(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h5><a class="header" href="#comparators" id="comparators">Comparators</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the two values are equal
+<pre><code class="language-rust ignore">// Checks if the two values are equal
 eq(int8, int8): bool
 eq(int16, int16): bool
 eq(int32, int32): bool
@@ -492,12 +403,8 @@ eq(float32, float32): bool
 eq(float64, float64): bool
 eq(string, string): bool
 eq(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the two values are not equal
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the two values are not equal
 neq(int8, int8): bool
 neq(int16, int16): bool
 neq(int32, int32): bool
@@ -506,12 +413,8 @@ neq(float32, float32): bool
 neq(float64, float64): bool
 neq(string, string): bool
 neq(bool, bool): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the first value is less than the second
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the first value is less than the second
 lt(int8, int8): bool
 lt(int16, int16): bool
 lt(int32, int32): bool
@@ -519,12 +422,8 @@ lt(int64, int64): bool
 lt(float32, float32): bool
 lt(float64, float64): bool
 lt(string, string): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the first value is less than or equal to the second
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the first value is less than or equal to the second
 lte(int8, int8): bool
 lte(int16, int16): bool
 lte(int32, int32): bool
@@ -532,12 +431,8 @@ lte(int64, int64): bool
 lte(float32, float32): bool
 lte(float64, float64): bool
 lte(string, string): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the first value is greater than the second
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the first value is greater than the second
 gt(int8, int8): bool
 gt(int16, int16): bool
 gt(int32, int32): bool
@@ -545,12 +440,8 @@ gt(int64, int64): bool
 gt(float32, float32): bool
 gt(float64, float64): bool
 gt(string, string): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the first value is greater than or equal to the second
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the first value is greater than or equal to the second
 gte(int8, int8): bool
 gte(int16, int16): bool
 gte(int32, int32): bool
@@ -558,101 +449,53 @@ gte(int64, int64): bool
 gte(float32, float32): bool
 gte(float64, float64): bool
 gte(string, string): bool
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h5><a class="header" href="#wait-functions" id="wait-functions">Wait functions</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Waits the specified number of milliseconds and then continues execution
+<pre><code class="language-rust ignore">// Waits the specified number of milliseconds and then continues execution
 wait(int8): void
 wait(int16): void
 wait(int32): void
 wait(int64): void
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h5><a class="header" href="#string-manipulation" id="string-manipulation">String Manipulation</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Concatenate two strings together
+<pre><code class="language-rust ignore">// Concatenate two strings together
 concat(string, string): string
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Splits the first string into an array of strings divided by the second delimiter string
+</code></pre>
+<pre><code class="language-rust ignore">// Splits the first string into an array of strings divided by the second delimiter string
 split(string, string): Array&lt;string&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Repeats the contents of the string `n` times (so `repeat(&quot;hello&quot;, 1)` returns `&quot;hello&quot;`)
+</code></pre>
+<pre><code class="language-rust ignore">// Repeats the contents of the string `n` times (so `repeat(&quot;hello&quot;, 1)` returns `&quot;hello&quot;`)
 repeat(string, int8): string
 repeat(string, int16): string
 repeat(string, int32): string
 repeat(string, int64): string
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a string template and a HashMap of string keys to string values to substitute in
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a string template and a HashMap of string keys to string values to substitute in
 template(string, HashMap&lt;string, string&gt;): string
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Check if the first string matches the regular expression defined by the second string
+</code></pre>
+<pre><code class="language-rust ignore">// Check if the first string matches the regular expression defined by the second string
 matches(string, string): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns the location of the second string within the first string, or `-1`
+</code></pre>
+<pre><code class="language-rust ignore">// Returns the location of the second string within the first string, or `-1`
 index(string, string): int64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns the length of the string (as a byte array, not UTF codepoints)
+</code></pre>
+<pre><code class="language-rust ignore">// Returns the length of the string (as a byte array, not UTF codepoints)
 length(string): int64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Removes the whitespace on either end of the string
+</code></pre>
+<pre><code class="language-rust ignore">// Removes the whitespace on either end of the string
 trim(string): string
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h5><a class="header" href="#array-manipulation" id="array-manipulation">Array Manipulation</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Concatenate two arrays into a new array containing the values of both
+<pre><code class="language-rust ignore">// Concatenate two arrays into a new array containing the values of both
 concat(Array&lt;any&gt;, Array&lt;any&gt;): Array&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Create a new array with the contents of the original array repeated `n` times
+</code></pre>
+<pre><code class="language-rust ignore">// Create a new array with the contents of the original array repeated `n` times
 repeat(Array&lt;any&gt;, int8): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int16): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int32): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int64): Array&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Find the index of the specified value in the array or return `-1`
+</code></pre>
+<pre><code class="language-rust ignore">// Find the index of the specified value in the array or return `-1`
 index(Array&lt;any&gt;, any): int64
 index(Array&lt;int8&gt;, int8): int64
 index(Array&lt;int16&gt;, int16): int64
@@ -661,12 +504,8 @@ index(Array&lt;int64&gt;, int64): int64
 index(Array&lt;float32&gt;, float32): int64
 index(Array&lt;float64&gt;, float64): int64
 index(Array&lt;bool&gt;, bool): int64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns true if the array has the specified value or false otherwise
+</code></pre>
+<pre><code class="language-rust ignore">// Returns true if the array has the specified value or false otherwise
 has(Array&lt;any&gt;, any): int64
 has(Array&lt;int8&gt;, int8): int64
 has(Array&lt;int16&gt;, int16): int64
@@ -675,12 +514,8 @@ has(Array&lt;int64&gt;, int64): int64
 has(Array&lt;float32&gt;, float32): int64
 has(Array&lt;float64&gt;, float64): int64
 has(Array&lt;bool&gt;, bool): int64
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Push a value into the array and return the updated array
+</code></pre>
+<pre><code class="language-rust ignore">// Push a value into the array and return the updated array
 push(Array&lt;any&gt;, any): Array&lt;any&gt;
 push(Array&lt;int8&gt;, int8): Array&lt;int8&gt;
 push(Array&lt;int16&gt;, int16): Array&lt;int16&gt;
@@ -689,271 +524,180 @@ push(Array&lt;int64&gt;, int64): Array&lt;int64&gt;
 push(Array&lt;float32&gt;, float32): Array&lt;float32&gt;
 push(Array&lt;float64&gt;, float64): Array&lt;float64&gt;
 push(Array&lt;bool&gt;, bool): Array&lt;bool&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Pop a value from an array and return that value
-pop(Array&lt;any&gt;): any
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the provided side-effect function on each element of the array
-each(Array&lt;any&gt;, function): void
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the provided converter function on each element of the array and return a new array
-map(Array&lt;any&gt;, function): Array&lt;anythingElse&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the combining function on the array and return the new value
-reduce(Array&lt;any&gt;, function): anythingElse
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the filtering function on the array and return a new array with the allowed values
-filter(Array&lt;any&gt;, function): Array&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the comparison function on the array and return the first element that passes the check
-find(Array&lt;any&gt;, function): any
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the comparison function on the array and return `true` if all elements pass the check
-every(Array&lt;any&gt;, function): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Execute the comparison function on the array and return `true` if any element passes the check
-some(Array&lt;any&gt;, function): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Take an array of strings and merge them into one string separated by the separator string. The
+</code></pre>
+<pre><code class="language-rust ignore">// Pop a value from an array and return that value wrapped in a result (or an error result)
+pop(Array&lt;any&gt;): Result&lt;any&gt;
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the provided side-effect function on each element of the array
+each(Array&lt;any&gt;, function): void // Parallel if possible and worthwhile
+eachLin(Array&lt;any&gt;, function): void // Forced linear execution
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the provided converter function on each element of the array and return a new array
+map(Array&lt;any&gt;, function): Array&lt;anythingElse&gt; // Parallel if possible and worthwhile
+mapLin(Array&lt;any&gt;, function): Array&lt;anythingElse&gt; // Forced linear execution
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the combining function on the array and return the new value
+// The two argument reduce functions reduce into the same type as the input, while the
+// three and four argument reduce functions reduce into a new type. The three argument reduce
+// function is sequential and only requires an initial value to kick off the reduction, while the
+// four argument reducer requires one function and an initial value to kick off the reduction into
+// the new type, and then it requires a second function that reduces the new type into itself to
+// merge the various threads of execution back together.
+reduce(Array&lt;any&gt;, function): any // Forced linear execution
+reducePar(Array&lt;any&gt;, function): any // Parallel if possible and worthwhile
+reduce(Array&lt;any&gt;, function, anythingElse): anythingElse // Forced linear execution
+reducePar(Array&lt;any&gt;, function, function, anythingElse): anythingElse // Parallel if possible and worthwhile
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the filtering function on the array and return a new array with the allowed values
+filter(Array&lt;any&gt;, function): Array&lt;any&gt; // Parallel if possible and worthwhile
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the comparison function on the array and return the first element that passes the check,
+// or an error
+find(Array&lt;any&gt;, function): Result&lt;any&gt; // Parallel if possible and worthwhile
+findLin(Array&lt;any&gt;, function): Result&lt;any&gt; // Forced linear execution
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the comparison function on the array and return `true` if all elements pass the check
+every(Array&lt;any&gt;, function): bool // Parallel if possible and worthwhile
+everyLin(Array&lt;any&gt;, function): bool // Forced linear execution
+</code></pre>
+<pre><code class="language-rust ignore">// Execute the comparison function on the array and return `true` if any element passes the check
+some(Array&lt;any&gt;, function): bool // Parallel if possible and worthwhile
+someLin(Array&lt;any&gt;, function): bool // Forced linear execution
+</code></pre>
+<pre><code class="language-rust ignore">// Take an array of strings and merge them into one string separated by the separator string. The
 // inverse of the `split` function
 join(Array&lt;string&gt;, string): string
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
+<pre><code class="language-rust ignore">// Override the value of an array element with a new value
+set(Array&lt;any&gt;, int64, any): Result&lt;Array&lt;any&gt;&gt;
+set(Array&lt;int8&gt;, int64, int8): Result&lt;Array&lt;int8&gt;&gt;
+set(Array&lt;int16&gt;, int64, int16): Result&lt;Array&lt;int16&gt;&gt;
+set(Array&lt;int32&gt;, int64, int32): Result&lt;Array&lt;int32&gt;&gt;
+set(Array&lt;int64&gt;, int64, int64): Result&lt;Array&lt;int64&gt;&gt;
+set(Array&lt;float32&gt;, int64, float32): Result&lt;Array&lt;float32&gt;&gt;
+set(Array&lt;float64&gt;, int64, float64): Result&lt;Array&lt;float64&gt;&gt;
+set(Array&lt;bool&gt;, int64, bool): Result&lt;Array&lt;bool&gt;&gt;
+</code></pre>
 <h5><a class="header" href="#hashmap-manipulation" id="hashmap-manipulation">HashMap Manipulation</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a HashMap and returns an Array of KeyVal pairs
+<pre><code class="language-rust ignore">// Converts a value into a hash using the [xxh64](https://cyan4973.github.io/xxHash/) algorithm.
+// No user code ever has to overload the `toHash` function with their own implementation, but it is
+// required that the `eq` function is for user-defined types to check for hash collisions.
+toHash(any): int64
+toHash(int8): int64
+toHash(int16): int64
+toHash(int32): int64
+toHash(float32): int64
+toHash(float64): int64
+toHash(bool): int64
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a HashMap and returns an Array of KeyVal pairs
 keyVal(HashMap&lt;Hashable, any&gt;): Array&lt;KeyVal&lt;Hashable, any&gt;&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a HashMap and returns an Array of keys
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a HashMap and returns an Array of keys
 keys(HashMap&lt;Hashable, any&gt;): Array&lt;Hashable&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a HashMap and returns an Array of values
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a HashMap and returns an Array of values
 values(HashMap&lt;Hashable, any&gt;: Array&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a HashMap and returns the number of KeyVal pairs contained
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a HashMap and returns the number of KeyVal pairs contained
 length(HashMap&lt;Hashable, any&gt;): int64
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
+<pre><code class="language-rust ignore">// Sets a key-value pair in the HashMap and returns the HashMap for chaining
+set(HashMap&lt;Hashable, any&gt;, Hashable, any): HashMap&lt;Hashable, any&gt;
+</code></pre>
+<pre><code class="language-rust ignore">// Gets the value for a given key or an error
+get(HashMap&lt;Hashable,any&gt;, Hashable): Result&lt;any&gt;
+</code></pre>
+<pre><code class="language-rust ignore">// Creates a new HashMap object with the first key-val pair and a decently-sized set of defaults for
+// the indexing
+newHashMap(Hashable, any): HashMap&lt;Hashable, any&gt;
+</code></pre>
+<pre><code class="language-rust ignore">// The inverse of `keyVal`, takes an `Array&lt;KeyVal&lt;Hashable, any&gt;&gt;` and reindexes it as HashMap
+toHashMap(Array&lt;KeyVal&lt;Hashable, any&gt;&gt;): HashMap&lt;Hashable, any&gt;
+</code></pre>
 <h5><a class="header" href="#ternary-functions" id="ternary-functions">&quot;Ternary&quot; Functions</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes two values of the same type and returns an array of those two values
+<pre><code class="language-rust ignore">// Takes two values of the same type and returns an array of those two values
 pair(any, any): Array&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a boolean and an array of two values and returns the first value on `true` and the second
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a boolean and an array of two values and returns the first value on `true` and the second
 // on `false`
 cond(bool, Array&lt;any&gt;): any
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Takes a boolean and a function and conditionally executes that function if the bool is `true`
+</code></pre>
+<pre><code class="language-rust ignore">// Takes a boolean and a function and conditionally executes that function if the bool is `true`
 cond(bool, function): void
-<span class="boring">}
-</span></code></pre></pre>
-<h5><a class="header" href="#assign-functions" id="assign-functions">Assign Functions</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Explicitly duplicates the provided value and returns it
-assign(any): any
-assign(Array&lt;any&gt;): Array&lt;any&gt;
-assign(void): void
-assign(int8): int8
-assign(int16): int16
-assign(int32): int32
-assign(int64): int64
-assign(float32): float32
-assign(float64): float64
-assign(bool): bool
-assign(string): string
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
+<h5><a class="header" href="#clone-functions" id="clone-functions">Clone Functions</a></h5>
+<pre><code class="language-rust ignore">// Explicitly duplicates the provided value and returns it, useful when you don't want to mutate
+// the original value
+clone(any): any
+clone(Array&lt;any&gt;): Array&lt;any&gt;
+clone(void): void
+clone(int8): int8
+clone(int16): int16
+clone(int32): int32
+clone(int64): int64
+clone(float32): float32
+clone(float64): float64
+clone(bool): bool
+clone(string): string
+</code></pre>
 <h5><a class="header" href="#error-maybe-result-and-either-functions" id="error-maybe-result-and-either-functions">Error, Maybe, Result, and Either Functions</a></h5>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns a non-error error object
+<pre><code class="language-rust ignore">// Returns a non-error error object
 noerr(): Error
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Wraps a given value into a Maybe type
+</code></pre>
+<pre><code class="language-rust ignore">// Wraps a given value into a Maybe type
 some(any): Maybe&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Creates an unassigned Maybe type
+</code></pre>
+<pre><code class="language-rust ignore">// Creates an unassigned Maybe type
 none(): Maybe&lt;void&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Determines if the Maybe has a value
+</code></pre>
+<pre><code class="language-rust ignore">// Determines if the Maybe has a value
 isSome(Maybe&lt;any&gt;): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Determines if the Maybe has no value
+</code></pre>
+<pre><code class="language-rust ignore">// Determines if the Maybe has no value
 isNone(Maybe&lt;any&gt;): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Returns the Maybe's value, or the default value if there is no value
+</code></pre>
+<pre><code class="language-rust ignore">// Returns the Maybe's value, or the default value if there is no value
 getOr(Maybe&lt;any&gt;, any): any
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Creates a Result with a value
+</code></pre>
+<pre><code class="language-rust ignore">// Creates a Result with a value
 ok(any): Result&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Creates a Result with an Error
+</code></pre>
+<pre><code class="language-rust ignore">// Creates a Result with an Error
 err(string): Result&lt;any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the Result has a value
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the Result has a value
 isOk(Result&lt;any&gt;): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the Result has an Error
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the Result has an Error
 isErr(Result&lt;any&gt;): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Gets the Result's value or default if it is an Error
+</code></pre>
+<pre><code class="language-rust ignore">// Gets the Result's value or default if it is an Error
 getOr(Result&lt;any&gt;, any): any
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Gets the Result's Error or default if it is a value
+</code></pre>
+<pre><code class="language-rust ignore">// Gets the Result's Error or default if it is a value
 getErr(Result&lt;any&gt;, Error): Error
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Creates an Either with the main (first) type set
+</code></pre>
+<pre><code class="language-rust ignore">// Creates an Either with the main (first) type set
 main(any): Either&lt;any, void&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Creates and Either with the alternative (second) type set
+</code></pre>
+<pre><code class="language-rust ignore">// Creates and Either with the alternative (second) type set
 alt(any): Either&lt;void, any&gt;
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the Either's main type is set
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the Either's main type is set
 isMain(Either&lt;any, anythingElse&gt;): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Checks if the Either's alt type is set
+</code></pre>
+<pre><code class="language-rust ignore">// Checks if the Either's alt type is set
 isAlt(Either&lt;any, anythingElse&gt;): bool
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Gets the main type or the default if it is the alt type
+</code></pre>
+<pre><code class="language-rust ignore">// Gets the main type or the default if it is the alt type
 getMainOr(Either&lt;any, anythingElse&gt;, any): any
-<span class="boring">}
-</span></code></pre></pre>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>// Gets the alt type or the default if it is the main type
+</code></pre>
+<pre><code class="language-rust ignore">// Gets the alt type or the default if it is the main type
 getAltOr(Either&lt;any, anythingElse&gt;, anythingElse): anythingElse
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 <h4><a class="header" href="#built-in-operators" id="built-in-operators">Built-in Operators</a></h4>
-<p>As <a href="./operators.html">operators</a> in <code>alan</code> are simply aliases for functions with a precedence value associated, all of the following operators have their underlying implementation defined above.</p>
+<p>As <a href="./operators.html">operators</a> in Alan are simply aliases for functions with a precedence value associated, all of the following operators have their underlying implementation defined above.</p>
 <table>
   <thead>
     <tr>

@@ -37,7 +37,7 @@ module.exports = {
 }
 
 },{"../dist/lntoamm/Ast":10,"../dist/lntoamm/Module":14,"../dist/lntoamm/Scope":16,"../dist/lntoamm/opcodes":22,"./stdlibs.json":2}],2:[function(require,module,exports){
-module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out)\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\"\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status)\n\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n)","deps.ln":"from @std/app import start, print, exit\nfrom @std/cmd import exec\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\nexport fn add(remote: string) {\n  // TODO implement proper error handling\n  const parts = remote.split('/')\n  const repo = parts[length(parts) - 1] || ''\n  const group = parts[parts.length() - 2] || ''\n  const dest = '/dependencies/' + group + '/' + repo\n  const rm = exec('rm -rf .' + dest)\n  const git = exec('git clone ' + remote + ' .' + dest)\n  print(git.stderr) \n  const rm2 = exec('rm -rf .' + dest + '/.git')\n}\n\n// The `commit` function takes no arguments. Currently just causes the application to quit, but\n// eventually would be the point where the dependencies defined by the calls to `add` could be\n// compared against the currently-installed dependencies, and a faster install would be possible\nexport fn commit() {\n  emit exit 0\n}\n\n// Emit the `install` event on app `start`\non start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  exec('rm -rf dependencies')\n  exec('mkdir dependencies')\n  emit install\n}\n","http.ln":"/**\n * @std/http - Built-in client (and eventually server) for http\n */\n\nfrom @std/cmd import exec\n\nexport fn get(url: string) {\n  const blob = exec('curl ' + url)\n  if blob.exitCode != 0 {\n    const errorMessage = length(blob.stderr) > 0 ? blob.stderr : 'Unknown request failure'\n    return err(errorMessage)\n  } else {\n    return ok(blob.stdout)\n  }\n}","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Export all of the built-in types\nexport void\nexport int8\nexport int16\nexport int32\nexport int64\nexport float32\nexport float64\nexport bool\nexport string\nexport function // TODO: Make the function type more explicit than this\nexport Array\nexport Error\nexport Maybe\nexport Result\nexport Either\n\n// Type aliasing of int64 and float64 to just int and float, as these are the default types\nexport type int = int64\nexport type float = float64\n\n// Default Interfaces\nexport interface any {}\nexport interface anythingElse = any // Same as `any` but doesn't match with it\nexport interface Stringifiable {\n  toString(Stringifiable): string\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n)\nexport fn toFloat64(n: int16) = i16f64(n)\nexport fn toFloat64(n: int32) = i32f64(n)\nexport fn toFloat64(n: int64) = i64f64(n)\nexport fn toFloat64(n: float32) = f32f64(n)\nexport fn toFloat64(n: float64) = n\nexport fn toFloat64(n: string) = strf64(n)\nexport fn toFloat64(n: bool) = boolf64(n)\n\nexport fn toFloat32(n: int8) = i8f32(n)\nexport fn toFloat32(n: int16) = i16f32(n)\nexport fn toFloat32(n: int32) = i32f32(n)\nexport fn toFloat32(n: int64) = i64f32(n)\nexport fn toFloat32(n: float32) = n\nexport fn toFloat32(n: float64) = f64f32(n)\nexport fn toFloat32(n: string) = strf32(n)\nexport fn toFloat32(n: bool) = boolf32(n)\n\nexport fn toInt64(n: int8) = i8i64(n)\nexport fn toInt64(n: int16) = i16i64(n)\nexport fn toInt64(n: int32) = i32i64(n)\nexport fn toInt64(n: int64) = n\nexport fn toInt64(n: float32) = f32i64(n)\nexport fn toInt64(n: float64) = f64i64(n)\nexport fn toInt64(n: string) = stri64(n)\nexport fn toInt64(n: bool) = booli64(n)\n\nexport fn toInt32(n: int8) = i8i32(n)\nexport fn toInt32(n: int16) = i16i32(n)\nexport fn toInt32(n: int32) = n\nexport fn toInt32(n: int64) = i64i32(n)\nexport fn toInt32(n: float32) = f32i32(n)\nexport fn toInt32(n: float64) = f64i32(n)\nexport fn toInt32(n: string) = stri32(n)\nexport fn toInt32(n: bool) = booli32(n)\n\nexport fn toInt16(n: int8) = i8i16(n)\nexport fn toInt16(n: int16) = n\nexport fn toInt16(n: int32) = i32i16(n)\nexport fn toInt16(n: int64) = i64i16(n)\nexport fn toInt16(n: float32) = f32i16(n)\nexport fn toInt16(n: float64) = f64i16(n)\nexport fn toInt16(n: string) = stri16(n)\nexport fn toInt16(n: bool) = booli16(n)\n\nexport fn toInt8(n: int8) = n\nexport fn toInt8(n: int16) = i16i8(n)\nexport fn toInt8(n: int32) = i32i8(n)\nexport fn toInt8(n: int64) = i64i8(n)\nexport fn toInt8(n: float32) = f32i8(n)\nexport fn toInt8(n: float64) = f64i8(n)\nexport fn toInt8(n: string) = stri8(n)\nexport fn toInt8(n: bool) = booli8(n)\n\nexport fn toBool(n: int8) = i8bool(n)\nexport fn toBool(n: int16) = i16bool(n)\nexport fn toBool(n: int32) = i32bool(n)\nexport fn toBool(n: int64) = i64bool(n)\nexport fn toBool(n: float32) = f32bool(n)\nexport fn toBool(n: float64) = f64bool(n)\nexport fn toBool(n: string) = strbool(n)\nexport fn toBool(n: bool) = n\n\nexport fn toString(n: int8) = i8str(n)\nexport fn toString(n: int16) = i16str(n)\nexport fn toString(n: int32) = i32str(n)\nexport fn toString(n: int64) = i64str(n)\nexport fn toString(n: float32) = f32str(n)\nexport fn toString(n: float64) = f64str(n)\nexport fn toString(n: string) = n\nexport fn toString(n: bool) = boolstr(n)\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b)\nexport fn add(a: int16, b: int16) = addi16(a, b)\nexport fn add(a: int32, b: int32) = addi32(a, b)\nexport fn add(a: int64, b: int64) = addi64(a, b)\nexport fn add(a: float32, b: float32) = addf32(a, b)\nexport fn add(a: float64, b: float64) = addf64(a, b)\n\nexport fn sub(a: int8, b: int8) = subi8(a, b)\nexport fn sub(a: int16, b: int16) = subi16(a, b)\nexport fn sub(a: int32, b: int32) = subi32(a, b)\nexport fn sub(a: int64, b: int64) = subi64(a, b)\nexport fn sub(a: float32, b: float32) = subf32(a, b)\nexport fn sub(a: float64, b: float64) = subf64(a, b)\n\nexport fn negate(n: int8) = negi8(n)\nexport fn negate(n: int16) = negi16(n)\nexport fn negate(n: int32) = negi32(n)\nexport fn negate(n: int64) = negi64(n)\nexport fn negate(n: float32) = negf32(n)\nexport fn negate(n: float64) = negf64(n)\n\nexport fn abs(n: int8) = absi8(n)\nexport fn abs(n: int16) = absi16(n)\nexport fn abs(n: int32) = absi32(n)\nexport fn abs(n: int64) = absi64(n)\nexport fn abs(n: float32) = absf32(n)\nexport fn abs(n: float64) = absf64(n)\n\nexport fn mul(a: int8, b: int8) = muli8(a, b)\nexport fn mul(a: int16, b: int16) = muli16(a, b)\nexport fn mul(a: int32, b: int32) = muli32(a, b)\nexport fn mul(a: int64, b: int64) = muli64(a, b)\nexport fn mul(a: float32, b: float32) = mulf32(a, b)\nexport fn mul(a: float64, b: float64) = mulf64(a, b)\n\nexport fn div(a: int8, b: int8) = divi8(a, b)\nexport fn div(a: int16, b: int16) = divi16(a, b)\nexport fn div(a: int32, b: int32) = divi32(a, b)\nexport fn div(a: int64, b: int64) = divi64(a, b)\nexport fn div(a: float32, b: float32) = divf32(a, b)\nexport fn div(a: float64, b: float64) = divf64(a, b)\n\nexport fn mod(a: int8, b: int8) = modi8(a, b)\nexport fn mod(a: int16, b: int16) = modi16(a, b)\nexport fn mod(a: int32, b: int32) = modi32(a, b)\nexport fn mod(a: int64, b: int64) = modi64(a, b)\n\nexport fn pow(a: int8, b: int8) = powi8(a, b)\nexport fn pow(a: int16, b: int16) = powi16(a, b)\nexport fn pow(a: int32, b: int32) = powi32(a, b)\nexport fn pow(a: int64, b: int64) = powi64(a, b)\nexport fn pow(a: float32, b: float32) = powf32(a, b)\nexport fn pow(a: float64, b: float64) = powf64(a, b)\n\nexport fn sqrt(n: float32) = sqrtf32(n)\nexport fn sqrt(n: float64) = sqrtf64(n)\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b)\nexport fn and(a: int16, b: int16) = andi16(a, b)\nexport fn and(a: int32, b: int32) = andi32(a, b)\nexport fn and(a: int64, b: int64) = andi64(a, b)\nexport fn and(a: bool, b: bool) = andbool(a, b)\n\nexport fn or(a: int8, b: int8) = ori8(a, b)\nexport fn or(a: int16, b: int16) = ori16(a, b)\nexport fn or(a: int32, b: int32) = ori32(a, b)\nexport fn or(a: int64, b: int64) = ori64(a, b)\nexport fn or(a: bool, b: bool) = orbool(a, b)\n\nexport fn xor(a: int8, b: int8) = xori8(a, b)\nexport fn xor(a: int16, b: int16) = xori16(a, b)\nexport fn xor(a: int32, b: int32) = xori32(a, b)\nexport fn xor(a: int64, b: int64) = xori64(a, b)\nexport fn xor(a: bool, b: bool) = xorbool(a, b)\n\nexport fn not(n: int8) = noti8(n)\nexport fn not(n: int16) = noti16(n)\nexport fn not(n: int32) = noti32(n)\nexport fn not(n: int64) = noti64(n)\nexport fn not(n: bool) = notbool(n)\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b)\nexport fn nand(a: int16, b: int16) = nandi16(a, b)\nexport fn nand(a: int32, b: int32) = nandi32(a, b)\nexport fn nand(a: int64, b: int64) = nandi64(a, b)\nexport fn nand(a: bool, b: bool) = nandboo(a, b)\n\nexport fn nor(a: int8, b: int8) = nori8(a, b)\nexport fn nor(a: int16, b: int16) = nori16(a, b)\nexport fn nor(a: int32, b: int32) = nori32(a, b)\nexport fn nor(a: int64, b: int64) = nori64(a, b)\nexport fn nor(a: bool, b: bool) = norbool(a, b)\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b)\nexport fn xnor(a: int16, b: int16) = xnori16(a, b)\nexport fn xnor(a: int32, b: int32) = xnori32(a, b)\nexport fn xnor(a: int64, b: int64) = xnori64(a, b)\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b)\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b)\nexport fn eq(a: int16, b: int16) = eqi16(a, b)\nexport fn eq(a: int32, b: int32) = eqi32(a, b)\nexport fn eq(a: int64, b: int64) = eqi64(a, b)\nexport fn eq(a: float32, b: float32) = eqf32(a, b)\nexport fn eq(a: float64, b: float64) = eqf64(a, b)\nexport fn eq(a: string, b: string) = eqstr(a, b)\nexport fn eq(a: bool, b: bool) = eqbool(a, b)\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b)\nexport fn neq(a: int16, b: int16) = neqi16(a, b)\nexport fn neq(a: int32, b: int32) = neqi32(a, b)\nexport fn neq(a: int64, b: int64) = neqi64(a, b)\nexport fn neq(a: float32, b: float32) = neqf32(a, b)\nexport fn neq(a: float64, b: float64) = neqf64(a, b)\nexport fn neq(a: string, b: string) = neqstr(a, b)\nexport fn neq(a: bool, b: bool) = neqbool(a, b)\n\nexport fn lt(a: int8, b: int8) = lti8(a, b)\nexport fn lt(a: int16, b: int16) = lti16(a, b)\nexport fn lt(a: int32, b: int32) = lti32(a, b)\nexport fn lt(a: int64, b: int64) = lti64(a, b)\nexport fn lt(a: float32, b: float32) = ltf32(a, b)\nexport fn lt(a: float64, b: float64) = ltf64(a, b)\nexport fn lt(a: string, b: string) = ltstr(a, b)\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b)\nexport fn lte(a: int16, b: int16) = ltei16(a, b)\nexport fn lte(a: int32, b: int32) = ltei32(a, b)\nexport fn lte(a: int64, b: int64) = ltei64(a, b)\nexport fn lte(a: float32, b: float32) = ltef32(a, b)\nexport fn lte(a: float64, b: float64) = ltef64(a, b)\nexport fn lte(a: string, b: string) = ltestr(a, b)\n\nexport fn gt(a: int8, b: int8) = gti8(a, b)\nexport fn gt(a: int16, b: int16) = gti16(a, b)\nexport fn gt(a: int32, b: int32) = gti32(a, b)\nexport fn gt(a: int64, b: int64) = gti64(a, b)\nexport fn gt(a: float32, b: float32) = gtf32(a, b)\nexport fn gt(a: float64, b: float64) = gtf64(a, b)\nexport fn gt(a: string, b: string) = gtstr(a, b)\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b)\nexport fn gte(a: int16, b: int16) = gtei16(a, b)\nexport fn gte(a: int32, b: int32) = gtei32(a, b)\nexport fn gte(a: int64, b: int64) = gtei64(a, b)\nexport fn gte(a: float32, b: float32) = gtef32(a, b)\nexport fn gte(a: float64, b: float64) = gtef64(a, b)\nexport fn gte(a: string, b: string) = gtestr(a, b)\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n))\nexport fn wait(n: int16) = waitop(i16i64(n))\nexport fn wait(n: int32) = waitop(i32i64(n))\nexport fn wait(n: int64) = waitop(n)\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b)\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n)\n// export fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t)\nexport fn length(s: string) = lenstr(s)\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b)\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n)\nexport fn index(arr: Array<any>, val: any) = indarrv(arr, val)\nexport fn index(arr: Array<int8>, val: int8) = indarrf(arr, val)\nexport fn index(arr: Array<int16>, val: int16) = indarrf(arr, val)\nexport fn index(arr: Array<int32>, val: int32) = indarrf(arr, val)\nexport fn index(arr: Array<int64>, val: int64) = indarrf(arr, val)\nexport fn index(arr: Array<float32>, val: float32) = indarrf(arr, val)\nexport fn index(arr: Array<float64>, val: float64) = indarrf(arr, val)\nexport fn index(arr: Array<bool>, val: bool) = indarrf(arr, val)\nexport fn has(arr: Array<any>, val: any) = indarrv(arr, val).isOk()\nexport fn has(arr: Array<int8>, val: int8) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<int16>, val: int16) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<int32>, val: int32) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<int64>, val: int64) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<float32>, val: float32) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<float64>, val: float64) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<bool>, val: bool) = indarrf(arr, val).isOk()\nexport fn length(arr: Array<any>) = lenarr(arr)\nexport fn push(arr: Array<any>, val: any) {\n  pusharr(arr, val, 0)\n  return arr\n}\nexport fn push(arr: Array<int8>, val: int8) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<int16>, val: int16) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<int32>, val: int32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<int64>, val: int64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<float32>, val: float32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<float64>, val: float64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<bool>, val: bool) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn pop(arr: Array<any>) = poparr(arr)\nexport each // parallel opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport fn eachLin(arr: Array<any>, cb: function): void = eachl(arr, cb)\nexport map // parallel opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport fn mapLin(arr: Array<any>, cb: function): Array<anythingElse> = mapl(arr, cb)\n/**\n * Unlike the other array functions, reduce is sequential by default and parallelism must be opted\n * in. This is due to the fact that parallelism requires the reducer function to be commutative or\n * associative, otherwise it will return different values on each run, and the compiler has no way\n * to guarantee that your reducer function is commutative or associative.\n *\n * There are four reduce functions instead of two as expected, because a reducer that reduces into\n * the same datatype requires less work than one that reduces into a new datatype. To reduce into a\n * new datatype you need an initial value in that new datatype that the reducer can provide to the\n * first reduction call to \"get the ball rolling.\" And there are extra constraints if you want the\n * reducer to run in parallel: that initial value will be used multiple times for each of the\n * parallel threads of computation, so that initial value has to be idempotent for it to work. Then\n * you're left with multiple reduced results that cannot be combined with each other with the main\n * reducer, so you need to provide a second reducer function that takes the resulting datatype and\n * can combine them with each other successfully, and that one *also* needs to be a commutative or\n * associative function.\n *\n * The complexities involved in writing a parallel reducer are why we decided to make the sequential\n * version the default, as the extra overhead is not something most developers are used to, whether\n * they hail from the functional programming world or the imperative world.\n *\n * On that note, you'll notice that the opcodes are named after `reduce` and `fold`. This is the\n * naming scheme that functional language programmers would be used to, but Java and Javascript\n * combined them both as `reduce`, so we have maintained that convention as we expect fewer people\n * needing to adapt to that change, it being a change they're likely already familiar with, and\n * noting that an extra argument that makes it equivalent to `fold` is easier than trying to find\n * the 3 or 4 arg variant under a different name.\n */\nexport fn reduce(arr: Array<any>, cb: function): any = reducel(arr, cb)\nexport fn reducePar(arr: Array<any>, cb: function): any = reducep(arr, cb)\n/**\n * This type is used to reduce the number of arguments passed to the opcodes, which can only take 2\n * arguments if they return a value, or 3 arguments if they are a side-effect-only opcode, and is an\n * implementation detail of the 3 and 4 arg reduce functions.\n */\ntype InitialReduce<T, U> {\n  arr: Array<T>\n  initial: U\n}\nexport fn reduce(arr: Array<any>, cb: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr = arr\n    initial = initial\n  }\n  return foldl(args, cb)\n}\nexport fn reducePar(arr: Array<any>, transformer: function, merger: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr = arr\n    initial = initial\n  }\n  const intermediate = foldp(args, transformer)\n  return reducep(intermediate, merger)\n}\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): Result<any>`\nexport fn findLin(arr: Array<any>, cb: function): Result<any> = findl(arr, cb)\nexport every // parallel opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport fn everyLin(arr: Array<any>, cb: function): bool = everyl(arr, cb)\nexport some // parallel opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport fn someLin(arr: Array<any>, cb: function): bool = somel(arr, cb)\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\nexport fn set(arr: Array<any>, idx: int64, val: any) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytov(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<int8>, idx: int64, val: int8) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<int16>, idx: int64, val: int16) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<int32>, idx: int64, val: int32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<int64>, idx: int64, val: int64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<float32>, idx: int64, val: float32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<float64>, idx: int64, val: float64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<bool>, idx: int64, val: bool) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\n\n// Ternary functions\nexport fn pair(trueval: any, falseval: any) = new Array<any> [ trueval, falseval ]\nexport fn cond(c: bool, options: Array<any>) = getR(options[1 - c.toInt64()])\nexport fn cond(c: bool, optional: function): void = condfn(c, optional)\n\n// \"clone\" function useful for hoisting assignments and making duplicates\nexport fn clone(a: any) = copyarr(a)\nexport fn clone(a: Array<any>) = copyarr(a)\nexport fn clone(a: void) = copyvoid(a) // TODO: Eliminate this, covering up a weird error\nexport fn clone() = zeroed() // TODO: Used for conditionals, eliminate with more clever compiler\nexport fn clone(a: int8) = copyi8(a)\nexport fn clone(a: int16) = copyi16(a)\nexport fn clone(a: int32) = copyi32(a)\nexport fn clone(a: int64) = copyi64(a)\nexport fn clone(a: float32) = copyf32(a)\nexport fn clone(a: float64) = copyf64(a)\nexport fn clone(a: bool) = copybool(a)\nexport fn clone(a: string) = copystr(a)\n\n// Error, Maybe, Result, and Either types and functions\nexport error // opcode with signature `fn error(string): Error`\nexport noerr // opcode with signature `fn noerr(): Error`\nexport fn toString(err: Error) = errorstr(err)\n\nexport fn some(val: any) = someM(val, 0)\nexport fn some(val: int8) = someM(val, 8)\nexport fn some(val: int16) = someM(val, 8)\nexport fn some(val: int32) = someM(val, 8)\nexport fn some(val: int64) = someM(val, 8)\nexport fn some(val: float32) = someM(val, 8)\nexport fn some(val: float64) = someM(val, 8)\nexport fn some(val: bool) = someM(val, 8)\nexport fn none() = noneM()\nexport isSome // opcode with signature `fn isSome(Maybe<any>): bool`\nexport isNone // opcode with signature `fn isNone(Maybe<any>): bool`\nexport fn getOr(maybe: Maybe<any>, default: any) = getOrM(maybe, default)\n\nexport fn ok(val: any) = okR(val, 0)\nexport fn ok(val: int8) = okR(val, 8)\nexport fn ok(val: int16) = okR(val, 8)\nexport fn ok(val: int32) = okR(val, 8)\nexport fn ok(val: int64) = okR(val, 8)\nexport fn ok(val: float32) = okR(val, 8)\nexport fn ok(val: float64) = okR(val, 8)\nexport fn ok(val: bool) = okR(val, 8)\nexport err // opcode with signature `fn err(string): Result<any>`\nexport isOk // opcode with signature `fn isOk(Result<any>): bool`\nexport isErr // opcode with signature `fn isErr(Result<any>: bool`\nexport fn getOr(result: Result<any>, default: any) = getOrR(result, default)\nexport getErr // opcode with signature `fn getErr(Result<any>, Error): Error`\nexport fn toString(n: Result<Stringifiable>): string {\n  if n.isOk() {\n    return n.getR().toString()\n  } else {\n    return n.getErr(noerr()).toString()\n  }\n}\n\nexport fn main(val: any) = mainE(val, 0)\nexport fn main(val: int8) = mainE(val, 8)\nexport fn main(val: int16) = mainE(val, 8)\nexport fn main(val: int32) = mainE(val, 8)\nexport fn main(val: int64) = mainE(val, 8)\nexport fn main(val: float32) = mainE(val, 8)\nexport fn main(val: float64) = mainE(val, 8)\nexport fn main(val: bool) = mainE(val, 8)\nexport fn alt(val: any) = altE(val, 0)\nexport fn alt(val: int8) = altE(val, 8)\nexport fn alt(val: int16) = altE(val, 8)\nexport fn alt(val: int32) = altE(val, 8)\nexport fn alt(val: int64) = altE(val, 8)\nexport fn alt(val: float32) = altE(val, 8)\nexport fn alt(val: float64) = altE(val, 8)\nexport fn alt(val: bool) = altE(val, 8)\nexport isMain // opcode with signature `fn isMain(Either<any, anythingElse>): bool`\nexport isAlt // opcode with signature `fn isAlt(Either<any, anythingElse): bool`\nexport fn getMainOr(either: Either<any, anythingElse>, default: any) = mainOr(either, default)\nexport fn getAltOr(either: Either<any, anythingElse>, default: anythingElse) = altOr(either, default)\n\n// toHash functions for all data types\nexport fn toHash(val: any) = hashv(val)\nexport fn toHash(val: int8) = hashf(val)\nexport fn toHash(val: int16) = hashf(val)\nexport fn toHash(val: int32) = hashf(val)\nexport fn toHash(val: int64) = hashf(val)\nexport fn toHash(val: float32) = hashf(val)\nexport fn toHash(val: float64) = hashf(val)\nexport fn toHash(val: bool) = hashf(val)\n\n// HashMap implementation\nexport type KeyVal<K, V> {\n  key: K\n  val: V\n}\n\nexport interface Hashable {\n  toHash(Hashable): int64\n  eq(Hashable, Hashable): bool\n}\n\nexport type HashMap<K, V> {\n  keyVal: Array<KeyVal<K, V>>\n  lookup: Array<Array<int64>>\n}\n\nexport fn keyVal(hm: HashMap<Hashable, any>) = hm.keyVal\nexport fn keys(hm: HashMap<Hashable, any>): Array<Hashable> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): Hashable = kv.key)\nexport fn vals(hm: HashMap<Hashable, any>): Array<any> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): any = kv.val)\nexport fn length(hm: HashMap<Hashable, any>): int64 = length(hm.keyVal)\n\nexport fn get(hm: HashMap<Hashable, any>, key: Hashable): any {\n  const hash = key.toHash().abs() % length(hm.lookup)\n  const list = getR(hm.lookup[hash])\n  const index = list.find(fn (i: int64): Array<int64> {\n    const kv = getR(hm.keyVal[i])\n    return eq(kv.key, key)\n  })\n  if index.isOk() {\n    const i = index.getOr(0)\n    const kv = getR(hm.keyVal[i])\n    return ok(kv.val)\n  } else {\n    return err('key not found')\n  }\n}\n\nexport fn set(hm: HashMap<Hashable, any>, key: Hashable, val: any): HashMap<Hashable, any> {\n  const kv = new KeyVal<Hashable, any> {\n    key = key\n    val = val\n  }\n  const index = length(hm.keyVal)\n  push(hm.keyVal, kv)\n  const hash = key.toHash().abs() % length(hm.lookup)\n  const list = getR(hm.lookup[hash])\n  if list.length() == 8 {\n    // Rebucket everything\n    const lookupLen = length(hm.lookup) * 2\n    hm.lookup = new Array<Array<int64>> [ new Array<int64> [], ] * lookupLen\n    eachl(hm.keyVal, fn (kv: KeyVal<Hashable, any>, i: int64) {\n      const hash = toHash(kv.key).abs() % lookupLen\n      const list = getR(hm.lookup[hash])\n      list.push(i)\n    })\n  } else {\n    list.push(index)\n  }\n  return hm\n}\n\nexport fn newHashMap(firstKey: Hashable, firstVal: any): HashMap<Hashable, any> { // TODO: Rust-like fn::<typeA, typeB> syntax?\n  let hm = new HashMap<Hashable, any> {\n    keyVal = new Array<KeyVal<Hashable, any>> []\n    lookup = new Array<Array<int64>> [ new Array<int64> [] ] * 128 // 1KB of space\n  }\n  return hm.set(firstKey, firstVal)\n}\n\nexport fn toHashMap(kva: Array<KeyVal<Hashable, any>>) {\n  let hm = new HashMap<Hashable, any> {\n    keyVal = kva\n    lookup = new Array<Array<int64>> [ new Array<int64> [] ] * 128\n  }\n  kva.eachl(fn (kv: KeyVal<Hashable, any>, i: int64) {\n    const hash = toHash(kv.key).abs() % length(hm.lookup)\n    const list = getR(hm.lookup[hash])\n    list.push(i)\n  })\n  return hm\n}\n\n// Operator declarations\nexport infix add as + precedence 2\nexport infix concat as + precedence 2\nexport infix sub as - precedence 2\nexport prefix negate as - precedence 1\nexport infix mul as * precedence 3\nexport infix repeat as * precedence 3\nexport infix div as / precedence 3\nexport infix split as / precedence 3\nexport infix mod as % precedence 3\n// export infix template as % precedence 3\nexport infix pow as ** precedence 4\nexport infix and as & precedence 3\nexport infix and as && precedence 3\nexport infix or as | precedence 2\nexport infix or as || precedence 2\nexport infix xor as ^ precedence 2\nexport prefix not as ! precedence 4\nexport infix nand as !& precedence 3\nexport infix nor as !| precedence 2\nexport infix xnor as !^ precedence 2\nexport infix eq as == precedence 1\nexport infix neq as != precedence 1\nexport infix lt as < precedence 1\nexport infix lte as <= precedence 1\nexport infix gt as > precedence 1\nexport infix gte as >= precedence 1\nexport infix matches as ~ precedence 1\nexport infix index as @ precedence 1\nexport prefix length as # precedence 4\nexport prefix trim as ` precedence 4\nexport infix pair as : precedence 5\nexport infix push as : precedence 6\nexport infix cond as ? precedence 0\nexport infix getOr as | precedence 2\nexport infix getOr as || precedence 2\n","trig.ln":"export const e = 2.718281828459045\nexport const pi = 3.141592653589793\nexport const tau = 6.283185307179586\n\nexport fn exp(x: float64) = e ** x\nexport fn exp(x: float32) = toFloat32(e) ** x\n\nexport fn ln(x: float64) = lnf64(x)\nexport fn ln(x: float32) = toFloat32(lnf64(toFloat64(x)))\n\nexport fn log(x: float64) = logf64(x)\nexport fn log(x: float32) = toFloat32(logf64(toFloat64(x)))\n\nexport fn sin(x: float64) = sinf64(x)\nexport fn sin(x: float32) = toFloat32(sinf64(toFloat64(x)))\nexport fn sine(x: float64) = sinf64(x)\nexport fn sine(x: float32) = toFloat32(sinf64(toFloat64(x)))\n\nexport fn cos(x: float64) = cosf64(x)\nexport fn cos(x: float32) = toFloat32(cosf64(toFloat64(x)))\nexport fn cosine(x: float64) = cosf64(x)\nexport fn cosine(x: float32) = toFloat32(cosf64(toFloat64(x)))\n\nexport fn tan(x: float64) = tanf64(x)\nexport fn tan(x: float32) = toFloat32(tanf64(toFloat64(x)))\nexport fn tangent(x: float64) = tanf64(x)\nexport fn tangent(x: float32) = toFloat32(tanf64(toFloat64(x)))\n\nexport fn sec(x: float64) = 1.0 / cosf64(x)\nexport fn sec(x: float32) = toFloat32(sec(toFloat64(x)))\nexport fn secant(x: float64) = 1.0 / cosf64(x)\nexport fn secant(x: float32) = toFloat32(secant(toFloat64(x)))\n\nexport fn csc(x: float64) = 1.0 / sinf64(x)\nexport fn csc(x: float32) = toFloat32(csc(toFloat64(x)))\nexport fn cosecant(x: float64) = 1.0 / sinf64(x)\nexport fn cosecant(x: float32) = toFloat32(cosecant(toFloat64(x)))\n\nexport fn cot(x: float64) = 1.0 / tanf64(x)\nexport fn cot(x: float32) = toFloat32(cot(toFloat64(x)))\nexport fn cotangent(x: float64) = 1.0 / tanaf64(x)\nexport fn cotangent(x: float32) = toFloat32(cotangent(toFloat64(x)))\n\nexport fn asin(x: float64) = asinf64(x)\nexport fn asin(x: float32) = toFloat32(asinf64(toFloat64(x)))\nexport fn arcsine(x: float64) = asinf64(x)\nexport fn arcsine(x: float32) = toFloat32(asinf64(toFloat64(x)))\n\nexport fn acos(x: float64) = acosf64(x)\nexport fn acos(x: float32) = toFloat32(acosf64(toFloat64(x)))\nexport fn arccosine(x: float64) = acosf64(x)\nexport fn arccosine(x: float32) = toFloat32(acosf64(toFloat64(x)))\n\nexport fn atan(x: float64) = atanf64(x)\nexport fn atan(x: float32) = toFloat32(atanf64(toFloat64(x)))\nexport fn arctangent(x: float64) = atanf64(x)\nexport fn arctangent(x: float32) = toFloat32(atanf64(toFloat64(x)))\n\nexport fn asec(x: float64) = acosf64(1.0 / x)\nexport fn asec(x: float32) = toFloat32(asec(toFloat64(x)))\nexport fn arcsecant(x: float64) = acosf64(1.0 / x)\nexport fn arcsecant(x: float32) = toFloat32(arcsecant(toFloat64(x)))\n\nexport fn acsc(x: float64) = asinf64(1.0 / x)\nexport fn acsc(x: float32) = toFloat32(acsc(toFloat64(x)))\nexport fn arccosecant(x: float64) = asinf64(1.0 / x)\nexport fn arccosecant(x: float32) = toFloat32(arccosecant(toFloat64(x)))\n\nexport fn acot(x: float64) = pi / 2.0 - atanf64(x)\nexport fn acot(x: float32) = toFloat32(acot(toFloat64(x)))\nexport fn arccotangent(x: float64) = pi / 2.0 - atanf64(x)\nexport fn arccotangent(x: float32) = toFloat32(arccotangent(toFloat64(x)))\n\nexport fn ver(x: float64) = 1.0 - cosf64(x)\nexport fn ver(x: float32) = toFloat32(ver(toFloat64(x)))\nexport fn versine(x: float64) = 1.0 - cosf64(x)\nexport fn versine(x: float32) = toFloat32(versine(toFloat64(x)))\n\nexport fn vcs(x: float64) = 1.0 + cosf64(x)\nexport fn vcs(x: float32) = toFloat32(vcs(toFloat64(x)))\nexport fn vercosine(x: float64) = 1.0 + cosf64(x)\nexport fn vercosine(x: float32) = toFloat32(vercosine(toFloat64(x)))\n\nexport fn cvs(x: float64) = 1.0 - sinf64(x)\nexport fn cvs(x: float32) = toFloat32(cvs(toFloat64(x)))\nexport fn coversine(x: float64) = 1.0 - sinf64(x)\nexport fn coversine(x: float32) = toFloat32(coversine(toFloat64(x)))\n\nexport fn cvc(x: float64) = 1.0 + sinf64(x)\nexport fn cvc(x: float32) = toFloat32(cvc(toFloat64(x)))\nexport fn covercosine(x: float64) = 1.0 + sinf64(x)\nexport fn covercosine(x: float32) = toFloat32(covercosine(toFloat64(x)))\n\nexport fn hav(x: float64) = versine(x) / 2.0\nexport fn hav(x: float32) = toFloat32(hav(toFloat64(x)))\nexport fn haversine(x: float64) = versine(x) / 2.0\nexport fn haversine(x: float32) = toFloat32(haversine(toFloat64(x)))\n\nexport fn hvc(x: float64) = vercosine(x) / 2.0\nexport fn hvc(x: float32) = toFloat32(hvc(toFloat64(x)))\nexport fn havercosine(x: float64) = vercosine(x) / 2.0\nexport fn havercosine(x: float32) = toFloat32(havercosine(toFloat64(x)))\n\nexport fn hcv(x: float64) = coversine(x) / 2.0\nexport fn hcv(x: float32) = toFloat32(hcv(toFloat64(x)))\nexport fn hacoversine(x: float64) = coversine(x) / 2.0\nexport fn hacoversine(x: float32) = toFloat32(hacoversine(toFloat64(x)))\n\nexport fn hcc(x: float64) = covercosine(x) / 2.0\nexport fn hcc(x: float32) = toFloat32(hcc(toFloat64(x)))\nexport fn hacovercosine(x: float64) = covercosine(x) / 2.0\nexport fn hacovercosine(x: float32) = toFloat32(hacovercosine(toFloat64(x)))\n\nexport fn exs(x: float64) = secant(x) - 1.0\nexport fn exs(x: float32) = toFloat32(exs(toFloat64(x)))\nexport fn exsecant(x: float64) = secant(x) - 1.0\nexport fn exsecant(x: float32) = toFloat32(exsecant(toFloat64(x)))\n\nexport fn exc(x: float64) = cosecant(x) - 1.0\nexport fn exc(x: float32) = toFloat32(exc(toFloat64(x)))\nexport fn excosecant(x: float64) = cosecant(x) - 1.0\nexport fn excosecant(x: float32) = toFloat32(excosecant(toFloat64(x)))\n\nexport fn crd(x: float64) = 2.0 * sine(x / 2.0)\nexport fn crd(x: float32) = toFloat32(crd(toFloat64(x)))\nexport fn chord(x: float64) = 2.0 * sine(x / 2.0)\nexport fn chord(x: float32) = toFloat32(chord(toFloat64(x)))\n\nexport fn aver(x: float64) = arccosine(1.0 - x)\nexport fn aver(x: float32) = toFloat32(aver(toFloat64(x)))\nexport fn arcversine(x: float64) = arccosine(1.0 - x)\nexport fn arcversine(x: float32) = toFloat32(arcversine(toFloat64(x)))\n\nexport fn avcs(x: float64) = arccosine(x - 1.0)\nexport fn avcs(x: float32) = toFloat32(avcs(toFloat64(x)))\nexport fn arcvercosine(x: float64) = arccosine(x - 1.0)\nexport fn arcvercosine(x: float32) = toFloat32(arcvercosine(toFloat64(x)))\n\nexport fn acvs(x: float64) = arcsine(1.0 - x)\nexport fn acvs(x: float32) = toFloat32(acvs(toFloat64(x)))\nexport fn arccoversine(x: float64) = arcsine(1.0 - x)\nexport fn arccoversine(x: float32) = toFloat32(arccoversine(toFloat64(x)))\n\nexport fn acvc(x: float64) = arcsine(x - 1.0)\nexport fn acvc(x: float32) = toFloat32(acvc(toFloat64(x)))\nexport fn arccovercosine(x: float64) = arcsine(x - 1.0)\nexport fn arccovercosine(x: float32) = toFloat32(arccovercosine(toFloat64(x)))\n\nexport fn ahav(x: float64) = arccosine(1.0 - 2.0 * x)\nexport fn ahav(x: float32) = toFloat32(ahav(toFloat64(x)))\nexport fn archaversine(x: float64) = arccosine(1.0 - 2.0 * x)\nexport fn archaversine(x: float32) = toFloat32(archaversine(toFloat64(x)))\n\nexport fn ahvc(x: float64) = arccosine(2.0 * x - 1.0)\nexport fn ahvc(x: float32) = toFloat32(ahvc(toFloat64(x)))\nexport fn archavercosine(x: float64) = arccosine(2.0 * x - 1.0)\nexport fn archavercosine(x: float32) = toFloat32(archavercosine(toFloat64(x)))\n\nexport fn ahcv(x: float64) = arcsine(1.0 - 2.0 * x)\nexport fn ahcv(x: float32) = toFloat32(ahcv(toFloat64(x)))\nexport fn archacoversine(x: float64) = arcsine(1.0 - 2.0 * x)\nexport fn archacoversine(x: float32) = toFloat32(archacoversine(toFloat64(x)))\n\nexport fn ahcc(x: float64) = arcsine(2.0 * x - 1.0)\nexport fn ahcc(x: float32) = toFloat32(ahcc(toFloat64(x)))\nexport fn archacovercosine(x: float64) = arcsine(2.0 * x - 1.0)\nexport fn archacovercosine(x: float32) = toFloat32(archacovercosine(toFloat64(x)))\n\nexport fn aexs(x: float64) = arccosine(1.0 / (x + 1.0))\nexport fn aexs(x: float32) = toFloat32(aexs(toFloat64(x)))\nexport fn arcexsecant(x: float64) = arccosine(1.0 / (x + 1.0))\nexport fn arcexsecant(x: float32) = toFloat32(arcexsecant(toFloat64(x)))\n\nexport fn aexc(x: float64) = arcsine(1.0 / (x + 1.0))\nexport fn aexc(x: float32) = toFloat32(aexc(toFloat64(x)))\nexport fn arcexcosecant(x: float64) = arcsine(1.0 / (x + 1.0))\nexport fn arcexcosecant(x: float32) = toFloat32(arcexcosecant(toFloat64(x)))\n\nexport fn acrd(x: float64) = 2.0 * arcsine(x / 2.0)\nexport fn acrd(x: float32) = toFloat32(acrd(toFloat64(x)))\nexport fn arcchord(x: float64) = 2.0 * arcsine(x / 2.0)\nexport fn arcchord(x: float32) = toFloat32(arcchord(toFloat64(x)))\n\nexport fn sinh(x: float64) = sinhf64(x)\nexport fn sinh(x: float32) = toFloat32(sinhf64(toFloat64(x)))\nexport fn hyperbolicSine(x: float64) = sinhf64(x)\nexport fn hyperbolicSine(x: float32) = toFloat32(sinhf64(toFloat64(x)))\n\nexport fn cosh(x: float64) = coshf64(x)\nexport fn cosh(x: float32) = toFloat32(coshf64(toFloat64(x)))\nexport fn hyperbolicCosine(x: float64) = coshf64(x)\nexport fn hyperbolicCosine(x: float32) = toFloat32(coshf64(toFloat64(x)))\n\nexport fn tanh(x: float64) = tanhf64(x)\nexport fn tanh(x: float32) = toFloat32(tanhf64(toFloat64(x)))\nexport fn hyperbolicTangent(x: float64) = tanhf64(x)\nexport fn hyperbolicTangent(x: float32) = toFloat32(tanhf64(toFloat64(x)))\n\nexport fn sech(x: float64) = 1.0 / cosh(x)\nexport fn sech(x: float32) = toFloat32(sech(toFloat64(x)))\nexport fn hyperbolicSecant(x: float64) = 1.0 / cosh(x)\nexport fn hyperbolicSecant(x: float32) = toFloat32(hyperbolicSecant(toFloat64(x)))\n\nexport fn csch(x: float64) = 1.0 / sinh(x)\nexport fn csch(x: float32) = toFloat32(cosh(toFloat64(x)))\nexport fn hyperbolicCosecant(x: float64) = 1.0 / sinh(x)\nexport fn hyperbolicCosecant(x: float32) = toFloat32(hyperbolicCosecant(toFloat64(x)))\n\nexport fn coth(x: float64) = 1.0 / tanh(x)\nexport fn coth(x: float32) = toFloat32(coth(toFloat64(x)))\nexport fn hyperbolicCotangent(x: float64) = 1.0 / tanh(x)\nexport fn hyperbolicCotangent(x: float32) = toFloat32(hyperbolicCotangent(toFloat64(x)))\n\nexport fn asinh(x: float64) = ln(x + sqrt(x ** 2.0 + 1.0))\nexport fn asinh(x: float32) = toFloat32(asinh(toFloat64(x)))\nexport fn hyperbolicArcsine(x: float64) = ln(x + sqrt(x ** 2.0 + 1.0))\nexport fn hyperbolicArcsine(x: float32) = toFloat32(hyperbolicArcsine(toFloat64(x)))\n\nexport fn acosh(x: float64) = ln(x + sqrt(x ** 2.0 - 1.0))\nexport fn acosh(x: float32) = toFloat32(acosh(toFloat64(x)))\nexport fn hyperbolicArccosine(x: float64) = ln(x + sqrt(x ** 2.0 - 1.0))\nexport fn hyperbolicArccosine(x: float32) = toFloat32(hyperbolicArccosine(toFloat64(x)))\n\nexport fn atanh(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0\nexport fn atanh(x: float32) = toFloat32(atanh(toFloat64(x)))\nexport fn hyperbolicArctangent(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0\nexport fn hyperbolicArctangent(x: float32) = toFloat32(hyperbolicArctangent(toFloat64(x)))\n\nexport fn asech(x: float64) = ln((1.0 + sqrt(1.0 - x ** 2.0)) / x)\nexport fn asech(x: float32) = toFloat32(asech(toFloat64(x)))\nexport fn hyperbolicArcsecant(x: float64) = ln((1.0 + sqrt(1.0 - x ** 2.0)) / x)\nexport fn hyperbolicArcsecant(x: float32) = toFloat32(hyperbolicArcsecant(toFloat64(x)))\n\nexport fn acsch(x: float64) = ln((1.0 / x) + sqrt(1.0 / x ** 2.0 + 1.0))\nexport fn acsch(x: float32) = toFloat32(acsch(toFloat64(x)))\nexport fn hyperbolicArccosecant(x: float64) = ln((1.0 / x) + sqrt(1.0 / x ** 2.0 + 1.0))\nexport fn hyperbolicArccosecant(x: float32) = toFloat32(hyperbolicArccosecant(toFloat64(x)))\n\nexport fn acoth(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0\nexport fn acoth(x: float32) = toFloat32(acoth(toFloat64(x)))\nexport fn hyperbolicArccotangent(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0\nexport fn hyperbolicArccotangent(x: float32) = toFloat32(hyperbolicArccotangent(toFloat64(x)))\n"}
+module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out)\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\"\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status)\n\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n)","deps.ln":"from @std/app import start, print, exit\nfrom @std/cmd import exec\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\nexport fn add(remote: string) {\n  // TODO implement proper error handling\n  const parts = remote.split('/')\n  const repo = parts[length(parts) - 1] || ''\n  const group = parts[parts.length() - 2] || ''\n  const dest = '/dependencies/' + group + '/' + repo\n  const rm = exec('rm -rf .' + dest)\n  const git = exec('git clone ' + remote + ' .' + dest)\n  print(git.stderr) \n  const rm2 = exec('rm -rf .' + dest + '/.git')\n}\n\n// The `commit` function takes no arguments. Currently just causes the application to quit, but\n// eventually would be the point where the dependencies defined by the calls to `add` could be\n// compared against the currently-installed dependencies, and a faster install would be possible\nexport fn commit() {\n  emit exit 0\n}\n\n// Emit the `install` event on app `start`\non start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  exec('rm -rf dependencies')\n  exec('mkdir dependencies')\n  emit install\n}\n","http.ln":"/**\n * @std/http - Built-in client (and eventually server) for http\n */\n\nexport fn get(url: string) = httpget(url)\nexport fn post(url: string, payload: string) = httppost(url, payload)","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Export all of the built-in types\nexport void\nexport int8\nexport int16\nexport int32\nexport int64\nexport float32\nexport float64\nexport bool\nexport string\nexport function // TODO: Make the function type more explicit than this\nexport Array\nexport Error\nexport Maybe\nexport Result\nexport Either\n\n// Type aliasing of int64 and float64 to just int and float, as these are the default types\nexport type int = int64\nexport type float = float64\n\n// Default Interfaces\nexport interface any {}\nexport interface anythingElse = any // Same as `any` but doesn't match with it\nexport interface Stringifiable {\n  toString(Stringifiable): string\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n)\nexport fn toFloat64(n: int16) = i16f64(n)\nexport fn toFloat64(n: int32) = i32f64(n)\nexport fn toFloat64(n: int64) = i64f64(n)\nexport fn toFloat64(n: float32) = f32f64(n)\nexport fn toFloat64(n: float64) = n\nexport fn toFloat64(n: string) = strf64(n)\nexport fn toFloat64(n: bool) = boolf64(n)\n\nexport fn toFloat32(n: int8) = i8f32(n)\nexport fn toFloat32(n: int16) = i16f32(n)\nexport fn toFloat32(n: int32) = i32f32(n)\nexport fn toFloat32(n: int64) = i64f32(n)\nexport fn toFloat32(n: float32) = n\nexport fn toFloat32(n: float64) = f64f32(n)\nexport fn toFloat32(n: string) = strf32(n)\nexport fn toFloat32(n: bool) = boolf32(n)\n\nexport fn toInt64(n: int8) = i8i64(n)\nexport fn toInt64(n: int16) = i16i64(n)\nexport fn toInt64(n: int32) = i32i64(n)\nexport fn toInt64(n: int64) = n\nexport fn toInt64(n: float32) = f32i64(n)\nexport fn toInt64(n: float64) = f64i64(n)\nexport fn toInt64(n: string) = stri64(n)\nexport fn toInt64(n: bool) = booli64(n)\n\nexport fn toInt32(n: int8) = i8i32(n)\nexport fn toInt32(n: int16) = i16i32(n)\nexport fn toInt32(n: int32) = n\nexport fn toInt32(n: int64) = i64i32(n)\nexport fn toInt32(n: float32) = f32i32(n)\nexport fn toInt32(n: float64) = f64i32(n)\nexport fn toInt32(n: string) = stri32(n)\nexport fn toInt32(n: bool) = booli32(n)\n\nexport fn toInt16(n: int8) = i8i16(n)\nexport fn toInt16(n: int16) = n\nexport fn toInt16(n: int32) = i32i16(n)\nexport fn toInt16(n: int64) = i64i16(n)\nexport fn toInt16(n: float32) = f32i16(n)\nexport fn toInt16(n: float64) = f64i16(n)\nexport fn toInt16(n: string) = stri16(n)\nexport fn toInt16(n: bool) = booli16(n)\n\nexport fn toInt8(n: int8) = n\nexport fn toInt8(n: int16) = i16i8(n)\nexport fn toInt8(n: int32) = i32i8(n)\nexport fn toInt8(n: int64) = i64i8(n)\nexport fn toInt8(n: float32) = f32i8(n)\nexport fn toInt8(n: float64) = f64i8(n)\nexport fn toInt8(n: string) = stri8(n)\nexport fn toInt8(n: bool) = booli8(n)\n\nexport fn toBool(n: int8) = i8bool(n)\nexport fn toBool(n: int16) = i16bool(n)\nexport fn toBool(n: int32) = i32bool(n)\nexport fn toBool(n: int64) = i64bool(n)\nexport fn toBool(n: float32) = f32bool(n)\nexport fn toBool(n: float64) = f64bool(n)\nexport fn toBool(n: string) = strbool(n)\nexport fn toBool(n: bool) = n\n\nexport fn toString(n: int8) = i8str(n)\nexport fn toString(n: int16) = i16str(n)\nexport fn toString(n: int32) = i32str(n)\nexport fn toString(n: int64) = i64str(n)\nexport fn toString(n: float32) = f32str(n)\nexport fn toString(n: float64) = f64str(n)\nexport fn toString(n: string) = n\nexport fn toString(n: bool) = boolstr(n)\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b)\nexport fn add(a: int16, b: int16) = addi16(a, b)\nexport fn add(a: int32, b: int32) = addi32(a, b)\nexport fn add(a: int64, b: int64) = addi64(a, b)\nexport fn add(a: float32, b: float32) = addf32(a, b)\nexport fn add(a: float64, b: float64) = addf64(a, b)\n\nexport fn sub(a: int8, b: int8) = subi8(a, b)\nexport fn sub(a: int16, b: int16) = subi16(a, b)\nexport fn sub(a: int32, b: int32) = subi32(a, b)\nexport fn sub(a: int64, b: int64) = subi64(a, b)\nexport fn sub(a: float32, b: float32) = subf32(a, b)\nexport fn sub(a: float64, b: float64) = subf64(a, b)\n\nexport fn negate(n: int8) = negi8(n)\nexport fn negate(n: int16) = negi16(n)\nexport fn negate(n: int32) = negi32(n)\nexport fn negate(n: int64) = negi64(n)\nexport fn negate(n: float32) = negf32(n)\nexport fn negate(n: float64) = negf64(n)\n\nexport fn abs(n: int8) = absi8(n)\nexport fn abs(n: int16) = absi16(n)\nexport fn abs(n: int32) = absi32(n)\nexport fn abs(n: int64) = absi64(n)\nexport fn abs(n: float32) = absf32(n)\nexport fn abs(n: float64) = absf64(n)\n\nexport fn mul(a: int8, b: int8) = muli8(a, b)\nexport fn mul(a: int16, b: int16) = muli16(a, b)\nexport fn mul(a: int32, b: int32) = muli32(a, b)\nexport fn mul(a: int64, b: int64) = muli64(a, b)\nexport fn mul(a: float32, b: float32) = mulf32(a, b)\nexport fn mul(a: float64, b: float64) = mulf64(a, b)\n\nexport fn div(a: int8, b: int8) = divi8(a, b)\nexport fn div(a: int16, b: int16) = divi16(a, b)\nexport fn div(a: int32, b: int32) = divi32(a, b)\nexport fn div(a: int64, b: int64) = divi64(a, b)\nexport fn div(a: float32, b: float32) = divf32(a, b)\nexport fn div(a: float64, b: float64) = divf64(a, b)\n\nexport fn mod(a: int8, b: int8) = modi8(a, b)\nexport fn mod(a: int16, b: int16) = modi16(a, b)\nexport fn mod(a: int32, b: int32) = modi32(a, b)\nexport fn mod(a: int64, b: int64) = modi64(a, b)\n\nexport fn pow(a: int8, b: int8) = powi8(a, b)\nexport fn pow(a: int16, b: int16) = powi16(a, b)\nexport fn pow(a: int32, b: int32) = powi32(a, b)\nexport fn pow(a: int64, b: int64) = powi64(a, b)\nexport fn pow(a: float32, b: float32) = powf32(a, b)\nexport fn pow(a: float64, b: float64) = powf64(a, b)\n\nexport fn sqrt(n: float32) = sqrtf32(n)\nexport fn sqrt(n: float64) = sqrtf64(n)\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b)\nexport fn and(a: int16, b: int16) = andi16(a, b)\nexport fn and(a: int32, b: int32) = andi32(a, b)\nexport fn and(a: int64, b: int64) = andi64(a, b)\nexport fn and(a: bool, b: bool) = andbool(a, b)\n\nexport fn or(a: int8, b: int8) = ori8(a, b)\nexport fn or(a: int16, b: int16) = ori16(a, b)\nexport fn or(a: int32, b: int32) = ori32(a, b)\nexport fn or(a: int64, b: int64) = ori64(a, b)\nexport fn or(a: bool, b: bool) = orbool(a, b)\n\nexport fn xor(a: int8, b: int8) = xori8(a, b)\nexport fn xor(a: int16, b: int16) = xori16(a, b)\nexport fn xor(a: int32, b: int32) = xori32(a, b)\nexport fn xor(a: int64, b: int64) = xori64(a, b)\nexport fn xor(a: bool, b: bool) = xorbool(a, b)\n\nexport fn not(n: int8) = noti8(n)\nexport fn not(n: int16) = noti16(n)\nexport fn not(n: int32) = noti32(n)\nexport fn not(n: int64) = noti64(n)\nexport fn not(n: bool) = notbool(n)\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b)\nexport fn nand(a: int16, b: int16) = nandi16(a, b)\nexport fn nand(a: int32, b: int32) = nandi32(a, b)\nexport fn nand(a: int64, b: int64) = nandi64(a, b)\nexport fn nand(a: bool, b: bool) = nandboo(a, b)\n\nexport fn nor(a: int8, b: int8) = nori8(a, b)\nexport fn nor(a: int16, b: int16) = nori16(a, b)\nexport fn nor(a: int32, b: int32) = nori32(a, b)\nexport fn nor(a: int64, b: int64) = nori64(a, b)\nexport fn nor(a: bool, b: bool) = norbool(a, b)\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b)\nexport fn xnor(a: int16, b: int16) = xnori16(a, b)\nexport fn xnor(a: int32, b: int32) = xnori32(a, b)\nexport fn xnor(a: int64, b: int64) = xnori64(a, b)\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b)\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b)\nexport fn eq(a: int16, b: int16) = eqi16(a, b)\nexport fn eq(a: int32, b: int32) = eqi32(a, b)\nexport fn eq(a: int64, b: int64) = eqi64(a, b)\nexport fn eq(a: float32, b: float32) = eqf32(a, b)\nexport fn eq(a: float64, b: float64) = eqf64(a, b)\nexport fn eq(a: string, b: string) = eqstr(a, b)\nexport fn eq(a: bool, b: bool) = eqbool(a, b)\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b)\nexport fn neq(a: int16, b: int16) = neqi16(a, b)\nexport fn neq(a: int32, b: int32) = neqi32(a, b)\nexport fn neq(a: int64, b: int64) = neqi64(a, b)\nexport fn neq(a: float32, b: float32) = neqf32(a, b)\nexport fn neq(a: float64, b: float64) = neqf64(a, b)\nexport fn neq(a: string, b: string) = neqstr(a, b)\nexport fn neq(a: bool, b: bool) = neqbool(a, b)\n\nexport fn lt(a: int8, b: int8) = lti8(a, b)\nexport fn lt(a: int16, b: int16) = lti16(a, b)\nexport fn lt(a: int32, b: int32) = lti32(a, b)\nexport fn lt(a: int64, b: int64) = lti64(a, b)\nexport fn lt(a: float32, b: float32) = ltf32(a, b)\nexport fn lt(a: float64, b: float64) = ltf64(a, b)\nexport fn lt(a: string, b: string) = ltstr(a, b)\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b)\nexport fn lte(a: int16, b: int16) = ltei16(a, b)\nexport fn lte(a: int32, b: int32) = ltei32(a, b)\nexport fn lte(a: int64, b: int64) = ltei64(a, b)\nexport fn lte(a: float32, b: float32) = ltef32(a, b)\nexport fn lte(a: float64, b: float64) = ltef64(a, b)\nexport fn lte(a: string, b: string) = ltestr(a, b)\n\nexport fn gt(a: int8, b: int8) = gti8(a, b)\nexport fn gt(a: int16, b: int16) = gti16(a, b)\nexport fn gt(a: int32, b: int32) = gti32(a, b)\nexport fn gt(a: int64, b: int64) = gti64(a, b)\nexport fn gt(a: float32, b: float32) = gtf32(a, b)\nexport fn gt(a: float64, b: float64) = gtf64(a, b)\nexport fn gt(a: string, b: string) = gtstr(a, b)\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b)\nexport fn gte(a: int16, b: int16) = gtei16(a, b)\nexport fn gte(a: int32, b: int32) = gtei32(a, b)\nexport fn gte(a: int64, b: int64) = gtei64(a, b)\nexport fn gte(a: float32, b: float32) = gtef32(a, b)\nexport fn gte(a: float64, b: float64) = gtef64(a, b)\nexport fn gte(a: string, b: string) = gtestr(a, b)\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n))\nexport fn wait(n: int16) = waitop(i16i64(n))\nexport fn wait(n: int32) = waitop(i32i64(n))\nexport fn wait(n: int64) = waitop(n)\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b)\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n)\n// export fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t)\nexport fn length(s: string) = lenstr(s)\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b)\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n)\nexport fn index(arr: Array<any>, val: any) = indarrv(arr, val)\nexport fn index(arr: Array<int8>, val: int8) = indarrf(arr, val)\nexport fn index(arr: Array<int16>, val: int16) = indarrf(arr, val)\nexport fn index(arr: Array<int32>, val: int32) = indarrf(arr, val)\nexport fn index(arr: Array<int64>, val: int64) = indarrf(arr, val)\nexport fn index(arr: Array<float32>, val: float32) = indarrf(arr, val)\nexport fn index(arr: Array<float64>, val: float64) = indarrf(arr, val)\nexport fn index(arr: Array<bool>, val: bool) = indarrf(arr, val)\nexport fn has(arr: Array<any>, val: any) = indarrv(arr, val).isOk()\nexport fn has(arr: Array<int8>, val: int8) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<int16>, val: int16) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<int32>, val: int32) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<int64>, val: int64) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<float32>, val: float32) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<float64>, val: float64) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<bool>, val: bool) = indarrf(arr, val).isOk()\nexport fn length(arr: Array<any>) = lenarr(arr)\nexport fn push(arr: Array<any>, val: any) {\n  pusharr(arr, val, 0)\n  return arr\n}\nexport fn push(arr: Array<int8>, val: int8) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<int16>, val: int16) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<int32>, val: int32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<int64>, val: int64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<float32>, val: float32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<float64>, val: float64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<bool>, val: bool) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn pop(arr: Array<any>) = poparr(arr)\nexport each // parallel opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport fn eachLin(arr: Array<any>, cb: function): void = eachl(arr, cb)\nexport map // parallel opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport fn mapLin(arr: Array<any>, cb: function): Array<anythingElse> = mapl(arr, cb)\n/**\n * Unlike the other array functions, reduce is sequential by default and parallelism must be opted\n * in. This is due to the fact that parallelism requires the reducer function to be commutative or\n * associative, otherwise it will return different values on each run, and the compiler has no way\n * to guarantee that your reducer function is commutative or associative.\n *\n * There are four reduce functions instead of two as expected, because a reducer that reduces into\n * the same datatype requires less work than one that reduces into a new datatype. To reduce into a\n * new datatype you need an initial value in that new datatype that the reducer can provide to the\n * first reduction call to \"get the ball rolling.\" And there are extra constraints if you want the\n * reducer to run in parallel: that initial value will be used multiple times for each of the\n * parallel threads of computation, so that initial value has to be idempotent for it to work. Then\n * you're left with multiple reduced results that cannot be combined with each other with the main\n * reducer, so you need to provide a second reducer function that takes the resulting datatype and\n * can combine them with each other successfully, and that one *also* needs to be a commutative or\n * associative function.\n *\n * The complexities involved in writing a parallel reducer are why we decided to make the sequential\n * version the default, as the extra overhead is not something most developers are used to, whether\n * they hail from the functional programming world or the imperative world.\n *\n * On that note, you'll notice that the opcodes are named after `reduce` and `fold`. This is the\n * naming scheme that functional language programmers would be used to, but Java and Javascript\n * combined them both as `reduce`, so we have maintained that convention as we expect fewer people\n * needing to adapt to that change, it being a change they're likely already familiar with, and\n * noting that an extra argument that makes it equivalent to `fold` is easier than trying to find\n * the 3 or 4 arg variant under a different name.\n */\nexport fn reduce(arr: Array<any>, cb: function): any = reducel(arr, cb)\nexport fn reducePar(arr: Array<any>, cb: function): any = reducep(arr, cb)\n/**\n * This type is used to reduce the number of arguments passed to the opcodes, which can only take 2\n * arguments if they return a value, or 3 arguments if they are a side-effect-only opcode, and is an\n * implementation detail of the 3 and 4 arg reduce functions.\n */\ntype InitialReduce<T, U> {\n  arr: Array<T>\n  initial: U\n}\nexport fn reduce(arr: Array<any>, cb: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr = arr\n    initial = initial\n  }\n  return foldl(args, cb)\n}\nexport fn reducePar(arr: Array<any>, transformer: function, merger: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr = arr\n    initial = initial\n  }\n  const intermediate = foldp(args, transformer)\n  return reducep(intermediate, merger)\n}\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): Result<any>`\nexport fn findLin(arr: Array<any>, cb: function): Result<any> = findl(arr, cb)\nexport every // parallel opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport fn everyLin(arr: Array<any>, cb: function): bool = everyl(arr, cb)\nexport some // parallel opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport fn someLin(arr: Array<any>, cb: function): bool = somel(arr, cb)\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\nexport fn set(arr: Array<any>, idx: int64, val: any) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytov(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<int8>, idx: int64, val: int8) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<int16>, idx: int64, val: int16) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<int32>, idx: int64, val: int32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<int64>, idx: int64, val: int64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<float32>, idx: int64, val: float32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<float64>, idx: int64, val: float64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<bool>, idx: int64, val: bool) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\n\n// Ternary functions\nexport fn pair(trueval: any, falseval: any) = new Array<any> [ trueval, falseval ]\nexport fn cond(c: bool, options: Array<any>) = getR(options[1 - c.toInt64()])\nexport fn cond(c: bool, optional: function): void = condfn(c, optional)\n\n// \"clone\" function useful for hoisting assignments and making duplicates\nexport fn clone(a: any) = copyarr(a)\nexport fn clone(a: Array<any>) = copyarr(a)\nexport fn clone(a: void) = copyvoid(a) // TODO: Eliminate this, covering up a weird error\nexport fn clone() = zeroed() // TODO: Used for conditionals, eliminate with more clever compiler\nexport fn clone(a: int8) = copyi8(a)\nexport fn clone(a: int16) = copyi16(a)\nexport fn clone(a: int32) = copyi32(a)\nexport fn clone(a: int64) = copyi64(a)\nexport fn clone(a: float32) = copyf32(a)\nexport fn clone(a: float64) = copyf64(a)\nexport fn clone(a: bool) = copybool(a)\nexport fn clone(a: string) = copystr(a)\n\n// Error, Maybe, Result, and Either types and functions\nexport error // opcode with signature `fn error(string): Error`\nexport noerr // opcode with signature `fn noerr(): Error`\nexport fn toString(err: Error) = errorstr(err)\n\nexport fn some(val: any) = someM(val, 0)\nexport fn some(val: int8) = someM(val, 8)\nexport fn some(val: int16) = someM(val, 8)\nexport fn some(val: int32) = someM(val, 8)\nexport fn some(val: int64) = someM(val, 8)\nexport fn some(val: float32) = someM(val, 8)\nexport fn some(val: float64) = someM(val, 8)\nexport fn some(val: bool) = someM(val, 8)\nexport fn none() = noneM()\nexport isSome // opcode with signature `fn isSome(Maybe<any>): bool`\nexport isNone // opcode with signature `fn isNone(Maybe<any>): bool`\nexport fn getOr(maybe: Maybe<any>, default: any) = getOrM(maybe, default)\n\nexport fn ok(val: any) = okR(val, 0)\nexport fn ok(val: int8) = okR(val, 8)\nexport fn ok(val: int16) = okR(val, 8)\nexport fn ok(val: int32) = okR(val, 8)\nexport fn ok(val: int64) = okR(val, 8)\nexport fn ok(val: float32) = okR(val, 8)\nexport fn ok(val: float64) = okR(val, 8)\nexport fn ok(val: bool) = okR(val, 8)\nexport err // opcode with signature `fn err(string): Result<any>`\nexport isOk // opcode with signature `fn isOk(Result<any>): bool`\nexport isErr // opcode with signature `fn isErr(Result<any>: bool`\nexport fn getOr(result: Result<any>, default: any) = getOrR(result, default)\nexport getErr // opcode with signature `fn getErr(Result<any>, Error): Error`\nexport fn toString(n: Result<Stringifiable>): string {\n  if n.isOk() {\n    return n.getR().toString()\n  } else {\n    return n.getErr(noerr()).toString()\n  }\n}\n\nexport fn main(val: any) = mainE(val, 0)\nexport fn main(val: int8) = mainE(val, 8)\nexport fn main(val: int16) = mainE(val, 8)\nexport fn main(val: int32) = mainE(val, 8)\nexport fn main(val: int64) = mainE(val, 8)\nexport fn main(val: float32) = mainE(val, 8)\nexport fn main(val: float64) = mainE(val, 8)\nexport fn main(val: bool) = mainE(val, 8)\nexport fn alt(val: any) = altE(val, 0)\nexport fn alt(val: int8) = altE(val, 8)\nexport fn alt(val: int16) = altE(val, 8)\nexport fn alt(val: int32) = altE(val, 8)\nexport fn alt(val: int64) = altE(val, 8)\nexport fn alt(val: float32) = altE(val, 8)\nexport fn alt(val: float64) = altE(val, 8)\nexport fn alt(val: bool) = altE(val, 8)\nexport isMain // opcode with signature `fn isMain(Either<any, anythingElse>): bool`\nexport isAlt // opcode with signature `fn isAlt(Either<any, anythingElse): bool`\nexport fn getMainOr(either: Either<any, anythingElse>, default: any) = mainOr(either, default)\nexport fn getAltOr(either: Either<any, anythingElse>, default: anythingElse) = altOr(either, default)\n\n// toHash functions for all data types\nexport fn toHash(val: any) = hashv(val)\nexport fn toHash(val: int8) = hashf(val)\nexport fn toHash(val: int16) = hashf(val)\nexport fn toHash(val: int32) = hashf(val)\nexport fn toHash(val: int64) = hashf(val)\nexport fn toHash(val: float32) = hashf(val)\nexport fn toHash(val: float64) = hashf(val)\nexport fn toHash(val: bool) = hashf(val)\n\n// HashMap implementation\nexport type KeyVal<K, V> {\n  key: K\n  val: V\n}\n\nexport interface Hashable {\n  toHash(Hashable): int64\n  eq(Hashable, Hashable): bool\n}\n\nexport type HashMap<K, V> {\n  keyVal: Array<KeyVal<K, V>>\n  lookup: Array<Array<int64>>\n}\n\nexport fn keyVal(hm: HashMap<Hashable, any>) = hm.keyVal\nexport fn keys(hm: HashMap<Hashable, any>): Array<Hashable> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): Hashable = kv.key)\nexport fn vals(hm: HashMap<Hashable, any>): Array<any> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): any = kv.val)\nexport fn length(hm: HashMap<Hashable, any>): int64 = length(hm.keyVal)\n\nexport fn get(hm: HashMap<Hashable, any>, key: Hashable): any {\n  const hash = key.toHash().abs() % length(hm.lookup)\n  const list = getR(hm.lookup[hash])\n  const index = list.find(fn (i: int64): Array<int64> {\n    const kv = getR(hm.keyVal[i])\n    return eq(kv.key, key)\n  })\n  if index.isOk() {\n    const i = index.getOr(0)\n    const kv = getR(hm.keyVal[i])\n    return ok(kv.val)\n  } else {\n    return err('key not found')\n  }\n}\n\nexport fn set(hm: HashMap<Hashable, any>, key: Hashable, val: any): HashMap<Hashable, any> {\n  const kv = new KeyVal<Hashable, any> {\n    key = key\n    val = val\n  }\n  const index = length(hm.keyVal)\n  push(hm.keyVal, kv)\n  const hash = key.toHash().abs() % length(hm.lookup)\n  const list = getR(hm.lookup[hash])\n  if list.length() == 8 {\n    // Rebucket everything\n    const lookupLen = length(hm.lookup) * 2\n    hm.lookup = new Array<Array<int64>> [ new Array<int64> [], ] * lookupLen\n    eachl(hm.keyVal, fn (kv: KeyVal<Hashable, any>, i: int64) {\n      const hash = toHash(kv.key).abs() % lookupLen\n      const list = getR(hm.lookup[hash])\n      list.push(i)\n    })\n  } else {\n    list.push(index)\n  }\n  return hm\n}\n\nexport fn newHashMap(firstKey: Hashable, firstVal: any): HashMap<Hashable, any> { // TODO: Rust-like fn::<typeA, typeB> syntax?\n  let hm = new HashMap<Hashable, any> {\n    keyVal = new Array<KeyVal<Hashable, any>> []\n    lookup = new Array<Array<int64>> [ new Array<int64> [] ] * 128 // 1KB of space\n  }\n  return hm.set(firstKey, firstVal)\n}\n\nexport fn toHashMap(kva: Array<KeyVal<Hashable, any>>) {\n  let hm = new HashMap<Hashable, any> {\n    keyVal = kva\n    lookup = new Array<Array<int64>> [ new Array<int64> [] ] * 128\n  }\n  kva.eachl(fn (kv: KeyVal<Hashable, any>, i: int64) {\n    const hash = toHash(kv.key).abs() % length(hm.lookup)\n    const list = getR(hm.lookup[hash])\n    list.push(i)\n  })\n  return hm\n}\n\n// Operator declarations\nexport infix add as + precedence 2\nexport infix concat as + precedence 2\nexport infix sub as - precedence 2\nexport prefix negate as - precedence 1\nexport infix mul as * precedence 3\nexport infix repeat as * precedence 3\nexport infix div as / precedence 3\nexport infix split as / precedence 3\nexport infix mod as % precedence 3\n// export infix template as % precedence 3\nexport infix pow as ** precedence 4\nexport infix and as & precedence 3\nexport infix and as && precedence 3\nexport infix or as | precedence 2\nexport infix or as || precedence 2\nexport infix xor as ^ precedence 2\nexport prefix not as ! precedence 4\nexport infix nand as !& precedence 3\nexport infix nor as !| precedence 2\nexport infix xnor as !^ precedence 2\nexport infix eq as == precedence 1\nexport infix neq as != precedence 1\nexport infix lt as < precedence 1\nexport infix lte as <= precedence 1\nexport infix gt as > precedence 1\nexport infix gte as >= precedence 1\nexport infix matches as ~ precedence 1\nexport infix index as @ precedence 1\nexport prefix length as # precedence 4\nexport prefix trim as ` precedence 4\nexport infix pair as : precedence 5\nexport infix push as : precedence 6\nexport infix cond as ? precedence 0\nexport infix getOr as | precedence 2\nexport infix getOr as || precedence 2\n","trig.ln":"export const e = 2.718281828459045\nexport const pi = 3.141592653589793\nexport const tau = 6.283185307179586\n\nexport fn exp(x: float64) = e ** x\nexport fn exp(x: float32) = toFloat32(e) ** x\n\nexport fn ln(x: float64) = lnf64(x)\nexport fn ln(x: float32) = toFloat32(lnf64(toFloat64(x)))\n\nexport fn log(x: float64) = logf64(x)\nexport fn log(x: float32) = toFloat32(logf64(toFloat64(x)))\n\nexport fn sin(x: float64) = sinf64(x)\nexport fn sin(x: float32) = toFloat32(sinf64(toFloat64(x)))\nexport fn sine(x: float64) = sinf64(x)\nexport fn sine(x: float32) = toFloat32(sinf64(toFloat64(x)))\n\nexport fn cos(x: float64) = cosf64(x)\nexport fn cos(x: float32) = toFloat32(cosf64(toFloat64(x)))\nexport fn cosine(x: float64) = cosf64(x)\nexport fn cosine(x: float32) = toFloat32(cosf64(toFloat64(x)))\n\nexport fn tan(x: float64) = tanf64(x)\nexport fn tan(x: float32) = toFloat32(tanf64(toFloat64(x)))\nexport fn tangent(x: float64) = tanf64(x)\nexport fn tangent(x: float32) = toFloat32(tanf64(toFloat64(x)))\n\nexport fn sec(x: float64) = 1.0 / cosf64(x)\nexport fn sec(x: float32) = toFloat32(sec(toFloat64(x)))\nexport fn secant(x: float64) = 1.0 / cosf64(x)\nexport fn secant(x: float32) = toFloat32(secant(toFloat64(x)))\n\nexport fn csc(x: float64) = 1.0 / sinf64(x)\nexport fn csc(x: float32) = toFloat32(csc(toFloat64(x)))\nexport fn cosecant(x: float64) = 1.0 / sinf64(x)\nexport fn cosecant(x: float32) = toFloat32(cosecant(toFloat64(x)))\n\nexport fn cot(x: float64) = 1.0 / tanf64(x)\nexport fn cot(x: float32) = toFloat32(cot(toFloat64(x)))\nexport fn cotangent(x: float64) = 1.0 / tanaf64(x)\nexport fn cotangent(x: float32) = toFloat32(cotangent(toFloat64(x)))\n\nexport fn asin(x: float64) = asinf64(x)\nexport fn asin(x: float32) = toFloat32(asinf64(toFloat64(x)))\nexport fn arcsine(x: float64) = asinf64(x)\nexport fn arcsine(x: float32) = toFloat32(asinf64(toFloat64(x)))\n\nexport fn acos(x: float64) = acosf64(x)\nexport fn acos(x: float32) = toFloat32(acosf64(toFloat64(x)))\nexport fn arccosine(x: float64) = acosf64(x)\nexport fn arccosine(x: float32) = toFloat32(acosf64(toFloat64(x)))\n\nexport fn atan(x: float64) = atanf64(x)\nexport fn atan(x: float32) = toFloat32(atanf64(toFloat64(x)))\nexport fn arctangent(x: float64) = atanf64(x)\nexport fn arctangent(x: float32) = toFloat32(atanf64(toFloat64(x)))\n\nexport fn asec(x: float64) = acosf64(1.0 / x)\nexport fn asec(x: float32) = toFloat32(asec(toFloat64(x)))\nexport fn arcsecant(x: float64) = acosf64(1.0 / x)\nexport fn arcsecant(x: float32) = toFloat32(arcsecant(toFloat64(x)))\n\nexport fn acsc(x: float64) = asinf64(1.0 / x)\nexport fn acsc(x: float32) = toFloat32(acsc(toFloat64(x)))\nexport fn arccosecant(x: float64) = asinf64(1.0 / x)\nexport fn arccosecant(x: float32) = toFloat32(arccosecant(toFloat64(x)))\n\nexport fn acot(x: float64) = pi / 2.0 - atanf64(x)\nexport fn acot(x: float32) = toFloat32(acot(toFloat64(x)))\nexport fn arccotangent(x: float64) = pi / 2.0 - atanf64(x)\nexport fn arccotangent(x: float32) = toFloat32(arccotangent(toFloat64(x)))\n\nexport fn ver(x: float64) = 1.0 - cosf64(x)\nexport fn ver(x: float32) = toFloat32(ver(toFloat64(x)))\nexport fn versine(x: float64) = 1.0 - cosf64(x)\nexport fn versine(x: float32) = toFloat32(versine(toFloat64(x)))\n\nexport fn vcs(x: float64) = 1.0 + cosf64(x)\nexport fn vcs(x: float32) = toFloat32(vcs(toFloat64(x)))\nexport fn vercosine(x: float64) = 1.0 + cosf64(x)\nexport fn vercosine(x: float32) = toFloat32(vercosine(toFloat64(x)))\n\nexport fn cvs(x: float64) = 1.0 - sinf64(x)\nexport fn cvs(x: float32) = toFloat32(cvs(toFloat64(x)))\nexport fn coversine(x: float64) = 1.0 - sinf64(x)\nexport fn coversine(x: float32) = toFloat32(coversine(toFloat64(x)))\n\nexport fn cvc(x: float64) = 1.0 + sinf64(x)\nexport fn cvc(x: float32) = toFloat32(cvc(toFloat64(x)))\nexport fn covercosine(x: float64) = 1.0 + sinf64(x)\nexport fn covercosine(x: float32) = toFloat32(covercosine(toFloat64(x)))\n\nexport fn hav(x: float64) = versine(x) / 2.0\nexport fn hav(x: float32) = toFloat32(hav(toFloat64(x)))\nexport fn haversine(x: float64) = versine(x) / 2.0\nexport fn haversine(x: float32) = toFloat32(haversine(toFloat64(x)))\n\nexport fn hvc(x: float64) = vercosine(x) / 2.0\nexport fn hvc(x: float32) = toFloat32(hvc(toFloat64(x)))\nexport fn havercosine(x: float64) = vercosine(x) / 2.0\nexport fn havercosine(x: float32) = toFloat32(havercosine(toFloat64(x)))\n\nexport fn hcv(x: float64) = coversine(x) / 2.0\nexport fn hcv(x: float32) = toFloat32(hcv(toFloat64(x)))\nexport fn hacoversine(x: float64) = coversine(x) / 2.0\nexport fn hacoversine(x: float32) = toFloat32(hacoversine(toFloat64(x)))\n\nexport fn hcc(x: float64) = covercosine(x) / 2.0\nexport fn hcc(x: float32) = toFloat32(hcc(toFloat64(x)))\nexport fn hacovercosine(x: float64) = covercosine(x) / 2.0\nexport fn hacovercosine(x: float32) = toFloat32(hacovercosine(toFloat64(x)))\n\nexport fn exs(x: float64) = secant(x) - 1.0\nexport fn exs(x: float32) = toFloat32(exs(toFloat64(x)))\nexport fn exsecant(x: float64) = secant(x) - 1.0\nexport fn exsecant(x: float32) = toFloat32(exsecant(toFloat64(x)))\n\nexport fn exc(x: float64) = cosecant(x) - 1.0\nexport fn exc(x: float32) = toFloat32(exc(toFloat64(x)))\nexport fn excosecant(x: float64) = cosecant(x) - 1.0\nexport fn excosecant(x: float32) = toFloat32(excosecant(toFloat64(x)))\n\nexport fn crd(x: float64) = 2.0 * sine(x / 2.0)\nexport fn crd(x: float32) = toFloat32(crd(toFloat64(x)))\nexport fn chord(x: float64) = 2.0 * sine(x / 2.0)\nexport fn chord(x: float32) = toFloat32(chord(toFloat64(x)))\n\nexport fn aver(x: float64) = arccosine(1.0 - x)\nexport fn aver(x: float32) = toFloat32(aver(toFloat64(x)))\nexport fn arcversine(x: float64) = arccosine(1.0 - x)\nexport fn arcversine(x: float32) = toFloat32(arcversine(toFloat64(x)))\n\nexport fn avcs(x: float64) = arccosine(x - 1.0)\nexport fn avcs(x: float32) = toFloat32(avcs(toFloat64(x)))\nexport fn arcvercosine(x: float64) = arccosine(x - 1.0)\nexport fn arcvercosine(x: float32) = toFloat32(arcvercosine(toFloat64(x)))\n\nexport fn acvs(x: float64) = arcsine(1.0 - x)\nexport fn acvs(x: float32) = toFloat32(acvs(toFloat64(x)))\nexport fn arccoversine(x: float64) = arcsine(1.0 - x)\nexport fn arccoversine(x: float32) = toFloat32(arccoversine(toFloat64(x)))\n\nexport fn acvc(x: float64) = arcsine(x - 1.0)\nexport fn acvc(x: float32) = toFloat32(acvc(toFloat64(x)))\nexport fn arccovercosine(x: float64) = arcsine(x - 1.0)\nexport fn arccovercosine(x: float32) = toFloat32(arccovercosine(toFloat64(x)))\n\nexport fn ahav(x: float64) = arccosine(1.0 - 2.0 * x)\nexport fn ahav(x: float32) = toFloat32(ahav(toFloat64(x)))\nexport fn archaversine(x: float64) = arccosine(1.0 - 2.0 * x)\nexport fn archaversine(x: float32) = toFloat32(archaversine(toFloat64(x)))\n\nexport fn ahvc(x: float64) = arccosine(2.0 * x - 1.0)\nexport fn ahvc(x: float32) = toFloat32(ahvc(toFloat64(x)))\nexport fn archavercosine(x: float64) = arccosine(2.0 * x - 1.0)\nexport fn archavercosine(x: float32) = toFloat32(archavercosine(toFloat64(x)))\n\nexport fn ahcv(x: float64) = arcsine(1.0 - 2.0 * x)\nexport fn ahcv(x: float32) = toFloat32(ahcv(toFloat64(x)))\nexport fn archacoversine(x: float64) = arcsine(1.0 - 2.0 * x)\nexport fn archacoversine(x: float32) = toFloat32(archacoversine(toFloat64(x)))\n\nexport fn ahcc(x: float64) = arcsine(2.0 * x - 1.0)\nexport fn ahcc(x: float32) = toFloat32(ahcc(toFloat64(x)))\nexport fn archacovercosine(x: float64) = arcsine(2.0 * x - 1.0)\nexport fn archacovercosine(x: float32) = toFloat32(archacovercosine(toFloat64(x)))\n\nexport fn aexs(x: float64) = arccosine(1.0 / (x + 1.0))\nexport fn aexs(x: float32) = toFloat32(aexs(toFloat64(x)))\nexport fn arcexsecant(x: float64) = arccosine(1.0 / (x + 1.0))\nexport fn arcexsecant(x: float32) = toFloat32(arcexsecant(toFloat64(x)))\n\nexport fn aexc(x: float64) = arcsine(1.0 / (x + 1.0))\nexport fn aexc(x: float32) = toFloat32(aexc(toFloat64(x)))\nexport fn arcexcosecant(x: float64) = arcsine(1.0 / (x + 1.0))\nexport fn arcexcosecant(x: float32) = toFloat32(arcexcosecant(toFloat64(x)))\n\nexport fn acrd(x: float64) = 2.0 * arcsine(x / 2.0)\nexport fn acrd(x: float32) = toFloat32(acrd(toFloat64(x)))\nexport fn arcchord(x: float64) = 2.0 * arcsine(x / 2.0)\nexport fn arcchord(x: float32) = toFloat32(arcchord(toFloat64(x)))\n\nexport fn sinh(x: float64) = sinhf64(x)\nexport fn sinh(x: float32) = toFloat32(sinhf64(toFloat64(x)))\nexport fn hyperbolicSine(x: float64) = sinhf64(x)\nexport fn hyperbolicSine(x: float32) = toFloat32(sinhf64(toFloat64(x)))\n\nexport fn cosh(x: float64) = coshf64(x)\nexport fn cosh(x: float32) = toFloat32(coshf64(toFloat64(x)))\nexport fn hyperbolicCosine(x: float64) = coshf64(x)\nexport fn hyperbolicCosine(x: float32) = toFloat32(coshf64(toFloat64(x)))\n\nexport fn tanh(x: float64) = tanhf64(x)\nexport fn tanh(x: float32) = toFloat32(tanhf64(toFloat64(x)))\nexport fn hyperbolicTangent(x: float64) = tanhf64(x)\nexport fn hyperbolicTangent(x: float32) = toFloat32(tanhf64(toFloat64(x)))\n\nexport fn sech(x: float64) = 1.0 / cosh(x)\nexport fn sech(x: float32) = toFloat32(sech(toFloat64(x)))\nexport fn hyperbolicSecant(x: float64) = 1.0 / cosh(x)\nexport fn hyperbolicSecant(x: float32) = toFloat32(hyperbolicSecant(toFloat64(x)))\n\nexport fn csch(x: float64) = 1.0 / sinh(x)\nexport fn csch(x: float32) = toFloat32(cosh(toFloat64(x)))\nexport fn hyperbolicCosecant(x: float64) = 1.0 / sinh(x)\nexport fn hyperbolicCosecant(x: float32) = toFloat32(hyperbolicCosecant(toFloat64(x)))\n\nexport fn coth(x: float64) = 1.0 / tanh(x)\nexport fn coth(x: float32) = toFloat32(coth(toFloat64(x)))\nexport fn hyperbolicCotangent(x: float64) = 1.0 / tanh(x)\nexport fn hyperbolicCotangent(x: float32) = toFloat32(hyperbolicCotangent(toFloat64(x)))\n\nexport fn asinh(x: float64) = ln(x + sqrt(x ** 2.0 + 1.0))\nexport fn asinh(x: float32) = toFloat32(asinh(toFloat64(x)))\nexport fn hyperbolicArcsine(x: float64) = ln(x + sqrt(x ** 2.0 + 1.0))\nexport fn hyperbolicArcsine(x: float32) = toFloat32(hyperbolicArcsine(toFloat64(x)))\n\nexport fn acosh(x: float64) = ln(x + sqrt(x ** 2.0 - 1.0))\nexport fn acosh(x: float32) = toFloat32(acosh(toFloat64(x)))\nexport fn hyperbolicArccosine(x: float64) = ln(x + sqrt(x ** 2.0 - 1.0))\nexport fn hyperbolicArccosine(x: float32) = toFloat32(hyperbolicArccosine(toFloat64(x)))\n\nexport fn atanh(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0\nexport fn atanh(x: float32) = toFloat32(atanh(toFloat64(x)))\nexport fn hyperbolicArctangent(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0\nexport fn hyperbolicArctangent(x: float32) = toFloat32(hyperbolicArctangent(toFloat64(x)))\n\nexport fn asech(x: float64) = ln((1.0 + sqrt(1.0 - x ** 2.0)) / x)\nexport fn asech(x: float32) = toFloat32(asech(toFloat64(x)))\nexport fn hyperbolicArcsecant(x: float64) = ln((1.0 + sqrt(1.0 - x ** 2.0)) / x)\nexport fn hyperbolicArcsecant(x: float32) = toFloat32(hyperbolicArcsecant(toFloat64(x)))\n\nexport fn acsch(x: float64) = ln((1.0 / x) + sqrt(1.0 / x ** 2.0 + 1.0))\nexport fn acsch(x: float32) = toFloat32(acsch(toFloat64(x)))\nexport fn hyperbolicArccosecant(x: float64) = ln((1.0 / x) + sqrt(1.0 / x ** 2.0 + 1.0))\nexport fn hyperbolicArccosecant(x: float32) = toFloat32(hyperbolicArccosecant(toFloat64(x)))\n\nexport fn acoth(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0\nexport fn acoth(x: float32) = toFloat32(acoth(toFloat64(x)))\nexport fn hyperbolicArccotangent(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0\nexport fn hyperbolicArccotangent(x: float32) = toFloat32(hyperbolicArccotangent(toFloat64(x)))\n"}
 
 },{}],3:[function(require,module,exports){
 "use strict";
@@ -9978,7 +9978,7 @@ exports.fulltypenameAstFromString = (s) => {
     return langParser.fulltypename();
 };
 
-},{"../ln":9,"antlr4":66,"fs":73,"path":80}],11:[function(require,module,exports){
+},{"../ln":9,"antlr4":66,"fs":73,"path":81}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class Constant {
@@ -11367,7 +11367,7 @@ ${constdeclarationAst.getText()} on line ${constdeclarationAst.start.line}:${con
 }
 exports.default = Microstatement;
 
-},{"../ln":9,"./Ast":10,"./Constant":11,"./Event":12,"./Operator":15,"./Scope":16,"./Statement":17,"./StatementType":18,"./Type":19,"./UserFunction":20,"./opcodes":22,"uuid":86}],14:[function(require,module,exports){
+},{"../ln":9,"./Ast":10,"./Constant":11,"./Event":12,"./Operator":15,"./Scope":16,"./Statement":17,"./StatementType":18,"./Type":19,"./UserFunction":20,"./opcodes":22,"uuid":87}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Ast = require("./Ast");
@@ -13197,7 +13197,7 @@ ${statements[i].statementOrAssignableAst.getText().trim()} on line ${statements[
 }
 exports.default = UserFunction;
 
-},{"../ln":9,"./Ast":10,"./Microstatement":13,"./Statement":17,"./StatementType":18,"./Type":19,"uuid":86}],21:[function(require,module,exports){
+},{"../ln":9,"./Ast":10,"./Microstatement":13,"./Statement":17,"./StatementType":18,"./Type":19,"uuid":87}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fromString = exports.fromFile = void 0;
@@ -13451,7 +13451,7 @@ const ammFromModuleAsts = (moduleAsts) => {
 exports.fromFile = (filename) => ammFromModuleAsts(moduleAstsFromFile(filename));
 exports.fromString = (str) => ammFromModuleAsts(moduleAstsFromString(str));
 
-},{"./Ast":10,"./Event":12,"./Microstatement":13,"./Module":14,"./StatementType":18,"./Std":1,"./UserFunction":20,"fs":73,"uuid":86}],22:[function(require,module,exports){
+},{"./Ast":10,"./Event":12,"./Microstatement":13,"./Module":14,"./StatementType":18,"./Std":1,"./UserFunction":20,"fs":73,"uuid":87}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const uuid_1 = require("uuid");
@@ -13479,6 +13479,7 @@ Type_1.Type.builtinTypes['Array'].solidify(['anythingElse'], opcodeScope);
 Type_1.Type.builtinTypes.Maybe.solidify(['any'], opcodeScope);
 Type_1.Type.builtinTypes.Result.solidify(['any'], opcodeScope);
 Type_1.Type.builtinTypes.Result.solidify(['int64'], opcodeScope);
+Type_1.Type.builtinTypes.Result.solidify(['string'], opcodeScope);
 Type_1.Type.builtinTypes.Either.solidify(['any', 'anythingElse'], opcodeScope);
 Type_1.Type.builtinTypes.InitialReduce.solidify(['any', 'anythingElse'], opcodeScope);
 opcodeScope.put("start", new Event_1.default("_start", Type_1.Type.builtinTypes.void, true));
@@ -13764,6 +13765,8 @@ addopcodes({
     gtef32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
     gtef64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
     gtestr: [{ a: t('string'), b: t('string'), }, t('bool')],
+    httpget: [{ a: t('string') }, t('Result<string>')],
+    httppost: [{ a: t('string'), b: t('string') }, t('Result<string>')],
     execop: [{ a: t('string') }, t('ExecRes')],
     waitop: [{ a: t('int64') }, t('void')],
     catstr: [{ a: t('string'), b: t('string'), }, t('string')],
@@ -13854,7 +13857,7 @@ addopcodes({
 });
 exports.default = opcodeModule;
 
-},{"./Event":12,"./Microstatement":13,"./Module":14,"./Scope":16,"./StatementType":18,"./Type":19,"uuid":86}],23:[function(require,module,exports){
+},{"./Event":12,"./Microstatement":13,"./Module":14,"./Scope":16,"./StatementType":18,"./Type":19,"uuid":87}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RangeSet = exports.CharSet = exports.NamedOr = exports.NamedAnd = exports.Or = exports.And = exports.OneOrMore = exports.ZeroOrMore = exports.ZeroOrOne = exports.Not = exports.Token = exports.NulLP = exports.lpError = exports.LP = void 0;
@@ -30406,6 +30409,14 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
 }
 
 },{}],80:[function(require,module,exports){
+// the whatwg-fetch polyfill installs the fetch() function
+// on the global object (window or self)
+//
+// Return that as the export for use in Webpack, Browserify etc.
+require('whatwg-fetch');
+module.exports = self.fetch.bind(self);
+
+},{"whatwg-fetch":96}],81:[function(require,module,exports){
 (function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
@@ -30711,7 +30722,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":81}],81:[function(require,module,exports){
+},{"_process":82}],82:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -30897,7 +30908,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],82:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -30922,14 +30933,14 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],83:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],84:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -31519,7 +31530,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":83,"_process":81,"inherits":82}],85:[function(require,module,exports){
+},{"./support/isBuffer":84,"_process":82,"inherits":83}],86:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31547,7 +31558,7 @@ function bytesToUuid(buf, offset) {
 
 var _default = bytesToUuid;
 exports.default = _default;
-},{}],86:[function(require,module,exports){
+},{}],87:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31587,7 +31598,7 @@ var _v3 = _interopRequireDefault(require("./v4.js"));
 var _v4 = _interopRequireDefault(require("./v5.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-},{"./v1.js":90,"./v3.js":91,"./v4.js":93,"./v5.js":94}],87:[function(require,module,exports){
+},{"./v1.js":91,"./v3.js":92,"./v4.js":94,"./v5.js":95}],88:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31811,7 +31822,7 @@ function md5ii(a, b, c, d, x, s, t) {
 
 var _default = md5;
 exports.default = _default;
-},{}],88:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31833,7 +31844,7 @@ function rng() {
 
   return getRandomValues(rnds8);
 }
-},{}],89:[function(require,module,exports){
+},{}],90:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -31935,7 +31946,7 @@ function sha1(bytes) {
 
 var _default = sha1;
 exports.default = _default;
-},{}],90:[function(require,module,exports){
+},{}],91:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -32043,7 +32054,7 @@ function v1(options, buf, offset) {
 
 var _default = v1;
 exports.default = _default;
-},{"./bytesToUuid.js":85,"./rng.js":88}],91:[function(require,module,exports){
+},{"./bytesToUuid.js":86,"./rng.js":89}],92:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -32060,7 +32071,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const v3 = (0, _v.default)('v3', 0x30, _md.default);
 var _default = v3;
 exports.default = _default;
-},{"./md5.js":87,"./v35.js":92}],92:[function(require,module,exports){
+},{"./md5.js":88,"./v35.js":93}],93:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -32137,7 +32148,7 @@ function _default(name, version, hashfunc) {
   generateUUID.URL = URL;
   return generateUUID;
 }
-},{"./bytesToUuid.js":85}],93:[function(require,module,exports){
+},{"./bytesToUuid.js":86}],94:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -32180,7 +32191,7 @@ function v4(options, buf, offset) {
 
 var _default = v4;
 exports.default = _default;
-},{"./bytesToUuid.js":85,"./rng.js":88}],94:[function(require,module,exports){
+},{"./bytesToUuid.js":86,"./rng.js":89}],95:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -32197,13 +32208,627 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const v5 = (0, _v.default)('v5', 0x50, _sha.default);
 var _default = v5;
 exports.default = _default;
-},{"./sha1.js":89,"./v35.js":92}],95:[function(require,module,exports){
+},{"./sha1.js":90,"./v35.js":93}],96:[function(require,module,exports){
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof define === 'function' && define.amd ? define(['exports'], factory) :
+  (factory((global.WHATWGFetch = {})));
+}(this, (function (exports) { 'use strict';
+
+  var global =
+    (typeof globalThis !== 'undefined' && globalThis) ||
+    (typeof self !== 'undefined' && self) ||
+    (typeof global !== 'undefined' && global);
+
+  var support = {
+    searchParams: 'URLSearchParams' in global,
+    iterable: 'Symbol' in global && 'iterator' in Symbol,
+    blob:
+      'FileReader' in global &&
+      'Blob' in global &&
+      (function() {
+        try {
+          new Blob();
+          return true
+        } catch (e) {
+          return false
+        }
+      })(),
+    formData: 'FormData' in global,
+    arrayBuffer: 'ArrayBuffer' in global
+  };
+
+  function isDataView(obj) {
+    return obj && DataView.prototype.isPrototypeOf(obj)
+  }
+
+  if (support.arrayBuffer) {
+    var viewClasses = [
+      '[object Int8Array]',
+      '[object Uint8Array]',
+      '[object Uint8ClampedArray]',
+      '[object Int16Array]',
+      '[object Uint16Array]',
+      '[object Int32Array]',
+      '[object Uint32Array]',
+      '[object Float32Array]',
+      '[object Float64Array]'
+    ];
+
+    var isArrayBufferView =
+      ArrayBuffer.isView ||
+      function(obj) {
+        return obj && viewClasses.indexOf(Object.prototype.toString.call(obj)) > -1
+      };
+  }
+
+  function normalizeName(name) {
+    if (typeof name !== 'string') {
+      name = String(name);
+    }
+    if (/[^a-z0-9\-#$%&'*+.^_`|~!]/i.test(name) || name === '') {
+      throw new TypeError('Invalid character in header field name')
+    }
+    return name.toLowerCase()
+  }
+
+  function normalizeValue(value) {
+    if (typeof value !== 'string') {
+      value = String(value);
+    }
+    return value
+  }
+
+  // Build a destructive iterator for the value list
+  function iteratorFor(items) {
+    var iterator = {
+      next: function() {
+        var value = items.shift();
+        return {done: value === undefined, value: value}
+      }
+    };
+
+    if (support.iterable) {
+      iterator[Symbol.iterator] = function() {
+        return iterator
+      };
+    }
+
+    return iterator
+  }
+
+  function Headers(headers) {
+    this.map = {};
+
+    if (headers instanceof Headers) {
+      headers.forEach(function(value, name) {
+        this.append(name, value);
+      }, this);
+    } else if (Array.isArray(headers)) {
+      headers.forEach(function(header) {
+        this.append(header[0], header[1]);
+      }, this);
+    } else if (headers) {
+      Object.getOwnPropertyNames(headers).forEach(function(name) {
+        this.append(name, headers[name]);
+      }, this);
+    }
+  }
+
+  Headers.prototype.append = function(name, value) {
+    name = normalizeName(name);
+    value = normalizeValue(value);
+    var oldValue = this.map[name];
+    this.map[name] = oldValue ? oldValue + ', ' + value : value;
+  };
+
+  Headers.prototype['delete'] = function(name) {
+    delete this.map[normalizeName(name)];
+  };
+
+  Headers.prototype.get = function(name) {
+    name = normalizeName(name);
+    return this.has(name) ? this.map[name] : null
+  };
+
+  Headers.prototype.has = function(name) {
+    return this.map.hasOwnProperty(normalizeName(name))
+  };
+
+  Headers.prototype.set = function(name, value) {
+    this.map[normalizeName(name)] = normalizeValue(value);
+  };
+
+  Headers.prototype.forEach = function(callback, thisArg) {
+    for (var name in this.map) {
+      if (this.map.hasOwnProperty(name)) {
+        callback.call(thisArg, this.map[name], name, this);
+      }
+    }
+  };
+
+  Headers.prototype.keys = function() {
+    var items = [];
+    this.forEach(function(value, name) {
+      items.push(name);
+    });
+    return iteratorFor(items)
+  };
+
+  Headers.prototype.values = function() {
+    var items = [];
+    this.forEach(function(value) {
+      items.push(value);
+    });
+    return iteratorFor(items)
+  };
+
+  Headers.prototype.entries = function() {
+    var items = [];
+    this.forEach(function(value, name) {
+      items.push([name, value]);
+    });
+    return iteratorFor(items)
+  };
+
+  if (support.iterable) {
+    Headers.prototype[Symbol.iterator] = Headers.prototype.entries;
+  }
+
+  function consumed(body) {
+    if (body.bodyUsed) {
+      return Promise.reject(new TypeError('Already read'))
+    }
+    body.bodyUsed = true;
+  }
+
+  function fileReaderReady(reader) {
+    return new Promise(function(resolve, reject) {
+      reader.onload = function() {
+        resolve(reader.result);
+      };
+      reader.onerror = function() {
+        reject(reader.error);
+      };
+    })
+  }
+
+  function readBlobAsArrayBuffer(blob) {
+    var reader = new FileReader();
+    var promise = fileReaderReady(reader);
+    reader.readAsArrayBuffer(blob);
+    return promise
+  }
+
+  function readBlobAsText(blob) {
+    var reader = new FileReader();
+    var promise = fileReaderReady(reader);
+    reader.readAsText(blob);
+    return promise
+  }
+
+  function readArrayBufferAsText(buf) {
+    var view = new Uint8Array(buf);
+    var chars = new Array(view.length);
+
+    for (var i = 0; i < view.length; i++) {
+      chars[i] = String.fromCharCode(view[i]);
+    }
+    return chars.join('')
+  }
+
+  function bufferClone(buf) {
+    if (buf.slice) {
+      return buf.slice(0)
+    } else {
+      var view = new Uint8Array(buf.byteLength);
+      view.set(new Uint8Array(buf));
+      return view.buffer
+    }
+  }
+
+  function Body() {
+    this.bodyUsed = false;
+
+    this._initBody = function(body) {
+      /*
+        fetch-mock wraps the Response object in an ES6 Proxy to
+        provide useful test harness features such as flush. However, on
+        ES5 browsers without fetch or Proxy support pollyfills must be used;
+        the proxy-pollyfill is unable to proxy an attribute unless it exists
+        on the object before the Proxy is created. This change ensures
+        Response.bodyUsed exists on the instance, while maintaining the
+        semantic of setting Request.bodyUsed in the constructor before
+        _initBody is called.
+      */
+      this.bodyUsed = this.bodyUsed;
+      this._bodyInit = body;
+      if (!body) {
+        this._bodyText = '';
+      } else if (typeof body === 'string') {
+        this._bodyText = body;
+      } else if (support.blob && Blob.prototype.isPrototypeOf(body)) {
+        this._bodyBlob = body;
+      } else if (support.formData && FormData.prototype.isPrototypeOf(body)) {
+        this._bodyFormData = body;
+      } else if (support.searchParams && URLSearchParams.prototype.isPrototypeOf(body)) {
+        this._bodyText = body.toString();
+      } else if (support.arrayBuffer && support.blob && isDataView(body)) {
+        this._bodyArrayBuffer = bufferClone(body.buffer);
+        // IE 10-11 can't handle a DataView body.
+        this._bodyInit = new Blob([this._bodyArrayBuffer]);
+      } else if (support.arrayBuffer && (ArrayBuffer.prototype.isPrototypeOf(body) || isArrayBufferView(body))) {
+        this._bodyArrayBuffer = bufferClone(body);
+      } else {
+        this._bodyText = body = Object.prototype.toString.call(body);
+      }
+
+      if (!this.headers.get('content-type')) {
+        if (typeof body === 'string') {
+          this.headers.set('content-type', 'text/plain;charset=UTF-8');
+        } else if (this._bodyBlob && this._bodyBlob.type) {
+          this.headers.set('content-type', this._bodyBlob.type);
+        } else if (support.searchParams && URLSearchParams.prototype.isPrototypeOf(body)) {
+          this.headers.set('content-type', 'application/x-www-form-urlencoded;charset=UTF-8');
+        }
+      }
+    };
+
+    if (support.blob) {
+      this.blob = function() {
+        var rejected = consumed(this);
+        if (rejected) {
+          return rejected
+        }
+
+        if (this._bodyBlob) {
+          return Promise.resolve(this._bodyBlob)
+        } else if (this._bodyArrayBuffer) {
+          return Promise.resolve(new Blob([this._bodyArrayBuffer]))
+        } else if (this._bodyFormData) {
+          throw new Error('could not read FormData body as blob')
+        } else {
+          return Promise.resolve(new Blob([this._bodyText]))
+        }
+      };
+
+      this.arrayBuffer = function() {
+        if (this._bodyArrayBuffer) {
+          var isConsumed = consumed(this);
+          if (isConsumed) {
+            return isConsumed
+          }
+          if (ArrayBuffer.isView(this._bodyArrayBuffer)) {
+            return Promise.resolve(
+              this._bodyArrayBuffer.buffer.slice(
+                this._bodyArrayBuffer.byteOffset,
+                this._bodyArrayBuffer.byteOffset + this._bodyArrayBuffer.byteLength
+              )
+            )
+          } else {
+            return Promise.resolve(this._bodyArrayBuffer)
+          }
+        } else {
+          return this.blob().then(readBlobAsArrayBuffer)
+        }
+      };
+    }
+
+    this.text = function() {
+      var rejected = consumed(this);
+      if (rejected) {
+        return rejected
+      }
+
+      if (this._bodyBlob) {
+        return readBlobAsText(this._bodyBlob)
+      } else if (this._bodyArrayBuffer) {
+        return Promise.resolve(readArrayBufferAsText(this._bodyArrayBuffer))
+      } else if (this._bodyFormData) {
+        throw new Error('could not read FormData body as text')
+      } else {
+        return Promise.resolve(this._bodyText)
+      }
+    };
+
+    if (support.formData) {
+      this.formData = function() {
+        return this.text().then(decode)
+      };
+    }
+
+    this.json = function() {
+      return this.text().then(JSON.parse)
+    };
+
+    return this
+  }
+
+  // HTTP methods whose capitalization should be normalized
+  var methods = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT'];
+
+  function normalizeMethod(method) {
+    var upcased = method.toUpperCase();
+    return methods.indexOf(upcased) > -1 ? upcased : method
+  }
+
+  function Request(input, options) {
+    if (!(this instanceof Request)) {
+      throw new TypeError('Please use the "new" operator, this DOM object constructor cannot be called as a function.')
+    }
+
+    options = options || {};
+    var body = options.body;
+
+    if (input instanceof Request) {
+      if (input.bodyUsed) {
+        throw new TypeError('Already read')
+      }
+      this.url = input.url;
+      this.credentials = input.credentials;
+      if (!options.headers) {
+        this.headers = new Headers(input.headers);
+      }
+      this.method = input.method;
+      this.mode = input.mode;
+      this.signal = input.signal;
+      if (!body && input._bodyInit != null) {
+        body = input._bodyInit;
+        input.bodyUsed = true;
+      }
+    } else {
+      this.url = String(input);
+    }
+
+    this.credentials = options.credentials || this.credentials || 'same-origin';
+    if (options.headers || !this.headers) {
+      this.headers = new Headers(options.headers);
+    }
+    this.method = normalizeMethod(options.method || this.method || 'GET');
+    this.mode = options.mode || this.mode || null;
+    this.signal = options.signal || this.signal;
+    this.referrer = null;
+
+    if ((this.method === 'GET' || this.method === 'HEAD') && body) {
+      throw new TypeError('Body not allowed for GET or HEAD requests')
+    }
+    this._initBody(body);
+
+    if (this.method === 'GET' || this.method === 'HEAD') {
+      if (options.cache === 'no-store' || options.cache === 'no-cache') {
+        // Search for a '_' parameter in the query string
+        var reParamSearch = /([?&])_=[^&]*/;
+        if (reParamSearch.test(this.url)) {
+          // If it already exists then set the value with the current time
+          this.url = this.url.replace(reParamSearch, '$1_=' + new Date().getTime());
+        } else {
+          // Otherwise add a new '_' parameter to the end with the current time
+          var reQueryString = /\?/;
+          this.url += (reQueryString.test(this.url) ? '&' : '?') + '_=' + new Date().getTime();
+        }
+      }
+    }
+  }
+
+  Request.prototype.clone = function() {
+    return new Request(this, {body: this._bodyInit})
+  };
+
+  function decode(body) {
+    var form = new FormData();
+    body
+      .trim()
+      .split('&')
+      .forEach(function(bytes) {
+        if (bytes) {
+          var split = bytes.split('=');
+          var name = split.shift().replace(/\+/g, ' ');
+          var value = split.join('=').replace(/\+/g, ' ');
+          form.append(decodeURIComponent(name), decodeURIComponent(value));
+        }
+      });
+    return form
+  }
+
+  function parseHeaders(rawHeaders) {
+    var headers = new Headers();
+    // Replace instances of \r\n and \n followed by at least one space or horizontal tab with a space
+    // https://tools.ietf.org/html/rfc7230#section-3.2
+    var preProcessedHeaders = rawHeaders.replace(/\r?\n[\t ]+/g, ' ');
+    preProcessedHeaders.split(/\r?\n/).forEach(function(line) {
+      var parts = line.split(':');
+      var key = parts.shift().trim();
+      if (key) {
+        var value = parts.join(':').trim();
+        headers.append(key, value);
+      }
+    });
+    return headers
+  }
+
+  Body.call(Request.prototype);
+
+  function Response(bodyInit, options) {
+    if (!(this instanceof Response)) {
+      throw new TypeError('Please use the "new" operator, this DOM object constructor cannot be called as a function.')
+    }
+    if (!options) {
+      options = {};
+    }
+
+    this.type = 'default';
+    this.status = options.status === undefined ? 200 : options.status;
+    this.ok = this.status >= 200 && this.status < 300;
+    this.statusText = 'statusText' in options ? options.statusText : '';
+    this.headers = new Headers(options.headers);
+    this.url = options.url || '';
+    this._initBody(bodyInit);
+  }
+
+  Body.call(Response.prototype);
+
+  Response.prototype.clone = function() {
+    return new Response(this._bodyInit, {
+      status: this.status,
+      statusText: this.statusText,
+      headers: new Headers(this.headers),
+      url: this.url
+    })
+  };
+
+  Response.error = function() {
+    var response = new Response(null, {status: 0, statusText: ''});
+    response.type = 'error';
+    return response
+  };
+
+  var redirectStatuses = [301, 302, 303, 307, 308];
+
+  Response.redirect = function(url, status) {
+    if (redirectStatuses.indexOf(status) === -1) {
+      throw new RangeError('Invalid status code')
+    }
+
+    return new Response(null, {status: status, headers: {location: url}})
+  };
+
+  exports.DOMException = global.DOMException;
+  try {
+    new exports.DOMException();
+  } catch (err) {
+    exports.DOMException = function(message, name) {
+      this.message = message;
+      this.name = name;
+      var error = Error(message);
+      this.stack = error.stack;
+    };
+    exports.DOMException.prototype = Object.create(Error.prototype);
+    exports.DOMException.prototype.constructor = exports.DOMException;
+  }
+
+  function fetch(input, init) {
+    return new Promise(function(resolve, reject) {
+      var request = new Request(input, init);
+
+      if (request.signal && request.signal.aborted) {
+        return reject(new exports.DOMException('Aborted', 'AbortError'))
+      }
+
+      var xhr = new XMLHttpRequest();
+
+      function abortXhr() {
+        xhr.abort();
+      }
+
+      xhr.onload = function() {
+        var options = {
+          status: xhr.status,
+          statusText: xhr.statusText,
+          headers: parseHeaders(xhr.getAllResponseHeaders() || '')
+        };
+        options.url = 'responseURL' in xhr ? xhr.responseURL : options.headers.get('X-Request-URL');
+        var body = 'response' in xhr ? xhr.response : xhr.responseText;
+        setTimeout(function() {
+          resolve(new Response(body, options));
+        }, 0);
+      };
+
+      xhr.onerror = function() {
+        setTimeout(function() {
+          reject(new TypeError('Network request failed'));
+        }, 0);
+      };
+
+      xhr.ontimeout = function() {
+        setTimeout(function() {
+          reject(new TypeError('Network request failed'));
+        }, 0);
+      };
+
+      xhr.onabort = function() {
+        setTimeout(function() {
+          reject(new exports.DOMException('Aborted', 'AbortError'));
+        }, 0);
+      };
+
+      function fixUrl(url) {
+        try {
+          return url === '' && global.location.href ? global.location.href : url
+        } catch (e) {
+          return url
+        }
+      }
+
+      xhr.open(request.method, fixUrl(request.url), true);
+
+      if (request.credentials === 'include') {
+        xhr.withCredentials = true;
+      } else if (request.credentials === 'omit') {
+        xhr.withCredentials = false;
+      }
+
+      if ('responseType' in xhr) {
+        if (support.blob) {
+          xhr.responseType = 'blob';
+        } else if (
+          support.arrayBuffer &&
+          request.headers.get('Content-Type') &&
+          request.headers.get('Content-Type').indexOf('application/octet-stream') !== -1
+        ) {
+          xhr.responseType = 'arraybuffer';
+        }
+      }
+
+      if (init && typeof init.headers === 'object' && !(init.headers instanceof Headers)) {
+        Object.getOwnPropertyNames(init.headers).forEach(function(name) {
+          xhr.setRequestHeader(name, normalizeValue(init.headers[name]));
+        });
+      } else {
+        request.headers.forEach(function(value, name) {
+          xhr.setRequestHeader(name, value);
+        });
+      }
+
+      if (request.signal) {
+        request.signal.addEventListener('abort', abortXhr);
+
+        xhr.onreadystatechange = function() {
+          // DONE (success or failure)
+          if (xhr.readyState === 4) {
+            request.signal.removeEventListener('abort', abortXhr);
+          }
+        };
+      }
+
+      xhr.send(typeof request._bodyInit === 'undefined' ? null : request._bodyInit);
+    })
+  }
+
+  fetch.polyfill = true;
+
+  if (!global.fetch) {
+    global.fetch = fetch;
+    global.Headers = Headers;
+    global.Request = Request;
+    global.Response = Response;
+  }
+
+  exports.Headers = Headers;
+  exports.Request = Request;
+  exports.Response = Response;
+  exports.fetch = fetch;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
+
+})));
+
+},{}],97:[function(require,module,exports){
 module.exports = {
 	h32: require("./xxhash")
 ,	h64: require("./xxhash64")
 }
 
-},{"./xxhash":96,"./xxhash64":97}],96:[function(require,module,exports){
+},{"./xxhash":98,"./xxhash64":99}],98:[function(require,module,exports){
 (function (Buffer){
 /**
 xxHash implementation in pure Javascript
@@ -32596,7 +33221,7 @@ XXH.prototype.digest = function () {
 module.exports = XXH
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":74,"cuint":75}],97:[function(require,module,exports){
+},{"buffer":74,"cuint":75}],99:[function(require,module,exports){
 (function (Buffer){
 /**
 xxHash64 implementation in pure Javascript
@@ -33071,6 +33696,7 @@ module.exports = (inFormat, outFormat, text) => {
 
 },{"./dist/ammtoaga":4,"./dist/ammtojs":5,"./dist/lntoamm":21,"./dist/pipeline":24}],"alan-js-runtime":[function(require,module,exports){
 (function (process){
+require('isomorphic-fetch')
 const EventEmitter = require('events')
 const util = require('util')
 
@@ -33525,7 +34151,25 @@ module.exports = {
   hashv,
 
   // IO opcodes
-  asyncopcodes: ['waitop', 'execop'],
+  asyncopcodes: ['waitop', 'execop', 'httpget', 'httppost'],
+  httpget:  async url => {
+    try {
+      const response = await fetch(url)
+      const result = await response.text()
+      return [ true, result ]
+    } catch (e) {
+      return [ false, e.toString() ]
+    }
+  },
+  httppost:  async (url, body) => {
+    try {
+      const response = await fetch(url, { method: 'POST', body })
+      const result = await response.text()
+      return [ true, result ]
+    } catch (e) {
+      return [ false, e.toString() ]
+    }
+  },
   waitop:   a => new Promise(resolve => setTimeout(resolve, a)),
   execop:   async (cmd) => {
     try {
@@ -33548,7 +34192,7 @@ module.exports = {
 }
 
 }).call(this,require('_process'))
-},{"_process":81,"child_process":73,"events":78,"util":84,"xxhashjs":95}],"alan-runtime":[function(require,module,exports){
+},{"_process":82,"child_process":73,"events":78,"isomorphic-fetch":80,"util":85,"xxhashjs":97}],"alan-runtime":[function(require,module,exports){
 const r = require('alan-js-runtime')
 
 // Redefined stdoutp and exitop to work in the browser

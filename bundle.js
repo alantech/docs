@@ -265,9 +265,9 @@ const loadEventDecs = (eventAst) => {
         if (!(rec instanceof lp_1.NamedAnd))
             continue;
         const evtName = rec.get('variable').t.trim();
-        // TODO: Add event support for Arrays
-        const evtSize = rec.get('fulltypename').t.trim() === 'void' ? 0 :
-            rec.get('fulltypename').t.trim() === 'string' ? -1 : 8;
+        const evtSize = rec.get('fulltypename').t.trim() === 'void' ? 0 : [
+            'int8', 'int16', 'int32', 'int64', 'float32', 'float64', 'bool',
+        ].includes(rec.get('fulltypename').t.trim()) ? 8 : -1;
         eventMem[evtName] = evtSize;
     }
     return eventMem;

@@ -9884,7 +9884,7 @@ exports.resolveDependency = (modulePath, dependency) => {
                 importPath = dirPath;
                 break;
             }
-            if (pathRoot === "/") {
+            if (pathRoot === "/" || /[A-Z]:\\/.test(pathRoot)) {
                 pathRoot = null;
             }
             else {
@@ -9916,7 +9916,7 @@ exports.resolveDependency = (modulePath, dependency) => {
                         importPath = dirPath;
                         break;
                     }
-                    if (pathRoot === "/") {
+                    if (pathRoot === "/" || /[A-Z]:\\/.test(pathRoot)) {
                         pathRoot = null;
                     }
                     else {

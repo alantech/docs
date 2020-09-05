@@ -146,10 +146,7 @@
                 <h3><a class="header" href="#stdtrig" id="stdtrig">@std/trig</a></h3>
 <p>This standard library provides the constants <a href="https://simple.wikipedia.org/wiki/E_(mathematical_constant)">e</a>, <a href="https://en.wikipedia.org/wiki/Pi">pi</a>, and <a href="https://math.wikia.org/wiki/Tau_(constant)">tau</a>, <a href="https://en.wikipedia.org/wiki/List_of_trigonometric_identities">all of the trigonometric functions</a>, the <a href="https://en.wikipedia.org/wiki/Hyperbolic_functions">hyperbolic functions</a>, the <a href="https://en.wikipedia.org/wiki/Common_logarithm">common</a> and <a href="https://en.wikipedia.org/wiki/Natural_logarithm">natural</a> logarithms, and the <a href="https://en.wikipedia.org/wiki/Exponential_function">exp function</a>.</p>
 <p>All of the trigonometric functions are exported with both <code>float32</code> and <code>float64</code> support, and with both a short 3-5 character name common in textbooks and a fully-spelled out name. Eg, <code>sin</code> is the same as <code>sine</code> and <code>ahcc</code> is the same as <code>archacovercosine</code>. The meanings and uses of the trigonometric functions will not be covered in here as the Wikipedia links in the first paragraph provide a far better and in-depth explanation, including some <a href="https://upload.wikimedia.org/wikipedia/commons/9/9d/Circle-trig6.svg">great visual diagrams</a> that can elucidate things quickly for those already familiar with the classic <code>sin</code>, <code>cos</code>, and <code>tan</code>. Instead, below will be a listing of the signatures of everything exported by the library.</p>
-<pre><pre class="playpen"><code class="language-rust">
-<span class="boring">#![allow(unused_variables)]
-</span><span class="boring">fn main() {
-</span>e: float64
+<pre><code class="language-alan">e: float64
 pi: float64
 tau: float64
 
@@ -391,8 +388,7 @@ fn acoth(x: float64): float64
 fn acoth(x: float32): float32
 fn hyperbolicArccotangent(x: float64): float64
 fn hyperbolicArccotangent(x: float32): float32
-<span class="boring">}
-</span></code></pre></pre>
+</code></pre>
 
             </main>
 

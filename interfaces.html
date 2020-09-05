@@ -145,7 +145,7 @@
             <main>
                 <h4><a class="header" href="#interfaces" id="interfaces">Interfaces</a></h4>
 <p>In order to make generic types more useful, there must be a way to declare what operations/functions are possible to apply to the generic type in question so functions working with said generic are able to be checked even if the generic function is not &quot;solidified&quot; (for example, it is an exported library meant to be used by other code). Interfaces are the proposed solution, and they'll look something like this:</p>
-<pre><code class="language-rust ignore">interface interfaceName {
+<pre><code class="language-alan">interface interfaceName {
   functionname (concreteType, interfaceName): concreteType
   function2 (interfaceName, interfaceName): interfaceName
   interfaceName &lt;operatorSymbol&gt; interfaceName: interfaceName
@@ -159,23 +159,23 @@
 <p>This is because invocation of the function in that scope also counts as definition of that function within the scope, with the original being used as a template for the function, and the current module's scope being injected between the export scope of the module it was pulled from (if it was imported across scope boundaries).</p>
 <p>When interfaces are used in a function, they are matched against the incoming argument types. Once it is &quot;realized&quot; as a concrete type, the compiler assumes any other usage of that same interface will be the same realized type.</p>
 <p>This means writing a constructor function to make a <code>KeyVal</code> object like so:</p>
-<pre><code class="language-rust ignore">fn makeKV(key: any, val: any) = new KeyVal&lt;any, any&gt; {
+<pre><code class="language-alan">fn makeKV(key: any, val: any) = new KeyVal&lt;any, any&gt; {
   key = key
   val = val
 }
 </code></pre>
 <p>will fail to compile unless both the <code>key</code> and the <code>val</code> are the same type, which may be unexpected. However, an identical interface with a different name will be matched separately, so if you have the following two otherwise identical interfaces:</p>
-<pre><code class="language-rust ignore">interface any {}
+<pre><code class="language-alan">interface any {}
 interface anythingElse {}
 </code></pre>
 <p>That both would match <em>any</em> type given to them, you can then use them in the <code>KeyVal</code> constructor like this:</p>
-<pre><code class="language-rust ignore">fn makeKv(key: any, val: anythingElse) = new KeyVal&lt;any, anythingElse&gt; {
+<pre><code class="language-alan">fn makeKv(key: any, val: anythingElse) = new KeyVal&lt;any, anythingElse&gt; {
   key = key
   val = val
 }
 </code></pre>
 <p>There is an interface aliasing feature, so one could simply write:</p>
-<pre><code class="language-rust ignore">interface anythingElse = any
+<pre><code class="language-alan">interface anythingElse = any
 </code></pre>
 <p>and have it do the right thing. Not super useful for the <code>any</code> interface, but for complex interfaces that you want to use in functions with the variables &quot;unlinked&quot; from each other, it can be quite useful.</p>
 
@@ -262,9 +262,14 @@ interface anythingElse {}
 <script type="text/javascript">
     window.BigInt = window.BigInt || function() {}
 </script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <!-- Custom JS scripts -->
 
     <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
 
     <script type="text/javascript" src="mode-rust.js"></script>
 
@@ -272,9 +277,6 @@ interface anythingElse {}
 
     <script type="text/javascript" src="theme-solarized_light.js"></script>
 
-
-<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
 </body>

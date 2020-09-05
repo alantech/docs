@@ -170,21 +170,21 @@
 <p>The <code>int64</code> and <code>float64</code> types are special among the numeric types, as these are the types that any numeric constant will be represented as, depending on whether or not it has a decimal. They have been given aliases of <code>int</code> and <code>float</code> respectively for that reason.</p>
 <h4><a class="header" href="#built-in-interfaces" id="built-in-interfaces">Built-in Interfaces</a></h4>
 <p>There are a few built-in <a href="./interfaces.html">interfaces</a> meant for working with several built-in types and functions.</p>
-<pre><code class="language-rust ignore">// An empty interface, it can match any value, but you can only accept it and pass it along to
+<pre><code class="language-alan">// An empty interface, it can match any value, but you can only accept it and pass it along to
 // something else. Useful for logical &quot;glue&quot; functions like `pair`, `cond`, `map`, `reduce`, etc.
 interface any {}
 </code></pre>
-<pre><code class="language-rust ignore">// A second empty interface, useful to allow functions to declare that it accepts two arguments of
+<pre><code class="language-alan">// A second empty interface, useful to allow functions to declare that it accepts two arguments of
 // any kind and they don't need to match each other.
 interface anythingElse {}
 </code></pre>
-<pre><code class="language-rust ignore">// An interface that restricts valid types to only those that can be converted into strings. Useful
+<pre><code class="language-alan">// An interface that restricts valid types to only those that can be converted into strings. Useful
 // for printing.
 interface Stringifiable {
   toString(Stringifiable): string
 }
 </code></pre>
-<pre><code class="language-rust ignore">// An interface that determines if a type is hashable and comparable. Used by HashMap for the keys.
+<pre><code class="language-alan">// An interface that determines if a type is hashable and comparable. Used by HashMap for the keys.
 interface Hashable {
   toHash(Hashable): int64
   eq(Hashable, Hashable): bool
@@ -193,7 +193,7 @@ interface Hashable {
 <h4><a class="header" href="#built-in-functions" id="built-in-functions">Built-in Functions</a></h4>
 <p>The <a href="./functions.html">function</a> signatures will be written in the form <code>functionName(argumentType, argumentType): returnType</code> with a brief description above each. These functions will be grouped into general categories, such as type coersion, arithmetic, etc. Because of <a href="./functions.html#function-dispatch">multiple dispatch</a> you may see the same function name repeated multiple times, while other times you may see the use of the <code>any</code> interface for a function that operates on multiple types. When you see multiple dispatch being used with specific types, that means there's an optimized implementation for that specific type, while the use of the <code>any</code> interface means that this was not done (many times because it was not necessary).</p>
 <h5><a class="header" href="#type-coersion" id="type-coersion">Type Coersion</a></h5>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to 64-bit floats
+<pre><code class="language-alan">// Converts the built-in basic types to 64-bit floats
 toFloat64(int8): float64
 toFloat64(int16): float64
 toFloat64(int32): float64
@@ -203,7 +203,7 @@ toFloat64(float64): float64
 toFloat64(bool): float64
 toFloat64(string): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to 32-bit floats
+<pre><code class="language-alan">// Converts the built-in basic types to 32-bit floats
 toFloat32(int8): float32
 toFloat32(int16): float32
 toFloat32(int32): float32
@@ -213,7 +213,7 @@ toFloat32(float64): float32
 toFloat32(bool): float32
 toFloat32(string): float32
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to 64-bit integers
+<pre><code class="language-alan">// Converts the built-in basic types to 64-bit integers
 toInt64(int8): int64
 toInt64(int16): int64
 toInt64(int32): int64
@@ -223,7 +223,7 @@ toInt64(float64): int64
 toInt64(bool): int64
 toInt64(string): int64
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to 32-bit integers
+<pre><code class="language-alan">// Converts the built-in basic types to 32-bit integers
 toInt32(int8): int32
 toInt32(int16): int32
 toInt32(int32): int32
@@ -233,7 +233,7 @@ toInt32(float64): int32
 toInt32(bool): int32
 toInt32(string): int32
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to 16-bit integers
+<pre><code class="language-alan">// Converts the built-in basic types to 16-bit integers
 toInt16(int8): int16
 toInt16(int16): int16
 toInt16(int32): int16
@@ -243,7 +243,7 @@ toInt16(float64): int16
 toInt16(bool): int16
 toInt16(string): int16
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to 8-bit integers
+<pre><code class="language-alan">// Converts the built-in basic types to 8-bit integers
 toInt8(int8): int8
 toInt8(int16): int8
 toInt8(int32): int8
@@ -253,7 +253,7 @@ toInt8(float64): int8
 toInt8(bool): int8
 toInt8(string): int8
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to booleans
+<pre><code class="language-alan">// Converts the built-in basic types to booleans
 toBool(int8): bool
 toBool(int16): bool
 toBool(int32): bool
@@ -263,7 +263,7 @@ toBool(float64): bool
 toBool(bool): bool
 toBool(string): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in types to strings
+<pre><code class="language-alan">// Converts the built-in types to strings
 toString(int8): string
 toString(int16): string
 toString(int32): string
@@ -277,7 +277,7 @@ toString(Result&lt;Stringifiable&gt;): string
 </code></pre>
 <p>These coersions will not fail. When converting down into an integer of a smaller bitsize, numbers larger than that integer's <code>INT_MAX</code> are pegged at <code>INT_MAX</code>, smaller than <code>INT_MIN</code> pegged at <code>INT_MIN</code> and <code>NaN</code> or strings that aren't actually integers are converted to <code>0</code>. This may be changed to a <code>Result</code> type that requires a user-defined default value on failure. <code>Result</code> types wrapping a type that can also be converted to a string directly, with either the string version of the result, or the error message.</p>
 <h5><a class="header" href="#arithmetic" id="arithmetic">Arithmetic</a></h5>
-<pre><code class="language-rust ignore">// Adds two numbers
+<pre><code class="language-alan">// Adds two numbers
 add(int8, int8): int8
 add(int16, int16): int16
 add(int32, int32): int32
@@ -285,7 +285,7 @@ add(int64, int64): int64
 add(float32, float32): float32
 add(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Subtracts two numbers
+<pre><code class="language-alan">// Subtracts two numbers
 sub(int8, int8): int8
 sub(int16, int16): int16
 sub(int32, int32): int32
@@ -293,7 +293,7 @@ sub(int64, int64): int64
 sub(float32, float32): float32
 sub(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Negates the number
+<pre><code class="language-alan">// Negates the number
 negate(int8, int8): int8
 negate(int16, int16): int16
 negate(int32, int32): int32
@@ -301,7 +301,7 @@ negate(int64, int64): int64
 negate(float32, float32): float32
 negate(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Returns the absolute value of the number
+<pre><code class="language-alan">// Returns the absolute value of the number
 abs(int8, int8): int8
 abs(int16, int16): int16
 abs(int32, int32): int32
@@ -309,7 +309,7 @@ abs(int64, int64): int64
 abs(float32, float32): float32
 abs(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Multiplies two numbers
+<pre><code class="language-alan">// Multiplies two numbers
 mul(int8, int8): int8
 mul(int16, int16): int16
 mul(int32, int32): int32
@@ -317,7 +317,7 @@ mul(int64, int64): int64
 mul(float32, float32): float32
 mul(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Divides two numbers
+<pre><code class="language-alan">// Divides two numbers
 div(int8, int8): int8
 div(int16, int16): int16
 div(int32, int32): int32
@@ -325,7 +325,7 @@ div(int64, int64): int64
 div(float32, float32): float32
 div(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Raises the first number to the power of the second number
+<pre><code class="language-alan">// Raises the first number to the power of the second number
 pow(int8, int8): int8
 pow(int16, int16): int16
 pow(int32, int32): int32
@@ -333,60 +333,60 @@ pow(int64, int64): int64
 pow(float32, float32): float32
 pow(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Returns the modulus (remainder) of an integer division
+<pre><code class="language-alan">// Returns the modulus (remainder) of an integer division
 mod(int8, int8): int8
 mod(int16, int16): int16
 mod(int32, int32): int32
 mod(int64, int64): int64
 </code></pre>
-<pre><code class="language-rust ignore">// Returns the square root of a number
+<pre><code class="language-alan">// Returns the square root of a number
 sqrt(float32): float32
 sqrt(float64): float64
 </code></pre>
 <h5><a class="header" href="#logical-and-bitwise" id="logical-and-bitwise">Logical and Bitwise</a></h5>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `and`
+<pre><code class="language-alan">// Return the logical or bitwise `and`
 and(int8, int8): int8
 and(int16, int16): int16
 and(int32, int32): int32
 and(int64, int64): int64
 and(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `or`
+<pre><code class="language-alan">// Return the logical or bitwise `or`
 or(int8, int8): int8
 or(int16, int16): int16
 or(int32, int32): int32
 or(int64, int64): int64
 or(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `xor`
+<pre><code class="language-alan">// Return the logical or bitwise `xor`
 xor(int8, int8): int8
 xor(int16, int16): int16
 xor(int32, int32): int32
 xor(int64, int64): int64
 xor(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `not`
+<pre><code class="language-alan">// Return the logical or bitwise `not`
 not(int8): int8
 not(int16): int16
 not(int32): int32
 not(int64): int64
 not(bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `nand`
+<pre><code class="language-alan">// Return the logical or bitwise `nand`
 nand(int8, int8): int8
 nand(int16, int16): int16
 nand(int32, int32): int32
 nand(int64, int64): int64
 nand(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `nor`
+<pre><code class="language-alan">// Return the logical or bitwise `nor`
 nor(int8, int8): int8
 nor(int16, int16): int16
 nor(int32, int32): int32
 nor(int64, int64): int64
 nor(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `xnor`
+<pre><code class="language-alan">// Return the logical or bitwise `xnor`
 xnor(int8, int8): int8
 xnor(int16, int16): int16
 xnor(int32, int32): int32
@@ -394,7 +394,7 @@ xnor(int64, int64): int64
 xnor(bool, bool): bool
 </code></pre>
 <h5><a class="header" href="#comparators" id="comparators">Comparators</a></h5>
-<pre><code class="language-rust ignore">// Checks if the two values are equal
+<pre><code class="language-alan">// Checks if the two values are equal
 eq(int8, int8): bool
 eq(int16, int16): bool
 eq(int32, int32): bool
@@ -404,7 +404,7 @@ eq(float64, float64): bool
 eq(string, string): bool
 eq(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the two values are not equal
+<pre><code class="language-alan">// Checks if the two values are not equal
 neq(int8, int8): bool
 neq(int16, int16): bool
 neq(int32, int32): bool
@@ -414,7 +414,7 @@ neq(float64, float64): bool
 neq(string, string): bool
 neq(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the first value is less than the second
+<pre><code class="language-alan">// Checks if the first value is less than the second
 lt(int8, int8): bool
 lt(int16, int16): bool
 lt(int32, int32): bool
@@ -423,7 +423,7 @@ lt(float32, float32): bool
 lt(float64, float64): bool
 lt(string, string): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the first value is less than or equal to the second
+<pre><code class="language-alan">// Checks if the first value is less than or equal to the second
 lte(int8, int8): bool
 lte(int16, int16): bool
 lte(int32, int32): bool
@@ -432,7 +432,7 @@ lte(float32, float32): bool
 lte(float64, float64): bool
 lte(string, string): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the first value is greater than the second
+<pre><code class="language-alan">// Checks if the first value is greater than the second
 gt(int8, int8): bool
 gt(int16, int16): bool
 gt(int32, int32): bool
@@ -441,7 +441,7 @@ gt(float32, float32): bool
 gt(float64, float64): bool
 gt(string, string): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the first value is greater than or equal to the second
+<pre><code class="language-alan">// Checks if the first value is greater than or equal to the second
 gte(int8, int8): bool
 gte(int16, int16): bool
 gte(int32, int32): bool
@@ -451,51 +451,51 @@ gte(float64, float64): bool
 gte(string, string): bool
 </code></pre>
 <h5><a class="header" href="#wait-functions" id="wait-functions">Wait functions</a></h5>
-<pre><code class="language-rust ignore">// Waits the specified number of milliseconds and then continues execution
+<pre><code class="language-alan">// Waits the specified number of milliseconds and then continues execution
 wait(int8): void
 wait(int16): void
 wait(int32): void
 wait(int64): void
 </code></pre>
 <h5><a class="header" href="#string-manipulation" id="string-manipulation">String Manipulation</a></h5>
-<pre><code class="language-rust ignore">// Concatenate two strings together
+<pre><code class="language-alan">// Concatenate two strings together
 concat(string, string): string
 </code></pre>
-<pre><code class="language-rust ignore">// Splits the first string into an array of strings divided by the second delimiter string
+<pre><code class="language-alan">// Splits the first string into an array of strings divided by the second delimiter string
 split(string, string): Array&lt;string&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Repeats the contents of the string `n` times (so `repeat(&quot;hello&quot;, 1)` returns `&quot;hello&quot;`)
+<pre><code class="language-alan">// Repeats the contents of the string `n` times (so `repeat(&quot;hello&quot;, 1)` returns `&quot;hello&quot;`)
 repeat(string, int8): string
 repeat(string, int16): string
 repeat(string, int32): string
 repeat(string, int64): string
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a string template and a HashMap of string keys to string values to substitute in
+<pre><code class="language-alan">// Takes a string template and a HashMap of string keys to string values to substitute in
 template(string, HashMap&lt;string, string&gt;): string
 </code></pre>
-<pre><code class="language-rust ignore">// Check if the first string matches the regular expression defined by the second string
+<pre><code class="language-alan">// Check if the first string matches the regular expression defined by the second string
 matches(string, string): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Returns the location of the second string within the first string as a Result, or errors
+<pre><code class="language-alan">// Returns the location of the second string within the first string as a Result, or errors
 index(string, string): Result&lt;int64&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Returns the length of the string (as a byte array, not UTF codepoints)
+<pre><code class="language-alan">// Returns the length of the string (as a byte array, not UTF codepoints)
 length(string): int64
 </code></pre>
-<pre><code class="language-rust ignore">// Removes the whitespace on either end of the string
+<pre><code class="language-alan">// Removes the whitespace on either end of the string
 trim(string): string
 </code></pre>
 <h5><a class="header" href="#array-manipulation" id="array-manipulation">Array Manipulation</a></h5>
-<pre><code class="language-rust ignore">// Concatenate two arrays into a new array containing the values of both
+<pre><code class="language-alan">// Concatenate two arrays into a new array containing the values of both
 concat(Array&lt;any&gt;, Array&lt;any&gt;): Array&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Create a new array with the contents of the original array repeated `n` times
+<pre><code class="language-alan">// Create a new array with the contents of the original array repeated `n` times
 repeat(Array&lt;any&gt;, int8): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int16): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int32): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int64): Array&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Find the index of the specified value in the array in a Result, or errors
+<pre><code class="language-alan">// Find the index of the specified value in the array in a Result, or errors
 index(Array&lt;any&gt;, any): Result&lt;int64&gt;
 index(Array&lt;int8&gt;, int8): Result&lt;int64&gt;
 index(Array&lt;int16&gt;, int16): Result&lt;int64&gt;
@@ -505,7 +505,7 @@ index(Array&lt;float32&gt;, float32): Result&lt;int64&gt;
 index(Array&lt;float64&gt;, float64): Result&lt;int64&gt;
 index(Array&lt;bool&gt;, bool): Result&lt;int64&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Returns true if the array has the specified value or false otherwise
+<pre><code class="language-alan">// Returns true if the array has the specified value or false otherwise
 has(Array&lt;any&gt;, any): bool
 has(Array&lt;int8&gt;, int8): bool 
 has(Array&lt;int16&gt;, int16): bool
@@ -515,7 +515,7 @@ has(Array&lt;float32&gt;, float32): bool
 has(Array&lt;float64&gt;, float64): bool
 has(Array&lt;bool&gt;, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Push a value into the array and return the updated array
+<pre><code class="language-alan">// Push a value into the array and return the updated array
 push(Array&lt;any&gt;, any): Array&lt;any&gt;
 push(Array&lt;int8&gt;, int8): Array&lt;int8&gt;
 push(Array&lt;int16&gt;, int16): Array&lt;int16&gt;
@@ -525,18 +525,18 @@ push(Array&lt;float32&gt;, float32): Array&lt;float32&gt;
 push(Array&lt;float64&gt;, float64): Array&lt;float64&gt;
 push(Array&lt;bool&gt;, bool): Array&lt;bool&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Pop a value from an array and return that value wrapped in a result (or an error result)
+<pre><code class="language-alan">// Pop a value from an array and return that value wrapped in a result (or an error result)
 pop(Array&lt;any&gt;): Result&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the provided side-effect function on each element of the array
+<pre><code class="language-alan">// Execute the provided side-effect function on each element of the array
 each(Array&lt;any&gt;, function): void // Parallel if possible and worthwhile
 eachLin(Array&lt;any&gt;, function): void // Forced linear execution
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the provided converter function on each element of the array and return a new array
+<pre><code class="language-alan">// Execute the provided converter function on each element of the array and return a new array
 map(Array&lt;any&gt;, function): Array&lt;anythingElse&gt; // Parallel if possible and worthwhile
 mapLin(Array&lt;any&gt;, function): Array&lt;anythingElse&gt; // Forced linear execution
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the combining function on the array and return the new value
+<pre><code class="language-alan">// Execute the combining function on the array and return the new value
 // The two argument reduce functions reduce into the same type as the input, while the
 // three and four argument reduce functions reduce into a new type. The three argument reduce
 // function is sequential and only requires an initial value to kick off the reduction, while the
@@ -548,27 +548,27 @@ reducePar(Array&lt;any&gt;, function): any // Parallel if possible and worthwhil
 reduce(Array&lt;any&gt;, function, anythingElse): anythingElse // Forced linear execution
 reducePar(Array&lt;any&gt;, function, function, anythingElse): anythingElse // Parallel if possible and worthwhile
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the filtering function on the array and return a new array with the allowed values
+<pre><code class="language-alan">// Execute the filtering function on the array and return a new array with the allowed values
 filter(Array&lt;any&gt;, function): Array&lt;any&gt; // Parallel if possible and worthwhile
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the comparison function on the array and return the first element that passes the check,
+<pre><code class="language-alan">// Execute the comparison function on the array and return the first element that passes the check,
 // or an error
 find(Array&lt;any&gt;, function): Result&lt;any&gt; // Parallel if possible and worthwhile
 findLin(Array&lt;any&gt;, function): Result&lt;any&gt; // Forced linear execution
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the comparison function on the array and return `true` if all elements pass the check
+<pre><code class="language-alan">// Execute the comparison function on the array and return `true` if all elements pass the check
 every(Array&lt;any&gt;, function): bool // Parallel if possible and worthwhile
 everyLin(Array&lt;any&gt;, function): bool // Forced linear execution
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the comparison function on the array and return `true` if any element passes the check
+<pre><code class="language-alan">// Execute the comparison function on the array and return `true` if any element passes the check
 some(Array&lt;any&gt;, function): bool // Parallel if possible and worthwhile
 someLin(Array&lt;any&gt;, function): bool // Forced linear execution
 </code></pre>
-<pre><code class="language-rust ignore">// Take an array of strings and merge them into one string separated by the separator string. The
+<pre><code class="language-alan">// Take an array of strings and merge them into one string separated by the separator string. The
 // inverse of the `split` function
 join(Array&lt;string&gt;, string): string
 </code></pre>
-<pre><code class="language-rust ignore">// Override the value of an array element with a new value
+<pre><code class="language-alan">// Override the value of an array element with a new value
 set(Array&lt;any&gt;, int64, any): Result&lt;Array&lt;any&gt;&gt;
 set(Array&lt;int8&gt;, int64, int8): Result&lt;Array&lt;int8&gt;&gt;
 set(Array&lt;int16&gt;, int64, int16): Result&lt;Array&lt;int16&gt;&gt;
@@ -579,7 +579,7 @@ set(Array&lt;float64&gt;, int64, float64): Result&lt;Array&lt;float64&gt;&gt;
 set(Array&lt;bool&gt;, int64, bool): Result&lt;Array&lt;bool&gt;&gt;
 </code></pre>
 <h5><a class="header" href="#hashmap-manipulation" id="hashmap-manipulation">HashMap Manipulation</a></h5>
-<pre><code class="language-rust ignore">// Converts a value into a hash using the [xxh64](https://cyan4973.github.io/xxHash/) algorithm.
+<pre><code class="language-alan">// Converts a value into a hash using the [xxh64](https://cyan4973.github.io/xxHash/) algorithm.
 // No user code ever has to overload the `toHash` function with their own implementation, but it is
 // required that the `eq` function is for user-defined types to check for hash collisions.
 toHash(any): int64
@@ -590,44 +590,44 @@ toHash(float32): int64
 toHash(float64): int64
 toHash(bool): int64
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a HashMap and returns an Array of KeyVal pairs
+<pre><code class="language-alan">// Takes a HashMap and returns an Array of KeyVal pairs
 keyVal(HashMap&lt;Hashable, any&gt;): Array&lt;KeyVal&lt;Hashable, any&gt;&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a HashMap and returns an Array of keys
+<pre><code class="language-alan">// Takes a HashMap and returns an Array of keys
 keys(HashMap&lt;Hashable, any&gt;): Array&lt;Hashable&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a HashMap and returns an Array of values
+<pre><code class="language-alan">// Takes a HashMap and returns an Array of values
 values(HashMap&lt;Hashable, any&gt;: Array&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a HashMap and returns the number of KeyVal pairs contained
+<pre><code class="language-alan">// Takes a HashMap and returns the number of KeyVal pairs contained
 length(HashMap&lt;Hashable, any&gt;): int64
 </code></pre>
-<pre><code class="language-rust ignore">// Sets a key-value pair in the HashMap and returns the HashMap for chaining
+<pre><code class="language-alan">// Sets a key-value pair in the HashMap and returns the HashMap for chaining
 set(HashMap&lt;Hashable, any&gt;, Hashable, any): HashMap&lt;Hashable, any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Gets the value for a given key or an error
+<pre><code class="language-alan">// Gets the value for a given key or an error
 get(HashMap&lt;Hashable,any&gt;, Hashable): Result&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Creates a new HashMap object with the first key-val pair and a decently-sized set of defaults for
+<pre><code class="language-alan">// Creates a new HashMap object with the first key-val pair and a decently-sized set of defaults for
 // the indexing
 newHashMap(Hashable, any): HashMap&lt;Hashable, any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// The inverse of `keyVal`, takes an `Array&lt;KeyVal&lt;Hashable, any&gt;&gt;` and reindexes it as HashMap
+<pre><code class="language-alan">// The inverse of `keyVal`, takes an `Array&lt;KeyVal&lt;Hashable, any&gt;&gt;` and reindexes it as HashMap
 toHashMap(Array&lt;KeyVal&lt;Hashable, any&gt;&gt;): HashMap&lt;Hashable, any&gt;
 </code></pre>
 <h5><a class="header" href="#ternary-functions" id="ternary-functions">&quot;Ternary&quot; Functions</a></h5>
-<pre><code class="language-rust ignore">// Takes two values of the same type and returns an array of those two values
+<pre><code class="language-alan">// Takes two values of the same type and returns an array of those two values
 pair(any, any): Array&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a boolean and an array of two values and returns the first value on `true` and the second
+<pre><code class="language-alan">// Takes a boolean and an array of two values and returns the first value on `true` and the second
 // on `false`
 cond(bool, Array&lt;any&gt;): any
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a boolean and a function and conditionally executes that function if the bool is `true`
+<pre><code class="language-alan">// Takes a boolean and a function and conditionally executes that function if the bool is `true`
 cond(bool, function): void
 </code></pre>
 <h5><a class="header" href="#clone-functions" id="clone-functions">Clone Functions</a></h5>
-<pre><code class="language-rust ignore">// Explicitly duplicates the provided value and returns it, useful when you don't want to mutate
+<pre><code class="language-alan">// Explicitly duplicates the provided value and returns it, useful when you don't want to mutate
 // the original value
 clone(any): any
 clone(Array&lt;any&gt;): Array&lt;any&gt;
@@ -642,58 +642,58 @@ clone(bool): bool
 clone(string): string
 </code></pre>
 <h5><a class="header" href="#error-maybe-result-and-either-functions" id="error-maybe-result-and-either-functions">Error, Maybe, Result, and Either Functions</a></h5>
-<pre><code class="language-rust ignore">// Returns a non-error error object
+<pre><code class="language-alan">// Returns a non-error error object
 noerr(): Error
 </code></pre>
-<pre><code class="language-rust ignore">// Wraps a given value into a Maybe type
+<pre><code class="language-alan">// Wraps a given value into a Maybe type
 some(any): Maybe&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Creates an unassigned Maybe type
+<pre><code class="language-alan">// Creates an unassigned Maybe type
 none(): Maybe&lt;void&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Determines if the Maybe has a value
+<pre><code class="language-alan">// Determines if the Maybe has a value
 isSome(Maybe&lt;any&gt;): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Determines if the Maybe has no value
+<pre><code class="language-alan">// Determines if the Maybe has no value
 isNone(Maybe&lt;any&gt;): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Returns the Maybe's value, or the default value if there is no value
+<pre><code class="language-alan">// Returns the Maybe's value, or the default value if there is no value
 getOr(Maybe&lt;any&gt;, any): any
 </code></pre>
-<pre><code class="language-rust ignore">// Creates a Result with a value
+<pre><code class="language-alan">// Creates a Result with a value
 ok(any): Result&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Creates a Result with an Error
+<pre><code class="language-alan">// Creates a Result with an Error
 err(string): Result&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the Result has a value
+<pre><code class="language-alan">// Checks if the Result has a value
 isOk(Result&lt;any&gt;): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the Result has an Error
+<pre><code class="language-alan">// Checks if the Result has an Error
 isErr(Result&lt;any&gt;): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Gets the Result's value or default if it is an Error
+<pre><code class="language-alan">// Gets the Result's value or default if it is an Error
 getOr(Result&lt;any&gt;, any): any
 </code></pre>
-<pre><code class="language-rust ignore">// Gets the Result's Error or default if it is a value
+<pre><code class="language-alan">// Gets the Result's Error or default if it is a value
 getErr(Result&lt;any&gt;, Error): Error
 </code></pre>
-<pre><code class="language-rust ignore">// Creates an Either with the main (first) type set
+<pre><code class="language-alan">// Creates an Either with the main (first) type set
 main(any): Either&lt;any, void&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Creates and Either with the alternative (second) type set
+<pre><code class="language-alan">// Creates and Either with the alternative (second) type set
 alt(any): Either&lt;void, any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the Either's main type is set
+<pre><code class="language-alan">// Checks if the Either's main type is set
 isMain(Either&lt;any, anythingElse&gt;): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the Either's alt type is set
+<pre><code class="language-alan">// Checks if the Either's alt type is set
 isAlt(Either&lt;any, anythingElse&gt;): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Gets the main type or the default if it is the alt type
+<pre><code class="language-alan">// Gets the main type or the default if it is the alt type
 getMainOr(Either&lt;any, anythingElse&gt;, any): any
 </code></pre>
-<pre><code class="language-rust ignore">// Gets the alt type or the default if it is the main type
+<pre><code class="language-alan">// Gets the alt type or the default if it is the main type
 getAltOr(Either&lt;any, anythingElse&gt;, anythingElse): anythingElse
 </code></pre>
 <h4><a class="header" href="#built-in-operators" id="built-in-operators">Built-in Operators</a></h4>
@@ -896,9 +896,14 @@ getAltOr(Either&lt;any, anythingElse&gt;, anythingElse): anythingElse
 <script type="text/javascript">
     window.BigInt = window.BigInt || function() {}
 </script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <!-- Custom JS scripts -->
 
     <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
 
     <script type="text/javascript" src="mode-rust.js"></script>
 
@@ -906,9 +911,6 @@ getAltOr(Either&lt;any, anythingElse&gt;, anythingElse): anythingElse
 
     <script type="text/javascript" src="theme-solarized_light.js"></script>
 
-
-<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
 </body>

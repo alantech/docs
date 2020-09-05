@@ -223,7 +223,7 @@ on app.start {
 <p>The second form begins with an <code>@</code> and is a <code>named import</code>. It uses a more advanced search pattern that will be discussed in detail in the <a href="./module_resolution.html">Module Resolution</a> section. This is useful for referencing third-party code and your own code that is a cross-cutting concern for many modules in your project, like a custom logging wrapper module.</p>
 <h5><a class="header" href="#importing-modules" id="importing-modules">Importing Modules</a></h5>
 <p>Once you've identified the module you want to import, now it's time to decide how you want to import it. There's the basic scoped import and the &quot;plucking&quot; unscoped import. These syntaxes are essentially lifted wholesale from Python:</p>
-<pre><code class="language-rust ignore">import @std/http
+<pre><code class="language-alan">import @std/http
 import ./my/module as myModule
 from @std/app import start, print as println, exit
 </code></pre>
@@ -241,55 +241,55 @@ from @std/app import start, print as println, exit
 <p>Basic types include integers (<code>int8</code>, <code>int16</code>, <code>int32</code>, and <code>int64</code>), floating point numbers (<code>float32</code> and <code>float64</code>), booleans (<code>bool</code>), and the <code>void</code> (no value) type. The numbers refer to the number of bits consumed by the basic type. There are currently no unsigned variants of the integer types, though that may change if there is demand for it.</p>
 <p>The four &quot;main&quot; basic types (<code>int64</code>, <code>float64</code>, <code>bool</code> and <code>void</code>) have constant representations that you can easily type. The non-64-bit numeric types are considered specialized types and are discouraged (the runtime does not take advantage of the potential space optimizations they provide to keep the internal memory addressing system simpler), so constants for those types must be explicitly casted using the <code>to&lt;Type&gt;</code> functions discussed in the <a href="./built_ins.html">Built-ins</a> section.</p>
 <p>The integers have basic base-10 integer form as well as hexadecimal form. Binary and Octal forms are not implemented but that may change if there is demand for it.</p>
-<pre><code class="language-rust ignore">const base10 = 12345
+<pre><code class="language-alan">const base10 = 12345
 const base16 = 0xabcde
 </code></pre>
 <p>The floating point numbers have only basic base-10 with a decimal point form, no scientific notation form yet, but that may change if there is demand for it.</p>
-<pre><code class="language-rust ignore">const floating = 1.2345
+<pre><code class="language-alan">const floating = 1.2345
 </code></pre>
 <p>Booleans are represented by the keywords <code>true</code> and <code>false</code>. <code>void</code> has no representation beyond <code>void</code>. It can't be assigned to, and is meant to represent functions that return nothing.</p>
-<pre><code class="language-rust ignore">const boolean = true
+<pre><code class="language-alan">const boolean = true
 const someVoid = void
 </code></pre>
 <p>The basic types are included in the root scope and never need to be explicitly defined, they always exist.</p>
 <h5><a class="header" href="#strings" id="strings">Strings</a></h5>
 <p>Strings (<code>string</code>) are a bit beyond the basic type. From the perspective of the user of Alan they are <code>utf-8</code> byte arrays (multi-byte code points increase the string length by 2 or 3, not 1). If there is significant demand for it, string length checks and other operations will be switched to the codepoint model versus the byte array model.</p>
 <p>Strings are defined by wrapping double or single quotes (<code>&quot;</code> or <code>'</code>) around text. They work identically to Javascript strings, with the same sorts of C-style escape codes. Within the runtime, however, they are represented as Pascal strings with a 64-bit header, which makes certain operations faster than their C-string counterparts (particularly length checking, which is O(1)) but means 8 extra bytes are required for each string versus C-string's traditional 1 extra byte, so lots of small strings will consume more memory.</p>
-<pre><code class="language-rust ignore">const myString = &quot;My string's string&quot;
+<pre><code class="language-alan">const myString = &quot;My string's string&quot;
 const myOtherString = 'My other string\'s string'
 </code></pre>
 <p>Strings are also included in the root scope and never need to be explicitly defined.</p>
 <h5><a class="header" href="#user-defined-types" id="user-defined-types">User-Defined Types</a></h5>
 <p>User-defined types must be declared by the user and they follow the following syntax:</p>
-<pre><code class="language-rust ignore">type typename {
+<pre><code class="language-alan">type typename {
   propertyName: propertyType
   otherProperty: otherType
 }
 </code></pre>
 <p>The syntax to construct a new instance of a user type is as follows:</p>
-<pre><code class="language-rust ignore">const myVal: typename = new typename {
+<pre><code class="language-alan">const myVal: typename = new typename {
   propertyName = propertyValue
   otherProperty = otherValue
 }
 </code></pre>
 <p>The redundant <code>typename</code> in that example will also eventually be eliminated by type inference, reducing it to just:</p>
-<pre><code class="language-rust ignore">const myVal = new typename {
+<pre><code class="language-alan">const myVal = new typename {
   propertyName = propertyValue
   otherProperty = otherValue
 }
 </code></pre>
 <p>User-defined types have another interesting feature: they can be generic. That means one or more of the actual sub-types used by the type is not yet defined, but will be &quot;solidified&quot; later on with the creation of a new type based on it.</p>
 <p>Generic types look like this:</p>
-<pre><code class="language-rust ignore">type typename&lt;A, B&gt; {
+<pre><code class="language-alan">type typename&lt;A, B&gt; {
   propertyName: A
   otherProperty: B
 }
 </code></pre>
 <p>Where later on you can &quot;solidify&quot; that type either by creating an alias with the types filled in:</p>
-<pre><code class="language-rust ignore">type typenameIntStr = typename&lt;int64, string&gt;
+<pre><code class="language-alan">type typenameIntStr = typename&lt;int64, string&gt;
 </code></pre>
 <p>or just declaring a variable that uses a &quot;solidified&quot; type:</p>
-<pre><code class="language-rust ignore">let myVar = new typename&lt;bool, float64&gt; {
+<pre><code class="language-alan">let myVar = new typename&lt;bool, float64&gt; {
   propertyName = true
   otherProperty = 0.0
 }
@@ -300,12 +300,12 @@ const myOtherString = 'My other string\'s string'
 <p>But if there were the right built-in primitives with the right built-in functionality, you could combine them to create the algorithms you need without the looping construct. The special built-in types are covered in depth in <a href="./built_ins.html">Built-ins</a>, but they can be used within your own types like any other.</p>
 <h4><a class="header" href="#constants" id="constants">Constants</a></h4>
 <p>Module-level constants allow the user to define fixed data that is shared across functions (or exported to be shared across modules). The syntax is simply:</p>
-<pre><code class="language-rust ignore">const varname: typename = constvalue
+<pre><code class="language-alan">const varname: typename = constvalue
 const othervar = otherconstval
 </code></pre>
 <p>The <code>typename</code> is not required due to type inference, but can be added for clarity.</p>
 <p>For those coming from Javascript/Typescript, <code>const</code> in Alan is much more strict. A constant is truly constant, not just a variable that can't be reassigned with a new struct. This means the following is invalid:</p>
-<pre><code class="language-rust ignore">const pushedVals = new Array&lt;int64&gt; [ ]
+<pre><code class="language-alan">const pushedVals = new Array&lt;int64&gt; [ ]
 
 fn saveForLater(val: int64) {
   pushedVals.push(val)
@@ -314,14 +314,14 @@ fn saveForLater(val: int64) {
 <p>Shared mutable global state inherently prevents parallelization, so it is discouraged.</p>
 <h4><a class="header" href="#events" id="events">Events</a></h4>
 <p>Events are sources for activity in Alan. No code is run that isn't triggered by an event. Event declaration is relatively simple:</p>
-<pre><code class="language-rust ignore">event eventName: typename
+<pre><code class="language-alan">event eventName: typename
 </code></pre>
 <p>where <code>eventName</code> is the name of the event. The <code>typename</code> annotation for events is required, unlike other places within the codebase. This requirement may change in the future as the event handler(s) listening to the event, and/or the event emit statement(s) emitting to the event could determine the type of the event, but it would impact the clarity of code surrounding the event as well as make the parser more complex.</p>
 <h4><a class="header" href="#functions" id="functions">Functions</a></h4>
 <p>Functions are where actual work happens. There are built-in functions and user-defined functions. The user-defined functions consist of a sequence of statements composing other functions, operators, types, etc.</p>
 <h5><a class="header" href="#function-declarations" id="function-declarations">Function Declarations</a></h5>
 <p>Declaration of functions works like so:</p>
-<pre><code class="language-rust ignore">// A named function with two arguments and a particular return type
+<pre><code class="language-alan">// A named function with two arguments and a particular return type
 fn functionName (firstArgument: argumentType, secondArgument: anotherType): returnType {
   ...statements...
 }
@@ -375,7 +375,7 @@ on eventname fn (): void {
 </code></pre>
 <h5><a class="header" href="#function-dispatch" id="function-dispatch">Function Dispatch</a></h5>
 <p>Alan uses multiple dispatch for determining which function to use when a function name is called. This means that the argument types and count are taken into consideration. Multiple functions with the same name may be declared as long as the argument types and/or counts are different between them. For example:</p>
-<pre><code class="language-rust ignore">fn someFn (arg1: string, arg2: bool): string {
+<pre><code class="language-alan">fn someFn (arg1: string, arg2: bool): string {
   ...
 }
 
@@ -395,10 +395,10 @@ fn someFn (arg1: int64, arg2: float64): int64 {
 <h5><a class="header" href="#function-calls" id="function-calls">Function Calls</a></h5>
 <p>One of the kinds of statements you can write inside of a function is a function call. There are actually two syntaxes for function calls, standard form and method form.</p>
 <p>Standard form looks like this:</p>
-<pre><code class="language-rust ignore">add(3, 2)
+<pre><code class="language-alan">add(3, 2)
 </code></pre>
 <p>while method form looks like this:</p>
-<pre><code class="language-rust ignore">3.add(2)
+<pre><code class="language-alan">3.add(2)
 </code></pre>
 <p>Method form allows you to pull the first argument out of the function and treat the function call like an Object-Oriented Language's method syntax. This allows method chaining, which can be much more legible when the output of one function is the input of the next, without requiring a custom chaining syntax that some functional languages have adopted (eg <code>|&gt;</code> in F#). Eg, <code>3.add(2).mul(5).mod(3)</code> is equivalent to <code>mod(mul(add(3, 2), 5), 3)</code>.</p>
 <h4><a class="header" href="#operators" id="operators">Operators</a></h4>
@@ -430,14 +430,14 @@ infix precedence &lt;precedenceNumber&gt; functionName as &lt;operatorSymbol&gt;
 <p>Statements must be on different lines, but statements can span multiple lines. There are six types of statements: variable declarations, variable assignments, function calls, function returns, event emission, and conditionals (if statements).</p>
 <h5><a class="header" href="#variable-declarations" id="variable-declarations">Variable Declarations</a></h5>
 <p>There are two types of variables, constants and mutable variables. Constants are declared with these two syntaxes:</p>
-<pre><code class="language-rust ignore">const varname: typename = constantOrFunctionCallOrExpression
+<pre><code class="language-alan">const varname: typename = constantOrFunctionCallOrExpression
 const varname = constantOrFunctionCallOrExpression
 </code></pre>
 <p>The typename is optional as it can be inferred from the value being assigned. Providing the type can be useful to make sure your code is doing what you expected, though, and not using an unexpected type. By default all numeric constants are automatically the highest definition version possible. (<code>int64</code> or <code>float64</code>) Explicitly setting a smaller bit size for the constant <em>will not</em> coerce the constant automatically, you must explicitly declare the down coersion, eg:</p>
-<pre><code class="language-rust ignore">const someI32: int32 = 5.toInt32()
+<pre><code class="language-alan">const someI32: int32 = 5.toInt32()
 </code></pre>
 <p>Any type that exists in the language can be assigned. Simple constants are simply declared, or produced via function calls or operator expressions. User-defined types can be assigned to constants through the use of a constructor function and calling it, through an expression involving operators that produces the user-defined type, or through the user-type literal syntax. Arrays and HashMaps have similar but slightly different syntaxes, as they deal with inherently plural data versus the struct-like user-defined types:</p>
-<pre><code class="language-rust ignore">const simpleConstant: bool = true
+<pre><code class="language-alan">const simpleConstant: bool = true
 const simpleConstant2 = &quot;simple&quot;
 const expressionResult: int64 = 3 + 5 * 2 + fnCall2(3, 1)
 const fnResult: someType = functioncall(3, 5)
@@ -455,55 +455,55 @@ const mapTypeLiteral = new HashMap&lt;bool, string&gt; {
 </code></pre>
 <p>All three complex type literals begin with the <code>new</code> keyword, followed by the type name, which must be a realized generic if it is a generic type. If the original generic type was an <code>Array</code> or <code>HashMap</code> it gets a special syntax. Arrays are surrounded by brackets (<code>[</code>, <code>]</code>) instead of curly braces (<code>{</code>, <code>}</code>) and are simply a comma-delimited list of values (they could also be generated by functions or operator expressions, or be a user-defined type literal). Arrays are also the only special type that can be unambiguously declared without the <code>new Type</code> prefix, so that is also allowed. HashMaps keep the curly braces, but the <code>key</code> and <code>value</code> pairs are separated by a colon (<code>:</code>) instead of an equal sign (<code>=</code>), which fits more closely to the Map/Object syntax popularized by JSON (but able to have more than just <code>string</code> values for the keys).</p>
 <p>Beyond that, there is also the ability to assign the type name of another variable, but the constant <em>must</em> be a string in that case:</p>
-<pre><code class="language-rust ignore">const typename: string = type otherVariable
+<pre><code class="language-alan">const typename: string = type otherVariable
 </code></pre>
 <p>For mutable variables, the syntax is nearly identical:</p>
-<pre><code class="language-rust ignore">let varname: typename = constantOrFunctionCallOrExpression 
+<pre><code class="language-alan">let varname: typename = constantOrFunctionCallOrExpression 
 let varname = constantOrFunctionCallOrExpression
 </code></pre>
 <p>Where <code>const</code> is replaced with <code>let</code>, making it clear that this variable's value can be changed.</p>
 <h5><a class="header" href="#variable-assignments" id="variable-assignments">Variable Assignments</a></h5>
 <p>This syntax only works with mutable variables:</p>
-<pre><code class="language-rust ignore">varname = constantOrFunctionCallOrExpression
+<pre><code class="language-alan">varname = constantOrFunctionCallOrExpression
 varname.propertyName = constantOrFunctionCallOrExpression
 </code></pre>
 <p>Since the variable type is already known, it is no longer included. Anything that could be assigned at declaration time is assignable in future assignments. When re-assigning to the properties of user-defined types, you use the dot notation.</p>
 <h5><a class="header" href="#function-calls-1" id="function-calls-1">Function Calls</a></h5>
 <p>Because functions can have side effects that might be desirable, and functions defined within the scope of the current function could potentially mutate multiple variables, and so on, it's allowed to call them without storing a return value. It simply looks like this:</p>
-<pre><code class="language-rust ignore">someFunction(arg1, arg2)
+<pre><code class="language-alan">someFunction(arg1, arg2)
 </code></pre>
 <p>where the arguments themselves could be constants, variable names, other function calls, operator statements, and variable type selection.</p>
 <h5><a class="header" href="#function-returns" id="function-returns">Function Returns</a></h5>
 <p>A return statement sets the value of the return type for the function and ends execution:</p>
-<pre><code class="language-rust ignore">return constantOrFunctionCallOrExpression
+<pre><code class="language-alan">return constantOrFunctionCallOrExpression
 </code></pre>
 <p>If the function has no return value, you can also trigger an exit without assigning a return value by simply stating:</p>
-<pre><code class="language-rust ignore">return
+<pre><code class="language-alan">return
 </code></pre>
 <p>If you have any statements after the <code>return</code> it will not compile, however (except if the <code>return</code> is within a conditional statement, described below).</p>
 <h5><a class="header" href="#event-emission" id="event-emission">Event Emission</a></h5>
 <p>A function can trigger new events to occur by emitting one:</p>
-<pre><code class="language-rust ignore">emit eventName
+<pre><code class="language-alan">emit eventName
 emit eventName constantOrFunctionCallOrExpression
 </code></pre>
 <p>If the event is a void event (no arguments given to the handler functions) then you use the simple first syntax. If there is a value provided to the handler, then as with the other statements it could be a constant or variable name or function call or operator expression or type name of a variable that is provided.</p>
 <h5><a class="header" href="#conditionals" id="conditionals">Conditionals</a></h5>
 <p>Conditionals optionally run one block of code (or potentially another) based on a condition. Since this language is intended to run statements in dependency order, the scope the conditions run in are actually functions to prevent them from being run ahead of time. This also means all scopes once you enter a function scope are function scopes, which makes things simpler to reason about. If one of these functions returns a value, the outer function immediately returns that value from the conditional statement.</p>
 <p>The conditional syntax is:</p>
-<pre><code class="language-rust ignore">if booleanConstantOrFunctionCallOrExpression thenFunction
+<pre><code class="language-alan">if booleanConstantOrFunctionCallOrExpression thenFunction
 if booleanConstantOrFunctionCallOrExpression thenFunction else elseFunction
 if booleanConstantOrFunctionCallOrExpression thenFunction else if ...
 </code></pre>
 <p>where the constant, function call, or operational expression <em>must</em> evaluate to a boolean (so no type checking, unless it is within an equality check against an expected type name).</p>
 <p>Conditionals are one of the two places (the other being event handler declarations) where the <code>fn</code> may be omitted from a purely-side-effect function (no arguments, no return value), so the above can look exactly as one would expect:</p>
-<pre><code class="language-rust ignore">if 1 == 2 {
+<pre><code class="language-alan">if 1 == 2 {
   print(&quot;Wrong&quot;)
 } else {
   print(&quot;Right&quot;)
 }
 </code></pre>
 <p>The conditional has two anonymous functions declared inline. But it could just as easily be something like:</p>
-<pre><code class="language-rust ignore">fn right() {
+<pre><code class="language-alan">fn right() {
   print(&quot;Right&quot;)
 }
 
@@ -517,7 +517,7 @@ if condition right else wrong
 </code></pre>
 <h4><a class="header" href="#interfaces" id="interfaces">Interfaces</a></h4>
 <p>In order to make generic types more useful, there must be a way to declare what operations/functions are possible to apply to the generic type in question so functions working with said generic are able to be checked even if the generic function is not &quot;solidified&quot; (for example, it is an exported library meant to be used by other code). Interfaces are the proposed solution, and they'll look something like this:</p>
-<pre><code class="language-rust ignore">interface interfaceName {
+<pre><code class="language-alan">interface interfaceName {
   functionname (concreteType, interfaceName): concreteType
   function2 (interfaceName, interfaceName): interfaceName
   interfaceName &lt;operatorSymbol&gt; interfaceName: interfaceName
@@ -531,23 +531,23 @@ if condition right else wrong
 <p>This is because invocation of the function in that scope also counts as definition of that function within the scope, with the original being used as a template for the function, and the current module's scope being injected between the export scope of the module it was pulled from (if it was imported across scope boundaries).</p>
 <p>When interfaces are used in a function, they are matched against the incoming argument types. Once it is &quot;realized&quot; as a concrete type, the compiler assumes any other usage of that same interface will be the same realized type.</p>
 <p>This means writing a constructor function to make a <code>KeyVal</code> object like so:</p>
-<pre><code class="language-rust ignore">fn makeKV(key: any, val: any) = new KeyVal&lt;any, any&gt; {
+<pre><code class="language-alan">fn makeKV(key: any, val: any) = new KeyVal&lt;any, any&gt; {
   key = key
   val = val
 }
 </code></pre>
 <p>will fail to compile unless both the <code>key</code> and the <code>val</code> are the same type, which may be unexpected. However, an identical interface with a different name will be matched separately, so if you have the following two otherwise identical interfaces:</p>
-<pre><code class="language-rust ignore">interface any {}
+<pre><code class="language-alan">interface any {}
 interface anythingElse {}
 </code></pre>
 <p>That both would match <em>any</em> type given to them, you can then use them in the <code>KeyVal</code> constructor like this:</p>
-<pre><code class="language-rust ignore">fn makeKv(key: any, val: anythingElse) = new KeyVal&lt;any, anythingElse&gt; {
+<pre><code class="language-alan">fn makeKv(key: any, val: anythingElse) = new KeyVal&lt;any, anythingElse&gt; {
   key = key
   val = val
 }
 </code></pre>
 <p>There is an interface aliasing feature, so one could simply write:</p>
-<pre><code class="language-rust ignore">interface anythingElse = any
+<pre><code class="language-alan">interface anythingElse = any
 </code></pre>
 <p>and have it do the right thing. Not super useful for the <code>any</code> interface, but for complex interfaces that you want to use in functions with the variables &quot;unlinked&quot; from each other, it can be quite useful.</p>
 <h4><a class="header" href="#handlers" id="handlers">Handlers</a></h4>
@@ -556,30 +556,30 @@ interface anythingElse {}
 <p>Handlers can only be registered at the module level, not within a function. This is both to discourage abuse of the event loop and make a more intelligent execution planning possible in the future (such as switching from minimizing total latency for any given event to maximizing the total throughput of event processing if the event loop queue is backing up).</p>
 <p>Furthermore, function calls within the handler run may trigger multiple simultaneous executions and IO operations can break up the handler call into multiple fragments to be re-scheduled onto the event loop. The vast majority of the time, direct control on how work is scheduled onto the event loop is abstracted from the developer.</p>
 <p>The event handler syntax is relatively simple:</p>
-<pre><code class="language-rust ignore">on eventName function
+<pre><code class="language-alan">on eventName function
 </code></pre>
 <p>where <code>eventName</code> is the name of the event to register a handler for and <code>function</code> is either the name of a function, or an in-line defined function, eg:</p>
-<pre><code class="language-rust ignore">on event fn namedHandler(argument: eventType) {
+<pre><code class="language-alan">on event fn namedHandler(argument: eventType) {
   ...
 }
 </code></pre>
 <p>for a fully-named in-line defined function with an event payload. Without a payload, the argument list can be dropped:</p>
-<pre><code class="language-rust ignore">on event fn namedHandler {
+<pre><code class="language-alan">on event fn namedHandler {
   ...
 }
 </code></pre>
 <p>In both cases, the name is also optional because it is being registered immediately:</p>
-<pre><code class="language-rust ignore">on event fn (argument: eventType) {
+<pre><code class="language-alan">on event fn (argument: eventType) {
   ...
 }
 </code></pre>
 <p>or</p>
-<pre><code class="language-rust ignore">on event fn {
+<pre><code class="language-alan">on event fn {
   ...
 }
 </code></pre>
 <p>The latter purely-side-effect-only function can also omit the <code>fn</code> if desired as it is unambiguous in this context:</p>
-<pre><code class="language-rust ignore">on event {
+<pre><code class="language-alan">on event {
   ...
 }
 </code></pre>
@@ -593,10 +593,10 @@ interface anythingElse {}
 <p>The <code>export</code> syntax can only be used at the module level, which means it is impossible to have non-deterministic exports. While this can be annoying with collating files that simply import files to only re-export all of their contents, it eliminates whole classes of ambiguity where certain functions, types, etc are only available depending on the state of the runtime environment.</p>
 <p>Constants, types, functions, operators, events, and interfaces are exportable while event handlers are not. (However, importing a module that registers event handlers will cause a side-effect of including those event handlers in your application.)</p>
 <p>This can either be done in-line with the declaration of the item in question:</p>
-<pre><code class="language-rust ignore">export const foo: bool = true
+<pre><code class="language-alan">export const foo: bool = true
 </code></pre>
 <p>Or it can be done by referencing the name of the thing to be exported after it has been declared:</p>
-<pre><code class="language-rust ignore">type Foo {
+<pre><code class="language-alan">type Foo {
   bar: string
   baz: bool
 }
@@ -743,21 +743,21 @@ export Foo
 <p>The <code>int64</code> and <code>float64</code> types are special among the numeric types, as these are the types that any numeric constant will be represented as, depending on whether or not it has a decimal. They have been given aliases of <code>int</code> and <code>float</code> respectively for that reason.</p>
 <h4><a class="header" href="#built-in-interfaces" id="built-in-interfaces">Built-in Interfaces</a></h4>
 <p>There are a few built-in <a href="./interfaces.html">interfaces</a> meant for working with several built-in types and functions.</p>
-<pre><code class="language-rust ignore">// An empty interface, it can match any value, but you can only accept it and pass it along to
+<pre><code class="language-alan">// An empty interface, it can match any value, but you can only accept it and pass it along to
 // something else. Useful for logical &quot;glue&quot; functions like `pair`, `cond`, `map`, `reduce`, etc.
 interface any {}
 </code></pre>
-<pre><code class="language-rust ignore">// A second empty interface, useful to allow functions to declare that it accepts two arguments of
+<pre><code class="language-alan">// A second empty interface, useful to allow functions to declare that it accepts two arguments of
 // any kind and they don't need to match each other.
 interface anythingElse {}
 </code></pre>
-<pre><code class="language-rust ignore">// An interface that restricts valid types to only those that can be converted into strings. Useful
+<pre><code class="language-alan">// An interface that restricts valid types to only those that can be converted into strings. Useful
 // for printing.
 interface Stringifiable {
   toString(Stringifiable): string
 }
 </code></pre>
-<pre><code class="language-rust ignore">// An interface that determines if a type is hashable and comparable. Used by HashMap for the keys.
+<pre><code class="language-alan">// An interface that determines if a type is hashable and comparable. Used by HashMap for the keys.
 interface Hashable {
   toHash(Hashable): int64
   eq(Hashable, Hashable): bool
@@ -766,7 +766,7 @@ interface Hashable {
 <h4><a class="header" href="#built-in-functions" id="built-in-functions">Built-in Functions</a></h4>
 <p>The <a href="./functions.html">function</a> signatures will be written in the form <code>functionName(argumentType, argumentType): returnType</code> with a brief description above each. These functions will be grouped into general categories, such as type coersion, arithmetic, etc. Because of <a href="./functions.html#function-dispatch">multiple dispatch</a> you may see the same function name repeated multiple times, while other times you may see the use of the <code>any</code> interface for a function that operates on multiple types. When you see multiple dispatch being used with specific types, that means there's an optimized implementation for that specific type, while the use of the <code>any</code> interface means that this was not done (many times because it was not necessary).</p>
 <h5><a class="header" href="#type-coersion" id="type-coersion">Type Coersion</a></h5>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to 64-bit floats
+<pre><code class="language-alan">// Converts the built-in basic types to 64-bit floats
 toFloat64(int8): float64
 toFloat64(int16): float64
 toFloat64(int32): float64
@@ -776,7 +776,7 @@ toFloat64(float64): float64
 toFloat64(bool): float64
 toFloat64(string): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to 32-bit floats
+<pre><code class="language-alan">// Converts the built-in basic types to 32-bit floats
 toFloat32(int8): float32
 toFloat32(int16): float32
 toFloat32(int32): float32
@@ -786,7 +786,7 @@ toFloat32(float64): float32
 toFloat32(bool): float32
 toFloat32(string): float32
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to 64-bit integers
+<pre><code class="language-alan">// Converts the built-in basic types to 64-bit integers
 toInt64(int8): int64
 toInt64(int16): int64
 toInt64(int32): int64
@@ -796,7 +796,7 @@ toInt64(float64): int64
 toInt64(bool): int64
 toInt64(string): int64
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to 32-bit integers
+<pre><code class="language-alan">// Converts the built-in basic types to 32-bit integers
 toInt32(int8): int32
 toInt32(int16): int32
 toInt32(int32): int32
@@ -806,7 +806,7 @@ toInt32(float64): int32
 toInt32(bool): int32
 toInt32(string): int32
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to 16-bit integers
+<pre><code class="language-alan">// Converts the built-in basic types to 16-bit integers
 toInt16(int8): int16
 toInt16(int16): int16
 toInt16(int32): int16
@@ -816,7 +816,7 @@ toInt16(float64): int16
 toInt16(bool): int16
 toInt16(string): int16
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to 8-bit integers
+<pre><code class="language-alan">// Converts the built-in basic types to 8-bit integers
 toInt8(int8): int8
 toInt8(int16): int8
 toInt8(int32): int8
@@ -826,7 +826,7 @@ toInt8(float64): int8
 toInt8(bool): int8
 toInt8(string): int8
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in basic types to booleans
+<pre><code class="language-alan">// Converts the built-in basic types to booleans
 toBool(int8): bool
 toBool(int16): bool
 toBool(int32): bool
@@ -836,7 +836,7 @@ toBool(float64): bool
 toBool(bool): bool
 toBool(string): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Converts the built-in types to strings
+<pre><code class="language-alan">// Converts the built-in types to strings
 toString(int8): string
 toString(int16): string
 toString(int32): string
@@ -850,7 +850,7 @@ toString(Result&lt;Stringifiable&gt;): string
 </code></pre>
 <p>These coersions will not fail. When converting down into an integer of a smaller bitsize, numbers larger than that integer's <code>INT_MAX</code> are pegged at <code>INT_MAX</code>, smaller than <code>INT_MIN</code> pegged at <code>INT_MIN</code> and <code>NaN</code> or strings that aren't actually integers are converted to <code>0</code>. This may be changed to a <code>Result</code> type that requires a user-defined default value on failure. <code>Result</code> types wrapping a type that can also be converted to a string directly, with either the string version of the result, or the error message.</p>
 <h5><a class="header" href="#arithmetic" id="arithmetic">Arithmetic</a></h5>
-<pre><code class="language-rust ignore">// Adds two numbers
+<pre><code class="language-alan">// Adds two numbers
 add(int8, int8): int8
 add(int16, int16): int16
 add(int32, int32): int32
@@ -858,7 +858,7 @@ add(int64, int64): int64
 add(float32, float32): float32
 add(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Subtracts two numbers
+<pre><code class="language-alan">// Subtracts two numbers
 sub(int8, int8): int8
 sub(int16, int16): int16
 sub(int32, int32): int32
@@ -866,7 +866,7 @@ sub(int64, int64): int64
 sub(float32, float32): float32
 sub(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Negates the number
+<pre><code class="language-alan">// Negates the number
 negate(int8, int8): int8
 negate(int16, int16): int16
 negate(int32, int32): int32
@@ -874,7 +874,7 @@ negate(int64, int64): int64
 negate(float32, float32): float32
 negate(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Returns the absolute value of the number
+<pre><code class="language-alan">// Returns the absolute value of the number
 abs(int8, int8): int8
 abs(int16, int16): int16
 abs(int32, int32): int32
@@ -882,7 +882,7 @@ abs(int64, int64): int64
 abs(float32, float32): float32
 abs(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Multiplies two numbers
+<pre><code class="language-alan">// Multiplies two numbers
 mul(int8, int8): int8
 mul(int16, int16): int16
 mul(int32, int32): int32
@@ -890,7 +890,7 @@ mul(int64, int64): int64
 mul(float32, float32): float32
 mul(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Divides two numbers
+<pre><code class="language-alan">// Divides two numbers
 div(int8, int8): int8
 div(int16, int16): int16
 div(int32, int32): int32
@@ -898,7 +898,7 @@ div(int64, int64): int64
 div(float32, float32): float32
 div(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Raises the first number to the power of the second number
+<pre><code class="language-alan">// Raises the first number to the power of the second number
 pow(int8, int8): int8
 pow(int16, int16): int16
 pow(int32, int32): int32
@@ -906,60 +906,60 @@ pow(int64, int64): int64
 pow(float32, float32): float32
 pow(float64, float64): float64
 </code></pre>
-<pre><code class="language-rust ignore">// Returns the modulus (remainder) of an integer division
+<pre><code class="language-alan">// Returns the modulus (remainder) of an integer division
 mod(int8, int8): int8
 mod(int16, int16): int16
 mod(int32, int32): int32
 mod(int64, int64): int64
 </code></pre>
-<pre><code class="language-rust ignore">// Returns the square root of a number
+<pre><code class="language-alan">// Returns the square root of a number
 sqrt(float32): float32
 sqrt(float64): float64
 </code></pre>
 <h5><a class="header" href="#logical-and-bitwise" id="logical-and-bitwise">Logical and Bitwise</a></h5>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `and`
+<pre><code class="language-alan">// Return the logical or bitwise `and`
 and(int8, int8): int8
 and(int16, int16): int16
 and(int32, int32): int32
 and(int64, int64): int64
 and(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `or`
+<pre><code class="language-alan">// Return the logical or bitwise `or`
 or(int8, int8): int8
 or(int16, int16): int16
 or(int32, int32): int32
 or(int64, int64): int64
 or(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `xor`
+<pre><code class="language-alan">// Return the logical or bitwise `xor`
 xor(int8, int8): int8
 xor(int16, int16): int16
 xor(int32, int32): int32
 xor(int64, int64): int64
 xor(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `not`
+<pre><code class="language-alan">// Return the logical or bitwise `not`
 not(int8): int8
 not(int16): int16
 not(int32): int32
 not(int64): int64
 not(bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `nand`
+<pre><code class="language-alan">// Return the logical or bitwise `nand`
 nand(int8, int8): int8
 nand(int16, int16): int16
 nand(int32, int32): int32
 nand(int64, int64): int64
 nand(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `nor`
+<pre><code class="language-alan">// Return the logical or bitwise `nor`
 nor(int8, int8): int8
 nor(int16, int16): int16
 nor(int32, int32): int32
 nor(int64, int64): int64
 nor(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Return the logical or bitwise `xnor`
+<pre><code class="language-alan">// Return the logical or bitwise `xnor`
 xnor(int8, int8): int8
 xnor(int16, int16): int16
 xnor(int32, int32): int32
@@ -967,7 +967,7 @@ xnor(int64, int64): int64
 xnor(bool, bool): bool
 </code></pre>
 <h5><a class="header" href="#comparators" id="comparators">Comparators</a></h5>
-<pre><code class="language-rust ignore">// Checks if the two values are equal
+<pre><code class="language-alan">// Checks if the two values are equal
 eq(int8, int8): bool
 eq(int16, int16): bool
 eq(int32, int32): bool
@@ -977,7 +977,7 @@ eq(float64, float64): bool
 eq(string, string): bool
 eq(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the two values are not equal
+<pre><code class="language-alan">// Checks if the two values are not equal
 neq(int8, int8): bool
 neq(int16, int16): bool
 neq(int32, int32): bool
@@ -987,7 +987,7 @@ neq(float64, float64): bool
 neq(string, string): bool
 neq(bool, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the first value is less than the second
+<pre><code class="language-alan">// Checks if the first value is less than the second
 lt(int8, int8): bool
 lt(int16, int16): bool
 lt(int32, int32): bool
@@ -996,7 +996,7 @@ lt(float32, float32): bool
 lt(float64, float64): bool
 lt(string, string): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the first value is less than or equal to the second
+<pre><code class="language-alan">// Checks if the first value is less than or equal to the second
 lte(int8, int8): bool
 lte(int16, int16): bool
 lte(int32, int32): bool
@@ -1005,7 +1005,7 @@ lte(float32, float32): bool
 lte(float64, float64): bool
 lte(string, string): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the first value is greater than the second
+<pre><code class="language-alan">// Checks if the first value is greater than the second
 gt(int8, int8): bool
 gt(int16, int16): bool
 gt(int32, int32): bool
@@ -1014,7 +1014,7 @@ gt(float32, float32): bool
 gt(float64, float64): bool
 gt(string, string): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the first value is greater than or equal to the second
+<pre><code class="language-alan">// Checks if the first value is greater than or equal to the second
 gte(int8, int8): bool
 gte(int16, int16): bool
 gte(int32, int32): bool
@@ -1024,51 +1024,51 @@ gte(float64, float64): bool
 gte(string, string): bool
 </code></pre>
 <h5><a class="header" href="#wait-functions" id="wait-functions">Wait functions</a></h5>
-<pre><code class="language-rust ignore">// Waits the specified number of milliseconds and then continues execution
+<pre><code class="language-alan">// Waits the specified number of milliseconds and then continues execution
 wait(int8): void
 wait(int16): void
 wait(int32): void
 wait(int64): void
 </code></pre>
 <h5><a class="header" href="#string-manipulation" id="string-manipulation">String Manipulation</a></h5>
-<pre><code class="language-rust ignore">// Concatenate two strings together
+<pre><code class="language-alan">// Concatenate two strings together
 concat(string, string): string
 </code></pre>
-<pre><code class="language-rust ignore">// Splits the first string into an array of strings divided by the second delimiter string
+<pre><code class="language-alan">// Splits the first string into an array of strings divided by the second delimiter string
 split(string, string): Array&lt;string&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Repeats the contents of the string `n` times (so `repeat(&quot;hello&quot;, 1)` returns `&quot;hello&quot;`)
+<pre><code class="language-alan">// Repeats the contents of the string `n` times (so `repeat(&quot;hello&quot;, 1)` returns `&quot;hello&quot;`)
 repeat(string, int8): string
 repeat(string, int16): string
 repeat(string, int32): string
 repeat(string, int64): string
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a string template and a HashMap of string keys to string values to substitute in
+<pre><code class="language-alan">// Takes a string template and a HashMap of string keys to string values to substitute in
 template(string, HashMap&lt;string, string&gt;): string
 </code></pre>
-<pre><code class="language-rust ignore">// Check if the first string matches the regular expression defined by the second string
+<pre><code class="language-alan">// Check if the first string matches the regular expression defined by the second string
 matches(string, string): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Returns the location of the second string within the first string as a Result, or errors
+<pre><code class="language-alan">// Returns the location of the second string within the first string as a Result, or errors
 index(string, string): Result&lt;int64&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Returns the length of the string (as a byte array, not UTF codepoints)
+<pre><code class="language-alan">// Returns the length of the string (as a byte array, not UTF codepoints)
 length(string): int64
 </code></pre>
-<pre><code class="language-rust ignore">// Removes the whitespace on either end of the string
+<pre><code class="language-alan">// Removes the whitespace on either end of the string
 trim(string): string
 </code></pre>
 <h5><a class="header" href="#array-manipulation" id="array-manipulation">Array Manipulation</a></h5>
-<pre><code class="language-rust ignore">// Concatenate two arrays into a new array containing the values of both
+<pre><code class="language-alan">// Concatenate two arrays into a new array containing the values of both
 concat(Array&lt;any&gt;, Array&lt;any&gt;): Array&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Create a new array with the contents of the original array repeated `n` times
+<pre><code class="language-alan">// Create a new array with the contents of the original array repeated `n` times
 repeat(Array&lt;any&gt;, int8): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int16): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int32): Array&lt;any&gt;
 repeat(Array&lt;any&gt;, int64): Array&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Find the index of the specified value in the array in a Result, or errors
+<pre><code class="language-alan">// Find the index of the specified value in the array in a Result, or errors
 index(Array&lt;any&gt;, any): Result&lt;int64&gt;
 index(Array&lt;int8&gt;, int8): Result&lt;int64&gt;
 index(Array&lt;int16&gt;, int16): Result&lt;int64&gt;
@@ -1078,7 +1078,7 @@ index(Array&lt;float32&gt;, float32): Result&lt;int64&gt;
 index(Array&lt;float64&gt;, float64): Result&lt;int64&gt;
 index(Array&lt;bool&gt;, bool): Result&lt;int64&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Returns true if the array has the specified value or false otherwise
+<pre><code class="language-alan">// Returns true if the array has the specified value or false otherwise
 has(Array&lt;any&gt;, any): bool
 has(Array&lt;int8&gt;, int8): bool 
 has(Array&lt;int16&gt;, int16): bool
@@ -1088,7 +1088,7 @@ has(Array&lt;float32&gt;, float32): bool
 has(Array&lt;float64&gt;, float64): bool
 has(Array&lt;bool&gt;, bool): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Push a value into the array and return the updated array
+<pre><code class="language-alan">// Push a value into the array and return the updated array
 push(Array&lt;any&gt;, any): Array&lt;any&gt;
 push(Array&lt;int8&gt;, int8): Array&lt;int8&gt;
 push(Array&lt;int16&gt;, int16): Array&lt;int16&gt;
@@ -1098,18 +1098,18 @@ push(Array&lt;float32&gt;, float32): Array&lt;float32&gt;
 push(Array&lt;float64&gt;, float64): Array&lt;float64&gt;
 push(Array&lt;bool&gt;, bool): Array&lt;bool&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Pop a value from an array and return that value wrapped in a result (or an error result)
+<pre><code class="language-alan">// Pop a value from an array and return that value wrapped in a result (or an error result)
 pop(Array&lt;any&gt;): Result&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the provided side-effect function on each element of the array
+<pre><code class="language-alan">// Execute the provided side-effect function on each element of the array
 each(Array&lt;any&gt;, function): void // Parallel if possible and worthwhile
 eachLin(Array&lt;any&gt;, function): void // Forced linear execution
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the provided converter function on each element of the array and return a new array
+<pre><code class="language-alan">// Execute the provided converter function on each element of the array and return a new array
 map(Array&lt;any&gt;, function): Array&lt;anythingElse&gt; // Parallel if possible and worthwhile
 mapLin(Array&lt;any&gt;, function): Array&lt;anythingElse&gt; // Forced linear execution
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the combining function on the array and return the new value
+<pre><code class="language-alan">// Execute the combining function on the array and return the new value
 // The two argument reduce functions reduce into the same type as the input, while the
 // three and four argument reduce functions reduce into a new type. The three argument reduce
 // function is sequential and only requires an initial value to kick off the reduction, while the
@@ -1121,27 +1121,27 @@ reducePar(Array&lt;any&gt;, function): any // Parallel if possible and worthwhil
 reduce(Array&lt;any&gt;, function, anythingElse): anythingElse // Forced linear execution
 reducePar(Array&lt;any&gt;, function, function, anythingElse): anythingElse // Parallel if possible and worthwhile
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the filtering function on the array and return a new array with the allowed values
+<pre><code class="language-alan">// Execute the filtering function on the array and return a new array with the allowed values
 filter(Array&lt;any&gt;, function): Array&lt;any&gt; // Parallel if possible and worthwhile
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the comparison function on the array and return the first element that passes the check,
+<pre><code class="language-alan">// Execute the comparison function on the array and return the first element that passes the check,
 // or an error
 find(Array&lt;any&gt;, function): Result&lt;any&gt; // Parallel if possible and worthwhile
 findLin(Array&lt;any&gt;, function): Result&lt;any&gt; // Forced linear execution
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the comparison function on the array and return `true` if all elements pass the check
+<pre><code class="language-alan">// Execute the comparison function on the array and return `true` if all elements pass the check
 every(Array&lt;any&gt;, function): bool // Parallel if possible and worthwhile
 everyLin(Array&lt;any&gt;, function): bool // Forced linear execution
 </code></pre>
-<pre><code class="language-rust ignore">// Execute the comparison function on the array and return `true` if any element passes the check
+<pre><code class="language-alan">// Execute the comparison function on the array and return `true` if any element passes the check
 some(Array&lt;any&gt;, function): bool // Parallel if possible and worthwhile
 someLin(Array&lt;any&gt;, function): bool // Forced linear execution
 </code></pre>
-<pre><code class="language-rust ignore">// Take an array of strings and merge them into one string separated by the separator string. The
+<pre><code class="language-alan">// Take an array of strings and merge them into one string separated by the separator string. The
 // inverse of the `split` function
 join(Array&lt;string&gt;, string): string
 </code></pre>
-<pre><code class="language-rust ignore">// Override the value of an array element with a new value
+<pre><code class="language-alan">// Override the value of an array element with a new value
 set(Array&lt;any&gt;, int64, any): Result&lt;Array&lt;any&gt;&gt;
 set(Array&lt;int8&gt;, int64, int8): Result&lt;Array&lt;int8&gt;&gt;
 set(Array&lt;int16&gt;, int64, int16): Result&lt;Array&lt;int16&gt;&gt;
@@ -1152,7 +1152,7 @@ set(Array&lt;float64&gt;, int64, float64): Result&lt;Array&lt;float64&gt;&gt;
 set(Array&lt;bool&gt;, int64, bool): Result&lt;Array&lt;bool&gt;&gt;
 </code></pre>
 <h5><a class="header" href="#hashmap-manipulation" id="hashmap-manipulation">HashMap Manipulation</a></h5>
-<pre><code class="language-rust ignore">// Converts a value into a hash using the [xxh64](https://cyan4973.github.io/xxHash/) algorithm.
+<pre><code class="language-alan">// Converts a value into a hash using the [xxh64](https://cyan4973.github.io/xxHash/) algorithm.
 // No user code ever has to overload the `toHash` function with their own implementation, but it is
 // required that the `eq` function is for user-defined types to check for hash collisions.
 toHash(any): int64
@@ -1163,44 +1163,44 @@ toHash(float32): int64
 toHash(float64): int64
 toHash(bool): int64
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a HashMap and returns an Array of KeyVal pairs
+<pre><code class="language-alan">// Takes a HashMap and returns an Array of KeyVal pairs
 keyVal(HashMap&lt;Hashable, any&gt;): Array&lt;KeyVal&lt;Hashable, any&gt;&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a HashMap and returns an Array of keys
+<pre><code class="language-alan">// Takes a HashMap and returns an Array of keys
 keys(HashMap&lt;Hashable, any&gt;): Array&lt;Hashable&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a HashMap and returns an Array of values
+<pre><code class="language-alan">// Takes a HashMap and returns an Array of values
 values(HashMap&lt;Hashable, any&gt;: Array&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a HashMap and returns the number of KeyVal pairs contained
+<pre><code class="language-alan">// Takes a HashMap and returns the number of KeyVal pairs contained
 length(HashMap&lt;Hashable, any&gt;): int64
 </code></pre>
-<pre><code class="language-rust ignore">// Sets a key-value pair in the HashMap and returns the HashMap for chaining
+<pre><code class="language-alan">// Sets a key-value pair in the HashMap and returns the HashMap for chaining
 set(HashMap&lt;Hashable, any&gt;, Hashable, any): HashMap&lt;Hashable, any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Gets the value for a given key or an error
+<pre><code class="language-alan">// Gets the value for a given key or an error
 get(HashMap&lt;Hashable,any&gt;, Hashable): Result&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Creates a new HashMap object with the first key-val pair and a decently-sized set of defaults for
+<pre><code class="language-alan">// Creates a new HashMap object with the first key-val pair and a decently-sized set of defaults for
 // the indexing
 newHashMap(Hashable, any): HashMap&lt;Hashable, any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// The inverse of `keyVal`, takes an `Array&lt;KeyVal&lt;Hashable, any&gt;&gt;` and reindexes it as HashMap
+<pre><code class="language-alan">// The inverse of `keyVal`, takes an `Array&lt;KeyVal&lt;Hashable, any&gt;&gt;` and reindexes it as HashMap
 toHashMap(Array&lt;KeyVal&lt;Hashable, any&gt;&gt;): HashMap&lt;Hashable, any&gt;
 </code></pre>
 <h5><a class="header" href="#ternary-functions" id="ternary-functions">&quot;Ternary&quot; Functions</a></h5>
-<pre><code class="language-rust ignore">// Takes two values of the same type and returns an array of those two values
+<pre><code class="language-alan">// Takes two values of the same type and returns an array of those two values
 pair(any, any): Array&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a boolean and an array of two values and returns the first value on `true` and the second
+<pre><code class="language-alan">// Takes a boolean and an array of two values and returns the first value on `true` and the second
 // on `false`
 cond(bool, Array&lt;any&gt;): any
 </code></pre>
-<pre><code class="language-rust ignore">// Takes a boolean and a function and conditionally executes that function if the bool is `true`
+<pre><code class="language-alan">// Takes a boolean and a function and conditionally executes that function if the bool is `true`
 cond(bool, function): void
 </code></pre>
 <h5><a class="header" href="#clone-functions" id="clone-functions">Clone Functions</a></h5>
-<pre><code class="language-rust ignore">// Explicitly duplicates the provided value and returns it, useful when you don't want to mutate
+<pre><code class="language-alan">// Explicitly duplicates the provided value and returns it, useful when you don't want to mutate
 // the original value
 clone(any): any
 clone(Array&lt;any&gt;): Array&lt;any&gt;
@@ -1215,58 +1215,58 @@ clone(bool): bool
 clone(string): string
 </code></pre>
 <h5><a class="header" href="#error-maybe-result-and-either-functions" id="error-maybe-result-and-either-functions">Error, Maybe, Result, and Either Functions</a></h5>
-<pre><code class="language-rust ignore">// Returns a non-error error object
+<pre><code class="language-alan">// Returns a non-error error object
 noerr(): Error
 </code></pre>
-<pre><code class="language-rust ignore">// Wraps a given value into a Maybe type
+<pre><code class="language-alan">// Wraps a given value into a Maybe type
 some(any): Maybe&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Creates an unassigned Maybe type
+<pre><code class="language-alan">// Creates an unassigned Maybe type
 none(): Maybe&lt;void&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Determines if the Maybe has a value
+<pre><code class="language-alan">// Determines if the Maybe has a value
 isSome(Maybe&lt;any&gt;): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Determines if the Maybe has no value
+<pre><code class="language-alan">// Determines if the Maybe has no value
 isNone(Maybe&lt;any&gt;): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Returns the Maybe's value, or the default value if there is no value
+<pre><code class="language-alan">// Returns the Maybe's value, or the default value if there is no value
 getOr(Maybe&lt;any&gt;, any): any
 </code></pre>
-<pre><code class="language-rust ignore">// Creates a Result with a value
+<pre><code class="language-alan">// Creates a Result with a value
 ok(any): Result&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Creates a Result with an Error
+<pre><code class="language-alan">// Creates a Result with an Error
 err(string): Result&lt;any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the Result has a value
+<pre><code class="language-alan">// Checks if the Result has a value
 isOk(Result&lt;any&gt;): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the Result has an Error
+<pre><code class="language-alan">// Checks if the Result has an Error
 isErr(Result&lt;any&gt;): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Gets the Result's value or default if it is an Error
+<pre><code class="language-alan">// Gets the Result's value or default if it is an Error
 getOr(Result&lt;any&gt;, any): any
 </code></pre>
-<pre><code class="language-rust ignore">// Gets the Result's Error or default if it is a value
+<pre><code class="language-alan">// Gets the Result's Error or default if it is a value
 getErr(Result&lt;any&gt;, Error): Error
 </code></pre>
-<pre><code class="language-rust ignore">// Creates an Either with the main (first) type set
+<pre><code class="language-alan">// Creates an Either with the main (first) type set
 main(any): Either&lt;any, void&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Creates and Either with the alternative (second) type set
+<pre><code class="language-alan">// Creates and Either with the alternative (second) type set
 alt(any): Either&lt;void, any&gt;
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the Either's main type is set
+<pre><code class="language-alan">// Checks if the Either's main type is set
 isMain(Either&lt;any, anythingElse&gt;): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Checks if the Either's alt type is set
+<pre><code class="language-alan">// Checks if the Either's alt type is set
 isAlt(Either&lt;any, anythingElse&gt;): bool
 </code></pre>
-<pre><code class="language-rust ignore">// Gets the main type or the default if it is the alt type
+<pre><code class="language-alan">// Gets the main type or the default if it is the alt type
 getMainOr(Either&lt;any, anythingElse&gt;, any): any
 </code></pre>
-<pre><code class="language-rust ignore">// Gets the alt type or the default if it is the main type
+<pre><code class="language-alan">// Gets the alt type or the default if it is the main type
 getAltOr(Either&lt;any, anythingElse&gt;, anythingElse): anythingElse
 </code></pre>
 <h4><a class="header" href="#built-in-operators" id="built-in-operators">Built-in Operators</a></h4>
@@ -1388,23 +1388,23 @@ getAltOr(Either&lt;any, anythingElse&gt;, anythingElse): anythingElse
 <h3><a class="header" href="#stdapp" id="stdapp">@std/app</a></h3>
 <p>Currently very bare, only a single <code>print</code> function that takes all of the basic types and puts it on the console, and threeevents <code>start</code>, <code>exit</code>, and <code>stdout</code>. <code>start</code> intended to be handled by the user as it is automatically emitted <em>once</em> and <code>exit</code> to be emitted by the user when the program should finish. <code>stdout</code> is for more direct streaming of characters to standard out.</p>
 <p>The formal declarations:</p>
-<pre><code class="language-rust ignore">fn print(Stringifiable): void
+<pre><code class="language-alan">fn print(Stringifiable): void
 </code></pre>
-<pre><code class="language-rust ignore">event start: void
+<pre><code class="language-alan">event start: void
 </code></pre>
-<pre><code class="language-rust ignore">event exit: int8
+<pre><code class="language-alan">event exit: int8
 </code></pre>
-<pre><code class="language-rust ignore">event stdout: string
+<pre><code class="language-alan">event stdout: string
 </code></pre>
 <h3><a class="header" href="#stdcmd" id="stdcmd">@std/cmd</a></h3>
 <p>Also very bare, only a single type <code>ExecRes</code>, and a function: <code>exec</code> with the signature:</p>
-<pre><code class="language-rust ignore">type ExecRes {
+<pre><code class="language-alan">type ExecRes {
   exitCode: int64
   stdout: string
   stderr: string
 }
 </code></pre>
-<pre><code class="language-rust ignore">exec(string): ExecRes
+<pre><code class="language-alan">exec(string): ExecRes
 </code></pre>
 <p>It simply executes the provided shell string and returns the outputs from it.</p>
 <h3><a class="header" href="#stddeps" id="stddeps">@std/deps</a></h3>
@@ -2352,9 +2352,14 @@ on app.start {
 <script type="text/javascript">
     window.BigInt = window.BigInt || function() {}
 </script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <!-- Custom JS scripts -->
 
     <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
 
     <script type="text/javascript" src="mode-rust.js"></script>
 
@@ -2362,9 +2367,6 @@ on app.start {
 
     <script type="text/javascript" src="theme-solarized_light.js"></script>
 
-
-<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
 </body>

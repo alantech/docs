@@ -145,7 +145,7 @@
             <main>
                 <h4><a class="header" href="#events" id="events">Events</a></h4>
 <p>Events are sources for activity in Alan. No code is run that isn't triggered by an event. Event declaration is relatively simple:</p>
-<pre><code class="language-rust ignore">event eventName: typename
+<pre><code class="language-alan">event eventName: typename
 </code></pre>
 <p>where <code>eventName</code> is the name of the event. The <code>typename</code> annotation for events is required, unlike other places within the codebase. This requirement may change in the future as the event handler(s) listening to the event, and/or the event emit statement(s) emitting to the event could determine the type of the event, but it would impact the clarity of code surrounding the event as well as make the parser more complex.</p>
 
@@ -232,9 +232,14 @@
 <script type="text/javascript">
     window.BigInt = window.BigInt || function() {}
 </script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <!-- Custom JS scripts -->
 
     <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
 
     <script type="text/javascript" src="mode-rust.js"></script>
 
@@ -242,9 +247,6 @@
 
     <script type="text/javascript" src="theme-solarized_light.js"></script>
 
-
-<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
 </body>

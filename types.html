@@ -150,55 +150,55 @@
 <p>Basic types include integers (<code>int8</code>, <code>int16</code>, <code>int32</code>, and <code>int64</code>), floating point numbers (<code>float32</code> and <code>float64</code>), booleans (<code>bool</code>), and the <code>void</code> (no value) type. The numbers refer to the number of bits consumed by the basic type. There are currently no unsigned variants of the integer types, though that may change if there is demand for it.</p>
 <p>The four &quot;main&quot; basic types (<code>int64</code>, <code>float64</code>, <code>bool</code> and <code>void</code>) have constant representations that you can easily type. The non-64-bit numeric types are considered specialized types and are discouraged (the runtime does not take advantage of the potential space optimizations they provide to keep the internal memory addressing system simpler), so constants for those types must be explicitly casted using the <code>to&lt;Type&gt;</code> functions discussed in the <a href="./built_ins.html">Built-ins</a> section.</p>
 <p>The integers have basic base-10 integer form as well as hexadecimal form. Binary and Octal forms are not implemented but that may change if there is demand for it.</p>
-<pre><code class="language-rust ignore">const base10 = 12345
+<pre><code class="language-alan">const base10 = 12345
 const base16 = 0xabcde
 </code></pre>
 <p>The floating point numbers have only basic base-10 with a decimal point form, no scientific notation form yet, but that may change if there is demand for it.</p>
-<pre><code class="language-rust ignore">const floating = 1.2345
+<pre><code class="language-alan">const floating = 1.2345
 </code></pre>
 <p>Booleans are represented by the keywords <code>true</code> and <code>false</code>. <code>void</code> has no representation beyond <code>void</code>. It can't be assigned to, and is meant to represent functions that return nothing.</p>
-<pre><code class="language-rust ignore">const boolean = true
+<pre><code class="language-alan">const boolean = true
 const someVoid = void
 </code></pre>
 <p>The basic types are included in the root scope and never need to be explicitly defined, they always exist.</p>
 <h5><a class="header" href="#strings" id="strings">Strings</a></h5>
 <p>Strings (<code>string</code>) are a bit beyond the basic type. From the perspective of the user of Alan they are <code>utf-8</code> byte arrays (multi-byte code points increase the string length by 2 or 3, not 1). If there is significant demand for it, string length checks and other operations will be switched to the codepoint model versus the byte array model.</p>
 <p>Strings are defined by wrapping double or single quotes (<code>&quot;</code> or <code>'</code>) around text. They work identically to Javascript strings, with the same sorts of C-style escape codes. Within the runtime, however, they are represented as Pascal strings with a 64-bit header, which makes certain operations faster than their C-string counterparts (particularly length checking, which is O(1)) but means 8 extra bytes are required for each string versus C-string's traditional 1 extra byte, so lots of small strings will consume more memory.</p>
-<pre><code class="language-rust ignore">const myString = &quot;My string's string&quot;
+<pre><code class="language-alan">const myString = &quot;My string's string&quot;
 const myOtherString = 'My other string\'s string'
 </code></pre>
 <p>Strings are also included in the root scope and never need to be explicitly defined.</p>
 <h5><a class="header" href="#user-defined-types" id="user-defined-types">User-Defined Types</a></h5>
 <p>User-defined types must be declared by the user and they follow the following syntax:</p>
-<pre><code class="language-rust ignore">type typename {
+<pre><code class="language-alan">type typename {
   propertyName: propertyType
   otherProperty: otherType
 }
 </code></pre>
 <p>The syntax to construct a new instance of a user type is as follows:</p>
-<pre><code class="language-rust ignore">const myVal: typename = new typename {
+<pre><code class="language-alan">const myVal: typename = new typename {
   propertyName = propertyValue
   otherProperty = otherValue
 }
 </code></pre>
 <p>The redundant <code>typename</code> in that example will also eventually be eliminated by type inference, reducing it to just:</p>
-<pre><code class="language-rust ignore">const myVal = new typename {
+<pre><code class="language-alan">const myVal = new typename {
   propertyName = propertyValue
   otherProperty = otherValue
 }
 </code></pre>
 <p>User-defined types have another interesting feature: they can be generic. That means one or more of the actual sub-types used by the type is not yet defined, but will be &quot;solidified&quot; later on with the creation of a new type based on it.</p>
 <p>Generic types look like this:</p>
-<pre><code class="language-rust ignore">type typename&lt;A, B&gt; {
+<pre><code class="language-alan">type typename&lt;A, B&gt; {
   propertyName: A
   otherProperty: B
 }
 </code></pre>
 <p>Where later on you can &quot;solidify&quot; that type either by creating an alias with the types filled in:</p>
-<pre><code class="language-rust ignore">type typenameIntStr = typename&lt;int64, string&gt;
+<pre><code class="language-alan">type typenameIntStr = typename&lt;int64, string&gt;
 </code></pre>
 <p>or just declaring a variable that uses a &quot;solidified&quot; type:</p>
-<pre><code class="language-rust ignore">let myVar = new typename&lt;bool, float64&gt; {
+<pre><code class="language-alan">let myVar = new typename&lt;bool, float64&gt; {
   propertyName = true
   otherProperty = 0.0
 }
@@ -291,9 +291,14 @@ const myOtherString = 'My other string\'s string'
 <script type="text/javascript">
     window.BigInt = window.BigInt || function() {}
 </script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <!-- Custom JS scripts -->
 
     <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
 
     <script type="text/javascript" src="mode-rust.js"></script>
 
@@ -301,9 +306,6 @@ const myOtherString = 'My other string\'s string'
 
     <script type="text/javascript" src="theme-solarized_light.js"></script>
 
-
-<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
 </body>

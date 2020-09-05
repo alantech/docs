@@ -145,13 +145,13 @@
             <main>
                 <h3><a class="header" href="#stdcmd" id="stdcmd">@std/cmd</a></h3>
 <p>Also very bare, only a single type <code>ExecRes</code>, and a function: <code>exec</code> with the signature:</p>
-<pre><code class="language-rust ignore">type ExecRes {
+<pre><code class="language-alan">type ExecRes {
   exitCode: int64
   stdout: string
   stderr: string
 }
 </code></pre>
-<pre><code class="language-rust ignore">exec(string): ExecRes
+<pre><code class="language-alan">exec(string): ExecRes
 </code></pre>
 <p>It simply executes the provided shell string and returns the outputs from it.</p>
 
@@ -238,9 +238,14 @@
 <script type="text/javascript">
     window.BigInt = window.BigInt || function() {}
 </script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <!-- Custom JS scripts -->
 
     <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
 
     <script type="text/javascript" src="mode-rust.js"></script>
 
@@ -248,9 +253,6 @@
 
     <script type="text/javascript" src="theme-solarized_light.js"></script>
 
-
-<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
 </body>

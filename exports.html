@@ -147,10 +147,10 @@
 <p>The <code>export</code> syntax can only be used at the module level, which means it is impossible to have non-deterministic exports. While this can be annoying with collating files that simply import files to only re-export all of their contents, it eliminates whole classes of ambiguity where certain functions, types, etc are only available depending on the state of the runtime environment.</p>
 <p>Constants, types, functions, operators, events, and interfaces are exportable while event handlers are not. (However, importing a module that registers event handlers will cause a side-effect of including those event handlers in your application.)</p>
 <p>This can either be done in-line with the declaration of the item in question:</p>
-<pre><code class="language-rust ignore">export const foo: bool = true
+<pre><code class="language-alan">export const foo: bool = true
 </code></pre>
 <p>Or it can be done by referencing the name of the thing to be exported after it has been declared:</p>
-<pre><code class="language-rust ignore">type Foo {
+<pre><code class="language-alan">type Foo {
   bar: string
   baz: bool
 }
@@ -242,9 +242,14 @@ export Foo
 <script type="text/javascript">
     window.BigInt = window.BigInt || function() {}
 </script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <!-- Custom JS scripts -->
 
     <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
 
     <script type="text/javascript" src="mode-rust.js"></script>
 
@@ -252,9 +257,6 @@ export Foo
 
     <script type="text/javascript" src="theme-solarized_light.js"></script>
 
-
-<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
 </body>

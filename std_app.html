@@ -146,13 +146,13 @@
                 <h3><a class="header" href="#stdapp" id="stdapp">@std/app</a></h3>
 <p>Currently very bare, only a single <code>print</code> function that takes all of the basic types and puts it on the console, and threeevents <code>start</code>, <code>exit</code>, and <code>stdout</code>. <code>start</code> intended to be handled by the user as it is automatically emitted <em>once</em> and <code>exit</code> to be emitted by the user when the program should finish. <code>stdout</code> is for more direct streaming of characters to standard out.</p>
 <p>The formal declarations:</p>
-<pre><code class="language-rust ignore">fn print(Stringifiable): void
+<pre><code class="language-alan">fn print(Stringifiable): void
 </code></pre>
-<pre><code class="language-rust ignore">event start: void
+<pre><code class="language-alan">event start: void
 </code></pre>
-<pre><code class="language-rust ignore">event exit: int8
+<pre><code class="language-alan">event exit: int8
 </code></pre>
-<pre><code class="language-rust ignore">event stdout: string
+<pre><code class="language-alan">event stdout: string
 </code></pre>
 
             </main>
@@ -238,9 +238,14 @@
 <script type="text/javascript">
     window.BigInt = window.BigInt || function() {}
 </script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <!-- Custom JS scripts -->
 
     <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
 
     <script type="text/javascript" src="mode-rust.js"></script>
 
@@ -248,9 +253,6 @@
 
     <script type="text/javascript" src="theme-solarized_light.js"></script>
 
-
-<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
 </body>

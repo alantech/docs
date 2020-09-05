@@ -149,30 +149,30 @@
 <p>Handlers can only be registered at the module level, not within a function. This is both to discourage abuse of the event loop and make a more intelligent execution planning possible in the future (such as switching from minimizing total latency for any given event to maximizing the total throughput of event processing if the event loop queue is backing up).</p>
 <p>Furthermore, function calls within the handler run may trigger multiple simultaneous executions and IO operations can break up the handler call into multiple fragments to be re-scheduled onto the event loop. The vast majority of the time, direct control on how work is scheduled onto the event loop is abstracted from the developer.</p>
 <p>The event handler syntax is relatively simple:</p>
-<pre><code class="language-rust ignore">on eventName function
+<pre><code class="language-alan">on eventName function
 </code></pre>
 <p>where <code>eventName</code> is the name of the event to register a handler for and <code>function</code> is either the name of a function, or an in-line defined function, eg:</p>
-<pre><code class="language-rust ignore">on event fn namedHandler(argument: eventType) {
+<pre><code class="language-alan">on event fn namedHandler(argument: eventType) {
   ...
 }
 </code></pre>
 <p>for a fully-named in-line defined function with an event payload. Without a payload, the argument list can be dropped:</p>
-<pre><code class="language-rust ignore">on event fn namedHandler {
+<pre><code class="language-alan">on event fn namedHandler {
   ...
 }
 </code></pre>
 <p>In both cases, the name is also optional because it is being registered immediately:</p>
-<pre><code class="language-rust ignore">on event fn (argument: eventType) {
+<pre><code class="language-alan">on event fn (argument: eventType) {
   ...
 }
 </code></pre>
 <p>or</p>
-<pre><code class="language-rust ignore">on event fn {
+<pre><code class="language-alan">on event fn {
   ...
 }
 </code></pre>
 <p>The latter purely-side-effect-only function can also omit the <code>fn</code> if desired as it is unambiguous in this context:</p>
-<pre><code class="language-rust ignore">on event {
+<pre><code class="language-alan">on event {
   ...
 }
 </code></pre>
@@ -266,9 +266,14 @@
 <script type="text/javascript">
     window.BigInt = window.BigInt || function() {}
 </script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <!-- Custom JS scripts -->
 
     <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
 
     <script type="text/javascript" src="mode-rust.js"></script>
 
@@ -276,9 +281,6 @@
 
     <script type="text/javascript" src="theme-solarized_light.js"></script>
 
-
-<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
 </body>

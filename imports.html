@@ -156,7 +156,7 @@
 <p>The second form begins with an <code>@</code> and is a <code>named import</code>. It uses a more advanced search pattern that will be discussed in detail in the <a href="./module_resolution.html">Module Resolution</a> section. This is useful for referencing third-party code and your own code that is a cross-cutting concern for many modules in your project, like a custom logging wrapper module.</p>
 <h5><a class="header" href="#importing-modules" id="importing-modules">Importing Modules</a></h5>
 <p>Once you've identified the module you want to import, now it's time to decide how you want to import it. There's the basic scoped import and the &quot;plucking&quot; unscoped import. These syntaxes are essentially lifted wholesale from Python:</p>
-<pre><code class="language-rust ignore">import @std/http
+<pre><code class="language-alan">import @std/http
 import ./my/module as myModule
 from @std/app import start, print as println, exit
 </code></pre>
@@ -251,9 +251,14 @@ from @std/app import start, print as println, exit
 <script type="text/javascript">
     window.BigInt = window.BigInt || function() {}
 </script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <!-- Custom JS scripts -->
 
     <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
 
     <script type="text/javascript" src="mode-rust.js"></script>
 
@@ -261,9 +266,6 @@ from @std/app import start, print as println, exit
 
     <script type="text/javascript" src="theme-solarized_light.js"></script>
 
-
-<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
 </body>

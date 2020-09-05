@@ -147,7 +147,7 @@
 <p>Functions are where actual work happens. There are built-in functions and user-defined functions. The user-defined functions consist of a sequence of statements composing other functions, operators, types, etc.</p>
 <h5><a class="header" href="#function-declarations" id="function-declarations">Function Declarations</a></h5>
 <p>Declaration of functions works like so:</p>
-<pre><code class="language-rust ignore">// A named function with two arguments and a particular return type
+<pre><code class="language-alan">// A named function with two arguments and a particular return type
 fn functionName (firstArgument: argumentType, secondArgument: anotherType): returnType {
   ...statements...
 }
@@ -201,7 +201,7 @@ on eventname fn (): void {
 </code></pre>
 <h5><a class="header" href="#function-dispatch" id="function-dispatch">Function Dispatch</a></h5>
 <p>Alan uses multiple dispatch for determining which function to use when a function name is called. This means that the argument types and count are taken into consideration. Multiple functions with the same name may be declared as long as the argument types and/or counts are different between them. For example:</p>
-<pre><code class="language-rust ignore">fn someFn (arg1: string, arg2: bool): string {
+<pre><code class="language-alan">fn someFn (arg1: string, arg2: bool): string {
   ...
 }
 
@@ -221,10 +221,10 @@ fn someFn (arg1: int64, arg2: float64): int64 {
 <h5><a class="header" href="#function-calls" id="function-calls">Function Calls</a></h5>
 <p>One of the kinds of statements you can write inside of a function is a function call. There are actually two syntaxes for function calls, standard form and method form.</p>
 <p>Standard form looks like this:</p>
-<pre><code class="language-rust ignore">add(3, 2)
+<pre><code class="language-alan">add(3, 2)
 </code></pre>
 <p>while method form looks like this:</p>
-<pre><code class="language-rust ignore">3.add(2)
+<pre><code class="language-alan">3.add(2)
 </code></pre>
 <p>Method form allows you to pull the first argument out of the function and treat the function call like an Object-Oriented Language's method syntax. This allows method chaining, which can be much more legible when the output of one function is the input of the next, without requiring a custom chaining syntax that some functional languages have adopted (eg <code>|&gt;</code> in F#). Eg, <code>3.add(2).mul(5).mod(3)</code> is equivalent to <code>mod(mul(add(3, 2), 5), 3)</code>.</p>
 
@@ -311,9 +311,14 @@ fn someFn (arg1: int64, arg2: float64): int64 {
 <script type="text/javascript">
     window.BigInt = window.BigInt || function() {}
 </script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <!-- Custom JS scripts -->
 
     <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
 
     <script type="text/javascript" src="mode-rust.js"></script>
 
@@ -321,9 +326,6 @@ fn someFn (arg1: int64, arg2: float64): int64 {
 
     <script type="text/javascript" src="theme-solarized_light.js"></script>
 
-
-<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
-<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
 <script src="book.js" type="text/javascript" charset="utf-8"></script>
 
 </body>

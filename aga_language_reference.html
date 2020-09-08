@@ -1,0 +1,353 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+<head>
+    <!-- Book generated using mdBook -->
+    <meta charset="UTF-8">
+    <title>AGA Language Reference - Alan Language</title>
+
+    <!-- Custom HTML head -->
+    
+
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta name="description" content="Alan Interactive Documentation">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff" />
+    <meta property="og:title" content="AGA Language Reference - Alan Language">
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://docs.alan-lang.org/alan-logo.png">
+    <meta property="og:description" content="Alan Interactive Documentation">
+    <meta property="og:url" content="https://docs.alan-lang.org">
+    <meta name="twitter:card" content="summary" />
+
+    <link rel="shortcut icon" href="favicon.png">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/general.css">
+    <link rel="stylesheet" href="css/chrome.css">
+
+    <!-- Fonts -->
+    <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+    
+
+    <!-- Highlight.js Stylesheets -->
+    <link rel="stylesheet" href="highlight.css">
+    <link rel="stylesheet" href="tomorrow-night.css">
+    <link rel="stylesheet" href="ayu-highlight.css">
+
+    <!-- Custom theme stylesheets -->
+    
+        <link rel="stylesheet" href="css/solarized-light-hljs.css">
+    
+        <link rel="stylesheet" href="css/solarized-dark-hljs.css">
+    
+
+    
+</head>
+<body>
+<!-- Provide site root to javascript -->
+<script type="text/javascript">
+    var path_to_root = "";
+    var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "solarized-dark" : "solarized-light";
+</script>
+
+<!-- Work around some values being stored in localStorage wrapped in quotes -->
+<script type="text/javascript">
+    try {
+        var sidebar = localStorage.getItem('mdbook-sidebar');
+
+        if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+            localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+        }
+    } catch (e) { }
+</script>
+
+<!-- Set the theme before any content is loaded, prevents flash -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    html.classList.remove('no-js')
+    html.classList.add(default_theme);
+    html.classList.add('js');
+</script>
+
+<!-- Hide / unhide sidebar before it is displayed -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    var sidebar = 'hidden';
+    if (document.body.clientWidth >= 1080) {
+        try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+        sidebar = sidebar || 'visible';
+    }
+    html.classList.remove('sidebar-visible');
+    html.classList.add("sidebar-" + sidebar);
+</script>
+
+<nav id="sidebar" class="sidebar" aria-label="Table of contents">
+    <div class="sidebar-scrollbox">
+        <ol class="chapter"><li class="chapter-item expanded "><a href="getting_started.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li class="chapter-item expanded "><a href="about_alan.html"><strong aria-hidden="true">2.</strong> About Alan</a></li><li class="chapter-item expanded "><a href="language_reference.html"><strong aria-hidden="true">3.</strong> Language Reference</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="file_structure.html"><strong aria-hidden="true">3.1.</strong> Syntax and File Structure</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="scope.html"><strong aria-hidden="true">3.1.1.</strong> Implied Structure: Scope</a></li><li class="chapter-item expanded "><a href="imports.html"><strong aria-hidden="true">3.1.2.</strong> Imports</a></li><li class="chapter-item expanded "><a href="types.html"><strong aria-hidden="true">3.1.3.</strong> Types</a></li><li class="chapter-item expanded "><a href="constants.html"><strong aria-hidden="true">3.1.4.</strong> Constants</a></li><li class="chapter-item expanded "><a href="events.html"><strong aria-hidden="true">3.1.5.</strong> Events</a></li><li class="chapter-item expanded "><a href="functions.html"><strong aria-hidden="true">3.1.6.</strong> Functions</a></li><li class="chapter-item expanded "><a href="operators.html"><strong aria-hidden="true">3.1.7.</strong> Operators</a></li><li class="chapter-item expanded "><a href="statements.html"><strong aria-hidden="true">3.1.8.</strong> Statements</a></li><li class="chapter-item expanded "><a href="interfaces.html"><strong aria-hidden="true">3.1.9.</strong> Interfaces</a></li><li class="chapter-item expanded "><a href="handlers.html"><strong aria-hidden="true">3.1.10.</strong> Handlers</a></li><li class="chapter-item expanded "><a href="exports.html"><strong aria-hidden="true">3.1.11.</strong> Exports</a></li><li class="chapter-item expanded "><a href="keywords.html"><strong aria-hidden="true">3.1.12.</strong> List of Keywords and Reserved Symbols</a></li></ol></li><li class="chapter-item expanded "><a href="modules.html"><strong aria-hidden="true">3.2.</strong> Module System</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="module_definition.html"><strong aria-hidden="true">3.2.1.</strong> Definition</a></li><li class="chapter-item expanded "><a href="module_resolution.html"><strong aria-hidden="true">3.2.2.</strong> Resolution</a></li><li class="chapter-item expanded "><a href="module_acquisition.html"><strong aria-hidden="true">3.2.3.</strong> Acquisition</a></li><li class="chapter-item expanded "><a href="module_testing.html"><strong aria-hidden="true">3.2.4.</strong> Testing and Mocking</a></li><li class="chapter-item expanded "><a href="module_mutation.html"><strong aria-hidden="true">3.2.5.</strong> Mutation and Permissioning</a></li></ol></li><li class="chapter-item expanded "><a href="standard_library.html"><strong aria-hidden="true">3.3.</strong> Standard Library</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="built_ins.html"><strong aria-hidden="true">3.3.1.</strong> Built-ins</a></li><li class="chapter-item expanded "><a href="std_app.html"><strong aria-hidden="true">3.3.2.</strong> @std/app</a></li><li class="chapter-item expanded "><a href="std_cmd.html"><strong aria-hidden="true">3.3.3.</strong> @std/cmd</a></li><li class="chapter-item expanded "><a href="std_deps.html"><strong aria-hidden="true">3.3.4.</strong> @std/deps</a></li><li class="chapter-item expanded "><a href="std_trig.html"><strong aria-hidden="true">3.3.5.</strong> @std/trig</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="examples_with_explanations.html"><strong aria-hidden="true">4.</strong> Examples with Explanations</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="many_forms_hello_world.html"><strong aria-hidden="true">4.1.</strong> The many forms of &quot;Hello, World!&quot;</a></li><li class="chapter-item expanded "><a href="advanced_examples.html"><strong aria-hidden="true">4.2.</strong> More advanced examples</a></li></ol></li><li class="chapter-item expanded "><a href="transpile_js.html"><strong aria-hidden="true">5.</strong> Transpile to Javascript</a></li><li class="chapter-item expanded "><a href="contributing.html"><strong aria-hidden="true">6.</strong> Contributing to Alan</a></li><li class="chapter-item expanded "><a href="compiler_internals.html"><strong aria-hidden="true">7.</strong> Compiler Internals</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="amm_language_reference.html"><strong aria-hidden="true">7.1.</strong> AMM Language Reference</a></li><li class="chapter-item expanded "><a href="aga_language_reference.html" class="active"><strong aria-hidden="true">7.2.</strong> AGA Language Reference</a></li><li class="chapter-item expanded "><a href="alan_opcode_reference.html"><strong aria-hidden="true">7.3.</strong> Alan Opcode Reference</a></li></ol></li></ol>
+    </div>
+    <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+</nav>
+
+<div id="page-wrapper" class="page-wrapper">
+
+    <div class="page">
+        
+        <div id="menu-bar-hover-placeholder"></div>
+        <div id="menu-bar" class="menu-bar sticky bordered">
+            <div class="left-buttons">
+                <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                    <i class="fa fa-bars"></i>
+                </button>
+                
+                    <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <i class="fa fa-search"></i>
+                    </button>
+                
+            </div>
+
+            <h1 class="menu-title">Alan Language</h1>
+
+            <div class="right-buttons">
+                <a href="https://alan-lang.org" title="Home">
+                    <i>Home</i>
+                </a>
+                <a href="https://alan-lang.org/blog.html" title="Blog">
+                    <i>Blog</i>
+                </a>
+                <a href="https://github.com/alantech" title="Git repository" aria-label="Git repository">
+                    <i id="git-repository-button" class="fa fa-github"></i>
+                </a>
+            </div>
+        </div>
+
+        
+            <div id="search-wrapper" class="hidden">
+                <form id="searchbar-outer" class="searchbar-outer">
+                    <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                </form>
+                <div id="searchresults-outer" class="searchresults-outer hidden">
+                    <div id="searchresults-header" class="searchresults-header"></div>
+                    <ul id="searchresults">
+                    </ul>
+                </div>
+            </div>
+        
+
+        <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+        <script type="text/javascript">
+            document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+            document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+            Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+            });
+        </script>
+
+        <div id="content" class="content">
+            <main>
+                <h2><a class="header" href="#aga-language-reference" id="aga-language-reference">AGA Language Reference</a></h2>
+<p>Alan Graphcode Assembler is a text representation of the Runtime's VM binary format.</p>
+<p>The syntax looks like assembly, perl, graphviz, rust, and python were put in a blender. As the cyclomatic complexity of an assembler (syntactically) is low, the various symbols within AGA borrowed from the above four are meant to produce a &quot;dense-but-legible&quot; syntax.</p>
+<p>The format follows a header-and-body pattern, with 5 distinct header types.</p>
+<h3><a class="header" href="#identity-header" id="identity-header">Identity Header</a></h3>
+<p>The first header is also required in every Alan Graphcode Assembly file, is required to be the first header in the file, and has no body. It simply declares that this is an Alan Graphcode Assembler file:</p>
+<pre><code class="language-aga">Alan Graphcode Assembler v0.0.1
+</code></pre>
+<h3><a class="header" href="#global-memory-header" id="global-memory-header">Global Memory Header</a></h3>
+<p>The global memory header, <code>globalMem</code>, is required to be the next header <em>if</em> there is any global memory to declare.</p>
+<p>The body of the global memory is a key-value set of addresses and constants.</p>
+<p>Addresses in global memory are declared with a prefixed <code>@</code> symbol with negative values from <code>-1</code> to <code>-2^63 + 1</code> corresponding to the 0th to nth valid bytes of the global memory. Negative numbers are used to distinguish them from the virtual addresses within the handlers and closures defined later on.</p>
+<p>These numbers corresponding to exactly the byte offsets necessary to pack the global memory into the final binary is currently the case but may change in the future, since it demands the developer know about details of the final binary format that they don't care about, such as strings being stored in AGC as pascal-style strings with a 64-bit integer length header and zero-padded at the end to reach an even 64-bit sizing in global memory but the length value being the raw string length without the zero-padding. Moving this work to the agatoagc layer is likely.</p>
+<p>Values are only strings, booleans, numbers. Booleans are simply <code>true</code> or <code>false</code>, and strings are all C-escape-string styled strings with double quotes only. Numbers are Rust-style with the relevant numeric value written out and postfixed with the byte size and type: <code>i8</code>, <code>i16</code>, <code>i32</code>, <code>i64</code>, <code>f32</code>, <code>f64</code>.</p>
+<p>The key-value pairs are separated from each other by colons and are one-per-line. The whole block is indented Python-style for legibility.</p>
+<pre><code class="language-aga">globalMem
+  @-1: 1i64
+  @-9: 0i64
+  @-17: &quot;Exit Code: &quot;
+  @-41: &quot;\n&quot;
+</code></pre>
+<h3><a class="header" href="#custom-events-header" id="custom-events-header">Custom Events Header</a></h3>
+<p>The custom events header, <code>customEvents</code>, is required to be the next header <em>if</em> there are any custom events.</p>
+<p>The body of the custom events block also consists of key-value pairs. The keys are the names of the events and the values are the relevant payload size.</p>
+<p>The names are treated like variable names and are unquoted following the normal pattern of <code>[A-Za-z_][A-Za-z0-9_]*</code>.</p>
+<p>The values are integers (without a Rust-style sizing postfix) with only three valid values (as of now): <code>-1</code>, <code>0</code>, and <code>8</code>. <code>0</code> indicates that there is no payload at all, while <code>8</code> indicates that the payload is a fixed-sized type (the integers, floats, and booleans). <code>-1</code> indicates that the payload is a variable-sized type (strings and the array-based types). The fixed-sized types are all <code>8</code> because they all fit within a single 64-bit value (8 bytes).</p>
+<pre><code class="language-aga">customEvents
+  stdout: -1
+  exit: 8
+  _4ef487db_9de4_404b_84e2_521cb45cc55a: 0
+</code></pre>
+<h3><a class="header" href="#handlers-and-closures" id="handlers-and-closures">Handlers and Closures</a></h3>
+<p>These two are grouped together because while a valid AGA file must have at least one handler, handlers and closures can be defined in any order from here on out and their syntax is almost identical. In fact, labeling a block as a handler or a closure is entirely up to you. They translate to the exact same bytes in the final AGC form and the distinction is to keep things clearer to the reader.</p>
+<p>The header for handlers and closures follows the form:</p>
+<pre><code class="language-aga">handler for &lt;eventName&gt; with size &lt;numVariables&gt;
+closure for &lt;eventName&gt; with size &lt;numVariables&gt;
+</code></pre>
+<p>where <code>&lt;eventName&gt;</code> is the name of the event declared in <code>customEvents</code> <em>or</em> the built-in <code>_start</code> event, and <code>&lt;numVariables&gt;</code> is the total number of distinct memory addresses (not number of LOC in the handler or closure) used.</p>
+<p>The body of the handler or closure consists of all lines following the header until the next handler or closure header is encountered, or the end-of-file. This body consists of a single kind of statement: an opcode call.</p>
+<p>The structure of an opcode call can follow a few different forms, though. Most opcodes take two values as input, perform an operation, and store the results into a new address:</p>
+<pre><code class="language-aga">  @1 = eqi64(@-1, @-9) #1
+</code></pre>
+<p>The return address is defined first like a variable assignment, with an equal sign in between it and the actual opcode call. The opcode itself has two arguments that are usually memory addresses, like above, and then it is followed by a line identifier that looks like a python comment.</p>
+<p>That line identifier is what gives AGA the name &quot;Graphcode&quot; instead of &quot;bytecode&quot;. Sometimes it's followed with a Graphviz-style <code>&lt;-</code> operator and an array of other line identifiers:</p>
+<pre><code class="language-aga">  emit(stdout, @5) #6 &lt;- [#5]
+</code></pre>
+<p>This is to indicate to the runtime that this particular line <em>must</em> be performed after the listed set of lines to prevent invalid data conditions, but otherwise will re-order the execution as desired to improve concurrency and/or parallelism when possible.</p>
+<p>In this example, there is no assignment happening, because the <code>emit</code> opcode does not affect the current handler. It also takes as an argument the name of the relevant event that the data should be copied to.</p>
+<p>Some opcodes can also have constant data defined for an argument:</p>
+<pre><code class="language-aga">  @0 = seti64(0i64, @0) #0
+</code></pre>
+<p>This is only possible for the boolean and numeric types, as their values can fit within the address space (64-bit integers).</p>
+<p>The positive addresses for a given handler or closure <em>must</em> be less than the specified size, but these addresses are virtual addresses with 64-bit sizing (literally for a 64-bit integer array in the runtime). Values that are larger than 64-bits <em>can</em> be stored within a single address here, as they are all treated as pointers, with special opcodes designed for their manipulation.</p>
+<p>This makes hand-writing handlers and closures easier than hand-writing global memory at the moment, so that will hopefully change in the future.</p>
+<h4><a class="header" href="#small-differences-for-closures" id="small-differences-for-closures">Small differences for closures</a></h4>
+<p>There are a couple of smaller things that closures have versus actual handlers.</p>
+<p>First, while closures and handlers are loaded the same way by the runtime, the invocation of a closure within the context of a handler does something different: the closure is given temporary ownership over the memory of the handler that invoked it, so the <code>with size &lt;numVariables&gt;</code> is STRONGLY RECOMMENDED to match between the two, and any addresses used in the one can and will affect the other (this is how the closure has access to mutating variables defined in its outer scope).</p>
+<p>Second, some opcodes add some fake global memory addresses located in the last few sets of bytes around <code>-2^63 + 1</code>. These are used for closure arguments and return value when the closure is invoked within a looping construct like an array map operation. These values are in the same memory addresses across all closures but have different values for each invocation. Currently the <code>ammtoaga</code> compiler gives these ridiculously large negative addresses like <code>@-9223372036854775807</code> but adding a human-legible Perl-inspired aliases like <code>$0</code>, <code>$1</code>, etc for these argument addresses is likely to be followed in the future to make these similarly easier-to-read-and-write, and likely required when migrating the global memory numbers to be virtual addresses instead of actual (inverted) offsets.</p>
+<h3><a class="header" href="#thats-all-folks" id="thats-all-folks">That's all, folks!</a></h3>
+<p>That's it for AGA's syntax. It's a barely-typed, scope-less, event-driven assembly language that relies on the compiler for safety.</p>
+<p>The following simple Alan source example:</p>
+<pre><code class="language-alan">import @std/app
+
+on app.start {
+  let exitCode = 0
+  if 1 == 0 {
+    exitCode = 1
+  }
+  app.print(&quot;Exit Code: &quot; + exitCode.toString())
+  emit app.exit exitCode
+}
+</code></pre>
+<p>exercises everything about AGA except the closure arguments:</p>
+<pre><code class="language-aga">Alan Graphcode Assembler v0.0.1
+
+globalMem
+  @-1: 1i64
+  @-9: 0i64
+  @-17: &quot;Exit Code: &quot;
+  @-41: &quot;\n&quot;
+
+customEvents
+  stdout: -1
+  exit: 8
+  _4ef487db_9de4_404b_84e2_521cb45cc55a: 0
+
+handler for _start with size 6
+  @0 = seti64(0i64, @0) #0
+  @1 = eqi64(@-1, @-9) #1
+  @2 = condfn(@1, _4ef487db_9de4_404b_84e2_521cb45cc55a) #2
+  @3 = i64str(@0, @0) #3
+  @4 = catstr(@-17, @3) #4
+  @5 = catstr(@4, @-41) #5
+  emit(stdout, @5) #6 &lt;- [#5]
+  emit(exit, @0) #7 &lt;- [#0]
+
+handler for stdout with size 2
+  @1 = stdoutp(@0, @0) #0
+
+handler for exit with size 2
+  @1 = exitop(@0, @0) #0
+
+closure for _4ef487db_9de4_404b_84e2_521cb45cc55a with size 6
+  @0 = seti64(1i64, @0) #0
+</code></pre>
+
+            </main>
+
+            <nav class="nav-wrapper" aria-label="Page navigation">
+                <!-- Mobile navigation buttons -->
+                
+                    <a rel="prev" href="amm_language_reference.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="alan_opcode_reference.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+                <div style="clear: both"></div>
+            </nav>
+        </div>
+    </div>
+
+    <nav class="nav-wide-wrapper" aria-label="Page navigation">
+        
+            <a rel="prev" href="amm_language_reference.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        
+            <a rel="next" href="alan_opcode_reference.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </nav>
+
+</div>
+
+
+
+<!-- Analytics Tag -->
+<script type="text/javascript">
+    var localAddrs = ["localhost", "127.0.0.1", ""];
+
+    // make sure we don't activate analytics if the developer is
+    // inspecting the book locally...
+    if (localAddrs.indexOf(document.location.hostname) === -1) {
+        !function(){var analytics=window.analytics=window.analytics||[];if(!analytics.initialize)if(analytics.invoked)window.console&&console.error&&console.error("Segment snippet included twice.");else{analytics.invoked=!0;analytics.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify","reset","group","track","ready","alias","debug","page","once","off","on","addSourceMiddleware","addIntegrationMiddleware","setAnonymousId","addDestinationMiddleware"];analytics.factory=function(e){return function(){var t=Array.prototype.slice.call(arguments);t.unshift(e);analytics.push(t);return analytics}};for(var e=0;e<analytics.methods.length;e++){var t=analytics.methods[e];analytics[t]=analytics.factory(t)}analytics.load=function(e,t){var n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src="https://cdn.segment.com/analytics.js/v1/"+e+"/analytics.min.js";var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(n,a);analytics._loadOptions=t};analytics.SNIPPET_VERSION="4.1.0";
+            analytics.load("fGya8GY5wLqdnLzyXnGM2HjYglPszWS0");
+            analytics.page("Docs", "AGA Language Reference");
+        }}();
+    }
+</script>
+
+
+    <script type="text/javascript">
+        window.playpen_line_numbers = true;
+    </script>
+
+
+
+    <script type="text/javascript">
+        window.playpen_copyable = true;
+    </script>
+
+
+
+    <script src="ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="editor.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mode-rust.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-dawn.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-tomorrow_night.js" type="text/javascript" charset="utf-8"></script>
+
+
+
+    <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+
+<!-- BigInt is not defined in Safari. Define it before loading bundle.js -->
+<script type="text/javascript">
+    window.BigInt = window.BigInt || function() {}
+</script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+<!-- Custom JS scripts -->
+
+    <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
+
+    <script type="text/javascript" src="mode-rust.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_dark.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_light.js"></script>
+
+<script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+<head>
+    <!-- Book generated using mdBook -->
+    <meta charset="UTF-8">
+    <title>AMM Language Reference - Alan Language</title>
+
+    <!-- Custom HTML head -->
+    
+
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta name="description" content="Alan Interactive Documentation">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff" />
+    <meta property="og:title" content="AMM Language Reference - Alan Language">
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://docs.alan-lang.org/alan-logo.png">
+    <meta property="og:description" content="Alan Interactive Documentation">
+    <meta property="og:url" content="https://docs.alan-lang.org">
+    <meta name="twitter:card" content="summary" />
+
+    <link rel="shortcut icon" href="favicon.png">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/general.css">
+    <link rel="stylesheet" href="css/chrome.css">
+
+    <!-- Fonts -->
+    <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+    
+
+    <!-- Highlight.js Stylesheets -->
+    <link rel="stylesheet" href="highlight.css">
+    <link rel="stylesheet" href="tomorrow-night.css">
+    <link rel="stylesheet" href="ayu-highlight.css">
+
+    <!-- Custom theme stylesheets -->
+    
+        <link rel="stylesheet" href="css/solarized-light-hljs.css">
+    
+        <link rel="stylesheet" href="css/solarized-dark-hljs.css">
+    
+
+    
+</head>
+<body>
+<!-- Provide site root to javascript -->
+<script type="text/javascript">
+    var path_to_root = "";
+    var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "solarized-dark" : "solarized-light";
+</script>
+
+<!-- Work around some values being stored in localStorage wrapped in quotes -->
+<script type="text/javascript">
+    try {
+        var sidebar = localStorage.getItem('mdbook-sidebar');
+
+        if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+            localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+        }
+    } catch (e) { }
+</script>
+
+<!-- Set the theme before any content is loaded, prevents flash -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    html.classList.remove('no-js')
+    html.classList.add(default_theme);
+    html.classList.add('js');
+</script>
+
+<!-- Hide / unhide sidebar before it is displayed -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    var sidebar = 'hidden';
+    if (document.body.clientWidth >= 1080) {
+        try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+        sidebar = sidebar || 'visible';
+    }
+    html.classList.remove('sidebar-visible');
+    html.classList.add("sidebar-" + sidebar);
+</script>
+
+<nav id="sidebar" class="sidebar" aria-label="Table of contents">
+    <div class="sidebar-scrollbox">
+        <ol class="chapter"><li class="chapter-item expanded "><a href="getting_started.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li class="chapter-item expanded "><a href="about_alan.html"><strong aria-hidden="true">2.</strong> About Alan</a></li><li class="chapter-item expanded "><a href="language_reference.html"><strong aria-hidden="true">3.</strong> Language Reference</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="file_structure.html"><strong aria-hidden="true">3.1.</strong> Syntax and File Structure</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="scope.html"><strong aria-hidden="true">3.1.1.</strong> Implied Structure: Scope</a></li><li class="chapter-item expanded "><a href="imports.html"><strong aria-hidden="true">3.1.2.</strong> Imports</a></li><li class="chapter-item expanded "><a href="types.html"><strong aria-hidden="true">3.1.3.</strong> Types</a></li><li class="chapter-item expanded "><a href="constants.html"><strong aria-hidden="true">3.1.4.</strong> Constants</a></li><li class="chapter-item expanded "><a href="events.html"><strong aria-hidden="true">3.1.5.</strong> Events</a></li><li class="chapter-item expanded "><a href="functions.html"><strong aria-hidden="true">3.1.6.</strong> Functions</a></li><li class="chapter-item expanded "><a href="operators.html"><strong aria-hidden="true">3.1.7.</strong> Operators</a></li><li class="chapter-item expanded "><a href="statements.html"><strong aria-hidden="true">3.1.8.</strong> Statements</a></li><li class="chapter-item expanded "><a href="interfaces.html"><strong aria-hidden="true">3.1.9.</strong> Interfaces</a></li><li class="chapter-item expanded "><a href="handlers.html"><strong aria-hidden="true">3.1.10.</strong> Handlers</a></li><li class="chapter-item expanded "><a href="exports.html"><strong aria-hidden="true">3.1.11.</strong> Exports</a></li><li class="chapter-item expanded "><a href="keywords.html"><strong aria-hidden="true">3.1.12.</strong> List of Keywords and Reserved Symbols</a></li></ol></li><li class="chapter-item expanded "><a href="modules.html"><strong aria-hidden="true">3.2.</strong> Module System</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="module_definition.html"><strong aria-hidden="true">3.2.1.</strong> Definition</a></li><li class="chapter-item expanded "><a href="module_resolution.html"><strong aria-hidden="true">3.2.2.</strong> Resolution</a></li><li class="chapter-item expanded "><a href="module_acquisition.html"><strong aria-hidden="true">3.2.3.</strong> Acquisition</a></li><li class="chapter-item expanded "><a href="module_testing.html"><strong aria-hidden="true">3.2.4.</strong> Testing and Mocking</a></li><li class="chapter-item expanded "><a href="module_mutation.html"><strong aria-hidden="true">3.2.5.</strong> Mutation and Permissioning</a></li></ol></li><li class="chapter-item expanded "><a href="standard_library.html"><strong aria-hidden="true">3.3.</strong> Standard Library</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="built_ins.html"><strong aria-hidden="true">3.3.1.</strong> Built-ins</a></li><li class="chapter-item expanded "><a href="std_app.html"><strong aria-hidden="true">3.3.2.</strong> @std/app</a></li><li class="chapter-item expanded "><a href="std_cmd.html"><strong aria-hidden="true">3.3.3.</strong> @std/cmd</a></li><li class="chapter-item expanded "><a href="std_deps.html"><strong aria-hidden="true">3.3.4.</strong> @std/deps</a></li><li class="chapter-item expanded "><a href="std_trig.html"><strong aria-hidden="true">3.3.5.</strong> @std/trig</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="examples_with_explanations.html"><strong aria-hidden="true">4.</strong> Examples with Explanations</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="many_forms_hello_world.html"><strong aria-hidden="true">4.1.</strong> The many forms of &quot;Hello, World!&quot;</a></li><li class="chapter-item expanded "><a href="advanced_examples.html"><strong aria-hidden="true">4.2.</strong> More advanced examples</a></li></ol></li><li class="chapter-item expanded "><a href="transpile_js.html"><strong aria-hidden="true">5.</strong> Transpile to Javascript</a></li><li class="chapter-item expanded "><a href="contributing.html"><strong aria-hidden="true">6.</strong> Contributing to Alan</a></li><li class="chapter-item expanded "><a href="compiler_internals.html"><strong aria-hidden="true">7.</strong> Compiler Internals</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item expanded "><a href="amm_language_reference.html" class="active"><strong aria-hidden="true">7.1.</strong> AMM Language Reference</a></li><li class="chapter-item expanded "><a href="aga_language_reference.html"><strong aria-hidden="true">7.2.</strong> AGA Language Reference</a></li><li class="chapter-item expanded "><a href="alan_opcode_reference.html"><strong aria-hidden="true">7.3.</strong> Alan Opcode Reference</a></li></ol></li></ol>
+    </div>
+    <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+</nav>
+
+<div id="page-wrapper" class="page-wrapper">
+
+    <div class="page">
+        
+        <div id="menu-bar-hover-placeholder"></div>
+        <div id="menu-bar" class="menu-bar sticky bordered">
+            <div class="left-buttons">
+                <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                    <i class="fa fa-bars"></i>
+                </button>
+                
+                    <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <i class="fa fa-search"></i>
+                    </button>
+                
+            </div>
+
+            <h1 class="menu-title">Alan Language</h1>
+
+            <div class="right-buttons">
+                <a href="https://alan-lang.org" title="Home">
+                    <i>Home</i>
+                </a>
+                <a href="https://alan-lang.org/blog.html" title="Blog">
+                    <i>Blog</i>
+                </a>
+                <a href="https://github.com/alantech" title="Git repository" aria-label="Git repository">
+                    <i id="git-repository-button" class="fa fa-github"></i>
+                </a>
+            </div>
+        </div>
+
+        
+            <div id="search-wrapper" class="hidden">
+                <form id="searchbar-outer" class="searchbar-outer">
+                    <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                </form>
+                <div id="searchresults-outer" class="searchresults-outer hidden">
+                    <div id="searchresults-header" class="searchresults-header"></div>
+                    <ul id="searchresults">
+                    </ul>
+                </div>
+            </div>
+        
+
+        <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+        <script type="text/javascript">
+            document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+            document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+            Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+            });
+        </script>
+
+        <div id="content" class="content">
+            <main>
+                <h2><a class="header" href="#amm-language-reference" id="amm-language-reference">AMM Language Reference</a></h2>
+<p>Alan-- is an intentionally strict subset of Alan's grammar as an intermediate stage for compilation. It defines a relatively simple scope-based syntax that happens to be a perfectly suitable subset for converting to a variety of different languages, including conversion towards assembly-like languages (AGA) or other scope-based languages like Javascript.</p>
+<p>The only syntactic elements left in the language are constants, let variables, let variable reassignment, events, event handlers, closure functions, and function calls. Everything else, including conditionals, is stripped away. These remaining elements also have some constraints placed on them versus their fuller representation in Alan proper.</p>
+<p>Since imports and exports do not exist, this means all relevant code for a project has been inlined into the same output file. This means the file will be much larger, but also simpler to understand, since <em>everything</em> you need is inside of that file.</p>
+<h3><a class="header" href="#constants" id="constants">Constants</a></h3>
+<p>There are two categories of constants in Alan--, actual static constants like numbers, booleans, and strings, and constants that are the output of a function call.</p>
+<p>Static constants must <em>all</em> be declared in the root scope at the top of the file. The only allowed static constants are of the following types: <code>int8</code>, <code>int16</code>, <code>int32</code>, <code>int64</code>, <code>float32</code>, <code>float64</code>, <code>bool</code>, <code>string</code>. Every other constant declared in an Alan source file is recomposed at runtime from these core components. (This may be revisited in the future if/when a safe, static representation format is defined for the runtime.) Unlike Alan, constants in Alan-- <em>must</em> have their types declared, like so:</p>
+<!-- using ```alan works, but would be nicer to be able to use a ```amm in these examples -->
+<pre><code class="language-alan">const foo: string = &quot;bar&quot;
+</code></pre>
+<p>Constants output from function calls may <em>only</em> be housed within event handlers or closures and not declared in the root scope. These also must have the type data included.</p>
+<h3><a class="header" href="#let-variables" id="let-variables">Let variables</a></h3>
+<p>As with Alan, let variables may only be declared within event handlers or closure functions and never the root scope. They function identically with the type definition requirement.</p>
+<pre><code class="language-alan">let a: int64 = 3
+</code></pre>
+<h3><a class="header" href="#let-variable-reassignment" id="let-variable-reassignment">Let variable reassignment</a></h3>
+<p>Let variable reassignment is also identical to Alan, happening with event handlers or closure functions and may cross scope boundaries.</p>
+<pre><code class="language-alan">a = a + 3
+</code></pre>
+<h3><a class="header" href="#events-and-loose-typing" id="events-and-loose-typing">Events (and loose typing)</a></h3>
+<p>Also as with Alan, events are declared in the root scope and never within event handlers or closure functions. Unlike Alan, the event handlers do not need to declare the relevant metadata about their type structure. Any typename may be used indiscriminantly, and any type that is not one of the static constant types (or <code>void</code>) is assumed to be &quot;array-like&quot; and it is up to you as the developer to not mess up here.</p>
+<p>In Alan--, array-like types are completely unguarded and may be cast at will to any relevant type. User types from Alan are reduced to arrays that have mixed types in Alan--, which is not allowed in Alan. This makes them essentially the same as arrays in Javascript, so the array index can refer to any kind of value, including nested arrays. The type safety of Alan is enforced in the first stage of the compiler and nowhere else.</p>
+<pre><code class="language-alan">event stdout: string
+</code></pre>
+<h3><a class="header" href="#event-handlers" id="event-handlers">Event Handlers</a></h3>
+<p>Event handlers are the same as in Alan, a single function is registered to an event and has either zero or one argument, with zero being the case only if the event is a <code>void</code> type. Multiple handler functions may be registered for the same event. These are the entrypoints for work in Alan--, with the <code>_start</code> event being a special event not needing declaration to use as the entrypoint for the entire application.</p>
+<p>(It's called <code>_start</code> instead of <code>start</code> to give the Alan standard library the flexibility to inject some &quot;always run&quot; initial logic before triggering the developer's code.)</p>
+<pre><code class="language-alan">on _start fn (): void { ...
+</code></pre>
+<h3><a class="header" href="#closure-functions" id="closure-functions">Closure Functions</a></h3>
+<p>Closure functions can define an inner scope within an event handler and are assigned to a variable. In Alan you could call these functions directly, but in Alan-- you can only pass them to <a href="./alan_opcode_reference.html">opcode functions</a> to do some sort of work.</p>
+<pre><code class="language-alan">on _start fn (): void {
+  const closure: function = fn (): void { ...
+</code></pre>
+<h3><a class="header" href="#functions-calls" id="functions-calls">Functions Calls</a></h3>
+<p>You can't actually declare functions not associated with an event in Alan--. All nested defined functions must be closures within an event. The only &quot;functions&quot; independent of the event handlers are the <a href="./alan_opcode_reference.html">opcodes defined by the runtime(s)</a>.</p>
+<pre><code class="language-alan">on _start fn (): void {
+  const val = addi64(a, a)
+  ...
+</code></pre>
+<h3><a class="header" href="#thats-all-folks" id="thats-all-folks">That's all, folks!</a></h3>
+<p>That's it for the language syntax. Really! It's a barely-typed, minimally-scoped, event-driven language that relies on the first stage of the compiler for safety.</p>
+<p>The following simple Alan source example:</p>
+<pre><code class="language-alan">import @std/app
+
+on app.start {
+  let exitCode = 0
+  if 1 == 0 {
+    exitCode = 1
+  }
+  app.print(&quot;Exit Code: &quot; + exitCode.toString())
+  emit app.exit exitCode
+}
+</code></pre>
+<p>exercises <em>the entire Alan-- grammar</em>:</p>
+<pre><code class="language-alan">const _250a4e2f_c064_4223_88bf_e39abd6dd877: int64 = 1
+const _f35d4d37_8d09_4ada_82fa_1418cb79e998: int64 = 0
+const _c8f78af1_501f_4235_963c_5d8be4bad6b3: string = &quot;Exit Code: &quot;
+const _bedfde7a_badf_4c1d_863e_e388ac42b9cc: string = &quot;\n&quot;
+event stdout: string
+event exit: int8
+on _start fn (): void {
+  let _c683f98b_437e_4df9_85da_a2a6c327a238: int64 = 0
+  const _d095305f_d756_4c19_b884_3a8fede9861d: bool = eqi64(_250a4e2f_c064_4223_88bf_e39abd6dd877, _f35d4d37_8d09_4ada_82fa_1418cb79e998)
+  const _4ef487db_9de4_404b_84e2_521cb45cc55a: function = fn (): void {
+    _c683f98b_437e_4df9_85da_a2a6c327a238 = 1
+  }
+  const _264c9102_8e7f_49e3_bce6_cf1e07f47b7c: any = condfn(_d095305f_d756_4c19_b884_3a8fede9861d, _4ef487db_9de4_404b_84e2_521cb45cc55a)
+  const _f256ce86_7153_4ab1_b374_728a251f682c: string = i64str(_c683f98b_437e_4df9_85da_a2a6c327a238)
+  const _9996a497_e19e_42e5_8785_68d3fd59663a: string = catstr(_c8f78af1_501f_4235_963c_5d8be4bad6b3, _f256ce86_7153_4ab1_b374_728a251f682c)
+  const _8aeec8d8_79e2_4105_8652_d261d0fbde7c: string = catstr(_9996a497_e19e_42e5_8785_68d3fd59663a, _bedfde7a_badf_4c1d_863e_e388ac42b9cc)
+  emit stdout _8aeec8d8_79e2_4105_8652_d261d0fbde7c
+  emit exit _c683f98b_437e_4df9_85da_a2a6c327a238
+}
+on stdout fn (out: string): void {
+  const _1015e87b_7164_4b53_b328_65940d8c6323: void = stdoutp(out)
+}
+on exit fn (status: int8): void {
+  const _387b8e3c_9792_4455_a5b0_98bf479c03eb: void = exitop(status)
+}
+</code></pre>
+
+            </main>
+
+            <nav class="nav-wrapper" aria-label="Page navigation">
+                <!-- Mobile navigation buttons -->
+                
+                    <a rel="prev" href="compiler_internals.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="aga_language_reference.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+                <div style="clear: both"></div>
+            </nav>
+        </div>
+    </div>
+
+    <nav class="nav-wide-wrapper" aria-label="Page navigation">
+        
+            <a rel="prev" href="compiler_internals.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        
+            <a rel="next" href="aga_language_reference.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </nav>
+
+</div>
+
+
+
+<!-- Analytics Tag -->
+<script type="text/javascript">
+    var localAddrs = ["localhost", "127.0.0.1", ""];
+
+    // make sure we don't activate analytics if the developer is
+    // inspecting the book locally...
+    if (localAddrs.indexOf(document.location.hostname) === -1) {
+        !function(){var analytics=window.analytics=window.analytics||[];if(!analytics.initialize)if(analytics.invoked)window.console&&console.error&&console.error("Segment snippet included twice.");else{analytics.invoked=!0;analytics.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify","reset","group","track","ready","alias","debug","page","once","off","on","addSourceMiddleware","addIntegrationMiddleware","setAnonymousId","addDestinationMiddleware"];analytics.factory=function(e){return function(){var t=Array.prototype.slice.call(arguments);t.unshift(e);analytics.push(t);return analytics}};for(var e=0;e<analytics.methods.length;e++){var t=analytics.methods[e];analytics[t]=analytics.factory(t)}analytics.load=function(e,t){var n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src="https://cdn.segment.com/analytics.js/v1/"+e+"/analytics.min.js";var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(n,a);analytics._loadOptions=t};analytics.SNIPPET_VERSION="4.1.0";
+            analytics.load("fGya8GY5wLqdnLzyXnGM2HjYglPszWS0");
+            analytics.page("Docs", "AMM Language Reference");
+        }}();
+    }
+</script>
+
+
+    <script type="text/javascript">
+        window.playpen_line_numbers = true;
+    </script>
+
+
+
+    <script type="text/javascript">
+        window.playpen_copyable = true;
+    </script>
+
+
+
+    <script src="ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="editor.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mode-rust.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-dawn.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-tomorrow_night.js" type="text/javascript" charset="utf-8"></script>
+
+
+
+    <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+
+<!-- BigInt is not defined in Safari. Define it before loading bundle.js -->
+<script type="text/javascript">
+    window.BigInt = window.BigInt || function() {}
+</script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+<!-- Custom JS scripts -->
+
+    <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
+
+    <script type="text/javascript" src="mode-rust.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_dark.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_light.js"></script>
+
+<script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+</body>
+</html>

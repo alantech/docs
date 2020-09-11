@@ -147,18 +147,19 @@
 <p>This guide walks you through the steps needed to get the Alan compiler and runtimes on your local machine. To work on Alan itself, see <a href="./contributing.html">Contributing to Alan</a>. To learn more about Alan, see <a href="https://alan-lang.org/why_alan.html">Why we created Alan</a>.</p>
 <h2><a class="header" href="#installation" id="installation">Installation</a></h2>
 <p>For users on Windows, MacOS, and Ubuntu Linux with x86-64 processors, you can <a href="https://github.com/alantech/alan/releases">download the Alan executable</a>, extract it into your <code>$PATH</code>/<code>%PATH%</code> (eg <code>/usr/local/bin</code> on MacOS and Ubuntu, and <code>C:\Windows</code> on Windows if you don't want to add a new executable path to your environment variable), and you're ready to go!</p>
-<p>Example commands for Linux:</p>
-<pre><code class="language-bash">wget https://github.com/alantech/alan/releases/download/v0.1.6/alan-ubuntu.tar.gz
+<p>For Linux:</p>
+<pre><code class="language-bash">wget https://github.com/alantech/alan/releases/download/v0.1.7/alan-ubuntu.tar.gz
 tar -xzf alan-ubuntu.tar.gz
 sudo mv alan /usr/local/bin/alan
 </code></pre>
-<p>Example commands for MacOS:</p>
-<pre><code class="language-bash">wget https://github.com/alantech/alan/releases/download/v0.1.6/alan-macos.tar.gz
+<p>For MacOS:</p>
+<pre><code class="language-bash">curl -OL https://github.com/alantech/alan/releases/download/v0.1.7/alan-macos.tar.gz
 tar -xzf alan-macos.tar.gz
-mv alan /usr/local/bin/alan
+# sudo mkdir -p /usr/local/bin if the folder does not exist
+sudo mv alan /usr/local/bin/alan
 </code></pre>
-<p>Example commands for Windows:</p>
-<pre><code class="language-ps1">Invoke-WebRequest -OutFile alan-windows.zip -Uri https://github.com/alantech/alan/releases/download/v0.1.6/alan-windows.zip
+<p>For Windows:</p>
+<pre><code class="language-ps1">Invoke-WebRequest -OutFile alan-windows.zip -Uri https://github.com/alantech/alan/releases/download/v0.1.7/alan-windows.zip
 Expand-Archive -Path alan-windows.zip -DestinationPath C:\windows
 </code></pre>
 <h3><a class="header" href="#source-installation" id="source-installation">Source Installation</a></h3>
@@ -216,7 +217,7 @@ on app.start {
 <p>Technically an escape hatch through the event loop has been left open for very awkward recursive calls. This does not impact the advantages of the runtime for the language, however, and can be useful if absolutely necessary, but please reach out if you feel the need to use it, as that means either you're doing something wrong, or there's something missing to the language that should be added.</p>
 </div>
 <h1><a class="header" href="#foreword" id="foreword">Foreword</a></h1>
-<p>The Alan Language Reference is broken into three major sections: the <a href="./file_structure.html">Syntax and File Structure</a> of the Alan source files that you as the developer would directly write, the <a href="./modules.html">Module System</a> that Alan uses to link your various source files and dependencies together which influences how you structure and reason about your codebase, and the <a href="./standard_library.html">Standard Library</a> that provides the building blocks necessary to be productive in the language and how they work.</p>
+<p>The Alan Language Reference is broken into three major sections: the <a href="./file_structure.html">Syntax and File Structure</a> of the Alan source files that you as the developer would directly write, the <a href="./modules.html">Module System</a> that Alan uses to link your various source files and dependencies together which influences how you structure and reason about your codebase, and the <a href="./builtins/built_ins.html">Built-ins</a> that provide the building blocks necessary to be productive in the language and how they work.</p>
 <p>The examples will be given as code snippets for clarity. To see the grammar definitions, please review <a href="https://github.com/alantech/alan/blob/master/compiler/src/ln/Ln.g4">the parser definition in the compiler</a> as that is guaranteed to be the correct grammar. The sole exception is the <a href="./keywords.html">List of Keywords and Reserved Symbols</a> as a quick reference to what is disallowed as variable, function, or operator names.</p>
 <p>However, this reference assumes this isn't your first introduction to programming. With the exception of the <a href="./modules.html">Module System</a>, as that brings in something new, there won't be any explanations for <em>why</em> something is useful or <em>when</em> to use one particular construct versus another. There are many excellent Intro to Programming tutorials out there that have been refined for years for more popular programming languages, and we as the authors of Alan would recommend that you learn to program with one of these well-thought-out tutorials:</p>
 <ul>

@@ -146,11 +146,35 @@
                 <h1><a class="header" href="#getting-started" id="getting-started">Getting Started</a></h1>
 <p>This guide walks you through the steps needed to get the Alan compiler and runtimes on your local machine. To work on Alan itself, see <a href="./contributing.html">Contributing to Alan</a>. To learn more about Alan, see <a href="https://alan-lang.org/why_alan.html">Why we created Alan</a>.</p>
 <h2><a class="header" href="#installation" id="installation">Installation</a></h2>
-<p>Node.js is required, with a minimum version of 10.20.1, to install <code>alan-compile</code>, run:</p>
-<pre><code class="language-bash">npm i -g alan-compile
+<p>For users on Windows, MacOS, and Ubuntu Linux with x86-64 processors, you can <a href="https://github.com/alantech/alan/releases">download the Alan executable</a>, extract it into your <code>$PATH</code>/<code>%PATH%</code> (eg <code>/usr/local/bin</code> on MacOS and Ubuntu, and <code>C:\Windows</code> on Windows if you don't want to add a new executable path to your environment variable), and you're ready to go!</p>
+<p>Example commands for Linux:</p>
+<pre><code class="language-bash">wget https://github.com/alantech/alan/releases/download/v0.1.6/alan-ubuntu.tar.gz
+tar -xzf alan-ubuntu.tar.gz
+sudo mv alan /usr/local/bin/alan
 </code></pre>
-<p>Rust is required, with a minimum version of 1.41.1 to install <code>alan-runtime</code>, run:</p>
-<pre><code class="language-bash">cargo install alan-runtime
+<p>Example commands for MacOS:</p>
+<pre><code class="language-bash">wget https://github.com/alantech/alan/releases/download/v0.1.6/alan-macos.tar.gz
+tar -xzf alan-macos.tar.gz
+mv alan /usr/local/bin/alan
+</code></pre>
+<p>Example commands for Windows:</p>
+<pre><code class="language-ps1">Invoke-WebRequest -OutFile alan-windows.zip -Uri https://github.com/alantech/alan/releases/download/v0.1.6/alan-windows.zip
+Expand-Archive -Path alan-windows.zip -DestinationPath C:\windows
+</code></pre>
+<h3><a class="header" href="#source-installation" id="source-installation">Source Installation</a></h3>
+<p>If you wish to contribute to Alan, or if your operating system and/or CPU architecture do not match the above, you'll need a development environment to build Alan locally:</p>
+<ul>
+<li>git (any recent version should work)</li>
+<li>Node.js &gt;=10.20.1, &lt;14.0.0</li>
+<li>Rust &gt;=1.41.1</li>
+<li>A complete C toolchain (gcc, clang, msvc)</li>
+<li>Python &gt;=2.7, &lt;3.0 (and named <code>python2</code> in your PATH)</li>
+</ul>
+<p>Once those are installed, simply:</p>
+<pre><code class="language-bash">git clone https://github.com/alantech/alan
+cd alan
+make
+sudo make install
 </code></pre>
 <h2><a class="header" href="#writing-a-hello-world-example" id="writing-a-hello-world-example">Writing a Hello, World! Example</a></h2>
 <p>After installation, first create a file named <code>hello_world.ln</code> and then write the following within it:</p>
@@ -162,12 +186,16 @@ on app.start {
 }
 </code></pre></pre>
 <p>Now run:</p>
-<pre><code class="language-bash">alan-compile hello_world.ln hello_world.agc
+<pre><code class="language-bash">alan compile hello_world.ln hello_world.agc
 </code></pre>
-<p>This will produce an AGC binary that can be run by the <code>alan-runtime</code> like this:</p>
-<pre><code class="language-bash">alan-runtime run hello_world.agc
+<p>This will produce an AGC binary that can be run like this:</p>
+<pre><code class="language-bash">alan run hello_world.agc
 </code></pre>
 <p>which prints <code>Hello, World!</code>.</p>
+<p>You can also run the source file directly:</p>
+<pre><code class="language-bash">alan hello_world.ln
+</code></pre>
+<p>which will internally compile the code then run it, but you have to pay the compilation costs on each run.</p>
 <h2><a class="header" href="#syntax-highlighting" id="syntax-highlighting">Syntax Highlighting</a></h2>
 <p>We support syntax highlighting for <a href="https://github.com/alantech/alan/issues/257">some</a> text editors and are actively working to add more. Contributions are most welcome.</p>
 <h1><a class="header" href="#about-alan" id="about-alan">About Alan</a></h1>

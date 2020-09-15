@@ -144,7 +144,12 @@
         <div id="content" class="content">
             <main>
                 <h1><a class="header" href="#getting-started" id="getting-started">Getting Started</a></h1>
-<p>This guide walks you through the steps needed to get the Alan compiler and runtimes on your local machine. To work on Alan itself, see <a href="./contributing.html">Contributing to Alan</a>. To learn more about Alan, see <a href="https://alan-lang.org/why_alan.html">Why we created Alan</a>.</p>
+<p>This guide walks you through the steps needed to get the Alan compiler and VM on your local machine. You can also:</p>
+<ul>
+<li>Read, edit and run any of the idiomatic <a href="./advanced_examples.html">Alan examples</a></li>
+<li>Read more about <a href="https://alan-lang.org/why_alan.html">Why we created Alan</a></li>
+<li><a href="./contributing.html">Contribute to Alan</a></li>
+</ul>
 <h2><a class="header" href="#installation" id="installation">Installation</a></h2>
 <p>For users on Windows, MacOS, and Ubuntu Linux with x86-64 processors, you can <a href="https://github.com/alantech/alan/releases">download the Alan executable</a>, extract it into your <code>$PATH</code>/<code>%PATH%</code> (eg <code>/usr/local/bin</code> on MacOS and Ubuntu, and <code>C:\Windows</code> on Windows if you don't want to add a new executable path to your environment variable), and you're ready to go!</p>
 <p>For Linux:</p>
@@ -186,13 +191,10 @@ on app.start {
   emit app.exit 0
 }
 </code></pre></pre>
-<p>Now run:</p>
+<p>Now compile the code to produce an AGC binary and then run it which prints <code>Hello, World!</code>:</p>
 <pre><code class="language-bash">alan compile hello_world.ln hello_world.agc
+alan run hello_world.agc
 </code></pre>
-<p>This will produce an AGC binary that can be run like this:</p>
-<pre><code class="language-bash">alan run hello_world.agc
-</code></pre>
-<p>which prints <code>Hello, World!</code>.</p>
 <p>You can also run the source file directly:</p>
 <pre><code class="language-bash">alan hello_world.ln
 </code></pre>
@@ -210,7 +212,7 @@ on app.start {
 <li>Aggressive function inlining and dead-code removal to make sure unused code isn't even available in the output to potentially exploit.</li>
 </ul>
 <p>To accomplish this, Alan makes one single, significant trade-off versus other programming languages: Functions in Alan are all acyclic directed graphs. No arbitrary loops or recursion are allowed.</p>
-<p>This does not mean that you can't loop over data or write recursive algorithms, just that they are provided through controlled built-in functions that the compiler and runtime can reason about to provide automatic parallelization when possible, or to force handling a recursion error instead of crashing on a stack overflow.</p>
+<p>This does not mean that you can't loop over data or write recursive algorithms, just that they are provided through <a href="./advanced_examples.html#loopln">controlled built-in functions</a> that the compiler and runtime can reason about to provide automatic parallelization when possible, or to force handling a recursion error instead of crashing on a stack overflow.</p>
 <p>This means that the code that you write in Alan is not <em>quite</em> Turing-complete<sup class="footnote-reference"><a href="#1">1</a></sup>. But we believe that we have cut &quot;close enough&quot; to Turing-completeness and provided enough controlled mechanisms to fill the gaps that the advantages in having predictable functions outweigh the few places where Alan's syntax is slightly more awkward than its peers'.This allows the runtime to be able to judge when parallelization makes sense based on the data to be processed and the complexity of the code to be executed.</p>
 <p>Alan solves the Halting Problem -- by sidestepping it. Alan pushes you to write deterministic code with known execution patterns, and forces eventual halting of non-deterministic code by wrapping it in constructs that demand a maximum number of loops before erroring out. We believe this is what the vast majority of developers and companies alike want from their language because while not every question you can ask of a computer will ever return an answer, only those that do are useful to humanity.</p>
 <div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>

@@ -144,7 +144,12 @@
         <div id="content" class="content">
             <main>
                 <h1><a class="header" href="#getting-started" id="getting-started">Getting Started</a></h1>
-<p>This guide walks you through the steps needed to get the Alan compiler and runtimes on your local machine. To work on Alan itself, see <a href="./contributing.html">Contributing to Alan</a>. To learn more about Alan, see <a href="https://alan-lang.org/why_alan.html">Why we created Alan</a>.</p>
+<p>This guide walks you through the steps needed to get the Alan compiler and VM on your local machine. You can also:</p>
+<ul>
+<li>Read, edit and run any of the idiomatic <a href="./advanced_examples.html">Alan examples</a></li>
+<li>Read more about <a href="https://alan-lang.org/why_alan.html">Why we created Alan</a></li>
+<li><a href="./contributing.html">Contribute to Alan</a></li>
+</ul>
 <h2><a class="header" href="#installation" id="installation">Installation</a></h2>
 <p>For users on Windows, MacOS, and Ubuntu Linux with x86-64 processors, you can <a href="https://github.com/alantech/alan/releases">download the Alan executable</a>, extract it into your <code>$PATH</code>/<code>%PATH%</code> (eg <code>/usr/local/bin</code> on MacOS and Ubuntu, and <code>C:\Windows</code> on Windows if you don't want to add a new executable path to your environment variable), and you're ready to go!</p>
 <p>For Linux:</p>
@@ -186,13 +191,10 @@ on app.start {
   emit app.exit 0
 }
 </code></pre></pre>
-<p>Now run:</p>
+<p>Now compile the code to produce an AGC binary and then run it which prints <code>Hello, World!</code>:</p>
 <pre><code class="language-bash">alan compile hello_world.ln hello_world.agc
+alan run hello_world.agc
 </code></pre>
-<p>This will produce an AGC binary that can be run like this:</p>
-<pre><code class="language-bash">alan run hello_world.agc
-</code></pre>
-<p>which prints <code>Hello, World!</code>.</p>
 <p>You can also run the source file directly:</p>
 <pre><code class="language-bash">alan hello_world.ln
 </code></pre>

@@ -354,14 +354,13 @@ fn someFn (arg1: int64, arg2: float64): int64 {
 <p>Infix:</p>
 <pre><code>argument1 &lt;operator&gt; argument2
 </code></pre>
-<p>Infix operators can also be declared to be commutative or associative (or neither). This can allow certain built-in functions to automatically determine how much parallelism is safe with the provided operator.</p>
 <p>The syntax to define a prefix operator looks like this:</p>
-<pre><code>prefix functionName as &lt;operatorSymbol&gt; precedence &lt;precedenceNumber&gt;
+<pre><code class="language-alan">prefix functionName as &lt;operatorSymbol&gt; precedence &lt;precedenceNumber&gt;
 prefix precedence &lt;precedenceNumber&gt; functionName as &lt;operatorSymbol&gt;
 </code></pre>
 <p>where <code>&lt;operatorSymbol&gt;</code> is some combination of the symbols listed above (with a special ban on a solitary <code>=</code> as that is already used for assignment) and <code>&lt;precedenceNumber&gt;</code> is an <code>int8</code> number (<code>(-128, 127)</code> inclusive) indicating the precedence level, with a larger number taking precedence over a smaller one. Only the numbers <code>0 - 6</code> are used by any built-in operator, and the <code>functionName</code> being the function to map to the prefix. Only functions with that name with a single argument will be considered (or n-arity functions where the first argument is also the &quot;last&quot;, once n-arity support is added). Either the function to operator aliasing or the precedence level may be written first, depending on your own preferences.</p>
 <p>The syntax to define infix operators is similar, and looks like this:</p>
-<pre><code>infix functionName as &lt;operatorSymbol&gt; precedence &lt;precedenceNumber&gt;
+<pre><code class="language-alan">infix functionName as &lt;operatorSymbol&gt; precedence &lt;precedenceNumber&gt;
 infix precedence &lt;precedenceNumber&gt; functionName as &lt;operatorSymbol&gt;
 </code></pre>
 <p>where <code>&lt;operatorSymbol&gt;</code> is the symbol for the operator, <code>&lt;precedenceNumber&gt;</code> is an <code>int8</code> number, and <code>functionName</code> is the function being mapped to the operator. Only functions with two arguments will be considered.</p>

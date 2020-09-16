@@ -1,0 +1,357 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js">
+<head>
+    <!-- Book generated using mdBook -->
+    <meta charset="UTF-8">
+    <title>@std/seq - Alan Language</title>
+
+    <!-- Custom HTML head -->
+    
+
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta name="description" content="Alan Interactive Documentation">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff" />
+    <meta property="og:title" content="@std/seq - Alan Language">
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://docs.alan-lang.org/alan-logo.png">
+    <meta property="og:description" content="Alan Interactive Documentation">
+    <meta property="og:url" content="https://docs.alan-lang.org">
+    <meta name="twitter:card" content="summary" />
+
+    <link rel="shortcut icon" href="favicon.png">
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/general.css">
+    <link rel="stylesheet" href="css/chrome.css">
+
+    <!-- Fonts -->
+    <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+    
+
+    <!-- Highlight.js Stylesheets -->
+    <link rel="stylesheet" href="highlight.css">
+    <link rel="stylesheet" href="tomorrow-night.css">
+    <link rel="stylesheet" href="ayu-highlight.css">
+
+    <!-- Custom theme stylesheets -->
+    
+        <link rel="stylesheet" href="css/solarized-light-hljs.css">
+    
+        <link rel="stylesheet" href="css/solarized-dark-hljs.css">
+    
+
+    
+</head>
+<body>
+<!-- Provide site root to javascript -->
+<script type="text/javascript">
+    var path_to_root = "";
+    var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "solarized-dark" : "solarized-light";
+</script>
+
+<!-- Work around some values being stored in localStorage wrapped in quotes -->
+<script type="text/javascript">
+    try {
+        var sidebar = localStorage.getItem('mdbook-sidebar');
+
+        if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+            localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+        }
+    } catch (e) { }
+</script>
+
+<!-- Set the theme before any content is loaded, prevents flash -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    html.classList.remove('no-js')
+    html.classList.add(default_theme);
+    html.classList.add('js');
+</script>
+
+<!-- Hide / unhide sidebar before it is displayed -->
+<script type="text/javascript">
+    var html = document.querySelector('html');
+    var sidebar = 'hidden';
+    if (document.body.clientWidth >= 1080) {
+        try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+        sidebar = sidebar || 'visible';
+    }
+    html.classList.remove('sidebar-visible');
+    html.classList.add("sidebar-" + sidebar);
+</script>
+
+<nav id="sidebar" class="sidebar" aria-label="Table of contents">
+    <div class="sidebar-scrollbox">
+        <ol class="chapter"><li class="chapter-item "><a href="getting_started.html"><strong aria-hidden="true">1.</strong> Getting Started</a></li><li class="chapter-item "><a href="about_alan.html"><strong aria-hidden="true">2.</strong> About Alan</a></li><li class="chapter-item "><a href="foreword.html"><strong aria-hidden="true">3.</strong> Foreword</a></li><li class="chapter-item "><a href="file_structure.html"><strong aria-hidden="true">4.</strong> Syntax and File Structure</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="scope.html"><strong aria-hidden="true">4.1.</strong> Implied Structure: Scope</a></li><li class="chapter-item "><a href="constants.html"><strong aria-hidden="true">4.2.</strong> Constants</a></li><li class="chapter-item "><a href="events.html"><strong aria-hidden="true">4.3.</strong> Events</a></li><li class="chapter-item "><a href="functions.html"><strong aria-hidden="true">4.4.</strong> Functions</a></li><li class="chapter-item "><a href="operators.html"><strong aria-hidden="true">4.5.</strong> Operators</a></li><li class="chapter-item "><a href="statements.html"><strong aria-hidden="true">4.6.</strong> Statements</a></li><li class="chapter-item "><a href="interfaces.html"><strong aria-hidden="true">4.7.</strong> Interfaces</a></li><li class="chapter-item "><a href="handlers.html"><strong aria-hidden="true">4.8.</strong> Handlers</a></li><li class="chapter-item "><a href="user_types.html"><strong aria-hidden="true">4.9.</strong> User Defined Types</a></li><li class="chapter-item "><a href="error_handling.html"><strong aria-hidden="true">4.10.</strong> Error Handling</a></li><li class="chapter-item "><a href="imports.html"><strong aria-hidden="true">4.11.</strong> Imports</a></li><li class="chapter-item "><a href="exports.html"><strong aria-hidden="true">4.12.</strong> Exports</a></li><li class="chapter-item "><a href="keywords.html"><strong aria-hidden="true">4.13.</strong> List of Keywords and Reserved Symbols</a></li></ol></li><li class="chapter-item "><a href="modules.html"><strong aria-hidden="true">5.</strong> Module System</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="module_definition.html"><strong aria-hidden="true">5.1.</strong> Definition</a></li><li class="chapter-item "><a href="module_resolution.html"><strong aria-hidden="true">5.2.</strong> Resolution</a></li><li class="chapter-item "><a href="module_acquisition.html"><strong aria-hidden="true">5.3.</strong> Acquisition</a></li><li class="chapter-item "><a href="module_testing.html"><strong aria-hidden="true">5.4.</strong> Testing and Mocking</a></li><li class="chapter-item "><a href="module_mutation.html"><strong aria-hidden="true">5.5.</strong> Mutation and Permissioning</a></li></ol></li><li class="chapter-item "><a href="builtins/built_ins.html"><strong aria-hidden="true">6.</strong> Built-ins</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="builtins/types.html"><strong aria-hidden="true">6.1.</strong> Built-in Types</a></li><li class="chapter-item "><a href="builtins/functions.html"><strong aria-hidden="true">6.2.</strong> Built-in Functions</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="builtins/type_coersion.html"><strong aria-hidden="true">6.2.1.</strong> Type Coersion</a></li><li class="chapter-item "><a href="builtins/arithmetic.html"><strong aria-hidden="true">6.2.2.</strong> Arithmetic</a></li><li class="chapter-item "><a href="builtins/bitwise.html"><strong aria-hidden="true">6.2.3.</strong> Logical and Bitwise</a></li><li class="chapter-item "><a href="builtins/comparators.html"><strong aria-hidden="true">6.2.4.</strong> Comparators</a></li><li class="chapter-item "><a href="builtins/string_api.html"><strong aria-hidden="true">6.2.5.</strong> String Manipulation</a></li><li class="chapter-item "><a href="builtins/array_api.html"><strong aria-hidden="true">6.2.6.</strong> Array Manipulation</a></li><li class="chapter-item "><a href="builtins/hashmap_api.html"><strong aria-hidden="true">6.2.7.</strong> HashMap Manipulation</a></li><li class="chapter-item "><a href="builtins/ternary.html"><strong aria-hidden="true">6.2.8.</strong> &quot;Ternary&quot; Functions</a></li><li class="chapter-item "><a href="builtins/result_maybe.html"><strong aria-hidden="true">6.2.9.</strong> Error, Maybe, Result, and Either</a></li><li class="chapter-item "><a href="builtins/wait.html"><strong aria-hidden="true">6.2.10.</strong> Wait</a></li></ol></li><li class="chapter-item "><a href="builtins/operators.html"><strong aria-hidden="true">6.3.</strong> Built-in Operators</a></li><li class="chapter-item "><a href="builtins/interfaces.html"><strong aria-hidden="true">6.4.</strong> Built-in Interfaces</a></li></ol></li><li class="chapter-item expanded "><a href="standard_library.html"><strong aria-hidden="true">7.</strong> Standard Library</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="std_app.html"><strong aria-hidden="true">7.1.</strong> @std/app</a></li><li class="chapter-item expanded "><a href="std_seq.html" class="active"><strong aria-hidden="true">7.2.</strong> @std/seq</a></li><li class="chapter-item "><a href="std_cmd.html"><strong aria-hidden="true">7.3.</strong> @std/cmd</a></li><li class="chapter-item "><a href="std_deps.html"><strong aria-hidden="true">7.4.</strong> @std/deps</a></li><li class="chapter-item "><a href="std_trig.html"><strong aria-hidden="true">7.5.</strong> @std/trig</a></li></ol></li><li class="chapter-item "><a href="examples_with_explanations.html"><strong aria-hidden="true">8.</strong> Examples with Explanations</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="many_forms_hello_world.html"><strong aria-hidden="true">8.1.</strong> The many forms of &quot;Hello, World!&quot;</a></li><li class="chapter-item "><a href="advanced_examples.html"><strong aria-hidden="true">8.2.</strong> More advanced examples</a></li></ol></li><li class="chapter-item "><a href="transpile_js.html"><strong aria-hidden="true">9.</strong> Transpile to Javascript</a></li><li class="chapter-item "><a href="contributing.html"><strong aria-hidden="true">10.</strong> Contributing to Alan</a></li><li class="chapter-item "><a href="compiler_internals.html"><strong aria-hidden="true">11.</strong> Compiler Internals</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="amm_language_reference.html"><strong aria-hidden="true">11.1.</strong> AMM Language Reference</a></li><li class="chapter-item "><a href="aga_language_reference.html"><strong aria-hidden="true">11.2.</strong> AGA Language Reference</a></li><li class="chapter-item "><a href="alan_opcode_reference.html"><strong aria-hidden="true">11.3.</strong> Alan Opcode Reference</a></li></ol></li></ol>
+    </div>
+    <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+</nav>
+
+<div id="page-wrapper" class="page-wrapper">
+
+    <div class="page">
+        
+        <div id="menu-bar-hover-placeholder"></div>
+        <div id="menu-bar" class="menu-bar sticky bordered">
+            <div class="left-buttons">
+                <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                    <i class="fa fa-bars"></i>
+                </button>
+                
+                    <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <i class="fa fa-search"></i>
+                    </button>
+                
+            </div>
+
+            <h1 class="menu-title">Alan Language</h1>
+
+            <div class="right-buttons">
+                <a href="https://alan-lang.org" title="Home">
+                    <i>Home</i>
+                </a>
+                <a href="https://alan-lang.org/blog.html" title="Blog">
+                    <i>Blog</i>
+                </a>
+                <a href="https://github.com/alantech/alan" title="Github">
+                    <i>Github</i>
+                </a>
+            </div>
+        </div>
+
+        
+            <div id="search-wrapper" class="hidden">
+                <form id="searchbar-outer" class="searchbar-outer">
+                    <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                </form>
+                <div id="searchresults-outer" class="searchresults-outer hidden">
+                    <div id="searchresults-header" class="searchresults-header"></div>
+                    <ul id="searchresults">
+                    </ul>
+                </div>
+            </div>
+        
+
+        <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+        <script type="text/javascript">
+            document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+            document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+            Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+            });
+        </script>
+
+        <div id="content" class="content">
+            <main>
+                <h2><a class="header" href="#stdseq-to-express-sequential-algorithms-in-alan" id="stdseq-to-express-sequential-algorithms-in-alan">@std/seq to express Sequential Algorithms in Alan</a></h2>
+<p>Alan does not allow arbitrary, or classical, loops or recursion and <a href="./advanced_examples.html#loopln">the preferred way to do iteration is with arrays</a>. However, there are algorithms people need to write that are inherently sequential, and often non-deterministic on the number of steps needed to take, such as with numeric approximation algorithms like Newton-Raphson, or anything written as a recursive function call. Most of the problems developers need to solve do not require this linearity, but for when it really is required, we are reintroducing this power in a controlled manner that still allows the AVM to be able to plan around these algorithms and provide the guarantee of termination. The syntax <code>@std/seq</code> provides was <a href="https://github.com/alantech/alan/blob/main/rfcs/007%20-%20Sequential%20Algorithms%20RFC.md">designed (and only partially implemented so far)</a> to <em>not</em> feel like classical control flow in order to nudge developers to find better, more deterministic and more parallelizable mechanisms, instead.</p>
+<p>Here are the function signatures of the sequential functions that <code>@std/seq</code> will provide:</p>
+<pre><code class="language-ln">fn next(seq: Seq): Result&lt;int64&gt;
+fn each(seq: Seq, func: function): void
+fn while(seq: Seq, condFn: function, bodyFn: function): void
+fn doWhile(seq: Seq, bodyFn: function): void
+fn recurse(seq: Seq, recursiveFn: function, arg: any): anythingElse
+</code></pre>
+<h3><a class="header" href="#seq-type" id="seq-type"><code>Seq</code> type</a></h3>
+<p><code>@std/seq</code> provides functions for accomplishing many different sequential patterns that depend on a special, built-in <code>Seq</code> type with opaque internals to avoid manipulation after construction:</p>
+<pre><code class="language-alan">type Seq {
+  counter: int64
+  limit: int64
+}
+</code></pre>
+<h3><a class="header" href="#next_loopln" id="next_loopln"><code>next_loop.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+from @std/seq import seq, next
+on start {
+  let s = seq(2)
+  print(s.next())
+  print(s.next())
+  print(s.next())
+  emit exit 0
+}
+</code></pre></pre>
+<p><code>next</code> is the simplest to explain: each time you call it, it returns the current counter value wrapped in a Result and then increments it. If you call past the limit, it returns an <a href="./error_handling.html">Error Result</a>.</p>
+<h3><a class="header" href="#each_loopln" id="each_loopln"><code>each_loop.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+from @std/seq import seq, each
+on start {
+  let s = seq(3)
+  s.each(fn (i: int64) = print(i))
+  emit exit 0
+}
+</code></pre></pre>
+<p><code>each</code> is almost as simple as <code>next</code>: It simply runs the side-effect function however many times is in the limit of the seq instance. The function provided may or may not take the current iteration counter and must be the following signature:</p>
+<pre><code class="language-alan">fn func(): void
+fn func(i: int64): void
+</code></pre>
+<h3><a class="header" href="#while_loopln" id="while_loopln"><code>while_loop.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+from @std/seq import seq, while
+on start {
+  let s = seq(100)
+  let sum = 0
+  // TODO: Still need type inference working for one-liner closures
+  // https://github.com/alantech/alan/issues/193
+  s.while(fn (): bool = sum &lt; 10, fn {
+    sum = sum + 1
+  })
+  print(sum)
+  emit exit 0
+}
+</code></pre></pre>
+<p><code>while</code> runs the <code>bodyFn</code> <em>up to</em> the <code>limit</code> number of times, but can abort early if <code>condFn</code> returns <code>false</code>. The signatures of these two functions must match:</p>
+<pre><code class="language-alan">fn condFn(): bool
+fn bodyFn(): void
+</code></pre>
+<h3><a class="header" href="#dowhile_loopln" id="dowhile_loopln"><code>doWhile_loop.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+from @std/seq import seq, doWhile
+on start {
+  let s = seq(100)
+  let sum = 0
+  // TODO: Still need type inference working for one-liner closures
+  // https://github.com/alantech/alan/issues/193
+  s.doWhile(fn (): bool {
+    sum = sum + 1
+    return sum &lt; 10
+  })
+  print(sum)
+  emit exit 0
+}
+</code></pre></pre>
+<p><code>doWhile</code> always runs at least once (unless the <code>seq</code> has reached its <code>limit</code> or it was constructed with an initial <code>limit</code> of <code>0</code>) and uses the return value of the function to determine if it should continue or not, so its <code>bodyFn</code> has the following signature:</p>
+<pre><code class="language-alan">fn bodyFn(): bool
+</code></pre>
+<h3><a class="header" href="#recurse_fibln" id="recurse_fibln"><code>recurse_fib.ln</code></a></h3>
+<pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
+from @std/seq import seq, Self, recurse
+on start {
+  print(seq(100).recurse(fn fibonacci(self: Self, i: int64): Result&lt;int64&gt; {
+    if i &lt; 2 {
+      return some(1)
+    } else {
+      const prev = self.recurse(i - 1)
+      const prevPrev = self.recurse(i - 2)
+      if prev.isErr() {
+        return prev
+      }
+      if prevPrev.isErr() {
+        return prevPrev
+      }
+      return some((prev || 1) + (prevPrev || 1))
+    }
+  }, 8))
+  emit exit 0
+}
+</code></pre></pre>
+<p><strong>Note: this example runs in the browser, but <code>recurse</code> not fully implemented in the AVM yet</strong></p>
+<p><code>recurse</code> allows recursive functions to be defined in <code>alan</code>. This is impossible in <code>alan</code>'s grammar, so what is done is special trickery to make it possible. The <code>recursiveFn</code> has the following function signature:</p>
+<pre><code class="language-alan">fn recursiveFn(self: Self, arg: any): Result&lt;anythingElse&gt;
+</code></pre>
+<p>The <code>Self</code> type is a special type that the recursive function can use to trigger a controlled recursive call, like so:</p>
+<pre><code class="language-alan">const recursiveResult = self.recurse(someNewArg)
+</code></pre>
+<p><code>Self</code> is another opaque type that the AVM can use to keep track of the function to be called recursively and how deep the recursion has gone so far. The <code>recursiveFn</code> <em>must</em> wrap its value in a <code>Result</code> type because <code>alan</code> may interject and bubble up an error of the recursion limit is reached.</p>
+
+            </main>
+
+            <nav class="nav-wrapper" aria-label="Page navigation">
+                <!-- Mobile navigation buttons -->
+                
+                    <a rel="prev" href="std_app.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="std_cmd.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+                <div style="clear: both"></div>
+            </nav>
+        </div>
+    </div>
+
+    <nav class="nav-wide-wrapper" aria-label="Page navigation">
+        
+            <a rel="prev" href="std_app.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                <i class="fa fa-angle-left"></i>
+            </a>
+        
+
+        
+            <a rel="next" href="std_cmd.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                <i class="fa fa-angle-right"></i>
+            </a>
+        
+    </nav>
+
+</div>
+
+
+
+<!-- Analytics Tag -->
+<script type="text/javascript">
+    var localAddrs = ["localhost", "127.0.0.1", ""];
+
+    // make sure we don't activate analytics if the developer is
+    // inspecting the book locally...
+    if (localAddrs.indexOf(document.location.hostname) === -1) {
+        !function(){var analytics=window.analytics=window.analytics||[];if(!analytics.initialize)if(analytics.invoked)window.console&&console.error&&console.error("Segment snippet included twice.");else{analytics.invoked=!0;analytics.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify","reset","group","track","ready","alias","debug","page","once","off","on","addSourceMiddleware","addIntegrationMiddleware","setAnonymousId","addDestinationMiddleware"];analytics.factory=function(e){return function(){var t=Array.prototype.slice.call(arguments);t.unshift(e);analytics.push(t);return analytics}};for(var e=0;e<analytics.methods.length;e++){var t=analytics.methods[e];analytics[t]=analytics.factory(t)}analytics.load=function(e,t){var n=document.createElement("script");n.type="text/javascript";n.async=!0;n.src="https://cdn.segment.com/analytics.js/v1/"+e+"/analytics.min.js";var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(n,a);analytics._loadOptions=t};analytics.SNIPPET_VERSION="4.1.0";
+            analytics.load("fGya8GY5wLqdnLzyXnGM2HjYglPszWS0");
+            analytics.page("Docs", "@std/seq");
+        }}();
+    }
+</script>
+
+
+    <script type="text/javascript">
+        window.playpen_line_numbers = true;
+    </script>
+
+
+
+    <script type="text/javascript">
+        window.playpen_copyable = true;
+    </script>
+
+
+
+    <script src="ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="editor.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mode-rust.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-dawn.js" type="text/javascript" charset="utf-8"></script>
+    <script src="theme-tomorrow_night.js" type="text/javascript" charset="utf-8"></script>
+
+
+
+    <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+
+<!-- BigInt is not defined in Safari. Define it before loading bundle.js -->
+<script type="text/javascript">
+    window.BigInt = window.BigInt || function() {}
+</script>
+
+<script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+<!-- Custom JS scripts -->
+
+    <script type="text/javascript" src="bundle.js"></script>
+
+    <script type="text/javascript" src="hljs-alan.min.js"></script>
+
+    <script type="text/javascript" src="mode-rust.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_dark.js"></script>
+
+    <script type="text/javascript" src="theme-solarized_light.js"></script>
+
+<script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+</body>
+</html>

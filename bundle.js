@@ -10300,6 +10300,16 @@ ${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
         // microstatement for that `var` name and "tag it" in the scope as an alias that can be looked
         // up later. For now, we'll include a useless reassignment for simplicity's sake.
         if (basicAssignablesAst.varn() != null) {
+            let original = Microstatement.fromVarName(basicAssignablesAst.varn().getText(), scope, microstatements);
+            if (!original) {
+                const maybeFn = scope.deepGet(basicAssignablesAst.varn().getText());
+                if (maybeFn && maybeFn instanceof Array && maybeFn[0] instanceof UserFunction_1.default) {
+                    // TODO: Add multiple dispatch here
+                    // Also TODO: Support passing opcodes directly, too, for the rare cases they're directly exposed
+                    Microstatement.closureFromUserFunction(maybeFn[0], scope, microstatements);
+                    return;
+                }
+            }
             Microstatement.fromVarAst(basicAssignablesAst.varn(), scope, microstatements);
             return;
         }
@@ -39719,7 +39729,7 @@ module.exports = {
   join:    (arr, sep) => arr.join(sep),
   map:     async (arr, fn) => await Promise.all(arr.map(fn)),
   mapl:    async (arr, fn) => await Promise.all(arr.map(fn)),
-  reparr:  (arr, n) => Array.from(new Array(n * arr.length)).map((_, i) => arr[i % arr.length]),
+  reparr:  (arr, n) => Array.from(new Array(n * arr.length)).map((_, i) => JSON.parse(JSON.stringify(arr[i % arr.length]))),
   each:    async (arr, fn) => {
     await Promise.all(arr.map(fn)) // Thrown away but awaited to maintain consistent execution
   },

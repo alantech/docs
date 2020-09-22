@@ -10106,6 +10106,7 @@ class Microstatement {
                 break;
             case StatementType_1.default.REREF:
             case StatementType_1.default.ARG:
+            case StatementType_1.default.CLOSUREDEF:
                 // Intentionally never output anything, this is metadata for the transpiler algo only
                 break;
         }
@@ -10287,7 +10288,7 @@ ${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
         // For now we still create the function object and the microstatement to assign it
         if (basicAssignablesAst.functions() != null) {
             const fnToAssign = UserFunction_1.default.fromAst(basicAssignablesAst.functions(), scope);
-            Microstatement.closureFromUserFunction(fnToAssign, scope, microstatements);
+            Microstatement.closureDef([fnToAssign], scope, microstatements);
             return;
         }
         // Here is where we inline the functions that were defined elsewhere or just above here! Or if
@@ -10303,10 +10304,11 @@ ${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
             let original = Microstatement.fromVarName(basicAssignablesAst.varn().getText(), scope, microstatements);
             if (!original) {
                 const maybeFn = scope.deepGet(basicAssignablesAst.varn().getText());
-                if (maybeFn && maybeFn instanceof Array && maybeFn[0] instanceof UserFunction_1.default) {
-                    // TODO: Add multiple dispatch here
-                    // Also TODO: Support passing opcodes directly, too, for the rare cases they're directly exposed
-                    Microstatement.closureFromUserFunction(maybeFn[0], scope, microstatements);
+                if (maybeFn &&
+                    maybeFn instanceof Array &&
+                    !(maybeFn[0] instanceof Operator_1.default)
+                    && typeof maybeFn[0].getName === 'function') {
+                    Microstatement.closureDef(maybeFn, scope, microstatements);
                     return;
                 }
             }
@@ -10646,14 +10648,15 @@ ${withOperatorsAst.getText()}`;
             }
         }
     }
-    static closureFromUserFunction(userFunction, scope, microstatements) {
-        // TODO: Potentially revisit this entire approach -- closures with interface types should be
-        // re-evaluated at each callsite to get the correct opcodes selected based on the matched types
-        // and the related functions. Those functions may be implemented wildly differently between the
-        // compatible types such that the microstatements would not be a simple type replacement away
-        // inject arguments as const declarations into microstatements arrays with the variable names
-        // and remove them later so we can parse the closure and keep the logic contained to this method
-        const fn = userFunction.maybeTransform(new Map()); // TODO: Interface mangling is probably needed
+    static closureDef(fns, scope, microstatements) {
+        const closuredefName = "_" + uuid_1.v4().replace(/-/g, "_");
+        // Keep any rerefs around as closure references
+        const rerefs = microstatements.filter(m => m.statementType === StatementType_1.default.REREF);
+        microstatements.push(new Microstatement(StatementType_1.default.CLOSUREDEF, scope, true, // TODO: What should this be?
+        closuredefName, Type_1.default.builtinTypes['function'], [], fns, '', true, rerefs));
+    }
+    static closureFromUserFunction(userFunction, scope, microstatements, interfaceMap) {
+        const fn = userFunction.maybeTransform(interfaceMap);
         const idx = microstatements.length;
         const args = Object.entries(fn.args);
         for (const [name, type] of args) {
@@ -10839,9 +10842,17 @@ ${emitsAst.getText()} on line ${emitsAst.start.line}:${emitsAst.start.column}`);
                         continue;
                     }
                     if (microstatements[i].outputName === actualFnName &&
-                        microstatements[i].closureStatements &&
-                        microstatements[i].closureStatements.length > 0) {
-                        microstatements.push(...microstatements[i].closureStatements.filter(s => s.statementType !== StatementType_1.default.EXIT));
+                        microstatements[i].statementType === StatementType_1.default.CLOSUREDEF) {
+                        const m = [...microstatements, ...microstatements[i].closureStatements];
+                        // Remove the leading argument as that's the closure reference and shouldn't be included
+                        realArgNames.shift();
+                        realArgTypes.shift();
+                        const fn = UserFunction_1.default.dispatchFn(microstatements[i].fns, realArgTypes, scope);
+                        const interfaceMap = new Map();
+                        Object.values(fn.getArguments()).forEach((t, i) => t.typeApplies(realArgTypes[i], scope, interfaceMap));
+                        Microstatement.closureFromUserFunction(fn, fn.scope || scope, m, interfaceMap);
+                        const closure = m.pop();
+                        microstatements.push(...closure.closureStatements.filter(s => s.statementType !== StatementType_1.default.EXIT));
                         return;
                     }
                 }
@@ -10899,6 +10910,10 @@ ${callsAst.getText()} on line ${callsAst.start.line}:${callsAst.start.column}`);
                     original = Microstatement.fromVarName(microstatement.outputName, scope, microstatements);
                     break;
                 }
+                else if (microstatement.statementType === StatementType_1.default.ASSIGNMENT) {
+                    // We could treat this as evidence that it's cool, but let's just skip it.
+                    continue;
+                }
                 else {
                     throw new Error(`Attempting to reassign a non-let variable.
 ${letName} on line ${assignmentsAst.start.line}:${assignmentsAst.start.column}`);
@@ -10921,6 +10936,14 @@ ${letName} on line ${assignmentsAst.line}:${assignmentsAst.start.column}`);
                 if (microstatement.outputName === actualLetName) {
                     if (microstatement.statementType === StatementType_1.default.LETDEC) {
                         break;
+                    }
+                    else if (microstatement.statementType === StatementType_1.default.REREF) {
+                        original = Microstatement.fromVarName(microstatement.outputName, scope, microstatements);
+                        break;
+                    }
+                    else if (microstatement.statementType === StatementType_1.default.ASSIGNMENT) {
+                        // Could treat this as evidence that it's okay, but let's be sure about that
+                        continue;
                     }
                     else {
                         throw new Error(`Attempting to reassign a non-let variable.
@@ -12022,6 +12045,7 @@ var StatementType;
     StatementType["ARG"] = "ARG";
     StatementType["ENTERFN"] = "ENTERFN";
     StatementType["EXIT"] = "EXIT";
+    StatementType["CLOSUREDEF"] = "CLOSUREDEF";
 })(StatementType || (StatementType = {}));
 exports.default = StatementType;
 
@@ -13065,10 +13089,6 @@ ${statements[i].statementOrAssignableAst.getText().trim()} on line ${statements[
         // all inputs of that particular interface are the same type. TODO: If this is not true, it must
         // be a compile-time error earlier on.
         const last = microstatements[microstatements.length - 1];
-        /*const newReturnType = (this.returnType.typename !== 'void' && this.returnType.realize(interfaceMap, scope)) ||
-          last.outputType.realize(interfaceMap, scope) ||
-          last.outputType
-        last.outputType = newReturnType*/
         if (!this.returnType.typeApplies(last.outputType, scope, new Map())) {
             const returnTypeAst = Ast.fulltypenameAstFromString(this.returnType.typename);
             const returnTypeGenerics = returnTypeAst.typegenerics();
@@ -13419,6 +13439,7 @@ const Module_1 = require("./Module");
 const Scope_1 = require("./Scope");
 const StatementType_1 = require("./StatementType");
 const Type_1 = require("./Type");
+const UserFunction_1 = require("./UserFunction");
 const opcodeScope = new Scope_1.default();
 const opcodeModule = new Module_1.default(opcodeScope);
 // Base types
@@ -13458,6 +13479,23 @@ const addopcodes = (opcodes) => {
                 getReturnType: () => Type_1.Type.builtinTypes.void,
                 isPure: () => true,
                 microstatementInlining: (realArgNames, scope, microstatements) => {
+                    if (['seqwhile'].includes(opcodeName)) {
+                        const inputs = realArgNames.map(n => Microstatement_1.default.fromVarName(n, scope, microstatements));
+                        const condfn = UserFunction_1.default.dispatchFn(inputs[1].fns, [], scope);
+                        const condidx = microstatements.indexOf(inputs[1]);
+                        const condm = microstatements.slice(0, condidx);
+                        Microstatement_1.default.closureFromUserFunction(condfn, condfn.scope || scope, condm, new Map());
+                        const condclosure = condm[condm.length - 1];
+                        microstatements.splice(condidx, 0, condclosure);
+                        realArgNames[1] = condclosure.outputName;
+                        const bodyfn = UserFunction_1.default.dispatchFn(inputs[2].fns, [], scope);
+                        const bodyidx = microstatements.indexOf(inputs[2]);
+                        const bodym = microstatements.slice(0, bodyidx);
+                        Microstatement_1.default.closureFromUserFunction(bodyfn, bodyfn.scope || scope, bodym, new Map());
+                        const bodyclosure = bodym[bodym.length - 1];
+                        microstatements.splice(bodyidx, 0, bodyclosure);
+                        realArgNames[2] = bodyclosure.outputName;
+                    }
                     microstatements.push(new Microstatement_1.default(StatementType_1.default.CALL, scope, true, null, opcodeObj.getReturnType(), realArgNames, [opcodeObj]));
                 },
             };
@@ -13480,6 +13518,84 @@ const addopcodes = (opcodes) => {
                             // Path 1: the opcode returns an interface based on the interface type of an input
                             let replacementType;
                             Object.values(args).forEach((a, i) => {
+                                if (inputs[i].statementType === StatementType_1.default.CLOSUREDEF) {
+                                    const idx = microstatements.indexOf(inputs[i]);
+                                    const m = microstatements.slice(0, idx);
+                                    let fn;
+                                    // TODO: Remove this hackery after function types are more than just 'function'
+                                    if ([
+                                        'map', 'mapl', 'each', 'eachl', 'find', 'findl', 'every', 'everyl', 'some',
+                                        'somel', 'filter', 'filterl', 'seqeach',
+                                    ].includes(opcodeName)) {
+                                        // TODO: Try to re-unify these blocks from above
+                                        const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
+                                        const innerType = inputTypes[0].originalType ?
+                                            arrayInnerType :
+                                            Type_1.Type.builtinTypes.int64; // Hackery for seqeach
+                                        try {
+                                            fn = UserFunction_1.default.dispatchFn(inputs[i].fns, [innerType], scope)(Object.values(fn.getArguments())[0])
+                                                .typeApplies(innerType, scope, interfaceMap);
+                                        }
+                                        catch {
+                                            try {
+                                                fn = UserFunction_1.default.dispatchFn(inputs[i].fns, [], scope);
+                                            }
+                                            catch {
+                                                fn = UserFunction_1.default.dispatchFn(inputs[i].fns, [arrayInnerType, Type_1.Type.builtinTypes.int64], scope);
+                                                const closureArgs = Object.values(fn.getArguments());
+                                                closureArgs[0].typeApplies(arrayInnerType, scope, interfaceMap);
+                                                closureArgs[1].typeApplies(Type_1.Type.builtinTypes.int64, scope, interfaceMap);
+                                            }
+                                        }
+                                    }
+                                    else if (['reducel', 'reducep'].includes(opcodeName)) {
+                                        const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
+                                        fn = UserFunction_1.default.dispatchFn(inputs[i].fns, [arrayInnerType, arrayInnerType], scope);
+                                        const closureArgs = Object.values(fn.getArguments());
+                                        closureArgs[0].typeApplies(arrayInnerType, scope, interfaceMap);
+                                        closureArgs[1].typeApplies(arrayInnerType, scope, interfaceMap);
+                                    }
+                                    else if (['foldl'].includes(opcodeName)) {
+                                        const reducerTypes = Object.values(inputTypes[0].properties);
+                                        const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
+                                        const fnArgTypes = [
+                                            reducerTypes[1],
+                                            inType,
+                                        ];
+                                        fn = UserFunction_1.default.dispatchFn(inputs[i].fns, fnArgTypes, scope);
+                                        const closureArgs = Object.values(fn.getArguments());
+                                        closureArgs[0].typeApplies(reducerTypes[1], scope, interfaceMap);
+                                        closureArgs[1].typeApplies(inType, scope, interfaceMap);
+                                    }
+                                    else if (['foldp'].includes(opcodeName)) {
+                                        const reducerTypes = Object.values(inputTypes[0].properties);
+                                        const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
+                                        const fnArgTypes = [
+                                            reducerTypes[1],
+                                            inType,
+                                        ];
+                                        fn = UserFunction_1.default.dispatchFn(inputs[i].fns, fnArgTypes, scope);
+                                        const closureArgs = Object.values(fn.getArguments());
+                                        closureArgs[0].typeApplies(reducerTypes[1], scope, interfaceMap);
+                                        closureArgs[1].typeApplies(inType, scope, interfaceMap);
+                                    }
+                                    else if (['seqrec'].includes(opcodeName)) {
+                                        // TODO: Is this even reachable?
+                                        // TODO: How would multiple dispatch even work here?
+                                        fn = inputs[1].fns[0];
+                                    }
+                                    else if (['selfrec'].includes(opcodeName)) {
+                                        // TODO: Is this even reachable?
+                                        fn = inputs[0].fns[0];
+                                    }
+                                    else {
+                                        fn = UserFunction_1.default.dispatchFn(inputs[i].fns, [], scope);
+                                    }
+                                    Microstatement_1.default.closureFromUserFunction(fn, fn.scope || scope, m, interfaceMap);
+                                    const closure = m[m.length - 1];
+                                    microstatements.splice(idx, 0, closure);
+                                    realArgNames[i] = closure.outputName;
+                                }
                                 if (!!a.iface && a.iface.interfacename === returnType.iface.interfacename) {
                                     replacementType = inputTypes[i];
                                 }
@@ -13498,26 +13614,120 @@ const addopcodes = (opcodes) => {
                         else if (returnType.originalType &&
                             Object.values(returnType.properties).some((p) => !!p.iface)) {
                             // TODO: Remove this hackery after function types are more than just 'function'
-                            if (['map', 'mapl', 'each', 'eachl', 'find', 'findl'].includes(opcodeName)) {
+                            if ([
+                                'map', 'mapl', 'each', 'eachl', 'find', 'findl', 'every', 'everyl', 'some',
+                                'somel', 'filter', 'filterl', 'seqeach',
+                            ].includes(opcodeName)) {
                                 // The ideal `map` opcode type declaration is something like:
                                 // `map(Array<any>, fn (any): anythingElse): Array<anythingElse>` and then the
                                 // interface matching logic figures out what the return type of the opcode is
                                 // based on the return type of the function given to it.
                                 // For now, we just do that "by hand."
-                                const innerType = inputs[1].fns[0] ?
-                                    inputs[1].fns[0].getReturnType() :
-                                    inputs[1].closureOutputType;
-                                const innerArgType = (inputs[1].fns[0] ?
-                                    Object.values(inputs[1].fns[0].getArguments())[0] :
-                                    Object.values(inputs[1].closureArgs)[0]);
                                 const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
-                                innerArgType.typeApplies(arrayInnerType, scope, interfaceMap);
-                                const newInnerType = innerType.realize(interfaceMap, scope);
-                                const baseType = returnType.originalType;
-                                const newReturnType = baseType ?
-                                    baseType.solidify([newInnerType.typename], scope) :
-                                    returnType;
-                                return newReturnType;
+                                const innerType = inputTypes[0].originalType ?
+                                    arrayInnerType :
+                                    Type_1.Type.builtinTypes.int64; // Hackery for seqeach
+                                let fn;
+                                try {
+                                    fn = UserFunction_1.default.dispatchFn(inputs[1].fns, [innerType], scope);
+                                }
+                                catch {
+                                    try {
+                                        fn = UserFunction_1.default.dispatchFn(inputs[1].fns, [], scope);
+                                    }
+                                    catch {
+                                        fn = UserFunction_1.default.dispatchFn(inputs[1].fns, [arrayInnerType, Type_1.Type.builtinTypes.int64], scope);
+                                    }
+                                }
+                                const closureArgs = Object.values(fn.getArguments());
+                                if (closureArgs[0]) {
+                                    closureArgs[0].typeApplies(innerType, scope, interfaceMap);
+                                }
+                                if (closureArgs[1]) {
+                                    closureArgs[1].typeApplies(Type_1.Type.builtinTypes.int64, scope, interfaceMap);
+                                }
+                                const idx = microstatements.indexOf(inputs[1]);
+                                const m = microstatements.slice(0, idx);
+                                Microstatement_1.default.closureFromUserFunction(fn, fn.scope || scope, m, interfaceMap);
+                                const closure = m[m.length - 1];
+                                microstatements.splice(idx, 0, closure);
+                                realArgNames[1] = closure.outputName;
+                                if (['filter', 'filterl'].includes(opcodeName)) {
+                                    return inputs[0].outputType;
+                                }
+                                else {
+                                    const innerType = closure.closureOutputType;
+                                    const newInnerType = innerType.realize(interfaceMap, scope); // Necessary?
+                                    const baseType = returnType.originalType;
+                                    const newReturnType = baseType ?
+                                        baseType.solidify([newInnerType.typename], scope) :
+                                        returnType;
+                                    return newReturnType;
+                                }
+                            }
+                            else if (['reducel', 'reducep'].includes(opcodeName)) {
+                                const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
+                                let fn = UserFunction_1.default.dispatchFn(inputs[1].fns, [arrayInnerType, arrayInnerType], scope);
+                                const closureArgs = Object.values(fn.getArguments());
+                                closureArgs[0].typeApplies(arrayInnerType, scope, interfaceMap);
+                                closureArgs[1].typeApplies(arrayInnerType, scope, interfaceMap);
+                                const idx = microstatements.indexOf(inputs[1]);
+                                const m = microstatements.slice(0, idx);
+                                Microstatement_1.default.closureFromUserFunction(fn, fn.scope || scope, m, interfaceMap);
+                                const closure = m[m.length - 1];
+                                microstatements.splice(idx, 0, closure);
+                                realArgNames[1] = closure.outputName;
+                                return arrayInnerType;
+                            }
+                            else if (['foldl'].includes(opcodeName)) {
+                                const reducerTypes = Object.values(inputTypes[0].properties);
+                                const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
+                                const fnArgTypes = [
+                                    reducerTypes[1],
+                                    inType,
+                                ];
+                                let fn = UserFunction_1.default.dispatchFn(inputs[1].fns, fnArgTypes, scope);
+                                const closureArgs = Object.values(fn.getArguments());
+                                closureArgs[0].typeApplies(reducerTypes[1], scope, interfaceMap);
+                                closureArgs[1].typeApplies(inType, scope, interfaceMap);
+                                const idx = microstatements.indexOf(inputs[1]);
+                                const m = microstatements.slice(0, idx);
+                                Microstatement_1.default.closureFromUserFunction(fn, fn.scope || scope, m, interfaceMap);
+                                const closure = m[m.length - 1];
+                                microstatements.splice(idx, 0, closure);
+                                realArgNames[1] = closure.outputName;
+                                return closure.closureOutputType;
+                            }
+                            else if (['foldp'].includes(opcodeName)) {
+                                const reducerTypes = Object.values(inputTypes[0].properties);
+                                const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
+                                const fnArgTypes = [
+                                    reducerTypes[1],
+                                    inType,
+                                ];
+                                const fn = UserFunction_1.default.dispatchFn(inputs[1].fns, fnArgTypes, scope);
+                                const closureArgs = Object.values(fn.getArguments());
+                                closureArgs[0].typeApplies(reducerTypes[1], scope, interfaceMap);
+                                closureArgs[1].typeApplies(inType, scope, interfaceMap);
+                                const idx = microstatements.indexOf(inputs[1]);
+                                const m = microstatements.slice(0, idx);
+                                Microstatement_1.default.closureFromUserFunction(fn, fn.scope || scope, m, interfaceMap);
+                                const closure = m[m.length - 1];
+                                microstatements.splice(idx, 0, closure);
+                                realArgNames[1] = closure.outputName;
+                                return Type_1.Type.builtinTypes['Array'].solidify([closure.closureOutputType.typename], scope);
+                            }
+                            else if (['seqrec'].includes(opcodeName)) {
+                                // TODO: How would multiple dispatch even work here?
+                                const fn = inputs[1].inputNames[1].fns[0];
+                                const idx = microstatements.indexOf(inputs[1]);
+                                const m = microstatements.slice(0, idx);
+                                Microstatement_1.default.closureFromUserFunction(fn, fn.scope || scope, m, interfaceMap);
+                                const closure = m[m.length - 1];
+                                microstatements.splice(idx, 0, closure);
+                                realArgNames[1] = closure.outputName;
+                                // TODO: How do interface types work here?
+                                return closure.closureOutputType.typename;
                             }
                             else if (['selfrec'].includes(opcodeName)) {
                                 // TODO: This is absolute crap. How to fix?
@@ -13536,6 +13746,79 @@ const addopcodes = (opcodes) => {
                                     return returnType;
                                 }
                             }
+                        }
+                        else {
+                            // No need to adjust the return type, but may still need to lazy eval a closure
+                            Object.values(args).forEach((_a, i) => {
+                                if (inputs[i].statementType === StatementType_1.default.CLOSUREDEF) {
+                                    const idx = microstatements.indexOf(inputs[i]);
+                                    const m = microstatements.slice(0, idx);
+                                    let fn;
+                                    // TODO: Remove this hackery after function types are more than just 'function'
+                                    if ([
+                                        'map', 'mapl', 'each', 'eachl', 'find', 'findl', 'every', 'everyl', 'some',
+                                        'somel', 'filter', 'filterl', 'seqeach',
+                                    ].includes(opcodeName)) {
+                                        // TODO: Try to re-unify these blocks from above
+                                        const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
+                                        const innerType = inputTypes[0].originalType ?
+                                            arrayInnerType :
+                                            Type_1.Type.builtinTypes.int64; // Hackery for seqeach
+                                        try {
+                                            fn = UserFunction_1.default.dispatchFn(inputs[i].fns, [innerType], scope);
+                                        }
+                                        catch {
+                                            try {
+                                                fn = UserFunction_1.default.dispatchFn(inputs[i].fns, [], scope);
+                                            }
+                                            catch {
+                                                fn = UserFunction_1.default.dispatchFn(inputs[i].fns, [arrayInnerType, Type_1.Type.builtinTypes.int64], scope);
+                                            }
+                                        }
+                                        const closureArgs = Object.values(fn.getArguments());
+                                        if (closureArgs[0]) {
+                                            closureArgs[0].typeApplies(innerType, scope, interfaceMap);
+                                        }
+                                        if (closureArgs[1]) {
+                                            closureArgs[1].typeApplies(Type_1.Type.builtinTypes.int64, scope, interfaceMap);
+                                        }
+                                    }
+                                    else if (['reducel', 'reducep'].includes(opcodeName)) {
+                                        const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
+                                        fn = UserFunction_1.default.dispatchFn(inputs[1].fns, [arrayInnerType, arrayInnerType], scope);
+                                        const closureArgs = Object.values(fn.getArguments());
+                                        closureArgs[0].typeApplies(arrayInnerType, scope, interfaceMap);
+                                        closureArgs[1].typeApplies(arrayInnerType, scope, interfaceMap);
+                                    }
+                                    else if (['foldl'].includes(opcodeName)) {
+                                        const reducerTypes = Object.values(inputTypes[0].properties);
+                                        const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
+                                        const fnArgTypes = [
+                                            reducerTypes[1],
+                                            inType,
+                                        ];
+                                        let fn = UserFunction_1.default.dispatchFn(inputs[1].fns, fnArgTypes, scope);
+                                        const closureArgs = Object.values(fn.getArguments());
+                                        closureArgs[0].typeApplies(reducerTypes[1], scope, interfaceMap);
+                                        closureArgs[1].typeApplies(inType, scope, interfaceMap);
+                                    }
+                                    else if (['seqrec'].includes(opcodeName)) {
+                                        // TODO: How would multiple dispatch even work here?
+                                        fn = inputs[1].fns[0];
+                                    }
+                                    else if (['selfrec'].includes(opcodeName)) {
+                                        // TODO: Is this even reachable?
+                                        fn = inputs[0].inputNames[1].fns[0];
+                                    }
+                                    else {
+                                        fn = UserFunction_1.default.dispatchFn(inputs[i].fns, [], scope);
+                                    }
+                                    Microstatement_1.default.closureFromUserFunction(fn, fn.scope || scope, m, interfaceMap);
+                                    const closure = m[m.length - 1];
+                                    microstatements.splice(idx, 0, closure);
+                                    realArgNames[i] = closure.outputName;
+                                }
+                            });
                         }
                         return returnType;
                     })(inputTypes, scope), realArgNames, [opcodeObj]));
@@ -13837,7 +14120,7 @@ addopcodes({
 });
 exports.default = opcodeModule;
 
-},{"./Event":12,"./Microstatement":13,"./Module":14,"./Scope":16,"./StatementType":18,"./Type":19,"uuid":118}],23:[function(require,module,exports){
+},{"./Event":12,"./Microstatement":13,"./Module":14,"./Scope":16,"./StatementType":18,"./Type":19,"./UserFunction":20,"uuid":118}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RangeSet = exports.CharSet = exports.NamedOr = exports.NamedAnd = exports.Or = exports.And = exports.OneOrMore = exports.ZeroOrMore = exports.ZeroOrOne = exports.Not = exports.Token = exports.NulLP = exports.lpError = exports.LP = void 0;

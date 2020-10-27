@@ -1529,7 +1529,7 @@ interface Hashable {
 <p>The <a href="https://github.com/alantech/alan/tree/main/std">Alan Standard Library</a> is still small and barely complete enough to make non-trivial programs with, at the moment. We intend to follow the &quot;batteries included&quot; ethos of Python and Java and include many libraries such that &quot;normal&quot; usage of the language only requires libraries for access to third-party services, and then only as a convenience.</p>
 <p>If you are interested in contributing please drop us a line on <a href="https://discord.gg/XatB9we">Discord</a>.</p>
 <h3><a class="header" href="#stdapp" id="stdapp">@std/app</a></h3>
-<p>Currently very bare, only a single <code>print</code> function that takes all of the basic types and puts it on the console, and threeevents <code>start</code>, <code>exit</code>, and <code>stdout</code>. <code>start</code> intended to be handled by the user as it is automatically emitted <em>once</em> and <code>exit</code> to be emitted by the user when the program should finish. <code>stdout</code> is for more direct streaming of characters to standard out.</p>
+<p>Currently very bare, only a single <code>print</code> function that takes all of the basic types and puts it on the console, and three events <code>start</code>, <code>exit</code>, and <code>stdout</code>. <code>start</code> intended to be handled by the user as it is automatically emitted <em>once</em> and <code>exit</code> to be emitted by the user when the program should finish. <code>stdout</code> is for more direct streaming of characters to standard out.</p>
 <p>The formal declarations:</p>
 <pre><code class="language-alan">fn print(Stringifiable): void
 </code></pre>

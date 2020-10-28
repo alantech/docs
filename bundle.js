@@ -395,15 +395,12 @@ const loadStatements = (statements, localMem, globalMem, fn, isClosure) => {
             fnArgs = fnArgs.filter(t => t !== '');
         }
         const hasClosureArgs = isClosure && fnArgs.length > 0;
-        const isClosureExit = idx === statements.length - 2 && statements[idx + 1].has('exits');
         let s = '';
         if (statement.has('declarations')) {
             const dec = statement.get('declarations').has('constdeclaration') ?
                 statement.get('declarations').get('constdeclaration') :
                 statement.get('declarations').get('letdeclaration');
-            // if this is 2nd to last statement and last statement exits this is a closure
-            let resultAddress = isClosureExit ?
-                CLOSURE_ARG_MEM_START : localMem[dec.get('decname').t.trim()];
+            let resultAddress = localMem[dec.get('decname').t.trim()];
             localMemToLine[dec.get('decname').t.trim()] = line;
             const assignables = dec.get('assignables');
             if (assignables.has('functions')) {
@@ -414,15 +411,18 @@ const loadStatements = (statements, localMem, globalMem, fn, isClosure) => {
                 const fnName = call.get('variable').t.trim();
                 const vars = (call.has('calllist') ? call.get('calllist').getAll() : []).map(v => v.get('variable').t.trim());
                 const args = vars.map(v => {
-                    if (localMem.hasOwnProperty(v))
+                    if (localMem.hasOwnProperty(v)) {
                         return localMem[v];
-                    else if (globalMem.hasOwnProperty(v))
+                    }
+                    else if (globalMem.hasOwnProperty(v)) {
                         return globalMem[v];
+                    }
                     else if (hasClosureArgs) {
                         return CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v));
                     }
-                    else
+                    else {
                         return v;
+                    }
                 }).map(a => typeof a === 'string' ? a : `@${a}`);
                 while (args.length < 2)
                     args.push('@0');
@@ -594,6 +594,26 @@ const loadStatements = (statements, localMem, globalMem, fn, isClosure) => {
             if (deps.length > 0) {
                 s += ` <- [${deps.join(', ')}]`;
             }
+        }
+        else if (statement.has('exits')) {
+            const exit = statement.get('exits');
+            const exitVar = exit.get('variable').t.trim();
+            const vars = [exitVar];
+            const args = vars.map(v => {
+                if (localMem.hasOwnProperty(v))
+                    return localMem[v];
+                else if (globalMem.hasOwnProperty(v))
+                    return globalMem[v];
+                else if (hasClosureArgs) {
+                    return CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v));
+                }
+                else
+                    return v;
+            }).map(a => typeof a === 'string' ? a : `@${a}`);
+            while (args.length < 2)
+                args.push('@0');
+            s += `@${CLOSURE_ARG_MEM_START} = error(${args.join(', ')}) #${line}`;
+            // TODO: Better name and/or alias for this opcode?
         }
         vec.push(s);
         line += 1;

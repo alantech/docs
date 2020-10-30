@@ -146,11 +146,8 @@
                 <h1><a class="header" href="#transpile-alan-to-javascript" id="transpile-alan-to-javascript">Transpile Alan to Javascript</a></h1>
 <p>Run Alan in the browser or Node.js.</p>
 <h2><a class="header" href="#prerequisites" id="prerequisites">Prerequisites</a></h2>
-<p>For <code>alan-compile</code> and <code>alan-js-runtime</code> Node.js is required, with a minimum version of 10.20.1.</p>
+<p>For <code>alan-js-runtime</code> Node.js is required, with a minimum version of 10.20.1.</p>
 <h2><a class="header" href="#installation" id="installation">Installation</a></h2>
-<p>To install <code>alan-compile</code>, run:</p>
-<pre><code class="language-bash">npm i -g alan-compile
-</code></pre>
 <p>To install <code>alan-js-runtime</code>, run:</p>
 <pre><code class="language-bash">npm i -g alan-js-runtime
 </code></pre>
@@ -164,7 +161,7 @@ on app.start {
 }
 </code></pre></pre>
 <p>Next run:</p>
-<pre><code class="language-bash">alan-compile hello_world.ln hello_world.js
+<pre><code class="language-bash">alan compile hello_world.ln hello_world.js
 </code></pre>
 <p>This will produce a JS file that depends on the <code>alan-js-runtime</code>. If it is globally installed, you can simply run:</p>
 <pre><code class="language-bash">node hello_world.js

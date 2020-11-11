@@ -244,7 +244,6 @@ on start {
   emit exit 0
 }
 </code></pre></pre>
-<p><strong>Note: this example runs in the browser, but <code>recurse</code> not fully implemented in the AVM yet</strong></p>
 <p><code>recurse</code> allows recursive functions to be defined in <code>alan</code>. This is impossible in <code>alan</code>'s grammar, so what is done is special trickery to make it possible. The <code>recursiveFn</code> has the following function signature:</p>
 <pre><code class="language-alan">fn recursiveFn(self: Self, arg: any): Result&lt;anythingElse&gt;
 </code></pre>

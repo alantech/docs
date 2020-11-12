@@ -1546,7 +1546,7 @@ interface Hashable {
 fn each(seq: Seq, func: function): void
 fn while(seq: Seq, condFn: function, bodyFn: function): void
 fn doWhile(seq: Seq, bodyFn: function): void
-fn recurse(seq: Seq, recursiveFn: function, arg: any): anythingElse
+fn recurse(seq: Seq, recursiveFn: function, arg: any): Result&lt;anythingElse&gt;
 </code></pre>
 <h3><a class="header" href="#seq-type" id="seq-type"><code>Seq</code> type</a></h3>
 <p><code>@std/seq</code> provides functions for accomplishing many different sequential patterns that depend on a special, built-in <code>Seq</code> type with opaque internals to avoid manipulation after construction:</p>

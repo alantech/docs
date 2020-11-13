@@ -10097,7 +10097,6 @@ const Statement_1 = require("./Statement");
 const StatementType_1 = require("./StatementType");
 const Type_1 = require("./Type");
 const UserFunction_1 = require("./UserFunction");
-const ln_1 = require("../ln");
 const FIXED_TYPES = ['int64', 'int32', 'int16', 'int8', 'float64', 'float32', 'bool', 'void'];
 class Microstatement {
     constructor(statementType, scope, pure, outputName, outputType = Type_1.default.builtinTypes.void, inputNames = [], fns = [], alias = '', closurePure = true, closureStatements = [], closureArgs = {}, closureOutputType = Type_1.default.builtinTypes.void) {
@@ -10741,12 +10740,7 @@ ${withOperatorsAst.getText()}`;
         }
         const len = microstatements.length - args.length;
         for (const s of fn.statements) {
-            if (s.statementOrAssignableAst instanceof ln_1.LnParser.StatementsContext) {
-                Microstatement.fromStatementsAst(s.statementOrAssignableAst, scope, microstatements);
-            }
-            else {
-                Microstatement.fromAssignablesAst(s.statementOrAssignableAst, scope, microstatements);
-            }
+            Microstatement.fromStatementsAst(s.statementAst, scope, microstatements);
         }
         microstatements.splice(idx, args.length);
         const newlen = microstatements.length;
@@ -11391,20 +11385,14 @@ ${constdeclarationAst.getText()} on line ${constdeclarationAst.start.line}:${con
         if (secondaryScope !== null) {
             const newScope = new Scope_1.default(statement.scope);
             newScope.secondaryPar = secondaryScope;
-            actualStatement = new Statement_1.default(statement.statementOrAssignableAst, newScope, statement.pure);
+            actualStatement = new Statement_1.default(statement.statementAst, newScope, statement.pure);
         }
-        if (actualStatement.statementOrAssignableAst instanceof ln_1.LnParser.StatementsContext) {
-            Microstatement.fromStatementsAst(actualStatement.statementOrAssignableAst, actualStatement.scope, microstatements);
-        }
-        else {
-            // Otherwise it's a one-liner function
-            Microstatement.fromAssignablesAst(actualStatement.statementOrAssignableAst, actualStatement.scope, microstatements);
-        }
+        Microstatement.fromStatementsAst(actualStatement.statementAst, actualStatement.scope, microstatements);
     }
 }
 exports.default = Microstatement;
 
-},{"../ln":9,"./Ast":10,"./Constant":11,"./Event":12,"./Operator":15,"./Scope":16,"./Statement":17,"./StatementType":18,"./Type":19,"./UserFunction":20,"./opcodes":22,"uuid":118}],14:[function(require,module,exports){
+},{"./Ast":10,"./Constant":11,"./Event":12,"./Operator":15,"./Scope":16,"./Statement":17,"./StatementType":18,"./Type":19,"./UserFunction":20,"./opcodes":22,"uuid":118}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Ast = require("./Ast");
@@ -11915,21 +11903,18 @@ exports.default = Scope;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Operator_1 = require("./Operator");
-const ln_1 = require("../ln");
 // Only implements the pieces necessary for the first stage compiler
 class Statement {
-    constructor(statementOrAssignableAst, scope, pure) {
-        this.statementOrAssignableAst = statementOrAssignableAst,
+    constructor(statementAst, scope, pure) {
+        this.statementAst = statementAst,
             this.scope = scope;
         this.pure = pure;
     }
     isConditionalStatement() {
-        return this.statementOrAssignableAst instanceof ln_1.LnParser.StatementsContext &&
-            this.statementOrAssignableAst.conditionals() !== null;
+        return this.statementAst.conditionals() !== null;
     }
     isReturnStatement() {
-        return this.statementOrAssignableAst instanceof ln_1.LnParser.AssignablesContext ||
-            this.statementOrAssignableAst.exits() !== null;
+        return this.statementAst.exits() !== null;
     }
     static basicAssignableHasObjectLiteral(basicAssignableAst) {
         if (basicAssignableAst.objectliterals())
@@ -11948,26 +11933,21 @@ class Statement {
         return Statement.assignablesHasObjectLiteral(assignmentsAst.assignables());
     }
     hasObjectLiteral() {
-        if (this.statementOrAssignableAst instanceof ln_1.LnParser.StatementsContext) {
-            const s = this.statementOrAssignableAst;
-            if (s.declarations()) {
-                const d = s.declarations().constdeclaration() || s.declarations().letdeclaration();
-                return Statement.assignablesHasObjectLiteral(d.assignables());
-            }
-            if (s.assignments())
-                return Statement.assignmentsHasObjectLiteral(s.assignments());
-            if (s.calls() && s.calls().assignables() > 0)
-                s.calls().assignables().some((a) => Statement.assignablesHasObjectLiteral(a));
-            if (s.exits() && s.exits().assignables())
-                return Statement.assignablesHasObjectLiteral(s.exits().assignables());
-            if (s.emits() && s.emits().assignables())
-                return Statement.assignablesHasObjectLiteral(s.emits().assignables());
-            // TODO: Cover conditionals
-            return false;
+        const s = this.statementAst;
+        if (s.declarations()) {
+            const d = s.declarations().constdeclaration() || s.declarations().letdeclaration();
+            return Statement.assignablesHasObjectLiteral(d.assignables());
         }
-        else {
-            return Statement.assignablesHasObjectLiteral(this.statementOrAssignableAst);
-        }
+        if (s.assignments())
+            return Statement.assignmentsHasObjectLiteral(s.assignments());
+        if (s.calls() && s.calls().assignables() > 0)
+            s.calls().assignables().some((a) => Statement.assignablesHasObjectLiteral(a));
+        if (s.exits() && s.exits().assignables())
+            return Statement.assignablesHasObjectLiteral(s.exits().assignables());
+        if (s.emits() && s.emits().assignables())
+            return Statement.assignablesHasObjectLiteral(s.emits().assignables());
+        // TODO: Cover conditionals
+        return false;
     }
     static isCallPure(callAst, scope) {
         // TODO: Add purity checking for chained method-style calls
@@ -12050,62 +12030,51 @@ class Statement {
         // This should never be reached
         throw new Error("Impossible assignment situation");
     }
-    static create(statementOrAssignableAst, scope) {
-        if (statementOrAssignableAst instanceof ln_1.LnParser.AssignablesContext) {
-            const pure = Statement.isAssignablePure(statementOrAssignableAst, scope);
-            return new Statement(statementOrAssignableAst, scope, pure);
-        }
-        else if (statementOrAssignableAst instanceof ln_1.LnParser.StatementsContext) {
-            const statementAst = statementOrAssignableAst;
-            let pure = true;
-            if (statementAst.declarations() != null) {
-                if (statementAst.declarations().constdeclaration() != null) {
-                    pure = Statement.isAssignablePure(statementAst.declarations().constdeclaration().assignables(), scope);
-                }
-                else if (statementAst.declarations().letdeclaration() != null) {
-                    if (statementAst.declarations().letdeclaration().assignables() == null) {
-                        pure = true;
-                    }
-                    else {
-                        pure = Statement.isAssignablePure(statementAst.declarations().letdeclaration().assignables(), scope);
-                    }
+    static create(statementAst, scope) {
+        let pure = true;
+        if (statementAst.declarations() != null) {
+            if (statementAst.declarations().constdeclaration() != null) {
+                pure = Statement.isAssignablePure(statementAst.declarations().constdeclaration().assignables(), scope);
+            }
+            else if (statementAst.declarations().letdeclaration() != null) {
+                if (statementAst.declarations().letdeclaration().assignables() == null) {
+                    pure = true;
                 }
                 else {
-                    throw new Error("Bad assignment somehow reached");
+                    pure = Statement.isAssignablePure(statementAst.declarations().letdeclaration().assignables(), scope);
                 }
             }
-            if (statementAst.assignments() != null) {
-                if (statementAst.assignments().assignables() != null) {
-                    pure = Statement.isAssignablePure(statementAst.assignments().assignables(), scope);
-                }
+            else {
+                throw new Error("Bad assignment somehow reached");
             }
-            if (statementAst.calls() != null) {
-                pure = Statement.isCallPure(statementAst.calls(), scope);
-            }
-            if (statementAst.exits() != null) {
-                if (statementAst.exits().assignables() != null) {
-                    pure = Statement.isAssignablePure(statementAst.exits().assignables(), scope);
-                }
-            }
-            if (statementAst.emits() != null) {
-                if (statementAst.emits().assignables() != null) {
-                    pure = Statement.isAssignablePure(statementAst.emits().assignables(), scope);
-                }
-            }
-            return new Statement(statementAst, scope, pure);
         }
-        else {
-            // What?
-            throw new Error("This should not be possible");
+        if (statementAst.assignments() != null) {
+            if (statementAst.assignments().assignables() != null) {
+                pure = Statement.isAssignablePure(statementAst.assignments().assignables(), scope);
+            }
         }
+        if (statementAst.calls() != null) {
+            pure = Statement.isCallPure(statementAst.calls(), scope);
+        }
+        if (statementAst.exits() != null) {
+            if (statementAst.exits().assignables() != null) {
+                pure = Statement.isAssignablePure(statementAst.exits().assignables(), scope);
+            }
+        }
+        if (statementAst.emits() != null) {
+            if (statementAst.emits().assignables() != null) {
+                pure = Statement.isAssignablePure(statementAst.emits().assignables(), scope);
+            }
+        }
+        return new Statement(statementAst, scope, pure);
     }
     toString() {
-        return this.statementOrAssignableAst.getText();
+        return this.statementAst.getText();
     }
 }
 exports.default = Statement;
 
-},{"../ln":9,"./Operator":15}],18:[function(require,module,exports){
+},{"./Operator":15}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var StatementType;
@@ -12679,7 +12648,7 @@ class UserFunction {
             if (statements[i].isReturnStatement()) {
                 // There are unreachable statements after this line, abort
                 throw new Error(`Unreachable code in function '${name}' after:
-${statements[i].statementOrAssignableAst.getText().trim()} on line ${statements[i].statementOrAssignableAst.start.line}:${statements[i].statementOrAssignableAst.start.column}`);
+${statements[i].statementAst.getText().trim()} on line ${statements[i].statementAst.start.line}:${statements[i].statementAst.start.column}`);
             }
         }
         this.statements = statements;
@@ -12797,7 +12766,8 @@ ${statements[i].statementOrAssignableAst.getText().trim()} on line ${statements[
         }
         else {
             const assignablesAst = functionAst.fullfunctionbody().assignables();
-            let statement = Statement_1.default.create(assignablesAst, scope);
+            const statementAst = Ast.statementAstFromString(`return ${assignablesAst.getText()}\n`);
+            const statement = Statement_1.default.create(statementAst, scope);
             if (!statement.pure)
                 pure = false;
             statements.push(statement);
@@ -12876,15 +12846,9 @@ ${statements[i].statementOrAssignableAst.getText().trim()} on line ${statements[
         return this.pure;
     }
     toFnStr() {
-        if (this.statements.length === 1 &&
-            this.statements[0].statementOrAssignableAst instanceof ln_1.LnParser.AssignablesContext) {
-            return `
-        fn ${this.name || ''} (${Object.keys(this.args).map(argName => `${argName}: ${this.args[argName].typename}`).join(', ')}): ${this.returnType.typename} = ${this.statements[0].statementOrAssignableAst.getText()}
-      `.trim();
-        }
         return `
       fn ${this.name || ''} (${Object.keys(this.args).map(argName => `${argName}: ${this.args[argName].typename}`).join(', ')}): ${this.returnType.typename} {
-        ${this.statements.map(s => s.statementOrAssignableAst.getText()).join('\n')}
+        ${this.statements.map(s => s.statementAst.getText()).join('\n')}
       }
     `.trim();
     }
@@ -12951,7 +12915,7 @@ ${statements[i].statementOrAssignableAst.getText().trim()} on line ${statements[
                     const block = args.assignables(1).basicassignables().functions();
                     const blockFn = UserFunction.fromAst(block, scope);
                     if (blockFn.statements[blockFn.statements.length - 1].isReturnStatement()) {
-                        const innerStatements = blockFn.statements.map(s => s.statementOrAssignableAst);
+                        const innerStatements = blockFn.statements.map(s => s.statementAst);
                         const newBlockStatements = UserFunction.earlyReturnRewrite(retVal, retNotSet, innerStatements, scope);
                         const cond = args.assignables(0).getText().trim();
                         const newBlock = Ast.statementAstFromString(`
@@ -13004,10 +12968,10 @@ ${statements[i].statementOrAssignableAst.getText().trim()} on line ${statements[
             let statementAsts = [];
             let hasConditionalReturn = false; // Flag for potential second pass
             for (let i = 0; i < this.statements.length; i++) {
-                let s = new Statement_1.default(this.statements[i].statementOrAssignableAst, this.statements[i].scope, this.statements[i].pure);
+                let s = new Statement_1.default(this.statements[i].statementAst, this.statements[i].scope, this.statements[i].pure);
                 // Potentially rewrite the type for the object literal to match the interface type used by
                 // a specific call
-                const str = s.statementOrAssignableAst.getText();
+                const str = s.statementAst.getText();
                 const corrected = str.replace(/new ([^<]+)<([^{\[]+)> *([{\[])/g, (_, basetypestr, genericstr, openstr) => {
                     const originaltypestr = `${basetypestr.trim()}<${genericstr.trim()}>`;
                     let originalType = this.scope.deepGet(originaltypestr);
@@ -13042,33 +13006,26 @@ ${statements[i].statementOrAssignableAst.getText().trim()} on line ${statements[
                     const replacementType = originalType.realize(interfaceMap, this.scope);
                     return `: ${replacementType.typename}${openstr}`;
                 });
-                if (s.statementOrAssignableAst instanceof ln_1.LnParser.AssignablesContext) {
-                    const correctedAst = Ast.statementAstFromString(`return ${secondCorrection}\n`);
-                    s.statementOrAssignableAst = correctedAst;
-                    // statementAsts.push(correctedAst)
-                }
-                else {
-                    const correctedAst = Ast.statementAstFromString(secondCorrection);
-                    s.statementOrAssignableAst = correctedAst;
-                    // statementAsts.push(correctedAst)
-                }
+                const correctedAst = Ast.statementAstFromString(secondCorrection);
+                s.statementAst = correctedAst;
+                // statementAsts.push(correctedAst)
                 if (s.isConditionalStatement()) {
-                    const cond = s.statementOrAssignableAst.conditionals();
+                    const cond = s.statementAst.conditionals();
                     const res = UserFunction.conditionalToCond(cond, this.scope);
                     const newStatements = res[0];
                     if (res[1])
                         hasConditionalReturn = true;
                     statementAsts.push(...newStatements);
                 }
-                else if (s.statementOrAssignableAst instanceof ln_1.LnParser.AssignmentsContext) {
-                    const a = s.statementOrAssignableAst;
+                else if (s.statementAst instanceof ln_1.LnParser.AssignmentsContext) {
+                    const a = s.statementAst;
                     const wrappedAst = Ast.statementAstFromString(`
             ${a.varn().getText()} = ref(${a.assignables().getText()})
           `.trim() + '\n');
                     statementAsts.push(wrappedAst);
                 }
-                else if (s.statementOrAssignableAst instanceof ln_1.LnParser.LetdeclarationContext) {
-                    const l = s.statementOrAssignableAst;
+                else if (s.statementAst instanceof ln_1.LnParser.LetdeclarationContext) {
+                    const l = s.statementAst;
                     const name = l.VARNAME().getText();
                     const type = l.othertype() ? l.othertype().getText() : undefined;
                     const v = l.assignables().getText();
@@ -13078,7 +13035,7 @@ ${statements[i].statementOrAssignableAst.getText().trim()} on line ${statements[
                     statementAsts.push(wrappedAst);
                 }
                 else {
-                    statementAsts.push(s.statementOrAssignableAst);
+                    statementAsts.push(s.statementAst);
                 }
             }
             // Second pass, there was a conditional return, mutate everything *again* so the return is

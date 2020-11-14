@@ -363,7 +363,7 @@ argRerefOffset, scope) => {
             fn,
             statements,
             closureMem,
-            scope,
+            scope: [name, ...scope,],
         },
         ...otherClosures,
     };
@@ -443,9 +443,7 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
                         return globalMem[v];
                     }
                     else if (Object.keys(globalMem).some(k => closureScope.map(s => v + s).includes(k))) {
-                        return globalMem[
-                        // I actually need scoped variable assignment in a conditional right now, amazing!
-                        Object.keys(globalMem).find(k => closureScope.map(s => v + s).includes(k))];
+                        return globalMem[closureScope.map(s => v + s).find(k => Object.keys(globalMem).includes(k))];
                     }
                     else if (hasClosureArgs) {
                         return CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v));
@@ -533,9 +531,7 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
                         return globalMem[v];
                     }
                     else if (Object.keys(globalMem).some(k => closureScope.map(s => v + s).includes(k))) {
-                        return globalMem[
-                        // I actually need scoped variable assignment in a conditional right now, amazing!
-                        Object.keys(globalMem).find(k => closureScope.map(s => v + s).includes(k))];
+                        return globalMem[closureScope.map(s => v + s).find(k => Object.keys(globalMem).includes(k))];
                     }
                     else if (hasClosureArgs) {
                         return CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v));
@@ -597,9 +593,7 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
                     return globalMem[v];
                 }
                 else if (Object.keys(globalMem).some(k => closureScope.map(s => v + s).includes(k))) {
-                    return globalMem[
-                    // I actually need scoped variable assignment in a conditional right now, amazing!
-                    Object.keys(globalMem).find(k => closureScope.map(s => v + s).includes(k))];
+                    return globalMem[closureScope.map(s => v + s).find(k => Object.keys(globalMem).includes(k))];
                 }
                 else if (hasClosureArgs) {
                     return CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v));
@@ -653,9 +647,7 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
                     return globalMem[v];
                 }
                 else if (Object.keys(globalMem).some(k => closureScope.map(s => v + s).includes(k))) {
-                    return globalMem[
-                    // I actually need scoped variable assignment in a conditional right now, amazing!
-                    Object.keys(globalMem).find(k => closureScope.map(s => v + s).includes(k))];
+                    return globalMem[closureScope.map(s => v + s).find(k => Object.keys(globalMem).includes(k))];
                 }
                 else if (hasClosureArgs) {
                     return CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v));

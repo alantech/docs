@@ -37,7 +37,7 @@ module.exports = {
 }
 
 },{"../dist/lntoamm/Ast":10,"../dist/lntoamm/Module":14,"../dist/lntoamm/Scope":16,"../dist/lntoamm/opcodes":22,"./stdlibs.json":2}],2:[function(require,module,exports){
-module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out)\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\"\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status)\n\n// The `stderr` event\nexport event stderr: string\n\n// `@std/app` has access to a special `stderrp` opcode to trigger stderr writing\non stderr fn (err: string) = stderrp(err)\n\n// The `eprint` function converts its input to a string, appends a newline, and sends it to `stderr`\nexport fn eprint(err: Stringifiable) {\n  emit stderr err.toString() + \"\\n\"\n}\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n)","datastore.ln":"/**\n * @std/datastore - Shared mutable state with controlled access\n */\n\n// Just syntactic sugar to seem less stringly-typed than it is\nexport fn namespace(ns: string) = ns\n\n// The set function to store shared data\nexport fn set(ns: string, key: string, val: any) = dssetv(ns, key, val)\nexport fn set(ns: string, key: string, val: int8) = dssetf(ns, key, val)\nexport fn set(ns: string, key: string, val: int16) = dssetf(ns, key, val)\nexport fn set(ns: string, key: string, val: int32) = dssetf(ns, key, val)\nexport fn set(ns: string, key: string, val: int64) = dssetf(ns, key, val)\nexport fn set(ns: string, key: string, val: float32) = dssetf(ns, key, val)\nexport fn set(ns: string, key: string, val: float64) = dssetf(ns, key, val)\nexport fn set(ns: string, key: string, val: bool) = dssetf(ns, key, val)\n\n// The has function to test if a shared key exists\nexport fn has(ns: string, key: string): bool = dshas(ns, key)\n\n// The del function to remove a shared key\nexport fn del(ns: string, key: string): bool = dsdel(ns, key)\n\n// The getOr function to get a value or the return the provided default\nexport fn getOr(ns: string, key: string, default: any) {\n  return dsgetv(ns, key).getOr(default)\n}\nexport fn getOr(ns: string, key: string, default: int8) {\n  return dsgetf(ns, key).getOr(default)\n}\nexport fn getOr(ns: string, key: string, default: int16) {\n  return dsgetf(ns, key).getOr(default)\n}\nexport fn getOr(ns: string, key: string, default: int32) {\n  return dsgetf(ns, key).getOr(default)\n}\nexport fn getOr(ns: string, key: string, default: int64) {\n  return dsgetf(ns, key).getOr(default)\n}\nexport fn getOr(ns: string, key: string, default: float32) {\n  return dsgetf(ns, key).getOr(default)\n}\nexport fn getOr(ns: string, key: string, default: float64) {\n  return dsgetf(ns, key).getOr(default)\n}\nexport fn getOr(ns: string, key: string, default: bool) {\n  return dsgetf(ns, key).getOr(default)\n}\n","deps.ln":"from @std/app import start, print, exit\nfrom @std/cmd import exec\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\nexport fn add(remote: string) {\n  // TODO implement proper error handling\n  const parts = remote.split('/')\n  const repo = parts[length(parts) - 1] || ''\n  const group = parts[parts.length() - 2] || ''\n  const dest = '/dependencies/' + group + '/' + repo\n  const rm = exec('rm -rf .' + dest)\n  const git = exec('git clone ' + remote + ' .' + dest)\n  print(git.stderr) \n  const rm2 = exec('rm -rf .' + dest + '/.git')\n}\n\n// The `commit` function takes no arguments. Currently just causes the application to quit, but\n// eventually would be the point where the dependencies defined by the calls to `add` could be\n// compared against the currently-installed dependencies, and a faster install would be possible\nexport fn commit() {\n  emit exit 0\n}\n\n// Emit the `install` event on app `start`\non start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  exec('rm -rf dependencies')\n  exec('mkdir dependencies')\n  emit install\n}\n","http.ln":"/**\n * @std/http - Built-in client and server for http\n */\n\n/**\n * HTTP Client\n */\n\nexport fn get(url: string) = httpget(url)\nexport fn post(url: string, payload: string) = httppost(url, payload)\n\n/**\n * HTTP Server\n */\n\n// The InternalRequest type for inbound http requests\ntype InternalRequest {\n  url: string\n  headers: Array<KeyVal<string, string>>\n  body: string\n  connId: int64\n}\n\n// The InternalResponse type for inbount http requests\ntype InternalResponse {\n  status: int64\n  headers: Array<KeyVal<string, string>>\n  body: string\n  connId: int64\n}\n\n// The exposed Request type\nexport type Request {\n  url: string\n  headers: HashMap<string, string>\n  body: string\n}\n\n// The exposed Response type\nexport type Response {\n  status: int64\n  headers: HashMap<string, string>\n  body: string\n  connId: int64\n}\n\n// The roll-up Connection type with both\nexport type Connection {\n  req: Request\n  res: Response\n}\n\n// The connection event\nexport event connection: Connection\n\n// The special connection event with a signature like `event __conn: InternalConnection`\n// This wrapper function takes the internal connection object, converts it to the user-friendly\n// connection object, and then emits it on a new event for user code to pick up\non __conn fn (conn: InternalRequest) {\n  emit connection new Connection {\n    req = new Request {\n      url = conn.url\n      headers = toHashMap(conn.headers)\n      body = conn.body\n    }\n    res = new Response {\n      status = 200 // If not set by the user, assume they meant it to be good\n      headers = newHashMap('Content-Length', '0') // If not set by the user, assume no data\n      body = '' // If not set by the user, assume no data\n      connId = conn.connId\n    }\n  }\n}\n\n// The listen function tells the http server to start up and listen on the given port\n// For now only one http server per application, a macro system is necessary to improve this\n// Returns a Result with either an 'ok' string or an error\nexport fn listen(port: int64) = httplsn(port)\n\n// The body function sets the body for a Response, sets the Content-Length header, and retuns the\n// Response for chaining needs\nexport fn body(res: Response, body: string) {\n  res.body = body\n  const len = body.length()\n  set(res.headers, 'Content-Length', len.toString())\n  return res\n}\n\n// The status function sets the status of the response\nexport fn status(res: Response, status: int64) {\n  res.status = status\n  return res\n}\n\n// The send function converts the response object into an internal response object and passed that\n// back to the HTTP server. A Result type with either an 'ok' string or an error is returned\nexport fn send(res: Response): Result<string> {\n  const ires = new InternalResponse {\n    status = res.status\n    headers = res.headers.keyVal\n    body = res.body\n    connId = res.connId\n  }\n  return httpsend(ires)\n}","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Export all of the built-in types\nexport void\nexport int8\nexport int16\nexport int32\nexport int64\nexport float32\nexport float64\nexport bool\nexport string\nexport function // TODO: Make the function type more explicit than this\nexport Array\nexport Error\nexport Maybe\nexport Result\nexport Either\n\n// Type aliasing of int64 and float64 to just int and float, as these are the default types\nexport type int = int64\nexport type float = float64\n\n// Default Interfaces\nexport interface any {}\nexport interface anythingElse = any // Same as `any` but doesn't match with it\nexport interface Stringifiable {\n  toString(Stringifiable): string\n}\nexport interface Orderable {\n  lt(Orderable, Orderable): bool\n  lte(Orderable, Orderable): bool\n  gt(Orderable, Orderable): bool\n  gte(Orderable, Orderable): bool\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n)\nexport fn toFloat64(n: int16) = i16f64(n)\nexport fn toFloat64(n: int32) = i32f64(n)\nexport fn toFloat64(n: int64) = i64f64(n)\nexport fn toFloat64(n: float32) = f32f64(n)\nexport fn toFloat64(n: float64) = n\nexport fn toFloat64(n: string) = strf64(n)\nexport fn toFloat64(n: bool) = boolf64(n)\n\nexport fn toFloat32(n: int8) = i8f32(n)\nexport fn toFloat32(n: int16) = i16f32(n)\nexport fn toFloat32(n: int32) = i32f32(n)\nexport fn toFloat32(n: int64) = i64f32(n)\nexport fn toFloat32(n: float32) = n\nexport fn toFloat32(n: float64) = f64f32(n)\nexport fn toFloat32(n: string) = strf32(n)\nexport fn toFloat32(n: bool) = boolf32(n)\n\nexport fn toInt64(n: int8) = i8i64(n)\nexport fn toInt64(n: int16) = i16i64(n)\nexport fn toInt64(n: int32) = i32i64(n)\nexport fn toInt64(n: int64) = n\nexport fn toInt64(n: float32) = f32i64(n)\nexport fn toInt64(n: float64) = f64i64(n)\nexport fn toInt64(n: string) = stri64(n)\nexport fn toInt64(n: bool) = booli64(n)\n\nexport fn toInt32(n: int8) = i8i32(n)\nexport fn toInt32(n: int16) = i16i32(n)\nexport fn toInt32(n: int32) = n\nexport fn toInt32(n: int64) = i64i32(n)\nexport fn toInt32(n: float32) = f32i32(n)\nexport fn toInt32(n: float64) = f64i32(n)\nexport fn toInt32(n: string) = stri32(n)\nexport fn toInt32(n: bool) = booli32(n)\n\nexport fn toInt16(n: int8) = i8i16(n)\nexport fn toInt16(n: int16) = n\nexport fn toInt16(n: int32) = i32i16(n)\nexport fn toInt16(n: int64) = i64i16(n)\nexport fn toInt16(n: float32) = f32i16(n)\nexport fn toInt16(n: float64) = f64i16(n)\nexport fn toInt16(n: string) = stri16(n)\nexport fn toInt16(n: bool) = booli16(n)\n\nexport fn toInt8(n: int8) = n\nexport fn toInt8(n: int16) = i16i8(n)\nexport fn toInt8(n: int32) = i32i8(n)\nexport fn toInt8(n: int64) = i64i8(n)\nexport fn toInt8(n: float32) = f32i8(n)\nexport fn toInt8(n: float64) = f64i8(n)\nexport fn toInt8(n: string) = stri8(n)\nexport fn toInt8(n: bool) = booli8(n)\n\nexport fn toBool(n: int8) = i8bool(n)\nexport fn toBool(n: int16) = i16bool(n)\nexport fn toBool(n: int32) = i32bool(n)\nexport fn toBool(n: int64) = i64bool(n)\nexport fn toBool(n: float32) = f32bool(n)\nexport fn toBool(n: float64) = f64bool(n)\nexport fn toBool(n: string) = strbool(n)\nexport fn toBool(n: bool) = n\n\nexport fn toString(n: int8) = i8str(n)\nexport fn toString(n: int16) = i16str(n)\nexport fn toString(n: int32) = i32str(n)\nexport fn toString(n: int64) = i64str(n)\nexport fn toString(n: float32) = f32str(n)\nexport fn toString(n: float64) = f64str(n)\nexport fn toString(n: string) = n\nexport fn toString(n: bool) = boolstr(n)\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b)\nexport fn add(a: int16, b: int16) = addi16(a, b)\nexport fn add(a: int32, b: int32) = addi32(a, b)\nexport fn add(a: int64, b: int64) = addi64(a, b)\nexport fn add(a: float32, b: float32) = addf32(a, b)\nexport fn add(a: float64, b: float64) = addf64(a, b)\n\nexport fn sub(a: int8, b: int8) = subi8(a, b)\nexport fn sub(a: int16, b: int16) = subi16(a, b)\nexport fn sub(a: int32, b: int32) = subi32(a, b)\nexport fn sub(a: int64, b: int64) = subi64(a, b)\nexport fn sub(a: float32, b: float32) = subf32(a, b)\nexport fn sub(a: float64, b: float64) = subf64(a, b)\n\nexport fn negate(n: int8) = negi8(n)\nexport fn negate(n: int16) = negi16(n)\nexport fn negate(n: int32) = negi32(n)\nexport fn negate(n: int64) = negi64(n)\nexport fn negate(n: float32) = negf32(n)\nexport fn negate(n: float64) = negf64(n)\n\nexport fn abs(n: int8) = absi8(n)\nexport fn abs(n: int16) = absi16(n)\nexport fn abs(n: int32) = absi32(n)\nexport fn abs(n: int64) = absi64(n)\nexport fn abs(n: float32) = absf32(n)\nexport fn abs(n: float64) = absf64(n)\n\nexport fn mul(a: int8, b: int8) = muli8(a, b)\nexport fn mul(a: int16, b: int16) = muli16(a, b)\nexport fn mul(a: int32, b: int32) = muli32(a, b)\nexport fn mul(a: int64, b: int64) = muli64(a, b)\nexport fn mul(a: float32, b: float32) = mulf32(a, b)\nexport fn mul(a: float64, b: float64) = mulf64(a, b)\n\nexport fn div(a: int8, b: int8) = divi8(a, b)\nexport fn div(a: int16, b: int16) = divi16(a, b)\nexport fn div(a: int32, b: int32) = divi32(a, b)\nexport fn div(a: int64, b: int64) = divi64(a, b)\nexport fn div(a: float32, b: float32) = divf32(a, b)\nexport fn div(a: float64, b: float64) = divf64(a, b)\n\nexport fn mod(a: int8, b: int8) = modi8(a, b)\nexport fn mod(a: int16, b: int16) = modi16(a, b)\nexport fn mod(a: int32, b: int32) = modi32(a, b)\nexport fn mod(a: int64, b: int64) = modi64(a, b)\n\nexport fn pow(a: int8, b: int8) = powi8(a, b)\nexport fn pow(a: int16, b: int16) = powi16(a, b)\nexport fn pow(a: int32, b: int32) = powi32(a, b)\nexport fn pow(a: int64, b: int64) = powi64(a, b)\nexport fn pow(a: float32, b: float32) = powf32(a, b)\nexport fn pow(a: float64, b: float64) = powf64(a, b)\n\nexport fn sqrt(n: float32) = sqrtf32(n)\nexport fn sqrt(n: float64) = sqrtf64(n)\n\nexport fn min(x: Orderable, y: Orderable): Orderable {\n  return cond(lte(x, y), [x, y])\n}\nexport fn max(x: Orderable, y: Orderable): Orderable {\n  return cond(gte(x, y), [x, y])\n}\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b)\nexport fn and(a: int16, b: int16) = andi16(a, b)\nexport fn and(a: int32, b: int32) = andi32(a, b)\nexport fn and(a: int64, b: int64) = andi64(a, b)\nexport fn and(a: bool, b: bool) = andbool(a, b)\n\nexport fn or(a: int8, b: int8) = ori8(a, b)\nexport fn or(a: int16, b: int16) = ori16(a, b)\nexport fn or(a: int32, b: int32) = ori32(a, b)\nexport fn or(a: int64, b: int64) = ori64(a, b)\nexport fn or(a: bool, b: bool) = orbool(a, b)\n\nexport fn xor(a: int8, b: int8) = xori8(a, b)\nexport fn xor(a: int16, b: int16) = xori16(a, b)\nexport fn xor(a: int32, b: int32) = xori32(a, b)\nexport fn xor(a: int64, b: int64) = xori64(a, b)\nexport fn xor(a: bool, b: bool) = xorbool(a, b)\n\nexport fn not(n: int8) = noti8(n)\nexport fn not(n: int16) = noti16(n)\nexport fn not(n: int32) = noti32(n)\nexport fn not(n: int64) = noti64(n)\nexport fn not(n: bool) = notbool(n)\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b)\nexport fn nand(a: int16, b: int16) = nandi16(a, b)\nexport fn nand(a: int32, b: int32) = nandi32(a, b)\nexport fn nand(a: int64, b: int64) = nandi64(a, b)\nexport fn nand(a: bool, b: bool) = nandboo(a, b)\n\nexport fn nor(a: int8, b: int8) = nori8(a, b)\nexport fn nor(a: int16, b: int16) = nori16(a, b)\nexport fn nor(a: int32, b: int32) = nori32(a, b)\nexport fn nor(a: int64, b: int64) = nori64(a, b)\nexport fn nor(a: bool, b: bool) = norbool(a, b)\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b)\nexport fn xnor(a: int16, b: int16) = xnori16(a, b)\nexport fn xnor(a: int32, b: int32) = xnori32(a, b)\nexport fn xnor(a: int64, b: int64) = xnori64(a, b)\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b)\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b)\nexport fn eq(a: int16, b: int16) = eqi16(a, b)\nexport fn eq(a: int32, b: int32) = eqi32(a, b)\nexport fn eq(a: int64, b: int64) = eqi64(a, b)\nexport fn eq(a: float32, b: float32) = eqf32(a, b)\nexport fn eq(a: float64, b: float64) = eqf64(a, b)\nexport fn eq(a: string, b: string) = eqstr(a, b)\nexport fn eq(a: bool, b: bool) = eqbool(a, b)\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b)\nexport fn neq(a: int16, b: int16) = neqi16(a, b)\nexport fn neq(a: int32, b: int32) = neqi32(a, b)\nexport fn neq(a: int64, b: int64) = neqi64(a, b)\nexport fn neq(a: float32, b: float32) = neqf32(a, b)\nexport fn neq(a: float64, b: float64) = neqf64(a, b)\nexport fn neq(a: string, b: string) = neqstr(a, b)\nexport fn neq(a: bool, b: bool) = neqbool(a, b)\n\nexport fn lt(a: int8, b: int8) = lti8(a, b)\nexport fn lt(a: int16, b: int16) = lti16(a, b)\nexport fn lt(a: int32, b: int32) = lti32(a, b)\nexport fn lt(a: int64, b: int64) = lti64(a, b)\nexport fn lt(a: float32, b: float32) = ltf32(a, b)\nexport fn lt(a: float64, b: float64) = ltf64(a, b)\nexport fn lt(a: string, b: string) = ltstr(a, b)\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b)\nexport fn lte(a: int16, b: int16) = ltei16(a, b)\nexport fn lte(a: int32, b: int32) = ltei32(a, b)\nexport fn lte(a: int64, b: int64) = ltei64(a, b)\nexport fn lte(a: float32, b: float32) = ltef32(a, b)\nexport fn lte(a: float64, b: float64) = ltef64(a, b)\nexport fn lte(a: string, b: string) = ltestr(a, b)\n\nexport fn gt(a: int8, b: int8) = gti8(a, b)\nexport fn gt(a: int16, b: int16) = gti16(a, b)\nexport fn gt(a: int32, b: int32) = gti32(a, b)\nexport fn gt(a: int64, b: int64) = gti64(a, b)\nexport fn gt(a: float32, b: float32) = gtf32(a, b)\nexport fn gt(a: float64, b: float64) = gtf64(a, b)\nexport fn gt(a: string, b: string) = gtstr(a, b)\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b)\nexport fn gte(a: int16, b: int16) = gtei16(a, b)\nexport fn gte(a: int32, b: int32) = gtei32(a, b)\nexport fn gte(a: int64, b: int64) = gtei64(a, b)\nexport fn gte(a: float32, b: float32) = gtef32(a, b)\nexport fn gte(a: float64, b: float64) = gtef64(a, b)\nexport fn gte(a: string, b: string) = gtestr(a, b)\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n))\nexport fn wait(n: int16) = waitop(i16i64(n))\nexport fn wait(n: int32) = waitop(i32i64(n))\nexport fn wait(n: int64) = waitop(n)\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b)\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n)\n// export fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t)\nexport fn length(s: string) = lenstr(s)\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b)\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n)\nexport fn index(arr: Array<any>, val: any) = indarrv(arr, val)\nexport fn index(arr: Array<int8>, val: int8) = indarrf(arr, val)\nexport fn index(arr: Array<int16>, val: int16) = indarrf(arr, val)\nexport fn index(arr: Array<int32>, val: int32) = indarrf(arr, val)\nexport fn index(arr: Array<int64>, val: int64) = indarrf(arr, val)\nexport fn index(arr: Array<float32>, val: float32) = indarrf(arr, val)\nexport fn index(arr: Array<float64>, val: float64) = indarrf(arr, val)\nexport fn index(arr: Array<bool>, val: bool) = indarrf(arr, val)\nexport fn has(arr: Array<any>, val: any) = indarrv(arr, val).isOk()\nexport fn has(arr: Array<int8>, val: int8) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<int16>, val: int16) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<int32>, val: int32) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<int64>, val: int64) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<float32>, val: float32) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<float64>, val: float64) = indarrf(arr, val).isOk()\nexport fn has(arr: Array<bool>, val: bool) = indarrf(arr, val).isOk()\nexport fn length(arr: Array<any>) = lenarr(arr)\nexport fn push(arr: Array<any>, val: any) {\n  pusharr(arr, val, 0)\n  return arr\n}\nexport fn push(arr: Array<int8>, val: int8) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<int16>, val: int16) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<int32>, val: int32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<int64>, val: int64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<float32>, val: float32) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<float64>, val: float64) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn push(arr: Array<bool>, val: bool) {\n  pusharr(arr, val, 8)\n  return arr\n}\nexport fn pop(arr: Array<any>) = poparr(arr)\nexport each // parallel opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport fn eachLin(arr: Array<any>, cb: function): void = eachl(arr, cb)\nexport map // parallel opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport fn mapLin(arr: Array<any>, cb: function): Array<anythingElse> = mapl(arr, cb)\n/**\n * Unlike the other array functions, reduce is sequential by default and parallelism must be opted\n * in. This is due to the fact that parallelism requires the reducer function to be commutative or\n * associative, otherwise it will return different values on each run, and the compiler has no way\n * to guarantee that your reducer function is commutative or associative.\n *\n * There are four reduce functions instead of two as expected, because a reducer that reduces into\n * the same datatype requires less work than one that reduces into a new datatype. To reduce into a\n * new datatype you need an initial value in that new datatype that the reducer can provide to the\n * first reduction call to \"get the ball rolling.\" And there are extra constraints if you want the\n * reducer to run in parallel: that initial value will be used multiple times for each of the\n * parallel threads of computation, so that initial value has to be idempotent for it to work. Then\n * you're left with multiple reduced results that cannot be combined with each other with the main\n * reducer, so you need to provide a second reducer function that takes the resulting datatype and\n * can combine them with each other successfully, and that one *also* needs to be a commutative or\n * associative function.\n *\n * The complexities involved in writing a parallel reducer are why we decided to make the sequential\n * version the default, as the extra overhead is not something most developers are used to, whether\n * they hail from the functional programming world or the imperative world.\n *\n * On that note, you'll notice that the opcodes are named after `reduce` and `fold`. This is the\n * naming scheme that functional language programmers would be used to, but Java and Javascript\n * combined them both as `reduce`, so we have maintained that convention as we expect fewer people\n * needing to adapt to that change, it being a change they're likely already familiar with, and\n * noting that an extra argument that makes it equivalent to `fold` is easier than trying to find\n * the 3 or 4 arg variant under a different name.\n */\nexport fn reduce(arr: Array<any>, cb: function): any = reducel(arr, cb)\nexport fn reducePar(arr: Array<any>, cb: function): any = reducep(arr, cb)\n/**\n * This type is used to reduce the number of arguments passed to the opcodes, which can only take 2\n * arguments if they return a value, or 3 arguments if they are a side-effect-only opcode, and is an\n * implementation detail of the 3 and 4 arg reduce functions.\n */\ntype InitialReduce<T, U> {\n  arr: Array<T>\n  initial: U\n}\nexport fn reduce(arr: Array<any>, cb: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr = arr\n    initial = initial\n  }\n  return foldl(args, cb)\n}\nexport fn reducePar(arr: Array<any>, transformer: function, merger: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr = arr\n    initial = initial\n  }\n  const intermediate = foldp(args, transformer)\n  return reducep(intermediate, merger)\n}\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): Result<any>`\nexport fn findLin(arr: Array<any>, cb: function): Result<any> = findl(arr, cb)\nexport every // parallel opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport fn everyLin(arr: Array<any>, cb: function): bool = everyl(arr, cb)\nexport some // parallel opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport fn someLin(arr: Array<any>, cb: function): bool = somel(arr, cb)\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\nexport fn delete(arr: Array<any>, idx: int64): Result<any> = delindx(arr, idx)\nexport fn set(arr: Array<any>, idx: int64, val: any) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytov(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<int8>, idx: int64, val: int8) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<int16>, idx: int64, val: int16) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<int32>, idx: int64, val: int32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<int64>, idx: int64, val: int64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<float32>, idx: int64, val: float32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<float64>, idx: int64, val: float64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\nexport fn set(arr: Array<bool>, idx: int64, val: bool) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access')\n  } else {\n    copytof(arr, idx, val)\n    return some(arr)\n  }\n}\n\n// Ternary functions\nexport fn pair(trueval: any, falseval: any) = new Array<any> [ trueval, falseval ]\nexport fn cond(c: bool, options: Array<any>) = getR(options[1 - c.toInt64()])\nexport fn cond(c: bool, optional: function): void = condfn(c, optional)\n\n// \"clone\" function useful for hoisting assignments and making duplicates\nexport fn clone(a: any) = copyarr(a)\nexport fn clone(a: Array<any>) = copyarr(a)\nexport fn clone(a: void) = copyvoid(a) // TODO: Eliminate this, covering up a weird error\nexport fn clone() = zeroed() // TODO: Used for conditionals, eliminate with more clever compiler\nexport fn clone(a: int8) = copyi8(a)\nexport fn clone(a: int16) = copyi16(a)\nexport fn clone(a: int32) = copyi32(a)\nexport fn clone(a: int64) = copyi64(a)\nexport fn clone(a: float32) = copyf32(a)\nexport fn clone(a: float64) = copyf64(a)\nexport fn clone(a: bool) = copybool(a)\nexport fn clone(a: string) = copystr(a)\n\n// Error, Maybe, Result, and Either types and functions\nexport error // opcode with signature `fn error(string): Error`\nexport fn ref(a: any) = refv(a)\nexport fn ref(a: void) = reff(a)\nexport fn ref(a: int8) = reff(a)\nexport fn ref(a: int16) = reff(a)\nexport fn ref(a: int32) = reff(a)\nexport fn ref(a: int64) = reff(a)\nexport fn ref(a: float32) = reff(a)\nexport fn ref(a: float64) = reff(a)\nexport fn ref(a: bool) = reff(a)\nexport noerr // opcode with signature `fn noerr(): Error`\nexport fn toString(err: Error) = errorstr(err)\n\nexport fn some(val: any) = someM(val, 0)\nexport fn some(val: int8) = someM(val, 8)\nexport fn some(val: int16) = someM(val, 8)\nexport fn some(val: int32) = someM(val, 8)\nexport fn some(val: int64) = someM(val, 8)\nexport fn some(val: float32) = someM(val, 8)\nexport fn some(val: float64) = someM(val, 8)\nexport fn some(val: bool) = someM(val, 8)\nexport fn none() = noneM()\nexport isSome // opcode with signature `fn isSome(Maybe<any>): bool`\nexport isNone // opcode with signature `fn isNone(Maybe<any>): bool`\nexport fn getOr(maybe: Maybe<any>, default: any) = getOrM(maybe, default)\n\nexport fn ok(val: any) = okR(val, 0)\nexport fn ok(val: int8) = okR(val, 8)\nexport fn ok(val: int16) = okR(val, 8)\nexport fn ok(val: int32) = okR(val, 8)\nexport fn ok(val: int64) = okR(val, 8)\nexport fn ok(val: float32) = okR(val, 8)\nexport fn ok(val: float64) = okR(val, 8)\nexport fn ok(val: bool) = okR(val, 8)\nexport err // opcode with signature `fn err(string): Result<any>`\nexport isOk // opcode with signature `fn isOk(Result<any>): bool`\nexport isErr // opcode with signature `fn isErr(Result<any>: bool`\nexport fn getOr(result: Result<any>, default: any) = getOrR(result, default)\nexport fn getOr(result: Result<any>, default: string) = getOrRS(result, default)\nexport getErr // opcode with signature `fn getErr(Result<any>, Error): Error`\nexport fn toString(n: Result<Stringifiable>): string {\n  if n.isOk() {\n    return n.getR().toString()\n  } else {\n    return n.getErr(noerr()).toString()\n  }\n}\n\nexport fn main(val: any) = mainE(val, 0)\nexport fn main(val: int8) = mainE(val, 8)\nexport fn main(val: int16) = mainE(val, 8)\nexport fn main(val: int32) = mainE(val, 8)\nexport fn main(val: int64) = mainE(val, 8)\nexport fn main(val: float32) = mainE(val, 8)\nexport fn main(val: float64) = mainE(val, 8)\nexport fn main(val: bool) = mainE(val, 8)\nexport fn alt(val: any) = altE(val, 0)\nexport fn alt(val: int8) = altE(val, 8)\nexport fn alt(val: int16) = altE(val, 8)\nexport fn alt(val: int32) = altE(val, 8)\nexport fn alt(val: int64) = altE(val, 8)\nexport fn alt(val: float32) = altE(val, 8)\nexport fn alt(val: float64) = altE(val, 8)\nexport fn alt(val: bool) = altE(val, 8)\nexport isMain // opcode with signature `fn isMain(Either<any, anythingElse>): bool`\nexport isAlt // opcode with signature `fn isAlt(Either<any, anythingElse): bool`\nexport fn getMainOr(either: Either<any, anythingElse>, default: any) = mainOr(either, default)\nexport fn getAltOr(either: Either<any, anythingElse>, default: anythingElse) = altOr(either, default)\n\n// toHash functions for all data types\nexport fn toHash(val: any) = hashv(val)\nexport fn toHash(val: int8) = hashf(val)\nexport fn toHash(val: int16) = hashf(val)\nexport fn toHash(val: int32) = hashf(val)\nexport fn toHash(val: int64) = hashf(val)\nexport fn toHash(val: float32) = hashf(val)\nexport fn toHash(val: float64) = hashf(val)\nexport fn toHash(val: bool) = hashf(val)\n\n// HashMap implementation\nexport type KeyVal<K, V> {\n  key: K\n  val: V\n}\n\nexport interface Hashable {\n  toHash(Hashable): int64\n  eq(Hashable, Hashable): bool\n}\n\nexport type HashMap<K, V> {\n  keyVal: Array<KeyVal<K, V>>\n  lookup: Array<Array<int64>>\n}\n\nexport fn keyVal(hm: HashMap<Hashable, any>) = hm.keyVal\nexport fn keys(hm: HashMap<Hashable, any>): Array<Hashable> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): Hashable = kv.key)\nexport fn vals(hm: HashMap<Hashable, any>): Array<any> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): any = kv.val)\nexport fn length(hm: HashMap<Hashable, any>): int64 = length(hm.keyVal)\n\nexport fn get(hm: HashMap<Hashable, any>, key: Hashable): any {\n  const hash = key.toHash().abs() % length(hm.lookup)\n  const list = getR(hm.lookup[hash])\n  const index = list.find(fn (i: int64): Array<int64> {\n    const kv = getR(hm.keyVal[i])\n    return eq(kv.key, key)\n  })\n  if index.isOk() {\n    const i = index.getOr(0)\n    const kv = getR(hm.keyVal[i])\n    return ok(kv.val)\n  } else {\n    return err('key not found')\n  }\n}\n\nexport fn set(hm: HashMap<Hashable, any>, key: Hashable, val: any): HashMap<Hashable, any> {\n  const kv = new KeyVal<Hashable, any> {\n    key = key\n    val = val\n  }\n  const index = length(hm.keyVal)\n  push(hm.keyVal, kv)\n  const hash = key.toHash().abs() % length(hm.lookup)\n  const list = getR(hm.lookup[hash])\n  if list.length() == 8 {\n    // Rebucket everything\n    const lookupLen = length(hm.lookup) * 2\n    hm.lookup = new Array<Array<int64>> [ new Array<int64> [], ] * lookupLen\n    eachl(hm.keyVal, fn (kv: KeyVal<Hashable, any>, i: int64) {\n      const hash = toHash(kv.key).abs() % lookupLen\n      const list = getR(hm.lookup[hash])\n      list.push(i)\n    })\n  } else {\n    list.push(index)\n  }\n  return hm\n}\n\nexport fn newHashMap(firstKey: Hashable, firstVal: any): HashMap<Hashable, any> { // TODO: Rust-like fn::<typeA, typeB> syntax?\n  let hm = new HashMap<Hashable, any> {\n    keyVal = new Array<KeyVal<Hashable, any>> []\n    lookup = new Array<Array<int64>> [ new Array<int64> [] ] * 128 // 1KB of space\n  }\n  return hm.set(firstKey, firstVal)\n}\n\nexport fn toHashMap(kva: Array<KeyVal<Hashable, any>>) {\n  let hm = new HashMap<Hashable, any> {\n    keyVal = kva\n    lookup = new Array<Array<int64>> [ new Array<int64> [] ] * 128\n  }\n  kva.eachl(fn (kv: KeyVal<Hashable, any>, i: int64) {\n    const hash = toHash(kv.key).abs() % length(hm.lookup)\n    const list = getR(hm.lookup[hash])\n    list.push(i)\n  })\n  return hm\n}\n\n// Tree implementation\n\n// The Tree type houses all of the values attached to a tree in an array and two secondary arrays to\n// hold the metadata on which value is the parent and which are children, if any. The parent value\n// is `-1` if it has no parent and a positive integer otherwise.\nexport type Tree<T> {\n  vals: Array<T>\n  parents: Array<int64>\n  children: Array<Array<int64>>\n}\n\n// The Node type simply holds the index to look into the tree for a particular value-parent-children\n// triplet, where that index is referred to as a node ID. This allows node-based code to be written\n// while not actually having a recursive data structure that a traditional Node type would define.\nexport type Node<T> {\n  id: int64\n  tree: Tree<T>\n}\n\nexport fn newTree(rootVal: any): Tree<any> = new Tree<any> {\n  vals = new Array<any> [ rootVal ]\n  parents = new Array<int64> [ -1 ] // The root node has no parent, so its parent ID is -1.\n  children = new Array<Array<int64>> [ new Array<int64> [ ] ]\n}\n\nexport fn getRootNode(t: Tree<any>): Node<any> {\n  if has(t.parents, -1) {\n    return new Node<any> {\n      id = index(t.parents, -1).getOr(0)\n      tree = t\n    }\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id = -1\n      tree = new Tree<any> {\n        vals = new Array<any> []\n        parents = new Array<int64> []\n        children = new Array<Array<int64>> []\n      }\n    }\n  }\n}\n\nexport fn getTree(n: Node<any>): Tree<any> = n.tree\n\nexport fn length(t: Tree<any>): int64 = length(t.vals)\n\nexport fn getNodeById(t: Tree<any>, i: int64): Node<any> {\n  if length(t.vals) > i {\n    return new Node<any> {\n      id = i\n      tree = t\n    }\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id = -1\n      tree = new Tree<any> {\n        vals = new Array<any> []\n        parents = new Array<int64> []\n        children = new Array<Array<int64>> []\n      }\n    }\n  }\n}\n\nexport fn getParent(n: Node<any>): Node<any> {\n  const parentId = getOr(n.tree.parents[n.id], -1)\n  if parentId > -1 {\n    return new Node<any> {\n      id = parentId\n      tree = n.tree\n    }\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id = -1\n      tree = new Tree<any> {\n        vals = new Array<any> []\n        parents = new Array<int64> []\n        children = new Array<Array<int64>> []\n      }\n    }\n  }\n}\n\nexport fn getChildren(n: Node<any>): Array<Node<any>> {\n  if length(n.tree.vals) > n.id {\n    const childIds = getOr(n.tree.children[n.id], new Array<int64> [])\n    return childIds.filter(fn (id: int64): bool {\n      const parentId = getOr(n.tree.parents[id], -1)\n      return parentId.eq(n.id)\n    }).map(fn (id: int64): Node<any> {\n      return new Node<any> {\n        id = id\n        tree = n.tree\n      }\n    })\n  } else {\n    return new Array<Node<any>> [ ]\n  }\n}\n\n// Returns the pruned Tree\nexport fn prune(n: Node<any>): Tree<any> {\n  // adjust parent's children\n  const parentRes = n.tree.parents[n.id]\n  if parentRes.isOk() {\n    const parentId = parentRes.getR()\n    const children = getOr(n.tree.children[parentId], new Array<int64> [])\n    const idxRes = index(children, n.id)\n    if idxRes.isOk() {\n      delete(children, idxRes.getR())\n    }\n  }\n  // This is, unfortunately for now, a sequential algorithm. Hope to figure out a parallel version\n  let nodeStack = new Array<int64> [ n.id ]\n  let rmdIds = new Array<int64> [ ]\n  seqdo(newseq(pow(2, 62)), fn (): bool {\n    // Get the nodeId, exit if none left\n    const nodeRes = nodeStack.pop()\n    if nodeRes.isErr() {\n      return false\n    }\n    const nodeId = nodeRes.getR()\n    // Push the children onto the stack to process if the node has them\n    const childrenRes = n.tree.children[nodeId]\n    if childrenRes.isOk() {\n      const childrenIds = childrenRes.getR()\n      nodeStack = nodeStack.concat(childrenIds)\n    }\n    const delIdx = nodeId - length(rmdIds)\n    delete(n.tree.vals, delIdx)\n    delete(n.tree.parents, delIdx)\n    delete(n.tree.children, delIdx)\n    push(rmdIds, nodeId)\n    return true\n  })\n\n  // adjust indices for remaining elements\n  const iters = length(n.tree.parents)\n  seqeach(newseq(iters), fn (i: int64) {\n    const parentId = getOr(n.tree.parents[i], -1)\n    const parentDelta = rmdIds.filter(fn (rmId: int64): bool = parentId > rmId).length()\n    if parentDelta > 0 {\n      set(n.tree.parents, i, parentId - parentDelta)\n    }\n    const children = getOr(n.tree.children[i], new Array<int64> [])\n    const newChildren = children.map(fn (cId: int64): int64 {\n      const delta = rmdIds.filter(fn (rmdId: int64): bool = cId > rmdId).length()\n      if delta > 0 {\n        return cId - delta\n      }\n      return cId\n    })\n    set(n.tree.children, i, newChildren)\n  })\n  return n.tree\n}\n\nexport fn getChildren(t: Tree<any>): Array<Node<any>> = t.getRootNode().getChildren()\n\n// returns the new child node added\nexport fn addChild(n: Node<any>, val: any): Node<any> {\n  const childId = length(n.tree.vals)\n  push(n.tree.vals, val)\n  push(n.tree.parents, n.id)\n  push(n.tree.children, new Array<int64> [ ])\n  push(getOr(n.tree.children[n.id], new Array<int64> []), childId)\n  return new Node<any> {\n    id = childId\n    tree = n.tree\n  }\n}\n\nexport fn addChild(t: Tree<any>, val: any): Node<any> = t.getRootNode().addChild(val)\n\nexport fn addChild(t: Tree<any>, val: Node<any>): Node<any> = t.getRootNode().addChild(val)\n\nexport fn addChild(n: Node<any>, val: Tree<any>): Node<any> = n.addChild(val.getRootNode())\n\nexport fn getOr(n: Node<any>, default: any): any = getOr(n.tree.vals[n.id], default)\n\nexport fn toNodeArray(t: Tree<any>): Array<Node<any>> = map(t.vals, fn (val: any, i: int64): Node<any> = t.getNodeById(i))\n\nexport fn map(t: Tree<any>, mapper: function): Tree<anythingElse> {\n  return new Tree<anythingElse> {\n    vals = t.toNodeArray().map(mapper)\n    parents = clone(t.parents)\n    children = clone(t.children)\n  }\n}\n\nexport fn some(t: Tree<any>, mapper: function): bool = t.toNodeArray().some(mapper)\n\nexport fn every(t: Tree<any>, mapper: function): bool = t.toNodeArray().every(mapper)\n\nexport fn reduce(t: Tree<any>, cb: function, initial: anythingElse): bool = t.toNodeArray().reduce(cb, initial)\n\nexport fn find(t: Tree<any>, mapper: function): Node<any> {\n  // Return an invalid node, will behave like an error result\n  return t.toNodeArray().find(mapper).getOr(\n    new Node<any> {\n      id = -1\n      tree = new Tree<any> {\n        vals = new Array<any> []\n        parents = new Array<int64> []\n        children = new Array<Array<int64>> []\n      }\n    }\n  )\n}\n\n// Operator declarations\nexport infix add as + precedence 2\nexport infix concat as + precedence 2\nexport infix sub as - precedence 2\nexport prefix negate as - precedence 1\nexport infix mul as * precedence 3\nexport infix repeat as * precedence 3\nexport infix div as / precedence 3\nexport infix split as / precedence 3\nexport infix mod as % precedence 3\n// export infix template as % precedence 3\nexport infix pow as ** precedence 4\nexport infix and as & precedence 3\nexport infix and as && precedence 3\nexport infix or as | precedence 2\nexport infix or as || precedence 2\nexport infix xor as ^ precedence 2\nexport prefix not as ! precedence 4\nexport infix nand as !& precedence 3\nexport infix nor as !| precedence 2\nexport infix xnor as !^ precedence 2\nexport infix eq as == precedence 1\nexport infix neq as != precedence 1\nexport infix lt as < precedence 1\nexport infix lte as <= precedence 1\nexport infix gt as > precedence 1\nexport infix gte as >= precedence 1\nexport infix matches as ~ precedence 1\nexport infix index as @ precedence 1\nexport prefix length as # precedence 4\nexport prefix trim as ` precedence 4\nexport infix pair as : precedence 5\nexport infix push as : precedence 6\nexport infix cond as ? precedence 0\nexport infix getOr as | precedence 2\nexport infix getOr as || precedence 2\n","seq.ln":"/**\n * @std/seq - Tools for sequential algorithms. Use if you must.\n */\n\n// The `Seq` opaque type used by these algorithms to guarantee halting\nexport Seq\n\n// The `seq` constructor function\nexport fn seq(limit: int64): Seq = newseq(limit)\n\n// A basic iterator function, unlikely to be useful outside of these functions\nexport fn next(seq: Seq): Result<int64> = seqnext(seq)\n\n// An automatic iterator that executes the provided function in sequence until the limit is reached\nexport fn each(seq: Seq, func: function): void = seqeach(seq, func)\n\n// A while loop with an initial conditional check\nexport fn while(seq: Seq, condFn: function, bodyFn: function): void = seqwhile(seq, condFn, bodyFn)\n\n// A do-while loop that returns the conditional check\nexport fn doWhile(seq: Seq, bodyFn: function): void = seqdo(seq, bodyFn)\n\n// Recursive functions in Alan require a \"trampoline\" outside of the grammar of the language to work\n// so a special \"Self\" type exists that internally references the Seq type and the relevant function\n// and provides the mechanism to re-schedule the recursive function to call with a new argument.\nexport Self\n\n// There are two `recurse` functions. The first is on the `self` object that has an internal\n// reference to the relevant seq and recursive function to be called and is meant to be used within\n// the recursive function. The second sets it all off with a sequence operator, the recursive\n// function in question, and the query argument, and is using the first function under the hood.\nexport fn recurse(self: Self, arg: any): Result<anythingElse> = selfrec(self, arg)\nexport fn recurse(seq: Seq, recurseFn: function, arg: any): Result<anythingElse> {\n  let self = seqrec(seq, recurseFn)\n  return selfrec(self, arg)\n}\n\n// TODO: Add the generator piece of the seq rfc\n","trig.ln":"export const e = 2.718281828459045\nexport const pi = 3.141592653589793\nexport const tau = 6.283185307179586\n\nexport fn exp(x: float64) = e ** x\nexport fn exp(x: float32) = toFloat32(e) ** x\n\nexport fn ln(x: float64) = lnf64(x)\nexport fn ln(x: float32) = toFloat32(lnf64(toFloat64(x)))\n\nexport fn log(x: float64) = logf64(x)\nexport fn log(x: float32) = toFloat32(logf64(toFloat64(x)))\n\nexport fn sin(x: float64) = sinf64(x)\nexport fn sin(x: float32) = toFloat32(sinf64(toFloat64(x)))\nexport fn sine(x: float64) = sinf64(x)\nexport fn sine(x: float32) = toFloat32(sinf64(toFloat64(x)))\n\nexport fn cos(x: float64) = cosf64(x)\nexport fn cos(x: float32) = toFloat32(cosf64(toFloat64(x)))\nexport fn cosine(x: float64) = cosf64(x)\nexport fn cosine(x: float32) = toFloat32(cosf64(toFloat64(x)))\n\nexport fn tan(x: float64) = tanf64(x)\nexport fn tan(x: float32) = toFloat32(tanf64(toFloat64(x)))\nexport fn tangent(x: float64) = tanf64(x)\nexport fn tangent(x: float32) = toFloat32(tanf64(toFloat64(x)))\n\nexport fn sec(x: float64) = 1.0 / cosf64(x)\nexport fn sec(x: float32) = toFloat32(sec(toFloat64(x)))\nexport fn secant(x: float64) = 1.0 / cosf64(x)\nexport fn secant(x: float32) = toFloat32(secant(toFloat64(x)))\n\nexport fn csc(x: float64) = 1.0 / sinf64(x)\nexport fn csc(x: float32) = toFloat32(csc(toFloat64(x)))\nexport fn cosecant(x: float64) = 1.0 / sinf64(x)\nexport fn cosecant(x: float32) = toFloat32(cosecant(toFloat64(x)))\n\nexport fn cot(x: float64) = 1.0 / tanf64(x)\nexport fn cot(x: float32) = toFloat32(cot(toFloat64(x)))\nexport fn cotangent(x: float64) = 1.0 / tanaf64(x)\nexport fn cotangent(x: float32) = toFloat32(cotangent(toFloat64(x)))\n\nexport fn asin(x: float64) = asinf64(x)\nexport fn asin(x: float32) = toFloat32(asinf64(toFloat64(x)))\nexport fn arcsine(x: float64) = asinf64(x)\nexport fn arcsine(x: float32) = toFloat32(asinf64(toFloat64(x)))\n\nexport fn acos(x: float64) = acosf64(x)\nexport fn acos(x: float32) = toFloat32(acosf64(toFloat64(x)))\nexport fn arccosine(x: float64) = acosf64(x)\nexport fn arccosine(x: float32) = toFloat32(acosf64(toFloat64(x)))\n\nexport fn atan(x: float64) = atanf64(x)\nexport fn atan(x: float32) = toFloat32(atanf64(toFloat64(x)))\nexport fn arctangent(x: float64) = atanf64(x)\nexport fn arctangent(x: float32) = toFloat32(atanf64(toFloat64(x)))\n\nexport fn asec(x: float64) = acosf64(1.0 / x)\nexport fn asec(x: float32) = toFloat32(asec(toFloat64(x)))\nexport fn arcsecant(x: float64) = acosf64(1.0 / x)\nexport fn arcsecant(x: float32) = toFloat32(arcsecant(toFloat64(x)))\n\nexport fn acsc(x: float64) = asinf64(1.0 / x)\nexport fn acsc(x: float32) = toFloat32(acsc(toFloat64(x)))\nexport fn arccosecant(x: float64) = asinf64(1.0 / x)\nexport fn arccosecant(x: float32) = toFloat32(arccosecant(toFloat64(x)))\n\nexport fn acot(x: float64) = pi / 2.0 - atanf64(x)\nexport fn acot(x: float32) = toFloat32(acot(toFloat64(x)))\nexport fn arccotangent(x: float64) = pi / 2.0 - atanf64(x)\nexport fn arccotangent(x: float32) = toFloat32(arccotangent(toFloat64(x)))\n\nexport fn ver(x: float64) = 1.0 - cosf64(x)\nexport fn ver(x: float32) = toFloat32(ver(toFloat64(x)))\nexport fn versine(x: float64) = 1.0 - cosf64(x)\nexport fn versine(x: float32) = toFloat32(versine(toFloat64(x)))\n\nexport fn vcs(x: float64) = 1.0 + cosf64(x)\nexport fn vcs(x: float32) = toFloat32(vcs(toFloat64(x)))\nexport fn vercosine(x: float64) = 1.0 + cosf64(x)\nexport fn vercosine(x: float32) = toFloat32(vercosine(toFloat64(x)))\n\nexport fn cvs(x: float64) = 1.0 - sinf64(x)\nexport fn cvs(x: float32) = toFloat32(cvs(toFloat64(x)))\nexport fn coversine(x: float64) = 1.0 - sinf64(x)\nexport fn coversine(x: float32) = toFloat32(coversine(toFloat64(x)))\n\nexport fn cvc(x: float64) = 1.0 + sinf64(x)\nexport fn cvc(x: float32) = toFloat32(cvc(toFloat64(x)))\nexport fn covercosine(x: float64) = 1.0 + sinf64(x)\nexport fn covercosine(x: float32) = toFloat32(covercosine(toFloat64(x)))\n\nexport fn hav(x: float64) = versine(x) / 2.0\nexport fn hav(x: float32) = toFloat32(hav(toFloat64(x)))\nexport fn haversine(x: float64) = versine(x) / 2.0\nexport fn haversine(x: float32) = toFloat32(haversine(toFloat64(x)))\n\nexport fn hvc(x: float64) = vercosine(x) / 2.0\nexport fn hvc(x: float32) = toFloat32(hvc(toFloat64(x)))\nexport fn havercosine(x: float64) = vercosine(x) / 2.0\nexport fn havercosine(x: float32) = toFloat32(havercosine(toFloat64(x)))\n\nexport fn hcv(x: float64) = coversine(x) / 2.0\nexport fn hcv(x: float32) = toFloat32(hcv(toFloat64(x)))\nexport fn hacoversine(x: float64) = coversine(x) / 2.0\nexport fn hacoversine(x: float32) = toFloat32(hacoversine(toFloat64(x)))\n\nexport fn hcc(x: float64) = covercosine(x) / 2.0\nexport fn hcc(x: float32) = toFloat32(hcc(toFloat64(x)))\nexport fn hacovercosine(x: float64) = covercosine(x) / 2.0\nexport fn hacovercosine(x: float32) = toFloat32(hacovercosine(toFloat64(x)))\n\nexport fn exs(x: float64) = secant(x) - 1.0\nexport fn exs(x: float32) = toFloat32(exs(toFloat64(x)))\nexport fn exsecant(x: float64) = secant(x) - 1.0\nexport fn exsecant(x: float32) = toFloat32(exsecant(toFloat64(x)))\n\nexport fn exc(x: float64) = cosecant(x) - 1.0\nexport fn exc(x: float32) = toFloat32(exc(toFloat64(x)))\nexport fn excosecant(x: float64) = cosecant(x) - 1.0\nexport fn excosecant(x: float32) = toFloat32(excosecant(toFloat64(x)))\n\nexport fn crd(x: float64) = 2.0 * sine(x / 2.0)\nexport fn crd(x: float32) = toFloat32(crd(toFloat64(x)))\nexport fn chord(x: float64) = 2.0 * sine(x / 2.0)\nexport fn chord(x: float32) = toFloat32(chord(toFloat64(x)))\n\nexport fn aver(x: float64) = arccosine(1.0 - x)\nexport fn aver(x: float32) = toFloat32(aver(toFloat64(x)))\nexport fn arcversine(x: float64) = arccosine(1.0 - x)\nexport fn arcversine(x: float32) = toFloat32(arcversine(toFloat64(x)))\n\nexport fn avcs(x: float64) = arccosine(x - 1.0)\nexport fn avcs(x: float32) = toFloat32(avcs(toFloat64(x)))\nexport fn arcvercosine(x: float64) = arccosine(x - 1.0)\nexport fn arcvercosine(x: float32) = toFloat32(arcvercosine(toFloat64(x)))\n\nexport fn acvs(x: float64) = arcsine(1.0 - x)\nexport fn acvs(x: float32) = toFloat32(acvs(toFloat64(x)))\nexport fn arccoversine(x: float64) = arcsine(1.0 - x)\nexport fn arccoversine(x: float32) = toFloat32(arccoversine(toFloat64(x)))\n\nexport fn acvc(x: float64) = arcsine(x - 1.0)\nexport fn acvc(x: float32) = toFloat32(acvc(toFloat64(x)))\nexport fn arccovercosine(x: float64) = arcsine(x - 1.0)\nexport fn arccovercosine(x: float32) = toFloat32(arccovercosine(toFloat64(x)))\n\nexport fn ahav(x: float64) = arccosine(1.0 - 2.0 * x)\nexport fn ahav(x: float32) = toFloat32(ahav(toFloat64(x)))\nexport fn archaversine(x: float64) = arccosine(1.0 - 2.0 * x)\nexport fn archaversine(x: float32) = toFloat32(archaversine(toFloat64(x)))\n\nexport fn ahvc(x: float64) = arccosine(2.0 * x - 1.0)\nexport fn ahvc(x: float32) = toFloat32(ahvc(toFloat64(x)))\nexport fn archavercosine(x: float64) = arccosine(2.0 * x - 1.0)\nexport fn archavercosine(x: float32) = toFloat32(archavercosine(toFloat64(x)))\n\nexport fn ahcv(x: float64) = arcsine(1.0 - 2.0 * x)\nexport fn ahcv(x: float32) = toFloat32(ahcv(toFloat64(x)))\nexport fn archacoversine(x: float64) = arcsine(1.0 - 2.0 * x)\nexport fn archacoversine(x: float32) = toFloat32(archacoversine(toFloat64(x)))\n\nexport fn ahcc(x: float64) = arcsine(2.0 * x - 1.0)\nexport fn ahcc(x: float32) = toFloat32(ahcc(toFloat64(x)))\nexport fn archacovercosine(x: float64) = arcsine(2.0 * x - 1.0)\nexport fn archacovercosine(x: float32) = toFloat32(archacovercosine(toFloat64(x)))\n\nexport fn aexs(x: float64) = arccosine(1.0 / (x + 1.0))\nexport fn aexs(x: float32) = toFloat32(aexs(toFloat64(x)))\nexport fn arcexsecant(x: float64) = arccosine(1.0 / (x + 1.0))\nexport fn arcexsecant(x: float32) = toFloat32(arcexsecant(toFloat64(x)))\n\nexport fn aexc(x: float64) = arcsine(1.0 / (x + 1.0))\nexport fn aexc(x: float32) = toFloat32(aexc(toFloat64(x)))\nexport fn arcexcosecant(x: float64) = arcsine(1.0 / (x + 1.0))\nexport fn arcexcosecant(x: float32) = toFloat32(arcexcosecant(toFloat64(x)))\n\nexport fn acrd(x: float64) = 2.0 * arcsine(x / 2.0)\nexport fn acrd(x: float32) = toFloat32(acrd(toFloat64(x)))\nexport fn arcchord(x: float64) = 2.0 * arcsine(x / 2.0)\nexport fn arcchord(x: float32) = toFloat32(arcchord(toFloat64(x)))\n\nexport fn sinh(x: float64) = sinhf64(x)\nexport fn sinh(x: float32) = toFloat32(sinhf64(toFloat64(x)))\nexport fn hyperbolicSine(x: float64) = sinhf64(x)\nexport fn hyperbolicSine(x: float32) = toFloat32(sinhf64(toFloat64(x)))\n\nexport fn cosh(x: float64) = coshf64(x)\nexport fn cosh(x: float32) = toFloat32(coshf64(toFloat64(x)))\nexport fn hyperbolicCosine(x: float64) = coshf64(x)\nexport fn hyperbolicCosine(x: float32) = toFloat32(coshf64(toFloat64(x)))\n\nexport fn tanh(x: float64) = tanhf64(x)\nexport fn tanh(x: float32) = toFloat32(tanhf64(toFloat64(x)))\nexport fn hyperbolicTangent(x: float64) = tanhf64(x)\nexport fn hyperbolicTangent(x: float32) = toFloat32(tanhf64(toFloat64(x)))\n\nexport fn sech(x: float64) = 1.0 / cosh(x)\nexport fn sech(x: float32) = toFloat32(sech(toFloat64(x)))\nexport fn hyperbolicSecant(x: float64) = 1.0 / cosh(x)\nexport fn hyperbolicSecant(x: float32) = toFloat32(hyperbolicSecant(toFloat64(x)))\n\nexport fn csch(x: float64) = 1.0 / sinh(x)\nexport fn csch(x: float32) = toFloat32(cosh(toFloat64(x)))\nexport fn hyperbolicCosecant(x: float64) = 1.0 / sinh(x)\nexport fn hyperbolicCosecant(x: float32) = toFloat32(hyperbolicCosecant(toFloat64(x)))\n\nexport fn coth(x: float64) = 1.0 / tanh(x)\nexport fn coth(x: float32) = toFloat32(coth(toFloat64(x)))\nexport fn hyperbolicCotangent(x: float64) = 1.0 / tanh(x)\nexport fn hyperbolicCotangent(x: float32) = toFloat32(hyperbolicCotangent(toFloat64(x)))\n\nexport fn asinh(x: float64) = ln(x + sqrt(x ** 2.0 + 1.0))\nexport fn asinh(x: float32) = toFloat32(asinh(toFloat64(x)))\nexport fn hyperbolicArcsine(x: float64) = ln(x + sqrt(x ** 2.0 + 1.0))\nexport fn hyperbolicArcsine(x: float32) = toFloat32(hyperbolicArcsine(toFloat64(x)))\n\nexport fn acosh(x: float64) = ln(x + sqrt(x ** 2.0 - 1.0))\nexport fn acosh(x: float32) = toFloat32(acosh(toFloat64(x)))\nexport fn hyperbolicArccosine(x: float64) = ln(x + sqrt(x ** 2.0 - 1.0))\nexport fn hyperbolicArccosine(x: float32) = toFloat32(hyperbolicArccosine(toFloat64(x)))\n\nexport fn atanh(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0\nexport fn atanh(x: float32) = toFloat32(atanh(toFloat64(x)))\nexport fn hyperbolicArctangent(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0\nexport fn hyperbolicArctangent(x: float32) = toFloat32(hyperbolicArctangent(toFloat64(x)))\n\nexport fn asech(x: float64) = ln((1.0 + sqrt(1.0 - x ** 2.0)) / x)\nexport fn asech(x: float32) = toFloat32(asech(toFloat64(x)))\nexport fn hyperbolicArcsecant(x: float64) = ln((1.0 + sqrt(1.0 - x ** 2.0)) / x)\nexport fn hyperbolicArcsecant(x: float32) = toFloat32(hyperbolicArcsecant(toFloat64(x)))\n\nexport fn acsch(x: float64) = ln((1.0 / x) + sqrt(1.0 / x ** 2.0 + 1.0))\nexport fn acsch(x: float32) = toFloat32(acsch(toFloat64(x)))\nexport fn hyperbolicArccosecant(x: float64) = ln((1.0 / x) + sqrt(1.0 / x ** 2.0 + 1.0))\nexport fn hyperbolicArccosecant(x: float32) = toFloat32(hyperbolicArccosecant(toFloat64(x)))\n\nexport fn acoth(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0\nexport fn acoth(x: float32) = toFloat32(acoth(toFloat64(x)))\nexport fn hyperbolicArccotangent(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0\nexport fn hyperbolicArccotangent(x: float32) = toFloat32(hyperbolicArccotangent(toFloat64(x)))\n"}
+module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out);\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\";\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status);\n\n// The `stderr` event\nexport event stderr: string\n\n// `@std/app` has access to a special `stderrp` opcode to trigger stderr writing\non stderr fn (err: string) = stderrp(err);\n\n// The `eprint` function converts its input to a string, appends a newline, and sends it to `stderr`\nexport fn eprint(err: Stringifiable) {\n  emit stderr err.toString() + \"\\n\";\n}\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n);","datastore.ln":"/**\n * @std/datastore - Shared mutable state with controlled access\n */\n\n// Just syntactic sugar to seem less stringly-typed than it is\nexport fn namespace(ns: string) = ns\n\n// The set function to store shared data\nexport fn set(ns: string, key: string, val: any) = dssetv(ns, key, val);\nexport fn set(ns: string, key: string, val: int8) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: int16) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: int32) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: int64) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: float32) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: float64) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: bool) = dssetf(ns, key, val);\n\n// The has function to test if a shared key exists\nexport fn has(ns: string, key: string): bool = dshas(ns, key);\n\n// The del function to remove a shared key\nexport fn del(ns: string, key: string): bool = dsdel(ns, key);\n\n// The getOr function to get a value or the return the provided default\nexport fn getOr(ns: string, key: string, default: any) {\n  return dsgetv(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int8) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int16) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int32) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int64) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: float32) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: float64) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: bool) {\n  return dsgetf(ns, key).getOr(default);\n}\n","deps.ln":"from @std/app import start, print, exit\nfrom @std/cmd import exec\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\nexport fn add(remote: string) {\n  // TODO implement proper error handling\n  const parts = remote.split('/');\n  const repo = parts[length(parts) - 1] || '';\n  const group = parts[parts.length() - 2] || '';\n  const dest = '/dependencies/' + group + '/' + repo;\n  const rm = exec('rm -rf .' + dest);\n  const git = exec('git clone ' + remote + ' .' + dest);\n  print(git.stderr);\n  const rm2 = exec('rm -rf .' + dest + '/.git');\n}\n\n// The `commit` function takes no arguments. Currently just causes the application to quit, but\n// eventually would be the point where the dependencies defined by the calls to `add` could be\n// compared against the currently-installed dependencies, and a faster install would be possible\nexport fn commit() {\n  emit exit 0;\n}\n\n// Emit the `install` event on app `start`\non start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  exec('rm -rf dependencies');\n  exec('mkdir dependencies');\n  emit install;\n}\n","http.ln":"/**\n * @std/http - Built-in client and server for http\n */\n\n/**\n * HTTP Client\n */\n\nexport fn get(url: string) = httpget(url);\nexport fn post(url: string, payload: string) = httppost(url, payload);\n\n/**\n * HTTP Server\n */\n\n// The InternalRequest type for inbound http requests\ntype InternalRequest {\n  url: string,\n  headers: Array<KeyVal<string, string>>,\n  body: string,\n  connId: int64,\n}\n\n// The InternalResponse type for inbount http requests\ntype InternalResponse {\n  status: int64,\n  headers: Array<KeyVal<string, string>>,\n  body: string,\n  connId: int64,\n}\n\n// The exposed Request type\nexport type Request {\n  url: string,\n  headers: HashMap<string, string>,\n  body: string,\n}\n\n// The exposed Response type\nexport type Response {\n  status: int64,\n  headers: HashMap<string, string>,\n  body: string,\n  connId: int64,\n}\n\n// The roll-up Connection type with both\nexport type Connection {\n  req: Request,\n  res: Response,\n}\n\n// The connection event\nexport event connection: Connection\n\n// The special connection event with a signature like `event __conn: InternalConnection`\n// This wrapper function takes the internal connection object, converts it to the user-friendly\n// connection object, and then emits it on a new event for user code to pick up\non __conn fn (conn: InternalRequest) {\n  emit connection new Connection {\n    req: new Request {\n      url: conn.url,\n      headers: toHashMap(conn.headers),\n      body: conn.body,\n    },\n    res: new Response {\n      status: 200, // If not set by the user, assume they meant it to be good\n      headers: newHashMap('Content-Length', '0'), // If not set by the user, assume no data\n      body: '', // If not set by the user, assume no data\n      connId: conn.connId,\n    },\n  };\n}\n\n// The listen function tells the http server to start up and listen on the given port\n// For now only one http server per application, a macro system is necessary to improve this\n// Returns a Result with either an 'ok' string or an error\nexport fn listen(port: int64) = httplsn(port);\n\n// The body function sets the body for a Response, sets the Content-Length header, and retuns the\n// Response for chaining needs\nexport fn body(res: Response, body: string) {\n  res.body = body;\n  const len = body.length();\n  set(res.headers, 'Content-Length', len.toString());\n  return res;\n}\n\n// The status function sets the status of the response\nexport fn status(res: Response, status: int64) {\n  res.status = status;\n  return res;\n}\n\n// The send function converts the response object into an internal response object and passed that\n// back to the HTTP server. A Result type with either an 'ok' string or an error is returned\nexport fn send(res: Response): Result<string> {\n  const ires = new InternalResponse {\n    status: res.status,\n    headers: res.headers.keyVal,\n    body: res.body,\n    connId: res.connId,\n  };\n  return httpsend(ires);\n}","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Export all of the built-in types\nexport void\nexport int8\nexport int16\nexport int32\nexport int64\nexport float32\nexport float64\nexport bool\nexport string\nexport function // TODO: Make the function type more explicit than this\nexport Array\nexport Error\nexport Maybe\nexport Result\nexport Either\n\n// Type aliasing of int64 and float64 to just int and float, as these are the default types\nexport type int = int64\nexport type float = float64\n\n// Default Interfaces\nexport interface any {}\nexport interface anythingElse = any // Same as `any` but doesn't match with it\nexport interface Stringifiable {\n  toString(Stringifiable): string,\n}\nexport interface Orderable {\n  lt(Orderable, Orderable): bool,\n  lte(Orderable, Orderable): bool,\n  gt(Orderable, Orderable): bool,\n  gte(Orderable, Orderable): bool,\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n);\nexport fn toFloat64(n: int16) = i16f64(n);\nexport fn toFloat64(n: int32) = i32f64(n);\nexport fn toFloat64(n: int64) = i64f64(n);\nexport fn toFloat64(n: float32) = f32f64(n);\nexport fn toFloat64(n: float64) = n;\nexport fn toFloat64(n: string) = strf64(n);\nexport fn toFloat64(n: bool) = boolf64(n);\n\nexport fn toFloat32(n: int8) = i8f32(n);\nexport fn toFloat32(n: int16) = i16f32(n);\nexport fn toFloat32(n: int32) = i32f32(n);\nexport fn toFloat32(n: int64) = i64f32(n);\nexport fn toFloat32(n: float32) = n;\nexport fn toFloat32(n: float64) = f64f32(n);\nexport fn toFloat32(n: string) = strf32(n);\nexport fn toFloat32(n: bool) = boolf32(n);\n\nexport fn toInt64(n: int8) = i8i64(n);\nexport fn toInt64(n: int16) = i16i64(n);\nexport fn toInt64(n: int32) = i32i64(n);\nexport fn toInt64(n: int64) = n;\nexport fn toInt64(n: float32) = f32i64(n);\nexport fn toInt64(n: float64) = f64i64(n);\nexport fn toInt64(n: string) = stri64(n);\nexport fn toInt64(n: bool) = booli64(n);\n\nexport fn toInt32(n: int8) = i8i32(n);\nexport fn toInt32(n: int16) = i16i32(n);\nexport fn toInt32(n: int32) = n;\nexport fn toInt32(n: int64) = i64i32(n);\nexport fn toInt32(n: float32) = f32i32(n);\nexport fn toInt32(n: float64) = f64i32(n);\nexport fn toInt32(n: string) = stri32(n);\nexport fn toInt32(n: bool) = booli32(n);\n\nexport fn toInt16(n: int8) = i8i16(n);\nexport fn toInt16(n: int16) = n;\nexport fn toInt16(n: int32) = i32i16(n);\nexport fn toInt16(n: int64) = i64i16(n);\nexport fn toInt16(n: float32) = f32i16(n);\nexport fn toInt16(n: float64) = f64i16(n);\nexport fn toInt16(n: string) = stri16(n);\nexport fn toInt16(n: bool) = booli16(n);\n\nexport fn toInt8(n: int8) = n;\nexport fn toInt8(n: int16) = i16i8(n);\nexport fn toInt8(n: int32) = i32i8(n);\nexport fn toInt8(n: int64) = i64i8(n);\nexport fn toInt8(n: float32) = f32i8(n);\nexport fn toInt8(n: float64) = f64i8(n);\nexport fn toInt8(n: string) = stri8(n);\nexport fn toInt8(n: bool) = booli8(n);\n\nexport fn toBool(n: int8) = i8bool(n);\nexport fn toBool(n: int16) = i16bool(n);\nexport fn toBool(n: int32) = i32bool(n);\nexport fn toBool(n: int64) = i64bool(n);\nexport fn toBool(n: float32) = f32bool(n);\nexport fn toBool(n: float64) = f64bool(n);\nexport fn toBool(n: string) = strbool(n);\nexport fn toBool(n: bool) = n;\n\nexport fn toString(n: int8) = i8str(n);\nexport fn toString(n: int16) = i16str(n);\nexport fn toString(n: int32) = i32str(n);\nexport fn toString(n: int64) = i64str(n);\nexport fn toString(n: float32) = f32str(n);\nexport fn toString(n: float64) = f64str(n);\nexport fn toString(n: string) = n;\nexport fn toString(n: bool) = boolstr(n);\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b);\nexport fn add(a: int16, b: int16) = addi16(a, b);\nexport fn add(a: int32, b: int32) = addi32(a, b);\nexport fn add(a: int64, b: int64) = addi64(a, b);\nexport fn add(a: float32, b: float32) = addf32(a, b);\nexport fn add(a: float64, b: float64) = addf64(a, b);\n\nexport fn sub(a: int8, b: int8) = subi8(a, b);\nexport fn sub(a: int16, b: int16) = subi16(a, b);\nexport fn sub(a: int32, b: int32) = subi32(a, b);\nexport fn sub(a: int64, b: int64) = subi64(a, b);\nexport fn sub(a: float32, b: float32) = subf32(a, b);\nexport fn sub(a: float64, b: float64) = subf64(a, b);\n\nexport fn negate(n: int8) = negi8(n);\nexport fn negate(n: int16) = negi16(n);\nexport fn negate(n: int32) = negi32(n);\nexport fn negate(n: int64) = negi64(n);\nexport fn negate(n: float32) = negf32(n);\nexport fn negate(n: float64) = negf64(n);\n\nexport fn abs(n: int8) = absi8(n);\nexport fn abs(n: int16) = absi16(n);\nexport fn abs(n: int32) = absi32(n);\nexport fn abs(n: int64) = absi64(n);\nexport fn abs(n: float32) = absf32(n);\nexport fn abs(n: float64) = absf64(n);\n\nexport fn mul(a: int8, b: int8) = muli8(a, b);\nexport fn mul(a: int16, b: int16) = muli16(a, b);\nexport fn mul(a: int32, b: int32) = muli32(a, b);\nexport fn mul(a: int64, b: int64) = muli64(a, b);\nexport fn mul(a: float32, b: float32) = mulf32(a, b);\nexport fn mul(a: float64, b: float64) = mulf64(a, b);\n\nexport fn div(a: int8, b: int8) = divi8(a, b);\nexport fn div(a: int16, b: int16) = divi16(a, b);\nexport fn div(a: int32, b: int32) = divi32(a, b);\nexport fn div(a: int64, b: int64) = divi64(a, b);\nexport fn div(a: float32, b: float32) = divf32(a, b);\nexport fn div(a: float64, b: float64) = divf64(a, b);\n\nexport fn mod(a: int8, b: int8) = modi8(a, b);\nexport fn mod(a: int16, b: int16) = modi16(a, b);\nexport fn mod(a: int32, b: int32) = modi32(a, b);\nexport fn mod(a: int64, b: int64) = modi64(a, b);\n\nexport fn pow(a: int8, b: int8) = powi8(a, b);\nexport fn pow(a: int16, b: int16) = powi16(a, b);\nexport fn pow(a: int32, b: int32) = powi32(a, b);\nexport fn pow(a: int64, b: int64) = powi64(a, b);\nexport fn pow(a: float32, b: float32) = powf32(a, b);\nexport fn pow(a: float64, b: float64) = powf64(a, b);\n\nexport fn sqrt(n: float32) = sqrtf32(n);\nexport fn sqrt(n: float64) = sqrtf64(n);\n\nexport fn min(x: Orderable, y: Orderable): Orderable {\n  return cond(lte(x, y), [x, y]);\n}\nexport fn max(x: Orderable, y: Orderable): Orderable {\n  return cond(gte(x, y), [x, y]);\n}\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b);\nexport fn and(a: int16, b: int16) = andi16(a, b);\nexport fn and(a: int32, b: int32) = andi32(a, b);\nexport fn and(a: int64, b: int64) = andi64(a, b);\nexport fn and(a: bool, b: bool) = andbool(a, b);\n\nexport fn or(a: int8, b: int8) = ori8(a, b);\nexport fn or(a: int16, b: int16) = ori16(a, b);\nexport fn or(a: int32, b: int32) = ori32(a, b);\nexport fn or(a: int64, b: int64) = ori64(a, b);\nexport fn or(a: bool, b: bool) = orbool(a, b);\n\nexport fn xor(a: int8, b: int8) = xori8(a, b);\nexport fn xor(a: int16, b: int16) = xori16(a, b);\nexport fn xor(a: int32, b: int32) = xori32(a, b);\nexport fn xor(a: int64, b: int64) = xori64(a, b);\nexport fn xor(a: bool, b: bool) = xorbool(a, b);\n\nexport fn not(n: int8) = noti8(n);\nexport fn not(n: int16) = noti16(n);\nexport fn not(n: int32) = noti32(n);\nexport fn not(n: int64) = noti64(n);\nexport fn not(n: bool) = notbool(n);\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b);\nexport fn nand(a: int16, b: int16) = nandi16(a, b);\nexport fn nand(a: int32, b: int32) = nandi32(a, b);\nexport fn nand(a: int64, b: int64) = nandi64(a, b);\nexport fn nand(a: bool, b: bool) = nandboo(a, b);\n\nexport fn nor(a: int8, b: int8) = nori8(a, b);\nexport fn nor(a: int16, b: int16) = nori16(a, b);\nexport fn nor(a: int32, b: int32) = nori32(a, b);\nexport fn nor(a: int64, b: int64) = nori64(a, b);\nexport fn nor(a: bool, b: bool) = norbool(a, b);\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b);\nexport fn xnor(a: int16, b: int16) = xnori16(a, b);\nexport fn xnor(a: int32, b: int32) = xnori32(a, b);\nexport fn xnor(a: int64, b: int64) = xnori64(a, b);\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b);\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b);\nexport fn eq(a: int16, b: int16) = eqi16(a, b);\nexport fn eq(a: int32, b: int32) = eqi32(a, b);\nexport fn eq(a: int64, b: int64) = eqi64(a, b);\nexport fn eq(a: float32, b: float32) = eqf32(a, b);\nexport fn eq(a: float64, b: float64) = eqf64(a, b);\nexport fn eq(a: string, b: string) = eqstr(a, b);\nexport fn eq(a: bool, b: bool) = eqbool(a, b);\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b);\nexport fn neq(a: int16, b: int16) = neqi16(a, b);\nexport fn neq(a: int32, b: int32) = neqi32(a, b);\nexport fn neq(a: int64, b: int64) = neqi64(a, b);\nexport fn neq(a: float32, b: float32) = neqf32(a, b);\nexport fn neq(a: float64, b: float64) = neqf64(a, b);\nexport fn neq(a: string, b: string) = neqstr(a, b);\nexport fn neq(a: bool, b: bool) = neqbool(a, b);\n\nexport fn lt(a: int8, b: int8) = lti8(a, b);\nexport fn lt(a: int16, b: int16) = lti16(a, b);\nexport fn lt(a: int32, b: int32) = lti32(a, b);\nexport fn lt(a: int64, b: int64) = lti64(a, b);\nexport fn lt(a: float32, b: float32) = ltf32(a, b);\nexport fn lt(a: float64, b: float64) = ltf64(a, b);\nexport fn lt(a: string, b: string) = ltstr(a, b);\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b);\nexport fn lte(a: int16, b: int16) = ltei16(a, b);\nexport fn lte(a: int32, b: int32) = ltei32(a, b);\nexport fn lte(a: int64, b: int64) = ltei64(a, b);\nexport fn lte(a: float32, b: float32) = ltef32(a, b);\nexport fn lte(a: float64, b: float64) = ltef64(a, b);\nexport fn lte(a: string, b: string) = ltestr(a, b);\n\nexport fn gt(a: int8, b: int8) = gti8(a, b);\nexport fn gt(a: int16, b: int16) = gti16(a, b);\nexport fn gt(a: int32, b: int32) = gti32(a, b);\nexport fn gt(a: int64, b: int64) = gti64(a, b);\nexport fn gt(a: float32, b: float32) = gtf32(a, b);\nexport fn gt(a: float64, b: float64) = gtf64(a, b);\nexport fn gt(a: string, b: string) = gtstr(a, b);\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b);\nexport fn gte(a: int16, b: int16) = gtei16(a, b);\nexport fn gte(a: int32, b: int32) = gtei32(a, b);\nexport fn gte(a: int64, b: int64) = gtei64(a, b);\nexport fn gte(a: float32, b: float32) = gtef32(a, b);\nexport fn gte(a: float64, b: float64) = gtef64(a, b);\nexport fn gte(a: string, b: string) = gtestr(a, b);\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n));\nexport fn wait(n: int16) = waitop(i16i64(n));\nexport fn wait(n: int32) = waitop(i32i64(n));\nexport fn wait(n: int64) = waitop(n);\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b);\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n);\n// export fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t);\nexport fn length(s: string) = lenstr(s);\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b);\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n);\nexport fn index(arr: Array<any>, val: any) = indarrv(arr, val);\nexport fn index(arr: Array<int8>, val: int8) = indarrf(arr, val);\nexport fn index(arr: Array<int16>, val: int16) = indarrf(arr, val);\nexport fn index(arr: Array<int32>, val: int32) = indarrf(arr, val);\nexport fn index(arr: Array<int64>, val: int64) = indarrf(arr, val);\nexport fn index(arr: Array<float32>, val: float32) = indarrf(arr, val);\nexport fn index(arr: Array<float64>, val: float64) = indarrf(arr, val);\nexport fn index(arr: Array<bool>, val: bool) = indarrf(arr, val);\nexport fn has(arr: Array<any>, val: any) = indarrv(arr, val).isOk();\nexport fn has(arr: Array<int8>, val: int8) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<int16>, val: int16) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<int32>, val: int32) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<int64>, val: int64) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<float32>, val: float32) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<float64>, val: float64) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<bool>, val: bool) = indarrf(arr, val).isOk();\nexport fn length(arr: Array<any>) = lenarr(arr);\nexport fn push(arr: Array<any>, val: any) {\n  pusharr(arr, val, 0);\n  return arr;\n}\nexport fn push(arr: Array<int8>, val: int8) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<int16>, val: int16) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<int32>, val: int32) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<int64>, val: int64) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<float32>, val: float32) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<float64>, val: float64) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<bool>, val: bool) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn pop(arr: Array<any>) = poparr(arr);\nexport each // parallel opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport fn eachLin(arr: Array<any>, cb: function): void = eachl(arr, cb);\nexport map // parallel opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport fn mapLin(arr: Array<any>, cb: function): Array<anythingElse> = mapl(arr, cb);\n/**\n * Unlike the other array functions, reduce is sequential by default and parallelism must be opted\n * in. This is due to the fact that parallelism requires the reducer function to be commutative or\n * associative, otherwise it will return different values on each run, and the compiler has no way\n * to guarantee that your reducer function is commutative or associative.\n *\n * There are four reduce functions instead of two as expected, because a reducer that reduces into\n * the same datatype requires less work than one that reduces into a new datatype. To reduce into a\n * new datatype you need an initial value in that new datatype that the reducer can provide to the\n * first reduction call to \"get the ball rolling.\" And there are extra constraints if you want the\n * reducer to run in parallel: that initial value will be used multiple times for each of the\n * parallel threads of computation, so that initial value has to be idempotent for it to work. Then\n * you're left with multiple reduced results that cannot be combined with each other with the main\n * reducer, so you need to provide a second reducer function that takes the resulting datatype and\n * can combine them with each other successfully, and that one *also* needs to be a commutative or\n * associative function.\n *\n * The complexities involved in writing a parallel reducer are why we decided to make the sequential\n * version the default, as the extra overhead is not something most developers are used to, whether\n * they hail from the functional programming world or the imperative world.\n *\n * On that note, you'll notice that the opcodes are named after `reduce` and `fold`. This is the\n * naming scheme that functional language programmers would be used to, but Java and Javascript\n * combined them both as `reduce`, so we have maintained that convention as we expect fewer people\n * needing to adapt to that change, it being a change they're likely already familiar with, and\n * noting that an extra argument that makes it equivalent to `fold` is easier than trying to find\n * the 3 or 4 arg variant under a different name.\n */\nexport fn reduce(arr: Array<any>, cb: function): any = reducel(arr, cb);\nexport fn reducePar(arr: Array<any>, cb: function): any = reducep(arr, cb);\n/**\n * This type is used to reduce the number of arguments passed to the opcodes, which can only take 2\n * arguments if they return a value, or 3 arguments if they are a side-effect-only opcode, and is an\n * implementation detail of the 3 and 4 arg reduce functions.\n */\ntype InitialReduce<T, U> {\n  arr: Array<T>,\n  initial: U,\n}\nexport fn reduce(arr: Array<any>, cb: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr: arr,\n    initial: initial,\n  };\n  return foldl(args, cb);\n}\nexport fn reducePar(arr: Array<any>, transformer: function, merger: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr: arr,\n    initial: initial,\n  };\n  const intermediate = foldp(args, transformer);\n  return reducep(intermediate, merger);\n}\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): Result<any>`\nexport fn findLin(arr: Array<any>, cb: function): Result<any> = findl(arr, cb);\nexport every // parallel opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport fn everyLin(arr: Array<any>, cb: function): bool = everyl(arr, cb);\nexport some // parallel opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport fn someLin(arr: Array<any>, cb: function): bool = somel(arr, cb);\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\nexport fn delete(arr: Array<any>, idx: int64): Result<any> = delindx(arr, idx);\nexport fn set(arr: Array<any>, idx: int64, val: any) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytov(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int8>, idx: int64, val: int8) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int16>, idx: int64, val: int16) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int32>, idx: int64, val: int32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int64>, idx: int64, val: int64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<float32>, idx: int64, val: float32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<float64>, idx: int64, val: float64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<bool>, idx: int64, val: bool) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\n\n// Ternary functions\nexport fn pair(trueval: any, falseval: any) = new Array<any> [ trueval, falseval ];\nexport fn cond(c: bool, options: Array<any>) = getR(options[1.sub(c.toInt64())]);\nexport fn cond(c: bool, optional: function): void = condfn(c, optional);\n\n// \"clone\" function useful for hoisting assignments and making duplicates\nexport fn clone(a: any) = copyarr(a);\nexport fn clone(a: Array<any>) = copyarr(a);\nexport fn clone(a: void) = copyvoid(a); // TODO: Eliminate this, covering up a weird error\nexport fn clone() = zeroed(); // TODO: Used for conditionals, eliminate with more clever compiler\nexport fn clone(a: int8) = copyi8(a);\nexport fn clone(a: int16) = copyi16(a);\nexport fn clone(a: int32) = copyi32(a);\nexport fn clone(a: int64) = copyi64(a);\nexport fn clone(a: float32) = copyf32(a);\nexport fn clone(a: float64) = copyf64(a);\nexport fn clone(a: bool) = copybool(a);\nexport fn clone(a: string) = copystr(a);\n\n// Error, Maybe, Result, and Either types and functions\nexport error // opcode with signature `fn error(string): Error`\nexport fn ref(a: any) = refv(a);\nexport fn ref(a: void) = reff(a);\nexport fn ref(a: int8) = reff(a);\nexport fn ref(a: int16) = reff(a);\nexport fn ref(a: int32) = reff(a);\nexport fn ref(a: int64) = reff(a);\nexport fn ref(a: float32) = reff(a);\nexport fn ref(a: float64) = reff(a);\nexport fn ref(a: bool) = reff(a);\nexport noerr // opcode with signature `fn noerr(): Error`\nexport fn toString(err: Error) = errorstr(err);\n\nexport fn some(val: any) = someM(val, 0);\nexport fn some(val: int8) = someM(val, 8);\nexport fn some(val: int16) = someM(val, 8);\nexport fn some(val: int32) = someM(val, 8);\nexport fn some(val: int64) = someM(val, 8);\nexport fn some(val: float32) = someM(val, 8);\nexport fn some(val: float64) = someM(val, 8);\nexport fn some(val: bool) = someM(val, 8);\nexport fn none() = noneM();\nexport isSome // opcode with signature `fn isSome(Maybe<any>): bool`\nexport isNone // opcode with signature `fn isNone(Maybe<any>): bool`\nexport fn getOr(maybe: Maybe<any>, default: any) = getOrM(maybe, default);\n\nexport fn ok(val: any) = okR(val, 0);\nexport fn ok(val: int8) = okR(val, 8);\nexport fn ok(val: int16) = okR(val, 8);\nexport fn ok(val: int32) = okR(val, 8);\nexport fn ok(val: int64) = okR(val, 8);\nexport fn ok(val: float32) = okR(val, 8);\nexport fn ok(val: float64) = okR(val, 8);\nexport fn ok(val: bool) = okR(val, 8);\nexport err // opcode with signature `fn err(string): Result<any>`\nexport isOk // opcode with signature `fn isOk(Result<any>): bool`\nexport isErr // opcode with signature `fn isErr(Result<any>: bool`\nexport fn getOr(result: Result<any>, default: any) = getOrR(result, default);\nexport fn getOr(result: Result<any>, default: string) = getOrRS(result, default);\nexport getErr // opcode with signature `fn getErr(Result<any>, Error): Error`\nexport fn toString(n: Result<Stringifiable>): string {\n  if n.isOk() {\n    return n.getR().toString();\n  } else {\n    return n.getErr(noerr()).toString();\n  }\n}\n\nexport fn main(val: any) = mainE(val, 0);\nexport fn main(val: int8) = mainE(val, 8);\nexport fn main(val: int16) = mainE(val, 8);\nexport fn main(val: int32) = mainE(val, 8);\nexport fn main(val: int64) = mainE(val, 8);\nexport fn main(val: float32) = mainE(val, 8);\nexport fn main(val: float64) = mainE(val, 8);\nexport fn main(val: bool) = mainE(val, 8);\nexport fn alt(val: any) = altE(val, 0);\nexport fn alt(val: int8) = altE(val, 8);\nexport fn alt(val: int16) = altE(val, 8);\nexport fn alt(val: int32) = altE(val, 8);\nexport fn alt(val: int64) = altE(val, 8);\nexport fn alt(val: float32) = altE(val, 8);\nexport fn alt(val: float64) = altE(val, 8);\nexport fn alt(val: bool) = altE(val, 8);\nexport isMain // opcode with signature `fn isMain(Either<any, anythingElse>): bool`\nexport isAlt // opcode with signature `fn isAlt(Either<any, anythingElse): bool`\nexport fn getMainOr(either: Either<any, anythingElse>, default: any) = mainOr(either, default);\nexport fn getAltOr(either: Either<any, anythingElse>, default: anythingElse) = altOr(either, default);\n\n// toHash functions for all data types\nexport fn toHash(val: any) = hashv(val);\nexport fn toHash(val: int8) = hashf(val);\nexport fn toHash(val: int16) = hashf(val);\nexport fn toHash(val: int32) = hashf(val);\nexport fn toHash(val: int64) = hashf(val);\nexport fn toHash(val: float32) = hashf(val);\nexport fn toHash(val: float64) = hashf(val);\nexport fn toHash(val: bool) = hashf(val);\n\n// HashMap implementation\nexport type KeyVal<K, V> {\n  key: K,\n  val: V,\n}\n\nexport interface Hashable {\n  toHash(Hashable): int64,\n  eq(Hashable, Hashable): bool,\n}\n\nexport type HashMap<K, V> {\n  keyVal: Array<KeyVal<K, V>>,\n  lookup: Array<Array<int64>>,\n}\n\nexport fn keyVal(hm: HashMap<Hashable, any>) = hm.keyVal;\nexport fn keys(hm: HashMap<Hashable, any>): Array<Hashable> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): Hashable = kv.key);\nexport fn vals(hm: HashMap<Hashable, any>): Array<any> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): any = kv.val);\nexport fn length(hm: HashMap<Hashable, any>): int64 = length(hm.keyVal);\n\nexport fn get(hm: HashMap<Hashable, any>, key: Hashable): any {\n  const hash = key.toHash().abs() % length(hm.lookup);\n  const list = getR(hm.lookup[hash]);\n  const index = list.find(fn (i: int64): Array<int64> {\n    const kv = getR(hm.keyVal[i]);\n    return eq(kv.key, key);\n  });\n  if index.isOk() {\n    const i = index.getOr(0);\n    const kv = getR(hm.keyVal[i]);\n    return ok(kv.val);\n  } else {\n    return err('key not found');\n  }\n}\n\nexport fn set(hm: HashMap<Hashable, any>, key: Hashable, val: any): HashMap<Hashable, any> {\n  const kv = new KeyVal<Hashable, any> {\n    key: key,\n    val: val,\n  };\n  const index = length(hm.keyVal);\n  push(hm.keyVal, kv);\n  const hash = key.toHash().abs() % length(hm.lookup);\n  const list = getR(hm.lookup[hash]);\n  if list.length() == 8 {\n    // Rebucket everything\n    const lookupLen = length(hm.lookup) * 2;\n    hm.lookup = new Array<Array<int64>> [ new Array<int64> [], ] * lookupLen;\n    eachl(hm.keyVal, fn (kv: KeyVal<Hashable, any>, i: int64) {\n      const hash = toHash(kv.key).abs() % lookupLen;\n      const list = getR(hm.lookup[hash]);\n      list.push(i);\n    });\n  } else {\n    list.push(index);\n  }\n  return hm;\n}\n\nexport fn newHashMap(firstKey: Hashable, firstVal: any): HashMap<Hashable, any> { // TODO: Rust-like fn::<typeA, typeB> syntax?\n  let hm = new HashMap<Hashable, any> {\n    keyVal: new Array<KeyVal<Hashable, any>> [],\n    lookup: new Array<Array<int64>> [ new Array<int64> [] ] * 128, // 1KB of space\n  };\n  return hm.set(firstKey, firstVal);\n}\n\nexport fn toHashMap(kva: Array<KeyVal<Hashable, any>>) {\n  let hm = new HashMap<Hashable, any> {\n    keyVal: kva,\n    lookup: new Array<Array<int64>> [ new Array<int64> [] ] * 128,\n  };\n  kva.eachl(fn (kv: KeyVal<Hashable, any>, i: int64) {\n    const hash = toHash(kv.key).abs() % length(hm.lookup);\n    const list = getR(hm.lookup[hash]);\n    list.push(i);\n  });\n  return hm;\n}\n\n// Tree implementation\n\n// The Tree type houses all of the values attached to a tree in an array and two secondary arrays to\n// hold the metadata on which value is the parent and which are children, if any. The parent value\n// is `-1` if it has no parent and a positive integer otherwise.\nexport type Tree<T> {\n  vals: Array<T>,\n  parents: Array<int64>,\n  children: Array<Array<int64>>,\n}\n\n// The Node type simply holds the index to look into the tree for a particular value-parent-children\n// triplet, where that index is referred to as a node ID. This allows node-based code to be written\n// while not actually having a recursive data structure that a traditional Node type would define.\nexport type Node<T> {\n  id: int64,\n  tree: Tree<T>,\n}\n\nexport fn newTree(rootVal: any): Tree<any> = new Tree<any> {\n  vals: new Array<any> [ rootVal ],\n  parents: new Array<int64> [ -1 ], // The root node has no parent, so its parent ID is -1.\n  children: new Array<Array<int64>> [ new Array<int64> [ ] ],\n};\n\nexport fn getRootNode(t: Tree<any>): Node<any> {\n  if has(t.parents, -1) {\n    return new Node<any> {\n      id: index(t.parents, -1).getOr(0),\n      tree: t,\n    };\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    };\n  }\n}\n\nexport fn getTree(n: Node<any>): Tree<any> = n.tree;\n\nexport fn length(t: Tree<any>): int64 = length(t.vals);\n\nexport fn getNodeById(t: Tree<any>, i: int64): Node<any> {\n  if length(t.vals).gt(i) {\n    return new Node<any> {\n      id: i,\n      tree: t,\n    };\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    };\n  }\n}\n\nexport fn getParent(n: Node<any>): Node<any> {\n  const parentId = getOr(n.tree.parents[n.id], -1);\n  if parentId > -1 {\n    return new Node<any> {\n      id: parentId,\n      tree: n.tree,\n    };\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    };\n  }\n}\n\nexport fn getChildren(n: Node<any>): Array<Node<any>> {\n  if length(n.tree.vals).gt(n.id) {\n    const childIds = getOr(n.tree.children[n.id], new Array<int64> []);\n    return childIds.filter(fn (id: int64): bool {\n      const parentId = getOr(n.tree.parents[id], -1);\n      return parentId.eq(n.id);\n    }).map(fn (id: int64): Node<any> {\n      return new Node<any> {\n        id: id,\n        tree: n.tree,\n      };\n    });\n  } else {\n    return new Array<Node<any>> [ ];\n  }\n}\n\n// Returns the pruned Tree\nexport fn prune(n: Node<any>): Tree<any> {\n  // adjust parent's children\n  const parentRes = n.tree.parents[n.id];\n  if parentRes.isOk() {\n    const parentId = parentRes.getR();\n    const children = getOr(n.tree.children[parentId], new Array<int64> []);\n    const idxRes = index(children, n.id);\n    if idxRes.isOk() {\n      delete(children, idxRes.getR());\n    }\n  }\n  // This is, unfortunately for now, a sequential algorithm. Hope to figure out a parallel version\n  let nodeStack = new Array<int64> [ n.id ];\n  let rmdIds = new Array<int64> [ ];\n  seqdo(newseq(pow(2, 62)), fn (): bool {\n    // Get the nodeId, exit if none left\n    const nodeRes = nodeStack.pop();\n    if nodeRes.isErr() {\n      return false;\n    }\n    const nodeId = nodeRes.getR();\n    // Push the children onto the stack to process if the node has them\n    const childrenRes = n.tree.children[nodeId];\n    if childrenRes.isOk() {\n      const childrenIds = childrenRes.getR();\n      nodeStack = nodeStack.concat(childrenIds);\n    }\n    const delIdx = nodeId - length(rmdIds);\n    delete(n.tree.vals, delIdx);\n    delete(n.tree.parents, delIdx);\n    delete(n.tree.children, delIdx);\n    push(rmdIds, nodeId);\n    return true;\n  });\n\n  // adjust indices for remaining elements\n  const iters = length(n.tree.parents);\n  seqeach(newseq(iters), fn (i: int64) {\n    const parentId = getOr(n.tree.parents[i], -1);\n    const parentDelta = rmdIds.filter(fn (rmId: int64): bool = parentId > rmId).length();\n    if parentDelta > 0 {\n      set(n.tree.parents, i, parentId - parentDelta);\n    }\n    const children = getOr(n.tree.children[i], new Array<int64> []);\n    const newChildren = children.map(fn (cId: int64): int64 {\n      const delta = rmdIds.filter(fn (rmdId: int64): bool = cId > rmdId).length();\n      if delta > 0 {\n        return cId - delta;\n      }\n      return cId;\n    });\n    set(n.tree.children, i, newChildren);\n  });\n  return n.tree;\n}\n\nexport fn getChildren(t: Tree<any>): Array<Node<any>> = t.getRootNode().getChildren();\n\n// returns the new child node added\nexport fn addChild(n: Node<any>, val: any): Node<any> {\n  const childId = length(n.tree.vals);\n  push(n.tree.vals, val);\n  push(n.tree.parents, n.id);\n  push(n.tree.children, new Array<int64> [ ]);\n  push(getOr(n.tree.children[n.id], new Array<int64> []), childId);\n  return new Node<any> {\n    id: childId,\n    tree: n.tree,\n  };\n}\n\nexport fn addChild(t: Tree<any>, val: any): Node<any> = t.getRootNode().addChild(val);\n\nexport fn addChild(t: Tree<any>, val: Node<any>): Node<any> = t.getRootNode().addChild(val);\n\nexport fn addChild(n: Node<any>, val: Tree<any>): Node<any> = n.addChild(val.getRootNode());\n\nexport fn getOr(n: Node<any>, default: any): any = getOr(n.tree.vals[n.id], default);\n\nexport fn toNodeArray(t: Tree<any>): Array<Node<any>> = map(\n  t.vals,\n  fn (val: any, i: int64): Node<any> = t.getNodeById(i)\n);\n\nexport fn map(t: Tree<any>, mapper: function): Tree<anythingElse> {\n  return new Tree<anythingElse> {\n    vals: t.toNodeArray().map(mapper),\n    parents: clone(t.parents),\n    children: clone(t.children),\n  };\n}\n\nexport fn some(t: Tree<any>, mapper: function): bool = t.toNodeArray().some(mapper);\n\nexport fn every(t: Tree<any>, mapper: function): bool = t.toNodeArray().every(mapper);\n\nexport fn reduce(t: Tree<any>, cb: function, initial: anythingElse): bool = t\n  .toNodeArray()\n  .reduce(cb, initial);\n\nexport fn find(t: Tree<any>, mapper: function): Node<any> {\n  // Return an invalid node, will behave like an error result\n  return t.toNodeArray().find(mapper).getOr(\n    new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    }\n  );\n}\n\n// Operator declarations\nexport infix add as + precedence 2\nexport infix concat as + precedence 2\nexport infix sub as - precedence 2\nexport prefix negate as - precedence 1\nexport infix mul as * precedence 3\nexport infix repeat as * precedence 3\nexport infix div as / precedence 3\nexport infix split as / precedence 3\nexport infix mod as % precedence 3\n// export infix template as % precedence 3\nexport infix pow as ** precedence 4\nexport infix and as & precedence 3\nexport infix and as && precedence 3\nexport infix or as | precedence 2\nexport infix or as || precedence 2\nexport infix xor as ^ precedence 2\nexport prefix not as ! precedence 4\nexport infix nand as !& precedence 3\nexport infix nor as !| precedence 2\nexport infix xnor as !^ precedence 2\nexport infix eq as == precedence 1\nexport infix neq as != precedence 1\nexport infix lt as < precedence 1\nexport infix lte as <= precedence 1\nexport infix gt as > precedence 1\nexport infix gte as >= precedence 1\nexport infix matches as ~ precedence 1\nexport infix index as @ precedence 1\nexport prefix length as # precedence 4\nexport prefix trim as ` precedence 4\nexport infix pair as : precedence 5\nexport infix push as : precedence 6\nexport infix cond as ? precedence 0\nexport infix getOr as | precedence 2\nexport infix getOr as || precedence 2\n","seq.ln":"/**\n * @std/seq - Tools for sequential algorithms. Use if you must.\n */\n\n// The `Seq` opaque type used by these algorithms to guarantee halting\nexport Seq\n\n// The `seq` constructor function\nexport fn seq(limit: int64): Seq = newseq(limit);\n\n// A basic iterator function, unlikely to be useful outside of these functions\nexport fn next(seq: Seq): Result<int64> = seqnext(seq);\n\n// An automatic iterator that executes the provided function in sequence until the limit is reached\nexport fn each(seq: Seq, func: function): void = seqeach(seq, func);\n\n// A while loop with an initial conditional check\nexport fn while(seq: Seq, condFn: function, bodyFn: function): void = seqwhile(seq, condFn, bodyFn);\n\n// A do-while loop that returns the conditional check\nexport fn doWhile(seq: Seq, bodyFn: function): void = seqdo(seq, bodyFn);\n\n// Recursive functions in Alan require a \"trampoline\" outside of the grammar of the language to work\n// so a special \"Self\" type exists that internally references the Seq type and the relevant function\n// and provides the mechanism to re-schedule the recursive function to call with a new argument.\nexport Self\n\n// There are two `recurse` functions. The first is on the `self` object that has an internal\n// reference to the relevant seq and recursive function to be called and is meant to be used within\n// the recursive function. The second sets it all off with a sequence operator, the recursive\n// function in question, and the query argument, and is using the first function under the hood.\nexport fn recurse(self: Self, arg: any): Result<anythingElse> = selfrec(self, arg);\nexport fn recurse(seq: Seq, recurseFn: function, arg: any): Result<anythingElse> {\n  let self = seqrec(seq, recurseFn);\n  return selfrec(self, arg);\n}\n\n// TODO: Add the generator piece of the seq rfc\n","trig.ln":"export const e = 2.718281828459045;\nexport const pi = 3.141592653589793;\nexport const tau = 6.283185307179586;\n\nexport fn exp(x: float64) = e ** x;\nexport fn exp(x: float32) = toFloat32(e) ** x;\n\nexport fn ln(x: float64) = lnf64(x);\nexport fn ln(x: float32) = toFloat32(lnf64(toFloat64(x)));\n\nexport fn log(x: float64) = logf64(x);\nexport fn log(x: float32) = toFloat32(logf64(toFloat64(x)));\n\nexport fn sin(x: float64) = sinf64(x);\nexport fn sin(x: float32) = toFloat32(sinf64(toFloat64(x)));\nexport fn sine(x: float64) = sinf64(x);\nexport fn sine(x: float32) = toFloat32(sinf64(toFloat64(x)));\n\nexport fn cos(x: float64) = cosf64(x);\nexport fn cos(x: float32) = toFloat32(cosf64(toFloat64(x)));\nexport fn cosine(x: float64) = cosf64(x);\nexport fn cosine(x: float32) = toFloat32(cosf64(toFloat64(x)));\n\nexport fn tan(x: float64) = tanf64(x);\nexport fn tan(x: float32) = toFloat32(tanf64(toFloat64(x)));\nexport fn tangent(x: float64) = tanf64(x);\nexport fn tangent(x: float32) = toFloat32(tanf64(toFloat64(x)));\n\nexport fn sec(x: float64) = 1.0 / cosf64(x);\nexport fn sec(x: float32) = toFloat32(sec(toFloat64(x)));\nexport fn secant(x: float64) = 1.0 / cosf64(x);\nexport fn secant(x: float32) = toFloat32(secant(toFloat64(x)));\n\nexport fn csc(x: float64) = 1.0 / sinf64(x);\nexport fn csc(x: float32) = toFloat32(csc(toFloat64(x)));\nexport fn cosecant(x: float64) = 1.0 / sinf64(x);\nexport fn cosecant(x: float32) = toFloat32(cosecant(toFloat64(x)));\n\nexport fn cot(x: float64) = 1.0 / tanf64(x);\nexport fn cot(x: float32) = toFloat32(cot(toFloat64(x)));\nexport fn cotangent(x: float64) = 1.0 / tanf64(x);\nexport fn cotangent(x: float32) = toFloat32(cotangent(toFloat64(x)));\n\nexport fn asin(x: float64) = asinf64(x);\nexport fn asin(x: float32) = toFloat32(asinf64(toFloat64(x)));\nexport fn arcsine(x: float64) = asinf64(x);\nexport fn arcsine(x: float32) = toFloat32(asinf64(toFloat64(x)));\n\nexport fn acos(x: float64) = acosf64(x);\nexport fn acos(x: float32) = toFloat32(acosf64(toFloat64(x)));\nexport fn arccosine(x: float64) = acosf64(x);\nexport fn arccosine(x: float32) = toFloat32(acosf64(toFloat64(x)));\n\nexport fn atan(x: float64) = atanf64(x);\nexport fn atan(x: float32) = toFloat32(atanf64(toFloat64(x)));\nexport fn arctangent(x: float64) = atanf64(x);\nexport fn arctangent(x: float32) = toFloat32(atanf64(toFloat64(x)));\n\nexport fn asec(x: float64) = acosf64(1.0 / x);\nexport fn asec(x: float32) = toFloat32(asec(toFloat64(x)));\nexport fn arcsecant(x: float64) = acosf64(1.0 / x);\nexport fn arcsecant(x: float32) = toFloat32(arcsecant(toFloat64(x)));\n\nexport fn acsc(x: float64) = asinf64(1.0 / x);\nexport fn acsc(x: float32) = toFloat32(acsc(toFloat64(x)));\nexport fn arccosecant(x: float64) = asinf64(1.0 / x);\nexport fn arccosecant(x: float32) = toFloat32(arccosecant(toFloat64(x)));\n\nexport fn acot(x: float64) = pi / 2.0 - atanf64(x);\nexport fn acot(x: float32) = toFloat32(acot(toFloat64(x)));\nexport fn arccotangent(x: float64) = pi / 2.0 - atanf64(x);\nexport fn arccotangent(x: float32) = toFloat32(arccotangent(toFloat64(x)));\n\nexport fn ver(x: float64) = 1.0 - cosf64(x);\nexport fn ver(x: float32) = toFloat32(ver(toFloat64(x)));\nexport fn versine(x: float64) = 1.0 - cosf64(x);\nexport fn versine(x: float32) = toFloat32(versine(toFloat64(x)));\n\nexport fn vcs(x: float64) = 1.0 + cosf64(x);\nexport fn vcs(x: float32) = toFloat32(vcs(toFloat64(x)));\nexport fn vercosine(x: float64) = 1.0 + cosf64(x);\nexport fn vercosine(x: float32) = toFloat32(vercosine(toFloat64(x)));\n\nexport fn cvs(x: float64) = 1.0 - sinf64(x);\nexport fn cvs(x: float32) = toFloat32(cvs(toFloat64(x)));\nexport fn coversine(x: float64) = 1.0 - sinf64(x);\nexport fn coversine(x: float32) = toFloat32(coversine(toFloat64(x)));\n\nexport fn cvc(x: float64) = 1.0 + sinf64(x);\nexport fn cvc(x: float32) = toFloat32(cvc(toFloat64(x)));\nexport fn covercosine(x: float64) = 1.0 + sinf64(x);\nexport fn covercosine(x: float32) = toFloat32(covercosine(toFloat64(x)));\n\nexport fn hav(x: float64) = versine(x) / 2.0;\nexport fn hav(x: float32) = toFloat32(hav(toFloat64(x)));\nexport fn haversine(x: float64) = versine(x) / 2.0;\nexport fn haversine(x: float32) = toFloat32(haversine(toFloat64(x)));\n\nexport fn hvc(x: float64) = vercosine(x) / 2.0;\nexport fn hvc(x: float32) = toFloat32(hvc(toFloat64(x)));\nexport fn havercosine(x: float64) = vercosine(x) / 2.0;\nexport fn havercosine(x: float32) = toFloat32(havercosine(toFloat64(x)));\n\nexport fn hcv(x: float64) = coversine(x) / 2.0;\nexport fn hcv(x: float32) = toFloat32(hcv(toFloat64(x)));\nexport fn hacoversine(x: float64) = coversine(x) / 2.0;\nexport fn hacoversine(x: float32) = toFloat32(hacoversine(toFloat64(x)));\n\nexport fn hcc(x: float64) = covercosine(x) / 2.0;\nexport fn hcc(x: float32) = toFloat32(hcc(toFloat64(x)));\nexport fn hacovercosine(x: float64) = covercosine(x) / 2.0;\nexport fn hacovercosine(x: float32) = toFloat32(hacovercosine(toFloat64(x)));\n\nexport fn exs(x: float64) = secant(x) - 1.0;\nexport fn exs(x: float32) = toFloat32(exs(toFloat64(x)));\nexport fn exsecant(x: float64) = secant(x) - 1.0;\nexport fn exsecant(x: float32) = toFloat32(exsecant(toFloat64(x)));\n\nexport fn exc(x: float64) = cosecant(x) - 1.0;\nexport fn exc(x: float32) = toFloat32(exc(toFloat64(x)));\nexport fn excosecant(x: float64) = cosecant(x) - 1.0;\nexport fn excosecant(x: float32) = toFloat32(excosecant(toFloat64(x)));\n\nexport fn crd(x: float64) = 2.0 * sine(x / 2.0);\nexport fn crd(x: float32) = toFloat32(crd(toFloat64(x)));\nexport fn chord(x: float64) = 2.0 * sine(x / 2.0);\nexport fn chord(x: float32) = toFloat32(chord(toFloat64(x)));\n\nexport fn aver(x: float64) = arccosine(1.0 - x);\nexport fn aver(x: float32) = toFloat32(aver(toFloat64(x)));\nexport fn arcversine(x: float64) = arccosine(1.0 - x);\nexport fn arcversine(x: float32) = toFloat32(arcversine(toFloat64(x)));\n\nexport fn avcs(x: float64) = arccosine(x - 1.0);\nexport fn avcs(x: float32) = toFloat32(avcs(toFloat64(x)));\nexport fn arcvercosine(x: float64) = arccosine(x - 1.0);\nexport fn arcvercosine(x: float32) = toFloat32(arcvercosine(toFloat64(x)));\n\nexport fn acvs(x: float64) = arcsine(1.0 - x);\nexport fn acvs(x: float32) = toFloat32(acvs(toFloat64(x)));\nexport fn arccoversine(x: float64) = arcsine(1.0 - x);\nexport fn arccoversine(x: float32) = toFloat32(arccoversine(toFloat64(x)));\n\nexport fn acvc(x: float64) = arcsine(x - 1.0);\nexport fn acvc(x: float32) = toFloat32(acvc(toFloat64(x)));\nexport fn arccovercosine(x: float64) = arcsine(x - 1.0);\nexport fn arccovercosine(x: float32) = toFloat32(arccovercosine(toFloat64(x)));\n\nexport fn ahav(x: float64) = arccosine(1.0 - 2.0 * x);\nexport fn ahav(x: float32) = toFloat32(ahav(toFloat64(x)));\nexport fn archaversine(x: float64) = arccosine(1.0 - 2.0 * x);\nexport fn archaversine(x: float32) = toFloat32(archaversine(toFloat64(x)));\n\nexport fn ahvc(x: float64) = arccosine(2.0 * x - 1.0);\nexport fn ahvc(x: float32) = toFloat32(ahvc(toFloat64(x)));\nexport fn archavercosine(x: float64) = arccosine(2.0 * x - 1.0);\nexport fn archavercosine(x: float32) = toFloat32(archavercosine(toFloat64(x)));\n\nexport fn ahcv(x: float64) = arcsine(1.0 - 2.0 * x);\nexport fn ahcv(x: float32) = toFloat32(ahcv(toFloat64(x)));\nexport fn archacoversine(x: float64) = arcsine(1.0 - 2.0 * x);\nexport fn archacoversine(x: float32) = toFloat32(archacoversine(toFloat64(x)));\n\nexport fn ahcc(x: float64) = arcsine(2.0 * x - 1.0);\nexport fn ahcc(x: float32) = toFloat32(ahcc(toFloat64(x)));\nexport fn archacovercosine(x: float64) = arcsine(2.0 * x - 1.0);\nexport fn archacovercosine(x: float32) = toFloat32(archacovercosine(toFloat64(x)));\n\nexport fn aexs(x: float64) = arccosine(1.0 / (x + 1.0));\nexport fn aexs(x: float32) = toFloat32(aexs(toFloat64(x)));\nexport fn arcexsecant(x: float64) = arccosine(1.0 / (x + 1.0));\nexport fn arcexsecant(x: float32) = toFloat32(arcexsecant(toFloat64(x)));\n\nexport fn aexc(x: float64) = arcsine(1.0 / (x + 1.0));\nexport fn aexc(x: float32) = toFloat32(aexc(toFloat64(x)));\nexport fn arcexcosecant(x: float64) = arcsine(1.0 / (x + 1.0));\nexport fn arcexcosecant(x: float32) = toFloat32(arcexcosecant(toFloat64(x)));\n\nexport fn acrd(x: float64) = 2.0 * arcsine(x / 2.0);\nexport fn acrd(x: float32) = toFloat32(acrd(toFloat64(x)));\nexport fn arcchord(x: float64) = 2.0 * arcsine(x / 2.0);\nexport fn arcchord(x: float32) = toFloat32(arcchord(toFloat64(x)));\n\nexport fn sinh(x: float64) = sinhf64(x);\nexport fn sinh(x: float32) = toFloat32(sinhf64(toFloat64(x)));\nexport fn hyperbolicSine(x: float64) = sinhf64(x);\nexport fn hyperbolicSine(x: float32) = toFloat32(sinhf64(toFloat64(x)));\n\nexport fn cosh(x: float64) = coshf64(x);\nexport fn cosh(x: float32) = toFloat32(coshf64(toFloat64(x)));\nexport fn hyperbolicCosine(x: float64) = coshf64(x);\nexport fn hyperbolicCosine(x: float32) = toFloat32(coshf64(toFloat64(x)));\n\nexport fn tanh(x: float64) = tanhf64(x);\nexport fn tanh(x: float32) = toFloat32(tanhf64(toFloat64(x)));\nexport fn hyperbolicTangent(x: float64) = tanhf64(x);\nexport fn hyperbolicTangent(x: float32) = toFloat32(tanhf64(toFloat64(x)));\n\nexport fn sech(x: float64) = 1.0 / cosh(x);\nexport fn sech(x: float32) = toFloat32(sech(toFloat64(x)));\nexport fn hyperbolicSecant(x: float64) = 1.0 / cosh(x);\nexport fn hyperbolicSecant(x: float32) = toFloat32(hyperbolicSecant(toFloat64(x)));\n\nexport fn csch(x: float64) = 1.0 / sinh(x);\nexport fn csch(x: float32) = toFloat32(cosh(toFloat64(x)));\nexport fn hyperbolicCosecant(x: float64) = 1.0 / sinh(x);\nexport fn hyperbolicCosecant(x: float32) = toFloat32(hyperbolicCosecant(toFloat64(x)));\n\nexport fn coth(x: float64) = 1.0 / tanh(x);\nexport fn coth(x: float32) = toFloat32(coth(toFloat64(x)));\nexport fn hyperbolicCotangent(x: float64) = 1.0 / tanh(x);\nexport fn hyperbolicCotangent(x: float32) = toFloat32(hyperbolicCotangent(toFloat64(x)));\n\nexport fn asinh(x: float64) = ln(x + sqrt(x ** 2.0 + 1.0));\nexport fn asinh(x: float32) = toFloat32(asinh(toFloat64(x)));\nexport fn hyperbolicArcsine(x: float64) = ln(x + sqrt(x ** 2.0 + 1.0));\nexport fn hyperbolicArcsine(x: float32) = toFloat32(hyperbolicArcsine(toFloat64(x)));\n\nexport fn acosh(x: float64) = ln(x + sqrt(x ** 2.0 - 1.0));\nexport fn acosh(x: float32) = toFloat32(acosh(toFloat64(x)));\nexport fn hyperbolicArccosine(x: float64) = ln(x + sqrt(x ** 2.0 - 1.0));\nexport fn hyperbolicArccosine(x: float32) = toFloat32(hyperbolicArccosine(toFloat64(x)));\n\nexport fn atanh(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0;\nexport fn atanh(x: float32) = toFloat32(atanh(toFloat64(x)));\nexport fn hyperbolicArctangent(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0;\nexport fn hyperbolicArctangent(x: float32) = toFloat32(hyperbolicArctangent(toFloat64(x)));\n\nexport fn asech(x: float64) = ln((1.0 + sqrt(1.0 - x ** 2.0)) / x);\nexport fn asech(x: float32) = toFloat32(asech(toFloat64(x)));\nexport fn hyperbolicArcsecant(x: float64) = ln((1.0 + sqrt(1.0 - x ** 2.0)) / x);\nexport fn hyperbolicArcsecant(x: float32) = toFloat32(hyperbolicArcsecant(toFloat64(x)));\n\nexport fn acsch(x: float64) = ln((1.0 / x) + sqrt(1.0 / x ** 2.0 + 1.0));\nexport fn acsch(x: float32) = toFloat32(acsch(toFloat64(x)));\nexport fn hyperbolicArccosecant(x: float64) = ln((1.0 / x) + sqrt(1.0 / x ** 2.0 + 1.0));\nexport fn hyperbolicArccosecant(x: float32) = toFloat32(hyperbolicArccosecant(toFloat64(x)));\n\nexport fn acoth(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0;\nexport fn acoth(x: float32) = toFloat32(acoth(toFloat64(x)));\nexport fn hyperbolicArccotangent(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0;\nexport fn hyperbolicArccotangent(x: float32) = toFloat32(hyperbolicArccotangent(toFloat64(x)));\n"}
 
 },{}],3:[function(require,module,exports){
 "use strict";
@@ -976,7 +976,7 @@ var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
     "G%I&K\'M(O)Q*S+U,W-Y.[/\u0003\u0002\u0010\u0004\u0002\f\f\u000f\u000f",
     "\u0004\u0002\u000b\u000b\"\"\u0003\u000211\u0003\u0002,,\u0003\u0002",
     "$$\u0003\u0002))\u0005\u00022;CHch\u0003\u0002//\u0003\u00022;\u0003",
-    "\u000200\f\u0002##%(,-/1<?AB``bb~~\u0080\u0080\u000b\u0002##%(,-/1<",
+    "\u000200\r\u0002##%(,-/1<<>?AB``bb~~\u0080\u0080\f\u0002##%(,-/1<<>",
     "B``bb~~\u0080\u0080\u0005\u0002C\\aac|\u0006\u00022;C\\aac|\u0002\u0171",
     "\u0002\u0003\u0003\u0002\u0002\u0002\u0002\u0005\u0003\u0002\u0002\u0002",
     "\u0002\u0007\u0003\u0002\u0002\u0002\u0002\t\u0003\u0002\u0002\u0002",
@@ -1088,8 +1088,8 @@ var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
     "\u00f2\u00071\u0002\u0002\u00f2D\u0003\u0002\u0002\u0002\u00f3\u00f4",
     "\u00070\u0002\u0002\u00f4\u00f5\u00070\u0002\u0002\u00f5\u00f6\u0007",
     "1\u0002\u0002\u00f6F\u0003\u0002\u0002\u0002\u00f7\u00f8\u00071\u0002",
-    "\u0002\u00f8H\u0003\u0002\u0002\u0002\u00f9\u00fa\u0007~\u0002\u0002",
-    "\u00faJ\u0003\u0002\u0002\u0002\u00fb\u00fc\u0007<\u0002\u0002\u00fc",
+    "\u0002\u00f8H\u0003\u0002\u0002\u0002\u00f9\u00fa\u0007<\u0002\u0002",
+    "\u00faJ\u0003\u0002\u0002\u0002\u00fb\u00fc\u0007=\u0002\u0002\u00fc",
     "L\u0003\u0002\u0002\u0002\u00fd\u0101\t\u0002\u0002\u0002\u00fe\u00ff",
     "\u0007\u000f\u0002\u0002\u00ff\u0101\u0007\f\u0002\u0002\u0100\u00fd",
     "\u0003\u0002\u0002\u0002\u0100\u00fe\u0003\u0002\u0002\u0002\u0101N",
@@ -1199,8 +1199,8 @@ LnLexer.GLOBAL = 32;
 LnLexer.CURDIR = 33;
 LnLexer.PARDIR = 34;
 LnLexer.DIRSEP = 35;
-LnLexer.OR = 36;
-LnLexer.TYPESEP = 37;
+LnLexer.TYPESEP = 36;
+LnLexer.EOS = 37;
 LnLexer.NEWLINE = 38;
 LnLexer.WS = 39;
 LnLexer.SINGLELINECOMMENT = 40;
@@ -1219,7 +1219,7 @@ LnLexer.prototype.literalNames = [null, "'import'", "'from'", "'type'",
     "'interface'", null, "'{'", "'}'", "'('",
     "')'", "'<'", "'>'", "'['", "']'", "'.'",
     "'='", "'@'", "'./'", "'../'", "'/'",
-    "'|'", "':'"];
+    "':'", "';'"];
 LnLexer.prototype.symbolicNames = [null, "IMPORT", "FROM", "TYPE", "FN",
     "EVENT", "ON", "EXPORT", "CONST", "LET",
     "RETURN", "EMIT", "AS", "BOOLCONSTANT",
@@ -1229,7 +1229,7 @@ LnLexer.prototype.symbolicNames = [null, "IMPORT", "FROM", "TYPE", "FN",
     "OPENGENERIC", "CLOSEGENERIC", "OPENARRAY",
     "CLOSEARRAY", "METHODSEP", "EQUALS",
     "GLOBAL", "CURDIR", "PARDIR", "DIRSEP",
-    "OR", "TYPESEP", "NEWLINE", "WS", "SINGLELINECOMMENT",
+    "TYPESEP", "EOS", "NEWLINE", "WS", "SINGLELINECOMMENT",
     "MULTILINECOMMENT", "STRINGCONSTANT",
     "NUMBERCONSTANT", "GENERALOPERATORS",
     "VARNAME"];
@@ -1241,7 +1241,7 @@ LnLexer.prototype.ruleNames = ["IMPORT", "FROM", "TYPE", "FN", "EVENT",
     "OPENARGS", "CLOSEARGS", "OPENGENERIC",
     "CLOSEGENERIC", "OPENARRAY", "CLOSEARRAY",
     "METHODSEP", "EQUALS", "GLOBAL", "CURDIR",
-    "PARDIR", "DIRSEP", "OR", "TYPESEP", "NEWLINE",
+    "PARDIR", "DIRSEP", "TYPESEP", "EOS", "NEWLINE",
     "WS", "SINGLELINECOMMENT", "MULTILINECOMMENT",
     "STRINGCONSTANT", "NUMBERCONSTANT", "GENERALOPERATORS",
     "VARNAME"];
@@ -1313,12 +1313,6 @@ LnListener.prototype.enterTypes = function (ctx) {
 // Exit a parse tree produced by LnParser#types.
 LnListener.prototype.exitTypes = function (ctx) {
 };
-// Enter a parse tree produced by LnParser#othertype.
-LnListener.prototype.enterOthertype = function (ctx) {
-};
-// Exit a parse tree produced by LnParser#othertype.
-LnListener.prototype.exitOthertype = function (ctx) {
-};
 // Enter a parse tree produced by LnParser#typename.
 LnListener.prototype.enterTypename = function (ctx) {
 };
@@ -1348,6 +1342,18 @@ LnListener.prototype.enterTypeline = function (ctx) {
 };
 // Exit a parse tree produced by LnParser#typeline.
 LnListener.prototype.exitTypeline = function (ctx) {
+};
+// Enter a parse tree produced by LnParser#typelist.
+LnListener.prototype.enterTypelist = function (ctx) {
+};
+// Exit a parse tree produced by LnParser#typelist.
+LnListener.prototype.exitTypelist = function (ctx) {
+};
+// Enter a parse tree produced by LnParser#arglist.
+LnListener.prototype.enterArglist = function (ctx) {
+};
+// Exit a parse tree produced by LnParser#arglist.
+LnListener.prototype.exitArglist = function (ctx) {
 };
 // Enter a parse tree produced by LnParser#functions.
 LnListener.prototype.enterFunctions = function (ctx) {
@@ -1397,23 +1403,11 @@ LnListener.prototype.enterAssignments = function (ctx) {
 // Exit a parse tree produced by LnParser#assignments.
 LnListener.prototype.exitAssignments = function (ctx) {
 };
-// Enter a parse tree produced by LnParser#assignables.
-LnListener.prototype.enterAssignables = function (ctx) {
+// Enter a parse tree produced by LnParser#baseassignable.
+LnListener.prototype.enterBaseassignable = function (ctx) {
 };
-// Exit a parse tree produced by LnParser#assignables.
-LnListener.prototype.exitAssignables = function (ctx) {
-};
-// Enter a parse tree produced by LnParser#basicassignables.
-LnListener.prototype.enterBasicassignables = function (ctx) {
-};
-// Exit a parse tree produced by LnParser#basicassignables.
-LnListener.prototype.exitBasicassignables = function (ctx) {
-};
-// Enter a parse tree produced by LnParser#operatororassignable.
-LnListener.prototype.enterOperatororassignable = function (ctx) {
-};
-// Exit a parse tree produced by LnParser#operatororassignable.
-LnListener.prototype.exitOperatororassignable = function (ctx) {
+// Exit a parse tree produced by LnParser#baseassignable.
+LnListener.prototype.exitBaseassignable = function (ctx) {
 };
 // Enter a parse tree produced by LnParser#withoperators.
 LnListener.prototype.enterWithoperators = function (ctx) {
@@ -1421,17 +1415,11 @@ LnListener.prototype.enterWithoperators = function (ctx) {
 // Exit a parse tree produced by LnParser#withoperators.
 LnListener.prototype.exitWithoperators = function (ctx) {
 };
-// Enter a parse tree produced by LnParser#groups.
-LnListener.prototype.enterGroups = function (ctx) {
+// Enter a parse tree produced by LnParser#assignables.
+LnListener.prototype.enterAssignables = function (ctx) {
 };
-// Exit a parse tree produced by LnParser#groups.
-LnListener.prototype.exitGroups = function (ctx) {
-};
-// Enter a parse tree produced by LnParser#typeofn.
-LnListener.prototype.enterTypeofn = function (ctx) {
-};
-// Exit a parse tree produced by LnParser#typeofn.
-LnListener.prototype.exitTypeofn = function (ctx) {
+// Exit a parse tree produced by LnParser#assignables.
+LnListener.prototype.exitAssignables = function (ctx) {
 };
 // Enter a parse tree produced by LnParser#objectliterals.
 LnListener.prototype.enterObjectliterals = function (ctx) {
@@ -1439,11 +1427,41 @@ LnListener.prototype.enterObjectliterals = function (ctx) {
 // Exit a parse tree produced by LnParser#objectliterals.
 LnListener.prototype.exitObjectliterals = function (ctx) {
 };
+// Enter a parse tree produced by LnParser#assignablelist.
+LnListener.prototype.enterAssignablelist = function (ctx) {
+};
+// Exit a parse tree produced by LnParser#assignablelist.
+LnListener.prototype.exitAssignablelist = function (ctx) {
+};
+// Enter a parse tree produced by LnParser#typeassignlist.
+LnListener.prototype.enterTypeassignlist = function (ctx) {
+};
+// Exit a parse tree produced by LnParser#typeassignlist.
+LnListener.prototype.exitTypeassignlist = function (ctx) {
+};
+// Enter a parse tree produced by LnParser#literaldec.
+LnListener.prototype.enterLiteraldec = function (ctx) {
+};
+// Exit a parse tree produced by LnParser#literaldec.
+LnListener.prototype.exitLiteraldec = function (ctx) {
+};
+// Enter a parse tree produced by LnParser#arraybase.
+LnListener.prototype.enterArraybase = function (ctx) {
+};
+// Exit a parse tree produced by LnParser#arraybase.
+LnListener.prototype.exitArraybase = function (ctx) {
+};
 // Enter a parse tree produced by LnParser#arrayliteral.
 LnListener.prototype.enterArrayliteral = function (ctx) {
 };
 // Exit a parse tree produced by LnParser#arrayliteral.
 LnListener.prototype.exitArrayliteral = function (ctx) {
+};
+// Enter a parse tree produced by LnParser#typebase.
+LnListener.prototype.enterTypebase = function (ctx) {
+};
+// Exit a parse tree produced by LnParser#typebase.
+LnListener.prototype.exitTypebase = function (ctx) {
 };
 // Enter a parse tree produced by LnParser#typeliteral.
 LnListener.prototype.enterTypeliteral = function (ctx) {
@@ -1451,35 +1469,11 @@ LnListener.prototype.enterTypeliteral = function (ctx) {
 // Exit a parse tree produced by LnParser#typeliteral.
 LnListener.prototype.exitTypeliteral = function (ctx) {
 };
-// Enter a parse tree produced by LnParser#mapliteral.
-LnListener.prototype.enterMapliteral = function (ctx) {
-};
-// Exit a parse tree produced by LnParser#mapliteral.
-LnListener.prototype.exitMapliteral = function (ctx) {
-};
-// Enter a parse tree produced by LnParser#mapline.
-LnListener.prototype.enterMapline = function (ctx) {
-};
-// Exit a parse tree produced by LnParser#mapline.
-LnListener.prototype.exitMapline = function (ctx) {
-};
-// Enter a parse tree produced by LnParser#assignablelist.
-LnListener.prototype.enterAssignablelist = function (ctx) {
-};
-// Exit a parse tree produced by LnParser#assignablelist.
-LnListener.prototype.exitAssignablelist = function (ctx) {
-};
 // Enter a parse tree produced by LnParser#fncall.
 LnListener.prototype.enterFncall = function (ctx) {
 };
 // Exit a parse tree produced by LnParser#fncall.
 LnListener.prototype.exitFncall = function (ctx) {
-};
-// Enter a parse tree produced by LnParser#calls.
-LnListener.prototype.enterCalls = function (ctx) {
-};
-// Exit a parse tree produced by LnParser#calls.
-LnListener.prototype.exitCalls = function (ctx) {
 };
 // Enter a parse tree produced by LnParser#exits.
 LnListener.prototype.enterExits = function (ctx) {
@@ -1541,23 +1535,35 @@ LnListener.prototype.enterEvents = function (ctx) {
 // Exit a parse tree produced by LnParser#events.
 LnListener.prototype.exitEvents = function (ctx) {
 };
-// Enter a parse tree produced by LnParser#handlers.
-LnListener.prototype.enterHandlers = function (ctx) {
-};
-// Exit a parse tree produced by LnParser#handlers.
-LnListener.prototype.exitHandlers = function (ctx) {
-};
 // Enter a parse tree produced by LnParser#eventref.
 LnListener.prototype.enterEventref = function (ctx) {
 };
 // Exit a parse tree produced by LnParser#eventref.
 LnListener.prototype.exitEventref = function (ctx) {
 };
+// Enter a parse tree produced by LnParser#handlers.
+LnListener.prototype.enterHandlers = function (ctx) {
+};
+// Exit a parse tree produced by LnParser#handlers.
+LnListener.prototype.exitHandlers = function (ctx) {
+};
 // Enter a parse tree produced by LnParser#interfaces.
 LnListener.prototype.enterInterfaces = function (ctx) {
 };
 // Exit a parse tree produced by LnParser#interfaces.
 LnListener.prototype.exitInterfaces = function (ctx) {
+};
+// Enter a parse tree produced by LnParser#interfacebody.
+LnListener.prototype.enterInterfacebody = function (ctx) {
+};
+// Exit a parse tree produced by LnParser#interfacebody.
+LnListener.prototype.exitInterfacebody = function (ctx) {
+};
+// Enter a parse tree produced by LnParser#interfacelist.
+LnListener.prototype.enterInterfacelist = function (ctx) {
+};
+// Exit a parse tree produced by LnParser#interfacelist.
+LnListener.prototype.exitInterfacelist = function (ctx) {
 };
 // Enter a parse tree produced by LnParser#interfaceline.
 LnListener.prototype.enterInterfaceline = function (ctx) {
@@ -1600,18 +1606,6 @@ LnListener.prototype.enterPropertytypeline = function (ctx) {
 };
 // Exit a parse tree produced by LnParser#propertytypeline.
 LnListener.prototype.exitPropertytypeline = function (ctx) {
-};
-// Enter a parse tree produced by LnParser#argtype.
-LnListener.prototype.enterArgtype = function (ctx) {
-};
-// Exit a parse tree produced by LnParser#argtype.
-LnListener.prototype.exitArgtype = function (ctx) {
-};
-// Enter a parse tree produced by LnParser#arglist.
-LnListener.prototype.enterArglist = function (ctx) {
-};
-// Exit a parse tree produced by LnParser#arglist.
-LnListener.prototype.exitArglist = function (ctx) {
 };
 // Enter a parse tree produced by LnParser#exports.
 LnListener.prototype.enterExports = function (ctx) {
@@ -1664,7 +1658,7 @@ var antlr4 = require('antlr4/index');
 var LnListener = require('./LnListener').LnListener;
 var grammarFileName = "Ln.g4";
 var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
-    "\u0003/\u04b8\u0004\u0002\t\u0002\u0004\u0003\t\u0003\u0004\u0004\t",
+    "\u0003/\u04cc\u0004\u0002\t\u0002\u0004\u0003\t\u0003\u0004\u0004\t",
     "\u0004\u0004\u0005\t\u0005\u0004\u0006\t\u0006\u0004\u0007\t\u0007\u0004",
     "\b\t\b\u0004\t\t\t\u0004\n\t\n\u0004\u000b\t\u000b\u0004\f\t\f\u0004",
     "\r\t\r\u0004\u000e\t\u000e\u0004\u000f\t\u000f\u0004\u0010\t\u0010\u0004",
@@ -1677,832 +1671,851 @@ var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
     ",\t,\u0004-\t-\u0004.\t.\u0004/\t/\u00040\t0\u00041\t1\u00042\t2\u0004",
     "3\t3\u00044\t4\u00045\t5\u00046\t6\u00047\t7\u00048\t8\u00049\t9\u0004",
     ":\t:\u0004;\t;\u0004<\t<\u0004=\t=\u0004>\t>\u0004?\t?\u0004@\t@\u0004",
-    "A\tA\u0004B\tB\u0004C\tC\u0003\u0002\u0007\u0002\u0088\n\u0002\f\u0002",
-    "\u000e\u0002\u008b\u000b\u0002\u0003\u0002\u0007\u0002\u008e\n\u0002",
-    "\f\u0002\u000e\u0002\u0091\u000b\u0002\u0003\u0002\u0003\u0002\u0003",
-    "\u0002\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0002\u0003",
-    "\u0002\u0006\u0002\u009c\n\u0002\r\u0002\u000e\u0002\u009d\u0006\u0002",
-    "\u00a0\n\u0002\r\u0002\u000e\u0002\u00a1\u0003\u0002\u0005\u0002\u00a5",
-    "\n\u0002\u0003\u0003\u0003\u0003\u0003\u0004\u0003\u0004\u0005\u0004",
-    "\u00ab\n\u0004\u0003\u0005\u0003\u0005\u0003\u0005\u0003\u0005\u0003",
-    "\u0005\u0003\u0005\u0003\u0005\u0005\u0005\u00b4\n\u0005\u0003\u0005",
-    "\u0003\u0005\u0007\u0005\u00b8\n\u0005\f\u0005\u000e\u0005\u00bb\u000b",
-    "\u0005\u0003\u0006\u0003\u0006\u0003\u0006\u0003\u0006\u0003\u0006\u0003",
-    "\u0006\u0003\u0006\u0003\u0006\u0003\u0006\u0007\u0006\u00c6\n\u0006",
-    "\f\u0006\u000e\u0006\u00c9\u000b\u0006\u0003\u0007\u0003\u0007\u0005",
-    "\u0007\u00cd\n\u0007\u0003\b\u0003\b\u0006\b\u00d1\n\b\r\b\u000e\b\u00d2",
-    "\u0003\b\u0003\b\u0006\b\u00d7\n\b\r\b\u000e\b\u00d8\u0005\b\u00db\n",
-    "\b\u0003\t\u0003\t\u0006\t\u00df\n\t\r\t\u000e\t\u00e0\u0003\n\u0003",
-    "\n\u0006\n\u00e5\n\n\r\n\u000e\n\u00e6\u0003\n\u0003\n\u0007\n\u00eb",
-    "\n\n\f\n\u000e\n\u00ee\u000b\n\u0003\n\u0005\n\u00f1\n\n\u0003\n\u0006",
-    "\n\u00f4\n\n\r\n\u000e\n\u00f5\u0003\n\u0003\n\u0003\n\u0007\n\u00fb",
-    "\n\n\f\n\u000e\n\u00fe\u000b\n\u0003\n\u0005\n\u0101\n\n\u0003\u000b",
-    "\u0003\u000b\u0007\u000b\u0105\n\u000b\f\u000b\u000e\u000b\u0108\u000b",
-    "\u000b\u0003\u000b\u0005\u000b\u010b\n\u000b\u0003\f\u0003\f\u0003\r",
-    "\u0003\r\u0007\r\u0111\n\r\f\r\u000e\r\u0114\u000b\r\u0003\r\u0003\r",
-    "\u0007\r\u0118\n\r\f\r\u000e\r\u011b\u000b\r\u0003\r\u0003\r\u0007\r",
-    "\u011f\n\r\f\r\u000e\r\u0122\u000b\r\u0003\r\u0003\r\u0007\r\u0126\n",
-    "\r\f\r\u000e\r\u0129\u000b\r\u0007\r\u012b\n\r\f\r\u000e\r\u012e\u000b",
-    "\r\u0003\r\u0003\r\u0003\u000e\u0003\u000e\u0007\u000e\u0134\n\u000e",
-    "\f\u000e\u000e\u000e\u0137\u000b\u000e\u0003\u000e\u0005\u000e\u013a",
-    "\n\u000e\u0003\u000f\u0003\u000f\u0007\u000f\u013e\n\u000f\f\u000f\u000e",
-    "\u000f\u0141\u000b\u000f\u0003\u000f\u0007\u000f\u0144\n\u000f\f\u000f",
-    "\u000e\u000f\u0147\u000b\u000f\u0003\u000f\u0006\u000f\u014a\n\u000f",
-    "\r\u000f\u000e\u000f\u014b\u0003\u000f\u0005\u000f\u014f\n\u000f\u0003",
-    "\u000f\u0003\u000f\u0003\u0010\u0003\u0010\u0005\u0010\u0155\n\u0010",
-    "\u0003\u0010\u0003\u0010\u0005\u0010\u0159\n\u0010\u0003\u0010\u0003",
-    "\u0010\u0007\u0010\u015d\n\u0010\f\u0010\u000e\u0010\u0160\u000b\u0010",
-    "\u0003\u0011\u0003\u0011\u0006\u0011\u0164\n\u0011\r\u0011\u000e\u0011",
-    "\u0165\u0003\u0011\u0003\u0011\u0007\u0011\u016a\n\u0011\f\u0011\u000e",
-    "\u0011\u016d\u000b\u0011\u0005\u0011\u016f\n\u0011\u0003\u0011\u0003",
-    "\u0011\u0005\u0011\u0173\n\u0011\u0003\u0011\u0003\u0011\u0007\u0011",
-    "\u0177\n\u0011\f\u0011\u000e\u0011\u017a\u000b\u0011\u0003\u0011\u0005",
-    "\u0011\u017d\n\u0011\u0003\u0011\u0003\u0011\u0005\u0011\u0181\n\u0011",
-    "\u0003\u0011\u0003\u0011\u0007\u0011\u0185\n\u0011\f\u0011\u000e\u0011",
-    "\u0188\u000b\u0011\u0005\u0011\u018a\n\u0011\u0005\u0011\u018c\n\u0011",
-    "\u0003\u0011\u0003\u0011\u0003\u0012\u0003\u0012\u0003\u0012\u0007\u0012",
-    "\u0193\n\u0012\f\u0012\u000e\u0012\u0196\u000b\u0012\u0003\u0012\u0005",
-    "\u0012\u0199\n\u0012\u0003\u0013\u0003\u0013\u0007\u0013\u019d\n\u0013",
-    "\f\u0013\u000e\u0013\u01a0\u000b\u0013\u0003\u0013\u0006\u0013\u01a3",
-    "\n\u0013\r\u0013\u000e\u0013\u01a4\u0003\u0013\u0007\u0013\u01a8\n\u0013",
-    "\f\u0013\u000e\u0013\u01ab\u000b\u0013\u0003\u0013\u0003\u0013\u0003",
-    "\u0014\u0003\u0014\u0003\u0014\u0003\u0014\u0003\u0014\u0003\u0014\u0005",
-    "\u0014\u01b5\n\u0014\u0003\u0014\u0006\u0014\u01b8\n\u0014\r\u0014\u000e",
-    "\u0014\u01b9\u0003\u0015\u0003\u0015\u0005\u0015\u01be\n\u0015\u0003",
-    "\u0016\u0003\u0016\u0007\u0016\u01c2\n\u0016\f\u0016\u000e\u0016\u01c5",
-    "\u000b\u0016\u0003\u0016\u0003\u0016\u0007\u0016\u01c9\n\u0016\f\u0016",
-    "\u000e\u0016\u01cc\u000b\u0016\u0003\u0016\u0003\u0016\u0005\u0016\u01d0",
-    "\n\u0016\u0003\u0016\u0005\u0016\u01d3\n\u0016\u0003\u0016\u0007\u0016",
-    "\u01d6\n\u0016\f\u0016\u000e\u0016\u01d9\u000b\u0016\u0003\u0016\u0003",
-    "\u0016\u0007\u0016\u01dd\n\u0016\f\u0016\u000e\u0016\u01e0\u000b\u0016",
-    "\u0003\u0016\u0003\u0016\u0003\u0017\u0003\u0017\u0007\u0017\u01e6\n",
-    "\u0017\f\u0017\u000e\u0017\u01e9\u000b\u0017\u0003\u0017\u0003\u0017",
-    "\u0007\u0017\u01ed\n\u0017\f\u0017\u000e\u0017\u01f0\u000b\u0017\u0003",
-    "\u0017\u0003\u0017\u0005\u0017\u01f4\n\u0017\u0003\u0017\u0005\u0017",
-    "\u01f7\n\u0017\u0003\u0017\u0007\u0017\u01fa\n\u0017\f\u0017\u000e\u0017",
-    "\u01fd\u000b\u0017\u0003\u0017\u0003\u0017\u0007\u0017\u0201\n\u0017",
-    "\f\u0017\u000e\u0017\u0204\u000b\u0017\u0003\u0017\u0003\u0017\u0003",
-    "\u0018\u0003\u0018\u0007\u0018\u020a\n\u0018\f\u0018\u000e\u0018\u020d",
-    "\u000b\u0018\u0003\u0018\u0003\u0018\u0007\u0018\u0211\n\u0018\f\u0018",
-    "\u000e\u0018\u0214\u000b\u0018\u0003\u0018\u0003\u0018\u0003\u0019\u0003",
-    "\u0019\u0005\u0019\u021a\n\u0019\u0003\u001a\u0003\u001a\u0003\u001a",
-    "\u0003\u001a\u0003\u001a\u0003\u001a\u0003\u001a\u0005\u001a\u0223\n",
-    "\u001a\u0003\u001b\u0003\u001b\u0005\u001b\u0227\n\u001b\u0003\u001c",
-    "\u0003\u001c\u0007\u001c\u022b\n\u001c\f\u001c\u000e\u001c\u022e\u000b",
-    "\u001c\u0006\u001c\u0230\n\u001c\r\u001c\u000e\u001c\u0231\u0003\u001d",
-    "\u0003\u001d\u0007\u001d\u0236\n\u001d\f\u001d\u000e\u001d\u0239\u000b",
-    "\u001d\u0003\u001d\u0003\u001d\u0007\u001d\u023d\n\u001d\f\u001d\u000e",
-    "\u001d\u0240\u000b\u001d\u0003\u001d\u0003\u001d\u0003\u001e\u0003\u001e",
-    "\u0007\u001e\u0246\n\u001e\f\u001e\u000e\u001e\u0249\u000b\u001e\u0003",
-    "\u001e\u0003\u001e\u0003\u001f\u0003\u001f\u0003\u001f\u0005\u001f\u0250",
-    "\n\u001f\u0003 \u0003 \u0007 \u0254\n \f \u000e \u0257\u000b \u0003",
-    " \u0003 \u0007 \u025b\n \f \u000e \u025e\u000b \u0005 \u0260\n \u0003",
-    " \u0003 \u0007 \u0264\n \f \u000e \u0267\u000b \u0003 \u0005 \u026a",
-    "\n \u0003 \u0007 \u026d\n \f \u000e \u0270\u000b \u0003 \u0003 \u0003",
-    "!\u0003!\u0007!\u0276\n!\f!\u000e!\u0279\u000b!\u0003!\u0003!\u0007",
-    "!\u027d\n!\f!\u000e!\u0280\u000b!\u0003!\u0003!\u0007!\u0284\n!\f!\u000e",
-    "!\u0287\u000b!\u0003!\u0003!\u0006!\u028b\n!\r!\u000e!\u028c\u0006!",
-    "\u028f\n!\r!\u000e!\u0290\u0003!\u0003!\u0003\"\u0003\"\u0007\"\u0297",
-    "\n\"\f\"\u000e\"\u029a\u000b\"\u0003\"\u0003\"\u0007\"\u029e\n\"\f\"",
-    "\u000e\"\u02a1\u000b\"\u0003\"\u0003\"\u0007\"\u02a5\n\"\f\"\u000e\"",
-    "\u02a8\u000b\"\u0003\"\u0003\"\u0006\"\u02ac\n\"\r\"\u000e\"\u02ad\u0007",
-    "\"\u02b0\n\"\f\"\u000e\"\u02b3\u000b\"\u0003\"\u0003\"\u0003#\u0003",
-    "#\u0007#\u02b9\n#\f#\u000e#\u02bc\u000b#\u0003#\u0003#\u0007#\u02c0",
-    "\n#\f#\u000e#\u02c3\u000b#\u0003#\u0003#\u0003$\u0007$\u02c8\n$\f$\u000e",
-    "$\u02cb\u000b$\u0003$\u0003$\u0003$\u0007$\u02d0\n$\f$\u000e$\u02d3",
-    "\u000b$\u0003$\u0007$\u02d6\n$\f$\u000e$\u02d9\u000b$\u0003$\u0005$",
-    "\u02dc\n$\u0003$\u0007$\u02df\n$\f$\u000e$\u02e2\u000b$\u0003%\u0003",
-    "%\u0005%\u02e6\n%\u0003%\u0003%\u0003&\u0003&\u0007&\u02ec\n&\f&\u000e",
-    "&\u02ef\u000b&\u0003&\u0003&\u0003&\u0003&\u0007&\u02f5\n&\f&\u000e",
-    "&\u02f8\u000b&\u0003&\u0003&\u0007&\u02fc\n&\f&\u000e&\u02ff\u000b&",
-    "\u0003&\u0003&\u0003&\u0003&\u0003&\u0005&\u0306\n&\u0003&\u0003&\u0003",
-    "&\u0007&\u030b\n&\f&\u000e&\u030e\u000b&\u0003&\u0003&\u0006&\u0312",
-    "\n&\r&\u000e&\u0313\u0005&\u0316\n&\u0003\'\u0003\'\u0007\'\u031a\n",
-    "\'\f\'\u000e\'\u031d\u000b\'\u0003\'\u0005\'\u0320\n\'\u0003(\u0003",
-    "(\u0007(\u0324\n(\f(\u000e(\u0327\u000b(\u0003(\u0003(\u0007(\u032b",
-    "\n(\f(\u000e(\u032e\u000b(\u0003(\u0005(\u0331\n(\u0003)\u0003)\u0007",
-    ")\u0335\n)\f)\u000e)\u0338\u000b)\u0003)\u0003)\u0007)\u033c\n)\f)\u000e",
-    ")\u033f\u000b)\u0003)\u0003)\u0007)\u0343\n)\f)\u000e)\u0346\u000b)",
-    "\u0003)\u0003)\u0007)\u034a\n)\f)\u000e)\u034d\u000b)\u0003)\u0003)",
-    "\u0005)\u0351\n)\u0005)\u0353\n)\u0003*\u0003*\u0003*\u0005*\u0358\n",
-    "*\u0003+\u0003+\u0003,\u0003,\u0003,\u0003,\u0003,\u0006,\u0361\n,\r",
-    ",\u000e,\u0362\u0003,\u0006,\u0366\n,\r,\u000e,\u0367\u0003,\u0007,",
-    "\u036b\n,\f,\u000e,\u036e\u000b,\u0003,\u0006,\u0371\n,\r,\u000e,\u0372",
-    "\u0005,\u0375\n,\u0003,\u0003,\u0005,\u0379\n,\u0003-\u0003-\u0003-",
-    "\u0003-\u0003-\u0003-\u0003-\u0003-\u0003-\u0003-\u0005-\u0385\n-\u0003",
-    ".\u0003.\u0003.\u0003.\u0003.\u0003.\u0003/\u0003/\u0003/\u0003/\u0003",
-    "0\u00030\u00030\u00030\u00070\u0395\n0\f0\u000e0\u0398\u000b0\u0003",
-    "0\u00030\u00050\u039c\n0\u00030\u00030\u00031\u00031\u00061\u03a2\n",
-    "1\r1\u000e1\u03a3\u00031\u00031\u00061\u03a8\n1\r1\u000e1\u03a9\u0003",
-    "1\u00031\u00031\u00051\u03af\n1\u00032\u00032\u00052\u03b3\n2\u0003",
-    "3\u00033\u00073\u03b7\n3\f3\u000e3\u03ba\u000b3\u00033\u00033\u0007",
-    "3\u03be\n3\f3\u000e3\u03c1\u000b3\u00033\u00033\u00073\u03c5\n3\f3\u000e",
-    "3\u03c8\u000b3\u00033\u00033\u00063\u03cc\n3\r3\u000e3\u03cd\u00073",
-    "\u03d0\n3\f3\u000e3\u03d3\u000b3\u00033\u00033\u00033\u00073\u03d8\n",
-    "3\f3\u000e3\u03db\u000b3\u00033\u00053\u03de\n3\u00034\u00034\u0003",
-    "4\u00054\u03e3\n4\u00035\u00035\u00075\u03e7\n5\f5\u000e5\u03ea\u000b",
-    "5\u00035\u00035\u00036\u00036\u00076\u03f0\n6\f6\u000e6\u03f3\u000b",
-    "6\u00036\u00036\u00076\u03f7\n6\f6\u000e6\u03fa\u000b6\u00036\u0003",
-    "6\u00076\u03fe\n6\f6\u000e6\u0401\u000b6\u00036\u00036\u00076\u0405",
-    "\n6\f6\u000e6\u0408\u000b6\u00076\u040a\n6\f6\u000e6\u040d\u000b6\u0003",
-    "6\u00036\u00056\u0411\n6\u00036\u00036\u00076\u0415\n6\f6\u000e6\u0418",
-    "\u000b6\u00036\u00036\u00037\u00037\u00077\u041e\n7\f7\u000e7\u0421",
-    "\u000b7\u00057\u0423\n7\u00037\u00037\u00077\u0427\n7\f7\u000e7\u042a",
-    "\u000b7\u00037\u00037\u00077\u042e\n7\f7\u000e7\u0431\u000b7\u00037",
-    "\u00037\u00077\u0435\n7\f7\u000e7\u0438\u000b7\u00037\u00037\u00038",
-    "\u00038\u00039\u00039\u0003:\u0003:\u0007:\u0442\n:\f:\u000e:\u0445",
-    "\u000b:\u0003:\u0003:\u0007:\u0449\n:\f:\u000e:\u044c\u000b:\u0003:",
-    "\u0003:\u0003;\u0003;\u0007;\u0452\n;\f;\u000e;\u0455\u000b;\u0003;",
-    "\u0003;\u0007;\u0459\n;\f;\u000e;\u045c\u000b;\u0003;\u0007;\u045f\n",
-    ";\f;\u000e;\u0462\u000b;\u0003<\u0003<\u0005<\u0466\n<\u0003<\u0003",
-    "<\u0005<\u046a\n<\u0003<\u0003<\u0003<\u0003<\u0005<\u0470\n<\u0003",
-    "<\u0003<\u0005<\u0474\n<\u0003<\u0007<\u0477\n<\f<\u000e<\u047a\u000b",
-    "<\u0003=\u0003=\u0006=\u047e\n=\r=\u000e=\u047f\u0003=\u0003=\u0003",
-    "=\u0003=\u0003=\u0003=\u0003=\u0005=\u0489\n=\u0003>\u0003>\u0003>\u0007",
-    ">\u048e\n>\f>\u000e>\u0491\u000b>\u0003?\u0003?\u0003?\u0003?\u0003",
-    "?\u0005?\u0498\n?\u0003@\u0003@\u0005@\u049c\n@\u0003A\u0006A\u049f",
-    "\nA\rA\u000eA\u04a0\u0003B\u0003B\u0003B\u0005B\u04a6\nB\u0003C\u0003",
-    "C\u0007C\u04aa\nC\fC\u000eC\u04ad\u000bC\u0003C\u0003C\u0007C\u04b1",
-    "\nC\fC\u000eC\u04b4\u000bC\u0003C\u0003C\u0003C\u0002\u0002D\u0002\u0004",
-    "\u0006\b\n\f\u000e\u0010\u0012\u0014\u0016\u0018\u001a\u001c\u001e ",
-    "\"$&(*,.02468:<>@BDFHJLNPRTVXZ\\^`bdfhjlnprtvxz|~\u0080\u0082\u0084",
-    "\u0002\u0007\u0003\u0002()\u0004\u0002%%//\u0004\u0002\u000f\u000f,",
-    "-\u0003\u0002\u0010\u0011\u0004\u0002\u0006\u0006//\u0002\u0543\u0002",
-    "\u00a4\u0003\u0002\u0002\u0002\u0004\u00a6\u0003\u0002\u0002\u0002\u0006",
-    "\u00aa\u0003\u0002\u0002\u0002\b\u00ac\u0003\u0002\u0002\u0002\n\u00bc",
-    "\u0003\u0002\u0002\u0002\f\u00cc\u0003\u0002\u0002\u0002\u000e\u00da",
-    "\u0003\u0002\u0002\u0002\u0010\u00dc\u0003\u0002\u0002\u0002\u0012\u00e2",
-    "\u0003\u0002\u0002\u0002\u0014\u0102\u0003\u0002\u0002\u0002\u0016\u010c",
-    "\u0003\u0002\u0002\u0002\u0018\u010e\u0003\u0002\u0002\u0002\u001a\u0131",
-    "\u0003\u0002\u0002\u0002\u001c\u013b\u0003\u0002\u0002\u0002\u001e\u0152",
-    "\u0003\u0002\u0002\u0002 \u0161\u0003\u0002\u0002\u0002\"\u0198\u0003",
-    "\u0002\u0002\u0002$\u019a\u0003\u0002\u0002\u0002&\u01b4\u0003\u0002",
-    "\u0002\u0002(\u01bd\u0003\u0002\u0002\u0002*\u01bf\u0003\u0002\u0002",
-    "\u0002,\u01e3\u0003\u0002\u0002\u0002.\u0207\u0003\u0002\u0002\u0002",
-    "0\u0219\u0003\u0002\u0002\u00022\u0222\u0003\u0002\u0002\u00024\u0226",
-    "\u0003\u0002\u0002\u00026\u022f\u0003\u0002\u0002\u00028\u0233\u0003",
-    "\u0002\u0002\u0002:\u0243\u0003\u0002\u0002\u0002<\u024f\u0003\u0002",
-    "\u0002\u0002>\u025f\u0003\u0002\u0002\u0002@\u0273\u0003\u0002\u0002",
-    "\u0002B\u0294\u0003\u0002\u0002\u0002D\u02b6\u0003\u0002\u0002\u0002",
-    "F\u02c9\u0003\u0002\u0002\u0002H\u02e3\u0003\u0002\u0002\u0002J\u0315",
-    "\u0003\u0002\u0002\u0002L\u0317\u0003\u0002\u0002\u0002N\u0321\u0003",
-    "\u0002\u0002\u0002P\u0332\u0003\u0002\u0002\u0002R\u0357\u0003\u0002",
-    "\u0002\u0002T\u0359\u0003\u0002\u0002\u0002V\u0378\u0003\u0002\u0002",
-    "\u0002X\u037a\u0003\u0002\u0002\u0002Z\u0386\u0003\u0002\u0002\u0002",
-    "\\\u038c\u0003\u0002\u0002\u0002^\u0390\u0003\u0002\u0002\u0002`\u039f",
-    "\u0003\u0002\u0002\u0002b\u03b2\u0003\u0002\u0002\u0002d\u03b4\u0003",
-    "\u0002\u0002\u0002f\u03e2\u0003\u0002\u0002\u0002h\u03e4\u0003\u0002",
-    "\u0002\u0002j\u03ed\u0003\u0002\u0002\u0002l\u0422\u0003\u0002\u0002",
-    "\u0002n\u043b\u0003\u0002\u0002\u0002p\u043d\u0003\u0002\u0002\u0002",
-    "r\u043f\u0003\u0002\u0002\u0002t\u044f\u0003\u0002\u0002\u0002v\u0463",
-    "\u0003\u0002\u0002\u0002x\u047b\u0003\u0002\u0002\u0002z\u048a\u0003",
-    "\u0002\u0002\u0002|\u0492\u0003\u0002\u0002\u0002~\u049b\u0003\u0002",
-    "\u0002\u0002\u0080\u049e\u0003\u0002\u0002\u0002\u0082\u04a5\u0003\u0002",
-    "\u0002\u0002\u0084\u04a7\u0003\u0002\u0002\u0002\u0086\u0088\u0005\u0004",
-    "\u0003\u0002\u0087\u0086\u0003\u0002\u0002\u0002\u0088\u008b\u0003\u0002",
-    "\u0002\u0002\u0089\u0087\u0003\u0002\u0002\u0002\u0089\u008a\u0003\u0002",
-    "\u0002\u0002\u008a\u008f\u0003\u0002\u0002\u0002\u008b\u0089\u0003\u0002",
-    "\u0002\u0002\u008c\u008e\u0005\u0006\u0004\u0002\u008d\u008c\u0003\u0002",
-    "\u0002\u0002\u008e\u0091\u0003\u0002\u0002\u0002\u008f\u008d\u0003\u0002",
-    "\u0002\u0002\u008f\u0090\u0003\u0002\u0002\u0002\u0090\u009f\u0003\u0002",
-    "\u0002\u0002\u0091\u008f\u0003\u0002\u0002\u0002\u0092\u00a0\u0005\u0012",
-    "\n\u0002\u0093\u00a0\u0005*\u0016\u0002\u0094\u00a0\u0005 \u0011\u0002",
-    "\u0095\u00a0\u0005X-\u0002\u0096\u00a0\u0005^0\u0002\u0097\u00a0\u0005",
-    "`1\u0002\u0098\u00a0\u0005d3\u0002\u0099\u00a0\u0005x=\u0002\u009a\u009c",
-    "\u0005\u0004\u0003\u0002\u009b\u009a\u0003\u0002\u0002\u0002\u009c\u009d",
-    "\u0003\u0002\u0002\u0002\u009d\u009b\u0003\u0002\u0002\u0002\u009d\u009e",
-    "\u0003\u0002\u0002\u0002\u009e\u00a0\u0003\u0002\u0002\u0002\u009f\u0092",
-    "\u0003\u0002\u0002\u0002\u009f\u0093\u0003\u0002\u0002\u0002\u009f\u0094",
-    "\u0003\u0002\u0002\u0002\u009f\u0095\u0003\u0002\u0002\u0002\u009f\u0096",
-    "\u0003\u0002\u0002\u0002\u009f\u0097\u0003\u0002\u0002\u0002\u009f\u0098",
-    "\u0003\u0002\u0002\u0002\u009f\u0099\u0003\u0002\u0002\u0002\u009f\u009b",
-    "\u0003\u0002\u0002\u0002\u00a0\u00a1\u0003\u0002\u0002\u0002\u00a1\u009f",
-    "\u0003\u0002\u0002\u0002\u00a1\u00a2\u0003\u0002\u0002\u0002\u00a2\u00a5",
-    "\u0003\u0002\u0002\u0002\u00a3\u00a5\u0007\u0002\u0002\u0003\u00a4\u0089",
-    "\u0003\u0002\u0002\u0002\u00a4\u00a3\u0003\u0002\u0002\u0002\u00a5\u0003",
-    "\u0003\u0002\u0002\u0002\u00a6\u00a7\t\u0002\u0002\u0002\u00a7\u0005",
-    "\u0003\u0002\u0002\u0002\u00a8\u00ab\u0005\b\u0005\u0002\u00a9\u00ab",
-    "\u0005\n\u0006\u0002\u00aa\u00a8\u0003\u0002\u0002\u0002\u00aa\u00a9",
-    "\u0003\u0002\u0002\u0002\u00ab\u0007\u0003\u0002\u0002\u0002\u00ac\u00ad",
-    "\u0007\u0003\u0002\u0002\u00ad\u00ae\u0007)\u0002\u0002\u00ae\u00b3",
-    "\u0005\f\u0007\u0002\u00af\u00b0\u0007)\u0002\u0002\u00b0\u00b1\u0007",
-    "\u000e\u0002\u0002\u00b1\u00b2\u0007)\u0002\u0002\u00b2\u00b4\u0007",
-    "/\u0002\u0002\u00b3\u00af\u0003\u0002\u0002\u0002\u00b3\u00b4\u0003",
-    "\u0002\u0002\u0002\u00b4\u00b5\u0003\u0002\u0002\u0002\u00b5\u00b9\u0007",
-    "(\u0002\u0002\u00b6\u00b8\u0005\u0004\u0003\u0002\u00b7\u00b6\u0003",
-    "\u0002\u0002\u0002\u00b8\u00bb\u0003\u0002\u0002\u0002\u00b9\u00b7\u0003",
-    "\u0002\u0002\u0002\u00b9\u00ba\u0003\u0002\u0002\u0002\u00ba\t\u0003",
-    "\u0002\u0002\u0002\u00bb\u00b9\u0003\u0002\u0002\u0002\u00bc\u00bd\u0007",
-    "\u0004\u0002\u0002\u00bd\u00be\u0007)\u0002\u0002\u00be\u00bf\u0005",
-    "\f\u0007\u0002\u00bf\u00c0\u0007)\u0002\u0002\u00c0\u00c1\u0007\u0003",
-    "\u0002\u0002\u00c1\u00c2\u0007)\u0002\u0002\u00c2\u00c3\u0005z>\u0002",
-    "\u00c3\u00c7\u0007(\u0002\u0002\u00c4\u00c6\u0005\u0004\u0003\u0002",
-    "\u00c5\u00c4\u0003\u0002\u0002\u0002\u00c6\u00c9\u0003\u0002\u0002\u0002",
-    "\u00c7\u00c5\u0003\u0002\u0002\u0002\u00c7\u00c8\u0003\u0002\u0002\u0002",
-    "\u00c8\u000b\u0003\u0002\u0002\u0002\u00c9\u00c7\u0003\u0002\u0002\u0002",
-    "\u00ca\u00cd\u0005\u000e\b\u0002\u00cb\u00cd\u0005\u0010\t\u0002\u00cc",
-    "\u00ca\u0003\u0002\u0002\u0002\u00cc\u00cb\u0003\u0002\u0002\u0002\u00cd",
-    "\r\u0003\u0002\u0002\u0002\u00ce\u00d0\u0007#\u0002\u0002\u00cf\u00d1",
-    "\t\u0003\u0002\u0002\u00d0\u00cf\u0003\u0002\u0002\u0002\u00d1\u00d2",
-    "\u0003\u0002\u0002\u0002\u00d2\u00d0\u0003\u0002\u0002\u0002\u00d2\u00d3",
-    "\u0003\u0002\u0002\u0002\u00d3\u00db\u0003\u0002\u0002\u0002\u00d4\u00d6",
-    "\u0007$\u0002\u0002\u00d5\u00d7\t\u0003\u0002\u0002\u00d6\u00d5\u0003",
-    "\u0002\u0002\u0002\u00d7\u00d8\u0003\u0002\u0002\u0002\u00d8\u00d6\u0003",
-    "\u0002\u0002\u0002\u00d8\u00d9\u0003\u0002\u0002\u0002\u00d9\u00db\u0003",
-    "\u0002\u0002\u0002\u00da\u00ce\u0003\u0002\u0002\u0002\u00da\u00d4\u0003",
-    "\u0002\u0002\u0002\u00db\u000f\u0003\u0002\u0002\u0002\u00dc\u00de\u0007",
-    "\"\u0002\u0002\u00dd\u00df\t\u0003\u0002\u0002\u00de\u00dd\u0003\u0002",
-    "\u0002\u0002\u00df\u00e0\u0003\u0002\u0002\u0002\u00e0\u00de\u0003\u0002",
-    "\u0002\u0002\u00e0\u00e1\u0003\u0002\u0002\u0002\u00e1\u0011\u0003\u0002",
-    "\u0002\u0002\u00e2\u00e4\u0007\u0005\u0002\u0002\u00e3\u00e5\u0005\u0004",
-    "\u0003\u0002\u00e4\u00e3\u0003\u0002\u0002\u0002\u00e5\u00e6\u0003\u0002",
-    "\u0002\u0002\u00e6\u00e4\u0003\u0002\u0002\u0002\u00e6\u00e7\u0003\u0002",
-    "\u0002\u0002\u00e7\u00e8\u0003\u0002\u0002\u0002\u00e8\u00ec\u0005\u0016",
-    "\f\u0002\u00e9\u00eb\u0005\u0004\u0003\u0002\u00ea\u00e9\u0003\u0002",
-    "\u0002\u0002\u00eb\u00ee\u0003\u0002\u0002\u0002\u00ec\u00ea\u0003\u0002",
-    "\u0002\u0002\u00ec\u00ed\u0003\u0002\u0002\u0002\u00ed\u00f0\u0003\u0002",
-    "\u0002\u0002\u00ee\u00ec\u0003\u0002\u0002\u0002\u00ef\u00f1\u0005\u0018",
-    "\r\u0002\u00f0\u00ef\u0003\u0002\u0002\u0002\u00f0\u00f1\u0003\u0002",
-    "\u0002\u0002\u00f1\u00f3\u0003\u0002\u0002\u0002\u00f2\u00f4\u0005\u0004",
-    "\u0003\u0002\u00f3\u00f2\u0003\u0002\u0002\u0002\u00f4\u00f5\u0003\u0002",
-    "\u0002\u0002\u00f5\u00f3\u0003\u0002\u0002\u0002\u00f5\u00f6\u0003\u0002",
-    "\u0002\u0002\u00f6\u0100\u0003\u0002\u0002\u0002\u00f7\u0101\u0005\u001c",
-    "\u000f\u0002\u00f8\u00fc\u0007!\u0002\u0002\u00f9\u00fb\u0005\u0004",
-    "\u0003\u0002\u00fa\u00f9\u0003\u0002\u0002\u0002\u00fb\u00fe\u0003\u0002",
-    "\u0002\u0002\u00fc\u00fa\u0003\u0002\u0002\u0002\u00fc\u00fd\u0003\u0002",
-    "\u0002\u0002\u00fd\u00ff\u0003\u0002\u0002\u0002\u00fe\u00fc\u0003\u0002",
-    "\u0002\u0002\u00ff\u0101\u0005\u0014\u000b\u0002\u0100\u00f7\u0003\u0002",
-    "\u0002\u0002\u0100\u00f8\u0003\u0002\u0002\u0002\u0101\u0013\u0003\u0002",
-    "\u0002\u0002\u0102\u0106\u0005\u0016\f\u0002\u0103\u0105\u0005\u0004",
-    "\u0003\u0002\u0104\u0103\u0003\u0002\u0002\u0002\u0105\u0108\u0003\u0002",
-    "\u0002\u0002\u0106\u0104\u0003\u0002\u0002\u0002\u0106\u0107\u0003\u0002",
-    "\u0002\u0002\u0107\u010a\u0003\u0002\u0002\u0002\u0108\u0106\u0003\u0002",
-    "\u0002\u0002\u0109\u010b\u0005\u0018\r\u0002\u010a\u0109\u0003\u0002",
-    "\u0002\u0002\u010a\u010b\u0003\u0002\u0002\u0002\u010b\u0015\u0003\u0002",
-    "\u0002\u0002\u010c\u010d\u0005\u0080A\u0002\u010d\u0017\u0003\u0002",
-    "\u0002\u0002\u010e\u0112\u0007\u001c\u0002\u0002\u010f\u0111\u0005\u0004",
+    "A\tA\u0004B\tB\u0003\u0002\u0007\u0002\u0086\n\u0002\f\u0002\u000e\u0002",
+    "\u0089\u000b\u0002\u0003\u0002\u0007\u0002\u008c\n\u0002\f\u0002\u000e",
+    "\u0002\u008f\u000b\u0002\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0002",
+    "\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0002",
+    "\u0003\u0002\u0006\u0002\u009c\n\u0002\r\u0002\u000e\u0002\u009d\u0006",
+    "\u0002\u00a0\n\u0002\r\u0002\u000e\u0002\u00a1\u0003\u0002\u0005\u0002",
+    "\u00a5\n\u0002\u0003\u0003\u0003\u0003\u0003\u0004\u0003\u0004\u0005",
+    "\u0004\u00ab\n\u0004\u0003\u0005\u0003\u0005\u0003\u0005\u0003\u0005",
+    "\u0003\u0005\u0003\u0005\u0003\u0005\u0005\u0005\u00b4\n\u0005\u0003",
+    "\u0005\u0003\u0005\u0007\u0005\u00b8\n\u0005\f\u0005\u000e\u0005\u00bb",
+    "\u000b\u0005\u0003\u0006\u0003\u0006\u0003\u0006\u0003\u0006\u0003\u0006",
+    "\u0003\u0006\u0003\u0006\u0003\u0006\u0003\u0006\u0007\u0006\u00c6\n",
+    "\u0006\f\u0006\u000e\u0006\u00c9\u000b\u0006\u0003\u0007\u0003\u0007",
+    "\u0005\u0007\u00cd\n\u0007\u0003\b\u0003\b\u0006\b\u00d1\n\b\r\b\u000e",
+    "\b\u00d2\u0003\b\u0003\b\u0006\b\u00d7\n\b\r\b\u000e\b\u00d8\u0005\b",
+    "\u00db\n\b\u0003\t\u0003\t\u0006\t\u00df\n\t\r\t\u000e\t\u00e0\u0003",
+    "\n\u0003\n\u0006\n\u00e5\n\n\r\n\u000e\n\u00e6\u0003\n\u0003\n\u0007",
+    "\n\u00eb\n\n\f\n\u000e\n\u00ee\u000b\n\u0003\n\u0005\n\u00f1\n\n\u0003",
+    "\n\u0006\n\u00f4\n\n\r\n\u000e\n\u00f5\u0003\n\u0003\n\u0003\n\u0007",
+    "\n\u00fb\n\n\f\n\u000e\n\u00fe\u000b\n\u0003\n\u0005\n\u0101\n\n\u0003",
+    "\u000b\u0003\u000b\u0003\u000b\u0005\u000b\u0106\n\u000b\u0003\f\u0003",
+    "\f\u0007\f\u010a\n\f\f\f\u000e\f\u010d\u000b\f\u0003\f\u0003\f\u0007",
+    "\f\u0111\n\f\f\f\u000e\f\u0114\u000b\f\u0003\f\u0003\f\u0007\f\u0118",
+    "\n\f\f\f\u000e\f\u011b\u000b\f\u0003\f\u0003\f\u0007\f\u011f\n\f\f\f",
+    "\u000e\f\u0122\u000b\f\u0007\f\u0124\n\f\f\f\u000e\f\u0127\u000b\f\u0003",
+    "\f\u0003\f\u0003\r\u0003\r\u0007\r\u012d\n\r\f\r\u000e\r\u0130\u000b",
+    "\r\u0003\r\u0005\r\u0133\n\r\u0003\u000e\u0003\u000e\u0007\u000e\u0137",
+    "\n\u000e\f\u000e\u000e\u000e\u013a\u000b\u000e\u0003\u000e\u0003\u000e",
+    "\u0007\u000e\u013e\n\u000e\f\u000e\u000e\u000e\u0141\u000b\u000e\u0003",
+    "\u000e\u0003\u000e\u0003\u000f\u0003\u000f\u0007\u000f\u0147\n\u000f",
+    "\f\u000f\u000e\u000f\u014a\u000b\u000f\u0003\u000f\u0003\u000f\u0007",
+    "\u000f\u014e\n\u000f\f\u000f\u000e\u000f\u0151\u000b\u000f\u0003\u000f",
+    "\u0003\u000f\u0003\u0010\u0003\u0010\u0007\u0010\u0157\n\u0010\f\u0010",
+    "\u000e\u0010\u015a\u000b\u0010\u0003\u0010\u0003\u0010\u0007\u0010\u015e",
+    "\n\u0010\f\u0010\u000e\u0010\u0161\u000b\u0010\u0003\u0010\u0003\u0010",
+    "\u0007\u0010\u0165\n\u0010\f\u0010\u000e\u0010\u0168\u000b\u0010\u0007",
+    "\u0010\u016a\n\u0010\f\u0010\u000e\u0010\u016d\u000b\u0010\u0003\u0010",
+    "\u0005\u0010\u0170\n\u0010\u0003\u0011\u0003\u0011\u0007\u0011\u0174",
+    "\n\u0011\f\u0011\u000e\u0011\u0177\u000b\u0011\u0003\u0011\u0003\u0011",
+    "\u0007\u0011\u017b\n\u0011\f\u0011\u000e\u0011\u017e\u000b\u0011\u0003",
+    "\u0011\u0003\u0011\u0003\u0011\u0003\u0011\u0007\u0011\u0184\n\u0011",
+    "\f\u0011\u000e\u0011\u0187\u000b\u0011\u0003\u0011\u0003\u0011\u0007",
+    "\u0011\u018b\n\u0011\f\u0011\u000e\u0011\u018e\u000b\u0011\u0003\u0011",
+    "\u0007\u0011\u0191\n\u0011\f\u0011\u000e\u0011\u0194\u000b\u0011\u0003",
+    "\u0012\u0003\u0012\u0006\u0012\u0198\n\u0012\r\u0012\u000e\u0012\u0199",
+    "\u0003\u0012\u0003\u0012\u0007\u0012\u019e\n\u0012\f\u0012\u000e\u0012",
+    "\u01a1\u000b\u0012\u0005\u0012\u01a3\n\u0012\u0003\u0012\u0003\u0012",
+    "\u0005\u0012\u01a7\n\u0012\u0003\u0012\u0003\u0012\u0007\u0012\u01ab",
+    "\n\u0012\f\u0012\u000e\u0012\u01ae\u000b\u0012\u0003\u0012\u0005\u0012",
+    "\u01b1\n\u0012\u0003\u0012\u0003\u0012\u0005\u0012\u01b5\n\u0012\u0003",
+    "\u0012\u0003\u0012\u0007\u0012\u01b9\n\u0012\f\u0012\u000e\u0012\u01bc",
+    "\u000b\u0012\u0005\u0012\u01be\n\u0012\u0005\u0012\u01c0\n\u0012\u0003",
+    "\u0012\u0003\u0012\u0005\u0012\u01c4\n\u0012\u0003\u0013\u0003\u0013",
+    "\u0003\u0013\u0007\u0013\u01c9\n\u0013\f\u0013\u000e\u0013\u01cc\u000b",
+    "\u0013\u0003\u0013\u0005\u0013\u01cf\n\u0013\u0003\u0014\u0003\u0014",
+    "\u0006\u0014\u01d3\n\u0014\r\u0014\u000e\u0014\u01d4\u0003\u0014\u0007",
+    "\u0014\u01d8\n\u0014\f\u0014\u000e\u0014\u01db\u000b\u0014\u0003\u0014",
+    "\u0003\u0014\u0003\u0015\u0007\u0015\u01e0\n\u0015\f\u0015\u000e\u0015",
+    "\u01e3\u000b\u0015\u0003\u0015\u0003\u0015\u0003\u0015\u0003\u0015\u0003",
+    "\u0015\u0003\u0015\u0003\u0015\u0003\u0015\u0005\u0015\u01ed\n\u0015",
+    "\u0003\u0016\u0003\u0016\u0005\u0016\u01f1\n\u0016\u0003\u0016\u0003",
+    "\u0016\u0003\u0017\u0003\u0017\u0007\u0017\u01f7\n\u0017\f\u0017\u000e",
+    "\u0017\u01fa\u000b\u0017\u0003\u0017\u0003\u0017\u0007\u0017\u01fe\n",
+    "\u0017\f\u0017\u000e\u0017\u0201\u000b\u0017\u0003\u0017\u0003\u0017",
+    "\u0005\u0017\u0205\n\u0017\u0003\u0017\u0005\u0017\u0208\n\u0017\u0003",
+    "\u0017\u0007\u0017\u020b\n\u0017\f\u0017\u000e\u0017\u020e\u000b\u0017",
+    "\u0003\u0017\u0003\u0017\u0007\u0017\u0212\n\u0017\f\u0017\u000e\u0017",
+    "\u0215\u000b\u0017\u0003\u0017\u0003\u0017\u0003\u0018\u0003\u0018\u0007",
+    "\u0018\u021b\n\u0018\f\u0018\u000e\u0018\u021e\u000b\u0018\u0003\u0018",
+    "\u0003\u0018\u0007\u0018\u0222\n\u0018\f\u0018\u000e\u0018\u0225\u000b",
+    "\u0018\u0003\u0018\u0003\u0018\u0005\u0018\u0229\n\u0018\u0003\u0018",
+    "\u0005\u0018\u022c\n\u0018\u0003\u0018\u0007\u0018\u022f\n\u0018\f\u0018",
+    "\u000e\u0018\u0232\u000b\u0018\u0003\u0018\u0003\u0018\u0007\u0018\u0236",
+    "\n\u0018\f\u0018\u000e\u0018\u0239\u000b\u0018\u0003\u0018\u0003\u0018",
+    "\u0003\u0019\u0003\u0019\u0007\u0019\u023f\n\u0019\f\u0019\u000e\u0019",
+    "\u0242\u000b\u0019\u0003\u0019\u0003\u0019\u0007\u0019\u0246\n\u0019",
+    "\f\u0019\u000e\u0019\u0249\u000b\u0019\u0003\u0019\u0003\u0019\u0003",
+    "\u0019\u0003\u001a\u0003\u001a\u0003\u001a\u0003\u001a\u0003\u001a\u0003",
+    "\u001a\u0005\u001a\u0254\n\u001a\u0003\u001b\u0003\u001b\u0007\u001b",
+    "\u0258\n\u001b\f\u001b\u000e\u001b\u025b\u000b\u001b\u0006\u001b\u025d",
+    "\n\u001b\r\u001b\u000e\u001b\u025e\u0003\u001b\u0005\u001b\u0262\n\u001b",
+    "\u0003\u001c\u0003\u001c\u0007\u001c\u0266\n\u001c\f\u001c\u000e\u001c",
+    "\u0269\u000b\u001c\u0003\u001c\u0007\u001c\u026c\n\u001c\f\u001c\u000e",
+    "\u001c\u026f\u000b\u001c\u0003\u001d\u0003\u001d\u0005\u001d\u0273\n",
+    "\u001d\u0003\u001e\u0003\u001e\u0007\u001e\u0277\n\u001e\f\u001e\u000e",
+    "\u001e\u027a\u000b\u001e\u0003\u001e\u0003\u001e\u0007\u001e\u027e\n",
+    "\u001e\f\u001e\u000e\u001e\u0281\u000b\u001e\u0003\u001e\u0003\u001e",
+    "\u0007\u001e\u0285\n\u001e\f\u001e\u000e\u001e\u0288\u000b\u001e\u0007",
+    "\u001e\u028a\n\u001e\f\u001e\u000e\u001e\u028d\u000b\u001e\u0003\u001e",
+    "\u0005\u001e\u0290\n\u001e\u0003\u001f\u0003\u001f\u0007\u001f\u0294",
+    "\n\u001f\f\u001f\u000e\u001f\u0297\u000b\u001f\u0003\u001f\u0003\u001f",
+    "\u0007\u001f\u029b\n\u001f\f\u001f\u000e\u001f\u029e\u000b\u001f\u0003",
+    "\u001f\u0003\u001f\u0007\u001f\u02a2\n\u001f\f\u001f\u000e\u001f\u02a5",
+    "\u000b\u001f\u0003\u001f\u0003\u001f\u0007\u001f\u02a9\n\u001f\f\u001f",
+    "\u000e\u001f\u02ac\u000b\u001f\u0003\u001f\u0003\u001f\u0007\u001f\u02b0",
+    "\n\u001f\f\u001f\u000e\u001f\u02b3\u000b\u001f\u0003\u001f\u0003\u001f",
+    "\u0007\u001f\u02b7\n\u001f\f\u001f\u000e\u001f\u02ba\u000b\u001f\u0003",
+    "\u001f\u0003\u001f\u0007\u001f\u02be\n\u001f\f\u001f\u000e\u001f\u02c1",
+    "\u000b\u001f\u0007\u001f\u02c3\n\u001f\f\u001f\u000e\u001f\u02c6\u000b",
+    "\u001f\u0003\u001f\u0005\u001f\u02c9\n\u001f\u0003 \u0003 \u0007 \u02cd",
+    "\n \f \u000e \u02d0\u000b \u0003 \u0003 \u0007 \u02d4\n \f \u000e \u02d7",
+    "\u000b \u0003!\u0003!\u0007!\u02db\n!\f!\u000e!\u02de\u000b!\u0003!",
+    "\u0005!\u02e1\n!\u0003!\u0007!\u02e4\n!\f!\u000e!\u02e7\u000b!\u0003",
+    "!\u0003!\u0003\"\u0003\"\u0003\"\u0003\"\u0005\"\u02ef\n\"\u0003#\u0003",
+    "#\u0007#\u02f3\n#\f#\u000e#\u02f6\u000b#\u0003#\u0003#\u0007#\u02fa",
+    "\n#\f#\u000e#\u02fd\u000b#\u0003#\u0003#\u0003$\u0003$\u0003$\u0003",
+    "%\u0003%\u0007%\u0306\n%\f%\u000e%\u0309\u000b%\u0003%\u0005%\u030c",
+    "\n%\u0003%\u0007%\u030f\n%\f%\u000e%\u0312\u000b%\u0003%\u0003%\u0003",
+    "&\u0003&\u0007&\u0318\n&\f&\u000e&\u031b\u000b&\u0003&\u0003&\u0007",
+    "&\u031f\n&\f&\u000e&\u0322\u000b&\u0005&\u0324\n&\u0003&\u0003&\u0003",
+    "\'\u0003\'\u0007\'\u032a\n\'\f\'\u000e\'\u032d\u000b\'\u0003\'\u0003",
+    "\'\u0007\'\u0331\n\'\f\'\u000e\'\u0334\u000b\'\u0003\'\u0003\'\u0007",
+    "\'\u0338\n\'\f\'\u000e\'\u033b\u000b\'\u0005\'\u033d\n\'\u0003\'\u0003",
+    "\'\u0003(\u0003(\u0007(\u0343\n(\f(\u000e(\u0346\u000b(\u0003(\u0003",
+    "(\u0007(\u034a\n(\f(\u000e(\u034d\u000b(\u0003(\u0003(\u0007(\u0351",
+    "\n(\f(\u000e(\u0354\u000b(\u0003(\u0003(\u0007(\u0358\n(\f(\u000e(\u035b",
+    "\u000b(\u0003(\u0003(\u0005(\u035f\n(\u0005(\u0361\n(\u0003)\u0003)",
+    "\u0003)\u0005)\u0366\n)\u0003*\u0003*\u0003+\u0003+\u0003+\u0003+\u0006",
+    "+\u036e\n+\r+\u000e+\u036f\u0003+\u0006+\u0373\n+\r+\u000e+\u0374\u0003",
+    "+\u0007+\u0378\n+\f+\u000e+\u037b\u000b+\u0003+\u0006+\u037e\n+\r+\u000e",
+    "+\u037f\u0005+\u0382\n+\u0003+\u0003+\u0005+\u0386\n+\u0003,\u0003,",
+    "\u0003,\u0003,\u0003,\u0003,\u0003,\u0003,\u0003,\u0003,\u0005,\u0392",
+    "\n,\u0003-\u0003-\u0003-\u0003-\u0003-\u0003-\u0003.\u0003.\u0003.\u0003",
+    ".\u0003/\u0003/\u0007/\u03a0\n/\f/\u000e/\u03a3\u000b/\u0003/\u0003",
+    "/\u0007/\u03a7\n/\f/\u000e/\u03aa\u000b/\u0003/\u0003/\u0007/\u03ae",
+    "\n/\f/\u000e/\u03b1\u000b/\u0003/\u0003/\u00030\u00030\u00031\u0003",
+    "1\u00061\u03b9\n1\r1\u000e1\u03ba\u00031\u00031\u00061\u03bf\n1\r1\u000e",
+    "1\u03c0\u00031\u00031\u00031\u00051\u03c6\n1\u00032\u00032\u00072\u03ca",
+    "\n2\f2\u000e2\u03cd\u000b2\u00032\u00032\u00072\u03d1\n2\f2\u000e2\u03d4",
+    "\u000b2\u00032\u00032\u00032\u00072\u03d9\n2\f2\u000e2\u03dc\u000b2",
+    "\u00032\u00052\u03df\n2\u00033\u00033\u00053\u03e3\n3\u00033\u00073",
+    "\u03e6\n3\f3\u000e3\u03e9\u000b3\u00033\u00033\u00034\u00074\u03ee\n",
+    "4\f4\u000e4\u03f1\u000b4\u00034\u00034\u00074\u03f5\n4\f4\u000e4\u03f8",
+    "\u000b4\u00034\u00034\u00074\u03fc\n4\f4\u000e4\u03ff\u000b4\u00034",
+    "\u00034\u00074\u0403\n4\f4\u000e4\u0406\u000b4\u00074\u0408\n4\f4\u000e",
+    "4\u040b\u000b4\u00034\u00054\u040e\n4\u00035\u00035\u00035\u00055\u0413",
+    "\n5\u00036\u00036\u00076\u0417\n6\f6\u000e6\u041a\u000b6\u00036\u0003",
+    "6\u00037\u00037\u00077\u0420\n7\f7\u000e7\u0423\u000b7\u00037\u0003",
+    "7\u00077\u0427\n7\f7\u000e7\u042a\u000b7\u00037\u00037\u00077\u042e",
+    "\n7\f7\u000e7\u0431\u000b7\u00037\u00037\u00077\u0435\n7\f7\u000e7\u0438",
+    "\u000b7\u00077\u043a\n7\f7\u000e7\u043d\u000b7\u00037\u00037\u00057",
+    "\u0441\n7\u00037\u00037\u00077\u0445\n7\f7\u000e7\u0448\u000b7\u0003",
+    "7\u00037\u00038\u00038\u00078\u044e\n8\f8\u000e8\u0451\u000b8\u0005",
+    "8\u0453\n8\u00038\u00038\u00078\u0457\n8\f8\u000e8\u045a\u000b8\u0003",
+    "8\u00038\u00078\u045e\n8\f8\u000e8\u0461\u000b8\u00038\u00038\u0007",
+    "8\u0465\n8\f8\u000e8\u0468\u000b8\u00038\u00038\u00039\u00039\u0003",
+    ":\u0003:\u0003;\u0003;\u0007;\u0472\n;\f;\u000e;\u0475\u000b;\u0003",
+    ";\u0003;\u0007;\u0479\n;\f;\u000e;\u047c\u000b;\u0003;\u0003;\u0003",
+    "<\u0003<\u0006<\u0482\n<\r<\u000e<\u0483\u0003<\u0003<\u0003<\u0003",
+    "<\u0003<\u0003<\u0003<\u0003<\u0003<\u0005<\u048f\n<\u0003=\u0003=\u0003",
+    "=\u0007=\u0494\n=\f=\u000e=\u0497\u000b=\u0003>\u0003>\u0006>\u049b",
+    "\n>\r>\u000e>\u049c\u0003>\u0003>\u0006>\u04a1\n>\r>\u000e>\u04a2\u0003",
+    ">\u0005>\u04a6\n>\u0003?\u0003?\u0005?\u04aa\n?\u0003@\u0006@\u04ad",
+    "\n@\r@\u000e@\u04ae\u0003A\u0003A\u0007A\u04b3\nA\fA\u000eA\u04b6\u000b",
+    "A\u0003A\u0003A\u0005A\u04ba\nA\u0003B\u0003B\u0007B\u04be\nB\fB\u000e",
+    "B\u04c1\u000bB\u0003B\u0003B\u0007B\u04c5\nB\fB\u000eB\u04c8\u000bB",
+    "\u0003B\u0003B\u0003B\u0002\u0002C\u0002\u0004\u0006\b\n\f\u000e\u0010",
+    "\u0012\u0014\u0016\u0018\u001a\u001c\u001e \"$&(*,.02468:<>@BDFHJLN",
+    "PRTVXZ\\^`bdfhjlnprtvxz|~\u0080\u0082\u0002\u0007\u0003\u0002()\u0004",
+    "\u0002%%//\u0004\u0002\u000f\u000f,-\u0003\u0002\u0010\u0011\u0004\u0002",
+    "\u0006\u0006//\u0002\u0555\u0002\u00a4\u0003\u0002\u0002\u0002\u0004",
+    "\u00a6\u0003\u0002\u0002\u0002\u0006\u00aa\u0003\u0002\u0002\u0002\b",
+    "\u00ac\u0003\u0002\u0002\u0002\n\u00bc\u0003\u0002\u0002\u0002\f\u00cc",
+    "\u0003\u0002\u0002\u0002\u000e\u00da\u0003\u0002\u0002\u0002\u0010\u00dc",
+    "\u0003\u0002\u0002\u0002\u0012\u00e2\u0003\u0002\u0002\u0002\u0014\u0102",
+    "\u0003\u0002\u0002\u0002\u0016\u0107\u0003\u0002\u0002\u0002\u0018\u012a",
+    "\u0003\u0002\u0002\u0002\u001a\u0134\u0003\u0002\u0002\u0002\u001c\u0144",
+    "\u0003\u0002\u0002\u0002\u001e\u0154\u0003\u0002\u0002\u0002 \u0171",
+    "\u0003\u0002\u0002\u0002\"\u0195\u0003\u0002\u0002\u0002$\u01ce\u0003",
+    "\u0002\u0002\u0002&\u01d0\u0003\u0002\u0002\u0002(\u01e1\u0003\u0002",
+    "\u0002\u0002*\u01f0\u0003\u0002\u0002\u0002,\u01f4\u0003\u0002\u0002",
+    "\u0002.\u0218\u0003\u0002\u0002\u00020\u023c\u0003\u0002\u0002\u0002",
+    "2\u0253\u0003\u0002\u0002\u00024\u0261\u0003\u0002\u0002\u00026\u0263",
+    "\u0003\u0002\u0002\u00028\u0272\u0003\u0002\u0002\u0002:\u0274\u0003",
+    "\u0002\u0002\u0002<\u0291\u0003\u0002\u0002\u0002>\u02ca\u0003\u0002",
+    "\u0002\u0002@\u02d8\u0003\u0002\u0002\u0002B\u02ee\u0003\u0002\u0002",
+    "\u0002D\u02f0\u0003\u0002\u0002\u0002F\u0300\u0003\u0002\u0002\u0002",
+    "H\u0303\u0003\u0002\u0002\u0002J\u0315\u0003\u0002\u0002\u0002L\u0327",
+    "\u0003\u0002\u0002\u0002N\u0340\u0003\u0002\u0002\u0002P\u0365\u0003",
+    "\u0002\u0002\u0002R\u0367\u0003\u0002\u0002\u0002T\u0385\u0003\u0002",
+    "\u0002\u0002V\u0387\u0003\u0002\u0002\u0002X\u0393\u0003\u0002\u0002",
+    "\u0002Z\u0399\u0003\u0002\u0002\u0002\\\u039d\u0003\u0002\u0002\u0002",
+    "^\u03b4\u0003\u0002\u0002\u0002`\u03b6\u0003\u0002\u0002\u0002b\u03c7",
+    "\u0003\u0002\u0002\u0002d\u03e0\u0003\u0002\u0002\u0002f\u03ef\u0003",
+    "\u0002\u0002\u0002h\u0412\u0003\u0002\u0002\u0002j\u0414\u0003\u0002",
+    "\u0002\u0002l\u041d\u0003\u0002\u0002\u0002n\u0452\u0003\u0002\u0002",
+    "\u0002p\u046b\u0003\u0002\u0002\u0002r\u046d\u0003\u0002\u0002\u0002",
+    "t\u046f\u0003\u0002\u0002\u0002v\u047f\u0003\u0002\u0002\u0002x\u0490",
+    "\u0003\u0002\u0002\u0002z\u0498\u0003\u0002\u0002\u0002|\u04a9\u0003",
+    "\u0002\u0002\u0002~\u04ac\u0003\u0002\u0002\u0002\u0080\u04b9\u0003",
+    "\u0002\u0002\u0002\u0082\u04bb\u0003\u0002\u0002\u0002\u0084\u0086\u0005",
+    "\u0004\u0003\u0002\u0085\u0084\u0003\u0002\u0002\u0002\u0086\u0089\u0003",
+    "\u0002\u0002\u0002\u0087\u0085\u0003\u0002\u0002\u0002\u0087\u0088\u0003",
+    "\u0002\u0002\u0002\u0088\u008d\u0003\u0002\u0002\u0002\u0089\u0087\u0003",
+    "\u0002\u0002\u0002\u008a\u008c\u0005\u0006\u0004\u0002\u008b\u008a\u0003",
+    "\u0002\u0002\u0002\u008c\u008f\u0003\u0002\u0002\u0002\u008d\u008b\u0003",
+    "\u0002\u0002\u0002\u008d\u008e\u0003\u0002\u0002\u0002\u008e\u009f\u0003",
+    "\u0002\u0002\u0002\u008f\u008d\u0003\u0002\u0002\u0002\u0090\u00a0\u0005",
+    "\u0012\n\u0002\u0091\u0092\u0005,\u0017\u0002\u0092\u0093\u0007\'\u0002",
+    "\u0002\u0093\u00a0\u0003\u0002\u0002\u0002\u0094\u00a0\u0005\"\u0012",
+    "\u0002\u0095\u00a0\u0005V,\u0002\u0096\u00a0\u0005\\/\u0002\u0097\u00a0",
+    "\u0005`1\u0002\u0098\u00a0\u0005b2\u0002\u0099\u00a0\u0005v<\u0002\u009a",
+    "\u009c\u0005\u0004\u0003\u0002\u009b\u009a\u0003\u0002\u0002\u0002\u009c",
+    "\u009d\u0003\u0002\u0002\u0002\u009d\u009b\u0003\u0002\u0002\u0002\u009d",
+    "\u009e\u0003\u0002\u0002\u0002\u009e\u00a0\u0003\u0002\u0002\u0002\u009f",
+    "\u0090\u0003\u0002\u0002\u0002\u009f\u0091\u0003\u0002\u0002\u0002\u009f",
+    "\u0094\u0003\u0002\u0002\u0002\u009f\u0095\u0003\u0002\u0002\u0002\u009f",
+    "\u0096\u0003\u0002\u0002\u0002\u009f\u0097\u0003\u0002\u0002\u0002\u009f",
+    "\u0098\u0003\u0002\u0002\u0002\u009f\u0099\u0003\u0002\u0002\u0002\u009f",
+    "\u009b\u0003\u0002\u0002\u0002\u00a0\u00a1\u0003\u0002\u0002\u0002\u00a1",
+    "\u009f\u0003\u0002\u0002\u0002\u00a1\u00a2\u0003\u0002\u0002\u0002\u00a2",
+    "\u00a5\u0003\u0002\u0002\u0002\u00a3\u00a5\u0007\u0002\u0002\u0003\u00a4",
+    "\u0087\u0003\u0002\u0002\u0002\u00a4\u00a3\u0003\u0002\u0002\u0002\u00a5",
+    "\u0003\u0003\u0002\u0002\u0002\u00a6\u00a7\t\u0002\u0002\u0002\u00a7",
+    "\u0005\u0003\u0002\u0002\u0002\u00a8\u00ab\u0005\b\u0005\u0002\u00a9",
+    "\u00ab\u0005\n\u0006\u0002\u00aa\u00a8\u0003\u0002\u0002\u0002\u00aa",
+    "\u00a9\u0003\u0002\u0002\u0002\u00ab\u0007\u0003\u0002\u0002\u0002\u00ac",
+    "\u00ad\u0007\u0003\u0002\u0002\u00ad\u00ae\u0007)\u0002\u0002\u00ae",
+    "\u00b3\u0005\f\u0007\u0002\u00af\u00b0\u0007)\u0002\u0002\u00b0\u00b1",
+    "\u0007\u000e\u0002\u0002\u00b1\u00b2\u0007)\u0002\u0002\u00b2\u00b4",
+    "\u0007/\u0002\u0002\u00b3\u00af\u0003\u0002\u0002\u0002\u00b3\u00b4",
+    "\u0003\u0002\u0002\u0002\u00b4\u00b5\u0003\u0002\u0002\u0002\u00b5\u00b9",
+    "\u0007(\u0002\u0002\u00b6\u00b8\u0005\u0004\u0003\u0002\u00b7\u00b6",
+    "\u0003\u0002\u0002\u0002\u00b8\u00bb\u0003\u0002\u0002\u0002\u00b9\u00b7",
+    "\u0003\u0002\u0002\u0002\u00b9\u00ba\u0003\u0002\u0002\u0002\u00ba\t",
+    "\u0003\u0002\u0002\u0002\u00bb\u00b9\u0003\u0002\u0002\u0002\u00bc\u00bd",
+    "\u0007\u0004\u0002\u0002\u00bd\u00be\u0007)\u0002\u0002\u00be\u00bf",
+    "\u0005\f\u0007\u0002\u00bf\u00c0\u0007)\u0002\u0002\u00c0\u00c1\u0007",
+    "\u0003\u0002\u0002\u00c1\u00c2\u0007)\u0002\u0002\u00c2\u00c3\u0005",
+    "x=\u0002\u00c3\u00c7\u0007(\u0002\u0002\u00c4\u00c6\u0005\u0004\u0003",
+    "\u0002\u00c5\u00c4\u0003\u0002\u0002\u0002\u00c6\u00c9\u0003\u0002\u0002",
+    "\u0002\u00c7\u00c5\u0003\u0002\u0002\u0002\u00c7\u00c8\u0003\u0002\u0002",
+    "\u0002\u00c8\u000b\u0003\u0002\u0002\u0002\u00c9\u00c7\u0003\u0002\u0002",
+    "\u0002\u00ca\u00cd\u0005\u000e\b\u0002\u00cb\u00cd\u0005\u0010\t\u0002",
+    "\u00cc\u00ca\u0003\u0002\u0002\u0002\u00cc\u00cb\u0003\u0002\u0002\u0002",
+    "\u00cd\r\u0003\u0002\u0002\u0002\u00ce\u00d0\u0007#\u0002\u0002\u00cf",
+    "\u00d1\t\u0003\u0002\u0002\u00d0\u00cf\u0003\u0002\u0002\u0002\u00d1",
+    "\u00d2\u0003\u0002\u0002\u0002\u00d2\u00d0\u0003\u0002\u0002\u0002\u00d2",
+    "\u00d3\u0003\u0002\u0002\u0002\u00d3\u00db\u0003\u0002\u0002\u0002\u00d4",
+    "\u00d6\u0007$\u0002\u0002\u00d5\u00d7\t\u0003\u0002\u0002\u00d6\u00d5",
+    "\u0003\u0002\u0002\u0002\u00d7\u00d8\u0003\u0002\u0002\u0002\u00d8\u00d6",
+    "\u0003\u0002\u0002\u0002\u00d8\u00d9\u0003\u0002\u0002\u0002\u00d9\u00db",
+    "\u0003\u0002\u0002\u0002\u00da\u00ce\u0003\u0002\u0002\u0002\u00da\u00d4",
+    "\u0003\u0002\u0002\u0002\u00db\u000f\u0003\u0002\u0002\u0002\u00dc\u00de",
+    "\u0007\"\u0002\u0002\u00dd\u00df\t\u0003\u0002\u0002\u00de\u00dd\u0003",
+    "\u0002\u0002\u0002\u00df\u00e0\u0003\u0002\u0002\u0002\u00e0\u00de\u0003",
+    "\u0002\u0002\u0002\u00e0\u00e1\u0003\u0002\u0002\u0002\u00e1\u0011\u0003",
+    "\u0002\u0002\u0002\u00e2\u00e4\u0007\u0005\u0002\u0002\u00e3\u00e5\u0005",
+    "\u0004\u0003\u0002\u00e4\u00e3\u0003\u0002\u0002\u0002\u00e5\u00e6\u0003",
+    "\u0002\u0002\u0002\u00e6\u00e4\u0003\u0002\u0002\u0002\u00e6\u00e7\u0003",
+    "\u0002\u0002\u0002\u00e7\u00e8\u0003\u0002\u0002\u0002\u00e8\u00f0\u0005",
+    "\u0014\u000b\u0002\u00e9\u00eb\u0005\u0004\u0003\u0002\u00ea\u00e9\u0003",
+    "\u0002\u0002\u0002\u00eb\u00ee\u0003\u0002\u0002\u0002\u00ec\u00ea\u0003",
+    "\u0002\u0002\u0002\u00ec\u00ed\u0003\u0002\u0002\u0002\u00ed\u00ef\u0003",
+    "\u0002\u0002\u0002\u00ee\u00ec\u0003\u0002\u0002\u0002\u00ef\u00f1\u0005",
+    "\u0016\f\u0002\u00f0\u00ec\u0003\u0002\u0002\u0002\u00f0\u00f1\u0003",
+    "\u0002\u0002\u0002\u00f1\u00f3\u0003\u0002\u0002\u0002\u00f2\u00f4\u0005",
+    "\u0004\u0003\u0002\u00f3\u00f2\u0003\u0002\u0002\u0002\u00f4\u00f5\u0003",
+    "\u0002\u0002\u0002\u00f5\u00f3\u0003\u0002\u0002\u0002\u00f5\u00f6\u0003",
+    "\u0002\u0002\u0002\u00f6\u0100\u0003\u0002\u0002\u0002\u00f7\u0101\u0005",
+    "\u001a\u000e\u0002\u00f8\u00fc\u0007!\u0002\u0002\u00f9\u00fb\u0005",
+    "\u0004\u0003\u0002\u00fa\u00f9\u0003\u0002\u0002\u0002\u00fb\u00fe\u0003",
+    "\u0002\u0002\u0002\u00fc\u00fa\u0003\u0002\u0002\u0002\u00fc\u00fd\u0003",
+    "\u0002\u0002\u0002\u00fd\u00ff\u0003\u0002\u0002\u0002\u00fe\u00fc\u0003",
+    "\u0002\u0002\u0002\u00ff\u0101\u0005\u0018\r\u0002\u0100\u00f7\u0003",
+    "\u0002\u0002\u0002\u0100\u00f8\u0003\u0002\u0002\u0002\u0101\u0013\u0003",
+    "\u0002\u0002\u0002\u0102\u0105\u0007/\u0002\u0002\u0103\u0104\u0007",
+    " \u0002\u0002\u0104\u0106\u0007/\u0002\u0002\u0105\u0103\u0003\u0002",
+    "\u0002\u0002\u0105\u0106\u0003\u0002\u0002\u0002\u0106\u0015\u0003\u0002",
+    "\u0002\u0002\u0107\u010b\u0007\u001c\u0002\u0002\u0108\u010a\u0005\u0004",
+    "\u0003\u0002\u0109\u0108\u0003\u0002\u0002\u0002\u010a\u010d\u0003\u0002",
+    "\u0002\u0002\u010b\u0109\u0003\u0002\u0002\u0002\u010b\u010c\u0003\u0002",
+    "\u0002\u0002\u010c\u010e\u0003\u0002\u0002\u0002\u010d\u010b\u0003\u0002",
+    "\u0002\u0002\u010e\u0112\u0005\u0018\r\u0002\u010f\u0111\u0005\u0004",
     "\u0003\u0002\u0110\u010f\u0003\u0002\u0002\u0002\u0111\u0114\u0003\u0002",
     "\u0002\u0002\u0112\u0110\u0003\u0002\u0002\u0002\u0112\u0113\u0003\u0002",
-    "\u0002\u0002\u0113\u0115\u0003\u0002\u0002\u0002\u0114\u0112\u0003\u0002",
-    "\u0002\u0002\u0115\u0119\u0005\u001a\u000e\u0002\u0116\u0118\u0005\u0004",
+    "\u0002\u0002\u0113\u0125\u0003\u0002\u0002\u0002\u0114\u0112\u0003\u0002",
+    "\u0002\u0002\u0115\u0119\u0007\u0017\u0002\u0002\u0116\u0118\u0005\u0004",
     "\u0003\u0002\u0117\u0116\u0003\u0002\u0002\u0002\u0118\u011b\u0003\u0002",
     "\u0002\u0002\u0119\u0117\u0003\u0002\u0002\u0002\u0119\u011a\u0003\u0002",
-    "\u0002\u0002\u011a\u012c\u0003\u0002\u0002\u0002\u011b\u0119\u0003\u0002",
-    "\u0002\u0002\u011c\u0120\u0007\u0017\u0002\u0002\u011d\u011f\u0005\u0004",
+    "\u0002\u0002\u011a\u011c\u0003\u0002\u0002\u0002\u011b\u0119\u0003\u0002",
+    "\u0002\u0002\u011c\u0120\u0005\u0018\r\u0002\u011d\u011f\u0005\u0004",
     "\u0003\u0002\u011e\u011d\u0003\u0002\u0002\u0002\u011f\u0122\u0003\u0002",
     "\u0002\u0002\u0120\u011e\u0003\u0002\u0002\u0002\u0120\u0121\u0003\u0002",
-    "\u0002\u0002\u0121\u0123\u0003\u0002\u0002\u0002\u0122\u0120\u0003\u0002",
-    "\u0002\u0002\u0123\u0127\u0005\u001a\u000e\u0002\u0124\u0126\u0005\u0004",
-    "\u0003\u0002\u0125\u0124\u0003\u0002\u0002\u0002\u0126\u0129\u0003\u0002",
-    "\u0002\u0002\u0127\u0125\u0003\u0002\u0002\u0002\u0127\u0128\u0003\u0002",
-    "\u0002\u0002\u0128\u012b\u0003\u0002\u0002\u0002\u0129\u0127\u0003\u0002",
-    "\u0002\u0002\u012a\u011c\u0003\u0002\u0002\u0002\u012b\u012e\u0003\u0002",
-    "\u0002\u0002\u012c\u012a\u0003\u0002\u0002\u0002\u012c\u012d\u0003\u0002",
-    "\u0002\u0002\u012d\u012f\u0003\u0002\u0002\u0002\u012e\u012c\u0003\u0002",
-    "\u0002\u0002\u012f\u0130\u0007\u001d\u0002\u0002\u0130\u0019\u0003\u0002",
-    "\u0002\u0002\u0131\u0135\u0005\u0080A\u0002\u0132\u0134\u0005\u0004",
-    "\u0003\u0002\u0133\u0132\u0003\u0002\u0002\u0002\u0134\u0137\u0003\u0002",
-    "\u0002\u0002\u0135\u0133\u0003\u0002\u0002\u0002\u0135\u0136\u0003\u0002",
-    "\u0002\u0002\u0136\u0139\u0003\u0002\u0002\u0002\u0137\u0135\u0003\u0002",
-    "\u0002\u0002\u0138\u013a\u0005\u0018\r\u0002\u0139\u0138\u0003\u0002",
-    "\u0002\u0002\u0139\u013a\u0003\u0002\u0002\u0002\u013a\u001b\u0003\u0002",
-    "\u0002\u0002\u013b\u013f\u0007\u0018\u0002\u0002\u013c\u013e\u0005\u0004",
+    "\u0002\u0002\u0121\u0124\u0003\u0002\u0002\u0002\u0122\u0120\u0003\u0002",
+    "\u0002\u0002\u0123\u0115\u0003\u0002\u0002\u0002\u0124\u0127\u0003\u0002",
+    "\u0002\u0002\u0125\u0123\u0003\u0002\u0002\u0002\u0125\u0126\u0003\u0002",
+    "\u0002\u0002\u0126\u0128\u0003\u0002\u0002\u0002\u0127\u0125\u0003\u0002",
+    "\u0002\u0002\u0128\u0129\u0007\u001d\u0002\u0002\u0129\u0017\u0003\u0002",
+    "\u0002\u0002\u012a\u0132\u0005\u0014\u000b\u0002\u012b\u012d\u0005\u0004",
+    "\u0003\u0002\u012c\u012b\u0003\u0002\u0002\u0002\u012d\u0130\u0003\u0002",
+    "\u0002\u0002\u012e\u012c\u0003\u0002\u0002\u0002\u012e\u012f\u0003\u0002",
+    "\u0002\u0002\u012f\u0131\u0003\u0002\u0002\u0002\u0130\u012e\u0003\u0002",
+    "\u0002\u0002\u0131\u0133\u0005\u0016\f\u0002\u0132\u012e\u0003\u0002",
+    "\u0002\u0002\u0132\u0133\u0003\u0002\u0002\u0002\u0133\u0019\u0003\u0002",
+    "\u0002\u0002\u0134\u0138\u0007\u0018\u0002\u0002\u0135\u0137\u0005\u0004",
+    "\u0003\u0002\u0136\u0135\u0003\u0002\u0002\u0002\u0137\u013a\u0003\u0002",
+    "\u0002\u0002\u0138\u0136\u0003\u0002\u0002\u0002\u0138\u0139\u0003\u0002",
+    "\u0002\u0002\u0139\u013b\u0003\u0002\u0002\u0002\u013a\u0138\u0003\u0002",
+    "\u0002\u0002\u013b\u013f\u0005\u001e\u0010\u0002\u013c\u013e\u0005\u0004",
     "\u0003\u0002\u013d\u013c\u0003\u0002\u0002\u0002\u013e\u0141\u0003\u0002",
     "\u0002\u0002\u013f\u013d\u0003\u0002\u0002\u0002\u013f\u0140\u0003\u0002",
-    "\u0002\u0002\u0140\u0149\u0003\u0002\u0002\u0002\u0141\u013f\u0003\u0002",
-    "\u0002\u0002\u0142\u0144\u0007)\u0002\u0002\u0143\u0142\u0003\u0002",
-    "\u0002\u0002\u0144\u0147\u0003\u0002\u0002\u0002\u0145\u0143\u0003\u0002",
-    "\u0002\u0002\u0145\u0146\u0003\u0002\u0002\u0002\u0146\u0148\u0003\u0002",
-    "\u0002\u0002\u0147\u0145\u0003\u0002\u0002\u0002\u0148\u014a\u0005\u001e",
-    "\u0010\u0002\u0149\u0145\u0003\u0002\u0002\u0002\u014a\u014b\u0003\u0002",
-    "\u0002\u0002\u014b\u0149\u0003\u0002\u0002\u0002\u014b\u014c\u0003\u0002",
-    "\u0002\u0002\u014c\u014e\u0003\u0002\u0002\u0002\u014d\u014f\u0005\u0004",
-    "\u0003\u0002\u014e\u014d\u0003\u0002\u0002\u0002\u014e\u014f\u0003\u0002",
-    "\u0002\u0002\u014f\u0150\u0003\u0002\u0002\u0002\u0150\u0151\u0007\u0019",
-    "\u0002\u0002\u0151\u001d\u0003\u0002\u0002\u0002\u0152\u0154\u0007/",
-    "\u0002\u0002\u0153\u0155\t\u0002\u0002\u0002\u0154\u0153\u0003\u0002",
-    "\u0002\u0002\u0154\u0155\u0003\u0002\u0002\u0002\u0155\u0156\u0003\u0002",
-    "\u0002\u0002\u0156\u0158\u0007\'\u0002\u0002\u0157\u0159\t\u0002\u0002",
-    "\u0002\u0158\u0157\u0003\u0002\u0002\u0002\u0158\u0159\u0003\u0002\u0002",
-    "\u0002\u0159\u015a\u0003\u0002\u0002\u0002\u015a\u015e\u0005\u001a\u000e",
-    "\u0002\u015b\u015d\u0007(\u0002\u0002\u015c\u015b\u0003\u0002\u0002",
-    "\u0002\u015d\u0160\u0003\u0002\u0002\u0002\u015e\u015c\u0003\u0002\u0002",
-    "\u0002\u015e\u015f\u0003\u0002\u0002\u0002\u015f\u001f\u0003\u0002\u0002",
-    "\u0002\u0160\u015e\u0003\u0002\u0002\u0002\u0161\u0163\u0007\u0006\u0002",
-    "\u0002\u0162\u0164\u0005\u0004\u0003\u0002\u0163\u0162\u0003\u0002\u0002",
-    "\u0002\u0164\u0165\u0003\u0002\u0002\u0002\u0165\u0163\u0003\u0002\u0002",
-    "\u0002\u0165\u0166\u0003\u0002\u0002\u0002\u0166\u018b\u0003\u0002\u0002",
-    "\u0002\u0167\u016b\u0007/\u0002\u0002\u0168\u016a\u0005\u0004\u0003",
-    "\u0002\u0169\u0168\u0003\u0002\u0002\u0002\u016a\u016d\u0003\u0002\u0002",
-    "\u0002\u016b\u0169\u0003\u0002\u0002\u0002\u016b\u016c\u0003\u0002\u0002",
-    "\u0002\u016c\u016f\u0003\u0002\u0002\u0002\u016d\u016b\u0003\u0002\u0002",
-    "\u0002\u016e\u0167\u0003\u0002\u0002\u0002\u016e\u016f\u0003\u0002\u0002",
-    "\u0002\u016f\u0170\u0003\u0002\u0002\u0002\u0170\u0172\u0007\u001a\u0002",
-    "\u0002\u0171\u0173\u0005v<\u0002\u0172\u0171\u0003\u0002\u0002\u0002",
-    "\u0172\u0173\u0003\u0002\u0002\u0002\u0173\u0174\u0003\u0002\u0002\u0002",
-    "\u0174\u0178\u0007\u001b\u0002\u0002\u0175\u0177\u0005\u0004\u0003\u0002",
-    "\u0176\u0175\u0003\u0002\u0002\u0002\u0177\u017a\u0003\u0002\u0002\u0002",
-    "\u0178\u0176\u0003\u0002\u0002\u0002\u0178\u0179\u0003\u0002\u0002\u0002",
-    "\u0179\u0189\u0003\u0002\u0002\u0002\u017a\u0178\u0003\u0002\u0002\u0002",
-    "\u017b\u017d\t\u0002\u0002\u0002\u017c\u017b\u0003\u0002\u0002\u0002",
-    "\u017c\u017d\u0003\u0002\u0002\u0002\u017d\u017e\u0003\u0002\u0002\u0002",
-    "\u017e\u0180\u0007\'\u0002\u0002\u017f\u0181\t\u0002\u0002\u0002\u0180",
-    "\u017f\u0003\u0002\u0002\u0002\u0180\u0181\u0003\u0002\u0002\u0002\u0181",
-    "\u0182\u0003\u0002\u0002\u0002\u0182\u0186\u0005t;\u0002\u0183\u0185",
-    "\u0005\u0004\u0003\u0002\u0184\u0183\u0003\u0002\u0002\u0002\u0185\u0188",
-    "\u0003\u0002\u0002\u0002\u0186\u0184\u0003\u0002\u0002\u0002\u0186\u0187",
-    "\u0003\u0002\u0002\u0002\u0187\u018a\u0003\u0002\u0002\u0002\u0188\u0186",
-    "\u0003\u0002\u0002\u0002\u0189\u017c\u0003\u0002\u0002\u0002\u0189\u018a",
-    "\u0003\u0002\u0002\u0002\u018a\u018c\u0003\u0002\u0002\u0002\u018b\u016e",
-    "\u0003\u0002\u0002\u0002\u018b\u018c\u0003\u0002\u0002\u0002\u018c\u018d",
-    "\u0003\u0002\u0002\u0002\u018d\u018e\u0005\"\u0012\u0002\u018e!\u0003",
-    "\u0002\u0002\u0002\u018f\u0199\u0005$\u0013\u0002\u0190\u0194\u0007",
-    "!\u0002\u0002\u0191\u0193\u0005\u0004\u0003\u0002\u0192\u0191\u0003",
-    "\u0002\u0002\u0002\u0193\u0196\u0003\u0002\u0002\u0002\u0194\u0192\u0003",
-    "\u0002\u0002\u0002\u0194\u0195\u0003\u0002\u0002\u0002\u0195\u0197\u0003",
-    "\u0002\u0002\u0002\u0196\u0194\u0003\u0002\u0002\u0002\u0197\u0199\u0005",
-    "0\u0019\u0002\u0198\u018f\u0003\u0002\u0002\u0002\u0198\u0190\u0003",
-    "\u0002\u0002\u0002\u0199#\u0003\u0002\u0002\u0002\u019a\u019e\u0007",
-    "\u0018\u0002\u0002\u019b\u019d\u0005\u0004\u0003\u0002\u019c\u019b\u0003",
-    "\u0002\u0002\u0002\u019d\u01a0\u0003\u0002\u0002\u0002\u019e\u019c\u0003",
-    "\u0002\u0002\u0002\u019e\u019f\u0003\u0002\u0002\u0002\u019f\u01a2\u0003",
-    "\u0002\u0002\u0002\u01a0\u019e\u0003\u0002\u0002\u0002\u01a1\u01a3\u0005",
-    "&\u0014\u0002\u01a2\u01a1\u0003\u0002\u0002\u0002\u01a3\u01a4\u0003",
-    "\u0002\u0002\u0002\u01a4\u01a2\u0003\u0002\u0002\u0002\u01a4\u01a5\u0003",
-    "\u0002\u0002\u0002\u01a5\u01a9\u0003\u0002\u0002\u0002\u01a6\u01a8\u0005",
-    "\u0004\u0003\u0002\u01a7\u01a6\u0003\u0002\u0002\u0002\u01a8\u01ab\u0003",
-    "\u0002\u0002\u0002\u01a9\u01a7\u0003\u0002\u0002\u0002\u01a9\u01aa\u0003",
-    "\u0002\u0002\u0002\u01aa\u01ac\u0003\u0002\u0002\u0002\u01ab\u01a9\u0003",
-    "\u0002\u0002\u0002\u01ac\u01ad\u0007\u0019\u0002\u0002\u01ad%\u0003",
-    "\u0002\u0002\u0002\u01ae\u01b5\u0005(\u0015\u0002\u01af\u01b5\u0005",
-    ".\u0018\u0002\u01b0\u01b5\u0005J&\u0002\u01b1\u01b5\u0005L\'\u0002\u01b2",
-    "\u01b5\u0005N(\u0002\u01b3\u01b5\u0005P)\u0002\u01b4\u01ae\u0003\u0002",
-    "\u0002\u0002\u01b4\u01af\u0003\u0002\u0002\u0002\u01b4\u01b0\u0003\u0002",
-    "\u0002\u0002\u01b4\u01b1\u0003\u0002\u0002\u0002\u01b4\u01b2\u0003\u0002",
-    "\u0002\u0002\u01b4\u01b3\u0003\u0002\u0002\u0002\u01b5\u01b7\u0003\u0002",
-    "\u0002\u0002\u01b6\u01b8\u0005\u0004\u0003\u0002\u01b7\u01b6\u0003\u0002",
-    "\u0002\u0002\u01b8\u01b9\u0003\u0002\u0002\u0002\u01b9\u01b7\u0003\u0002",
-    "\u0002\u0002\u01b9\u01ba\u0003\u0002\u0002\u0002\u01ba\'\u0003\u0002",
-    "\u0002\u0002\u01bb\u01be\u0005*\u0016\u0002\u01bc\u01be\u0005,\u0017",
-    "\u0002\u01bd\u01bb\u0003\u0002\u0002\u0002\u01bd\u01bc\u0003\u0002\u0002",
-    "\u0002\u01be)\u0003\u0002\u0002\u0002\u01bf\u01c3\u0007\n\u0002\u0002",
-    "\u01c0\u01c2\u0005\u0004\u0003\u0002\u01c1\u01c0\u0003\u0002\u0002\u0002",
-    "\u01c2\u01c5\u0003\u0002\u0002\u0002\u01c3\u01c1\u0003\u0002\u0002\u0002",
-    "\u01c3\u01c4\u0003\u0002\u0002\u0002\u01c4\u01c6\u0003\u0002\u0002\u0002",
-    "\u01c5\u01c3\u0003\u0002\u0002\u0002\u01c6\u01ca\u0007/\u0002\u0002",
-    "\u01c7\u01c9\u0005\u0004\u0003\u0002\u01c8\u01c7\u0003\u0002\u0002\u0002",
-    "\u01c9\u01cc\u0003\u0002\u0002\u0002\u01ca\u01c8\u0003\u0002\u0002\u0002",
-    "\u01ca\u01cb\u0003\u0002\u0002\u0002\u01cb\u01d2\u0003\u0002\u0002\u0002",
-    "\u01cc\u01ca\u0003\u0002\u0002\u0002\u01cd\u01cf\u0007\'\u0002\u0002",
-    "\u01ce\u01d0\u0005\u0004\u0003\u0002\u01cf\u01ce\u0003\u0002\u0002\u0002",
-    "\u01cf\u01d0\u0003\u0002\u0002\u0002\u01d0\u01d1\u0003\u0002\u0002\u0002",
-    "\u01d1\u01d3\u0005\u0014\u000b\u0002\u01d2\u01cd\u0003\u0002\u0002\u0002",
-    "\u01d2\u01d3\u0003\u0002\u0002\u0002\u01d3\u01d7\u0003\u0002\u0002\u0002",
-    "\u01d4\u01d6\u0005\u0004\u0003\u0002\u01d5\u01d4\u0003\u0002\u0002\u0002",
-    "\u01d6\u01d9\u0003\u0002\u0002\u0002\u01d7\u01d5\u0003\u0002\u0002\u0002",
-    "\u01d7\u01d8\u0003\u0002\u0002\u0002\u01d8\u01da\u0003\u0002\u0002\u0002",
-    "\u01d9\u01d7\u0003\u0002\u0002\u0002\u01da\u01de\u0007!\u0002\u0002",
-    "\u01db\u01dd\u0005\u0004\u0003\u0002\u01dc\u01db\u0003\u0002\u0002\u0002",
-    "\u01dd\u01e0\u0003\u0002\u0002\u0002\u01de\u01dc\u0003\u0002\u0002\u0002",
-    "\u01de\u01df\u0003\u0002\u0002\u0002\u01df\u01e1\u0003\u0002\u0002\u0002",
-    "\u01e0\u01de\u0003\u0002\u0002\u0002\u01e1\u01e2\u00050\u0019\u0002",
-    "\u01e2+\u0003\u0002\u0002\u0002\u01e3\u01e7\u0007\u000b\u0002\u0002",
-    "\u01e4\u01e6\u0005\u0004\u0003\u0002\u01e5\u01e4\u0003\u0002\u0002\u0002",
-    "\u01e6\u01e9\u0003\u0002\u0002\u0002\u01e7\u01e5\u0003\u0002\u0002\u0002",
-    "\u01e7\u01e8\u0003\u0002\u0002\u0002\u01e8\u01ea\u0003\u0002\u0002\u0002",
-    "\u01e9\u01e7\u0003\u0002\u0002\u0002\u01ea\u01ee\u0007/\u0002\u0002",
-    "\u01eb\u01ed\u0005\u0004\u0003\u0002\u01ec\u01eb\u0003\u0002\u0002\u0002",
-    "\u01ed\u01f0\u0003\u0002\u0002\u0002\u01ee\u01ec\u0003\u0002\u0002\u0002",
-    "\u01ee\u01ef\u0003\u0002\u0002\u0002\u01ef\u01f6\u0003\u0002\u0002\u0002",
-    "\u01f0\u01ee\u0003\u0002\u0002\u0002\u01f1\u01f3\u0007\'\u0002\u0002",
-    "\u01f2\u01f4\u0005\u0004\u0003\u0002\u01f3\u01f2\u0003\u0002\u0002\u0002",
-    "\u01f3\u01f4\u0003\u0002\u0002\u0002\u01f4\u01f5\u0003\u0002\u0002\u0002",
-    "\u01f5\u01f7\u0005\u0014\u000b\u0002\u01f6\u01f1\u0003\u0002\u0002\u0002",
-    "\u01f6\u01f7\u0003\u0002\u0002\u0002\u01f7\u01fb\u0003\u0002\u0002\u0002",
-    "\u01f8\u01fa\u0005\u0004\u0003\u0002\u01f9\u01f8\u0003\u0002\u0002\u0002",
-    "\u01fa\u01fd\u0003\u0002\u0002\u0002\u01fb\u01f9\u0003\u0002\u0002\u0002",
-    "\u01fb\u01fc\u0003\u0002\u0002\u0002\u01fc\u01fe\u0003\u0002\u0002\u0002",
-    "\u01fd\u01fb\u0003\u0002\u0002\u0002\u01fe\u0202\u0007!\u0002\u0002",
-    "\u01ff\u0201\u0005\u0004\u0003\u0002\u0200\u01ff\u0003\u0002\u0002\u0002",
-    "\u0201\u0204\u0003\u0002\u0002\u0002\u0202\u0200\u0003\u0002\u0002\u0002",
-    "\u0202\u0203\u0003\u0002\u0002\u0002\u0203\u0205\u0003\u0002\u0002\u0002",
-    "\u0204\u0202\u0003\u0002\u0002\u0002\u0205\u0206\u00050\u0019\u0002",
-    "\u0206-\u0003\u0002\u0002\u0002\u0207\u020b\u0005\u0080A\u0002\u0208",
-    "\u020a\u0005\u0004\u0003\u0002\u0209\u0208\u0003\u0002\u0002\u0002\u020a",
-    "\u020d\u0003\u0002\u0002\u0002\u020b\u0209\u0003\u0002\u0002\u0002\u020b",
-    "\u020c\u0003\u0002\u0002\u0002\u020c\u020e\u0003\u0002\u0002\u0002\u020d",
-    "\u020b\u0003\u0002\u0002\u0002\u020e\u0212\u0007!\u0002\u0002\u020f",
-    "\u0211\u0005\u0004\u0003\u0002\u0210\u020f\u0003\u0002\u0002\u0002\u0211",
-    "\u0214\u0003\u0002\u0002\u0002\u0212\u0210\u0003\u0002\u0002\u0002\u0212",
-    "\u0213\u0003\u0002\u0002\u0002\u0213\u0215\u0003\u0002\u0002\u0002\u0214",
-    "\u0212\u0003\u0002\u0002\u0002\u0215\u0216\u00050\u0019\u0002\u0216",
-    "/\u0003\u0002\u0002\u0002\u0217\u021a\u00052\u001a\u0002\u0218\u021a",
-    "\u00056\u001c\u0002\u0219\u0217\u0003\u0002\u0002\u0002\u0219\u0218",
-    "\u0003\u0002\u0002\u0002\u021a1\u0003\u0002\u0002\u0002\u021b\u0223",
-    "\u0005 \u0011\u0002\u021c\u0223\u0005J&\u0002\u021d\u0223\u0005\u0080",
-    "A\u0002\u021e\u0223\u0005T+\u0002\u021f\u0223\u00058\u001d\u0002\u0220",
-    "\u0223\u0005:\u001e\u0002\u0221\u0223\u0005<\u001f\u0002\u0222\u021b",
-    "\u0003\u0002\u0002\u0002\u0222\u021c\u0003\u0002\u0002\u0002\u0222\u021d",
-    "\u0003\u0002\u0002\u0002\u0222\u021e\u0003\u0002\u0002\u0002\u0222\u021f",
-    "\u0003\u0002\u0002\u0002\u0222\u0220\u0003\u0002\u0002\u0002\u0222\u0221",
-    "\u0003\u0002\u0002\u0002\u02233\u0003\u0002\u0002\u0002\u0224\u0227",
-    "\u0005V,\u0002\u0225\u0227\u00052\u001a\u0002\u0226\u0224\u0003\u0002",
-    "\u0002\u0002\u0226\u0225\u0003\u0002\u0002\u0002\u02275\u0003\u0002",
-    "\u0002\u0002\u0228\u022c\u00054\u001b\u0002\u0229\u022b\u0007)\u0002",
-    "\u0002\u022a\u0229\u0003\u0002\u0002\u0002\u022b\u022e\u0003\u0002\u0002",
-    "\u0002\u022c\u022a\u0003\u0002\u0002\u0002\u022c\u022d\u0003\u0002\u0002",
-    "\u0002\u022d\u0230\u0003\u0002\u0002\u0002\u022e\u022c\u0003\u0002\u0002",
-    "\u0002\u022f\u0228\u0003\u0002\u0002\u0002\u0230\u0231\u0003\u0002\u0002",
-    "\u0002\u0231\u022f\u0003\u0002\u0002\u0002\u0231\u0232\u0003\u0002\u0002",
-    "\u0002\u02327\u0003\u0002\u0002\u0002\u0233\u0237\u0007\u001a\u0002",
-    "\u0002\u0234\u0236\u0007)\u0002\u0002\u0235\u0234\u0003\u0002\u0002",
-    "\u0002\u0236\u0239\u0003\u0002\u0002\u0002\u0237\u0235\u0003\u0002\u0002",
-    "\u0002\u0237\u0238\u0003\u0002\u0002\u0002\u0238\u023a\u0003\u0002\u0002",
-    "\u0002\u0239\u0237\u0003\u0002\u0002\u0002\u023a\u023e\u00056\u001c",
-    "\u0002\u023b\u023d\u0007)\u0002\u0002\u023c\u023b\u0003\u0002\u0002",
-    "\u0002\u023d\u0240\u0003\u0002\u0002\u0002\u023e\u023c\u0003\u0002\u0002",
-    "\u0002\u023e\u023f\u0003\u0002\u0002\u0002\u023f\u0241\u0003\u0002\u0002",
-    "\u0002\u0240\u023e\u0003\u0002\u0002\u0002\u0241\u0242\u0007\u001b\u0002",
-    "\u0002\u02429\u0003\u0002\u0002\u0002\u0243\u0247\u0007\u0005\u0002",
-    "\u0002\u0244\u0246\u0007)\u0002\u0002\u0245\u0244\u0003\u0002\u0002",
-    "\u0002\u0246\u0249\u0003\u0002\u0002\u0002\u0247\u0245\u0003\u0002\u0002",
-    "\u0002\u0247\u0248\u0003\u0002\u0002\u0002\u0248\u024a\u0003\u0002\u0002",
-    "\u0002\u0249\u0247\u0003\u0002\u0002\u0002\u024a\u024b\u00052\u001a",
-    "\u0002\u024b;\u0003\u0002\u0002\u0002\u024c\u0250\u0005> \u0002\u024d",
-    "\u0250\u0005@!\u0002\u024e\u0250\u0005B\"\u0002\u024f\u024c\u0003\u0002",
-    "\u0002\u0002\u024f\u024d\u0003\u0002\u0002\u0002\u024f\u024e\u0003\u0002",
-    "\u0002\u0002\u0250=\u0003\u0002\u0002\u0002\u0251\u0255\u0007\u0015",
-    "\u0002\u0002\u0252\u0254\u0007)\u0002\u0002\u0253\u0252\u0003\u0002",
-    "\u0002\u0002\u0254\u0257\u0003\u0002\u0002\u0002\u0255\u0253\u0003\u0002",
-    "\u0002\u0002\u0255\u0256\u0003\u0002\u0002\u0002\u0256\u0258\u0003\u0002",
-    "\u0002\u0002\u0257\u0255\u0003\u0002\u0002\u0002\u0258\u025c\u0005\u0014",
-    "\u000b\u0002\u0259\u025b\u0007)\u0002\u0002\u025a\u0259\u0003\u0002",
-    "\u0002\u0002\u025b\u025e\u0003\u0002\u0002\u0002\u025c\u025a\u0003\u0002",
-    "\u0002\u0002\u025c\u025d\u0003\u0002\u0002\u0002\u025d\u0260\u0003\u0002",
-    "\u0002\u0002\u025e\u025c\u0003\u0002\u0002\u0002\u025f\u0251\u0003\u0002",
-    "\u0002\u0002\u025f\u0260\u0003\u0002\u0002\u0002\u0260\u0261\u0003\u0002",
-    "\u0002\u0002\u0261\u0265\u0007\u001e\u0002\u0002\u0262\u0264\u0005\u0004",
-    "\u0003\u0002\u0263\u0262\u0003\u0002\u0002\u0002\u0264\u0267\u0003\u0002",
-    "\u0002\u0002\u0265\u0263\u0003\u0002\u0002\u0002\u0265\u0266\u0003\u0002",
-    "\u0002\u0002\u0266\u0269\u0003\u0002\u0002\u0002\u0267\u0265\u0003\u0002",
-    "\u0002\u0002\u0268\u026a\u0005F$\u0002\u0269\u0268\u0003\u0002\u0002",
-    "\u0002\u0269\u026a\u0003\u0002\u0002\u0002\u026a\u026e\u0003\u0002\u0002",
-    "\u0002\u026b\u026d\u0005\u0004\u0003\u0002\u026c\u026b\u0003\u0002\u0002",
-    "\u0002\u026d\u0270\u0003\u0002\u0002\u0002\u026e\u026c\u0003\u0002\u0002",
-    "\u0002\u026e\u026f\u0003\u0002\u0002\u0002\u026f\u0271\u0003\u0002\u0002",
-    "\u0002\u0270\u026e\u0003\u0002\u0002\u0002\u0271\u0272\u0007\u001f\u0002",
-    "\u0002\u0272?\u0003\u0002\u0002\u0002\u0273\u0277\u0007\u0015\u0002",
-    "\u0002\u0274\u0276\u0007)\u0002\u0002\u0275\u0274\u0003\u0002\u0002",
-    "\u0002\u0276\u0279\u0003\u0002\u0002\u0002\u0277\u0275\u0003\u0002\u0002",
-    "\u0002\u0277\u0278\u0003\u0002\u0002\u0002\u0278\u027a\u0003\u0002\u0002",
-    "\u0002\u0279\u0277\u0003\u0002\u0002\u0002\u027a\u027e\u0005\u0014\u000b",
-    "\u0002\u027b\u027d\u0007)\u0002\u0002\u027c\u027b\u0003\u0002\u0002",
-    "\u0002\u027d\u0280\u0003\u0002\u0002\u0002\u027e\u027c\u0003\u0002\u0002",
-    "\u0002\u027e\u027f\u0003\u0002\u0002\u0002\u027f\u0281\u0003\u0002\u0002",
-    "\u0002\u0280\u027e\u0003\u0002\u0002\u0002\u0281\u0285\u0007\u0018\u0002",
-    "\u0002\u0282\u0284\u0005\u0004\u0003\u0002\u0283\u0282\u0003\u0002\u0002",
-    "\u0002\u0284\u0287\u0003\u0002\u0002\u0002\u0285\u0283\u0003\u0002\u0002",
-    "\u0002\u0285\u0286\u0003\u0002\u0002\u0002\u0286\u028e\u0003\u0002\u0002",
-    "\u0002\u0287\u0285\u0003\u0002\u0002\u0002\u0288\u028a\u0005.\u0018",
-    "\u0002\u0289\u028b\u0005\u0004\u0003\u0002\u028a\u0289\u0003\u0002\u0002",
-    "\u0002\u028b\u028c\u0003\u0002\u0002\u0002\u028c\u028a\u0003\u0002\u0002",
-    "\u0002\u028c\u028d\u0003\u0002\u0002\u0002\u028d\u028f\u0003\u0002\u0002",
-    "\u0002\u028e\u0288\u0003\u0002\u0002\u0002\u028f\u0290\u0003\u0002\u0002",
-    "\u0002\u0290\u028e\u0003\u0002\u0002\u0002\u0290\u0291\u0003\u0002\u0002",
-    "\u0002\u0291\u0292\u0003\u0002\u0002\u0002\u0292\u0293\u0007\u0019\u0002",
-    "\u0002\u0293A\u0003\u0002\u0002\u0002\u0294\u0298\u0007\u0015\u0002",
-    "\u0002\u0295\u0297\u0007)\u0002\u0002\u0296\u0295\u0003\u0002\u0002",
-    "\u0002\u0297\u029a\u0003\u0002\u0002\u0002\u0298\u0296\u0003\u0002\u0002",
-    "\u0002\u0298\u0299\u0003\u0002\u0002\u0002\u0299\u029b\u0003\u0002\u0002",
-    "\u0002\u029a\u0298\u0003\u0002\u0002\u0002\u029b\u029f\u0005\u0014\u000b",
-    "\u0002\u029c\u029e\u0007)\u0002\u0002\u029d\u029c\u0003\u0002\u0002",
-    "\u0002\u029e\u02a1\u0003\u0002\u0002\u0002\u029f\u029d\u0003\u0002\u0002",
-    "\u0002\u029f\u02a0\u0003\u0002\u0002\u0002\u02a0\u02a2\u0003\u0002\u0002",
-    "\u0002\u02a1\u029f\u0003\u0002\u0002\u0002\u02a2\u02a6\u0007\u0018\u0002",
-    "\u0002\u02a3\u02a5\u0005\u0004\u0003\u0002\u02a4\u02a3\u0003\u0002\u0002",
-    "\u0002\u02a5\u02a8\u0003\u0002\u0002\u0002\u02a6\u02a4\u0003\u0002\u0002",
-    "\u0002\u02a6\u02a7\u0003\u0002\u0002\u0002\u02a7\u02b1\u0003\u0002\u0002",
-    "\u0002\u02a8\u02a6\u0003\u0002\u0002\u0002\u02a9\u02ab\u0005D#\u0002",
-    "\u02aa\u02ac\u0005\u0004\u0003\u0002\u02ab\u02aa\u0003\u0002\u0002\u0002",
-    "\u02ac\u02ad\u0003\u0002\u0002\u0002\u02ad\u02ab\u0003\u0002\u0002\u0002",
-    "\u02ad\u02ae\u0003\u0002\u0002\u0002\u02ae\u02b0\u0003\u0002\u0002\u0002",
-    "\u02af\u02a9\u0003\u0002\u0002\u0002\u02b0\u02b3\u0003\u0002\u0002\u0002",
-    "\u02b1\u02af\u0003\u0002\u0002\u0002\u02b1\u02b2\u0003\u0002\u0002\u0002",
-    "\u02b2\u02b4\u0003\u0002\u0002\u0002\u02b3\u02b1\u0003\u0002\u0002\u0002",
-    "\u02b4\u02b5\u0007\u0019\u0002\u0002\u02b5C\u0003\u0002\u0002\u0002",
-    "\u02b6\u02ba\u00050\u0019\u0002\u02b7\u02b9\u0007)\u0002\u0002\u02b8",
-    "\u02b7\u0003\u0002\u0002\u0002\u02b9\u02bc\u0003\u0002\u0002\u0002\u02ba",
-    "\u02b8\u0003\u0002\u0002\u0002\u02ba\u02bb\u0003\u0002\u0002\u0002\u02bb",
-    "\u02bd\u0003\u0002\u0002\u0002\u02bc\u02ba\u0003\u0002\u0002\u0002\u02bd",
-    "\u02c1\u0007\'\u0002\u0002\u02be\u02c0\u0007)\u0002\u0002\u02bf\u02be",
-    "\u0003\u0002\u0002\u0002\u02c0\u02c3\u0003\u0002\u0002\u0002\u02c1\u02bf",
-    "\u0003\u0002\u0002\u0002\u02c1\u02c2\u0003\u0002\u0002\u0002\u02c2\u02c4",
-    "\u0003\u0002\u0002\u0002\u02c3\u02c1\u0003\u0002\u0002\u0002\u02c4\u02c5",
-    "\u00050\u0019\u0002\u02c5E\u0003\u0002\u0002\u0002\u02c6\u02c8\u0005",
-    "\u0004\u0003\u0002\u02c7\u02c6\u0003\u0002\u0002\u0002\u02c8\u02cb\u0003",
-    "\u0002\u0002\u0002\u02c9\u02c7\u0003\u0002\u0002\u0002\u02c9\u02ca\u0003",
-    "\u0002\u0002\u0002\u02ca\u02cc\u0003\u0002\u0002\u0002\u02cb\u02c9\u0003",
-    "\u0002\u0002\u0002\u02cc\u02d7\u00050\u0019\u0002\u02cd\u02d1\u0007",
-    "\u0017\u0002\u0002\u02ce\u02d0\u0005\u0004\u0003\u0002\u02cf\u02ce\u0003",
-    "\u0002\u0002\u0002\u02d0\u02d3\u0003\u0002\u0002\u0002\u02d1\u02cf\u0003",
-    "\u0002\u0002\u0002\u02d1\u02d2\u0003\u0002\u0002\u0002\u02d2\u02d4\u0003",
-    "\u0002\u0002\u0002\u02d3\u02d1\u0003\u0002\u0002\u0002\u02d4\u02d6\u0005",
-    "0\u0019\u0002\u02d5\u02cd\u0003\u0002\u0002\u0002\u02d6\u02d9\u0003",
-    "\u0002\u0002\u0002\u02d7\u02d5\u0003\u0002\u0002\u0002\u02d7\u02d8\u0003",
-    "\u0002\u0002\u0002\u02d8\u02db\u0003\u0002\u0002\u0002\u02d9\u02d7\u0003",
-    "\u0002\u0002\u0002\u02da\u02dc\u0007\u0017\u0002\u0002\u02db\u02da\u0003",
-    "\u0002\u0002\u0002\u02db\u02dc\u0003\u0002\u0002\u0002\u02dc\u02e0\u0003",
-    "\u0002\u0002\u0002\u02dd\u02df\u0005\u0004\u0003\u0002\u02de\u02dd\u0003",
-    "\u0002\u0002\u0002\u02df\u02e2\u0003\u0002\u0002\u0002\u02e0\u02de\u0003",
-    "\u0002\u0002\u0002\u02e0\u02e1\u0003\u0002\u0002\u0002\u02e1G\u0003",
-    "\u0002\u0002\u0002\u02e2\u02e0\u0003\u0002\u0002\u0002\u02e3\u02e5\u0007",
-    "\u001a\u0002\u0002\u02e4\u02e6\u0005F$\u0002\u02e5\u02e4\u0003\u0002",
-    "\u0002\u0002\u02e5\u02e6\u0003\u0002\u0002\u0002\u02e6\u02e7\u0003\u0002",
-    "\u0002\u0002\u02e7\u02e8\u0007\u001b\u0002\u0002\u02e8I\u0003\u0002",
-    "\u0002\u0002\u02e9\u02ed\u0005\u0080A\u0002\u02ea\u02ec\u0007)\u0002",
-    "\u0002\u02eb\u02ea\u0003\u0002\u0002\u0002\u02ec\u02ef\u0003\u0002\u0002",
-    "\u0002\u02ed\u02eb\u0003\u0002\u0002\u0002\u02ed\u02ee\u0003\u0002\u0002",
-    "\u0002\u02ee\u02f0\u0003\u0002\u0002\u0002\u02ef\u02ed\u0003\u0002\u0002",
-    "\u0002\u02f0\u02fd\u0005H%\u0002\u02f1\u02f2\u0007 \u0002\u0002\u02f2",
-    "\u02f6\u0005\u0080A\u0002\u02f3\u02f5\u0007)\u0002\u0002\u02f4\u02f3",
-    "\u0003\u0002\u0002\u0002\u02f5\u02f8\u0003\u0002\u0002\u0002\u02f6\u02f4",
-    "\u0003\u0002\u0002\u0002\u02f6\u02f7\u0003\u0002\u0002\u0002\u02f7\u02f9",
-    "\u0003\u0002\u0002\u0002\u02f8\u02f6\u0003\u0002\u0002\u0002\u02f9\u02fa",
-    "\u0005H%\u0002\u02fa\u02fc\u0003\u0002\u0002\u0002\u02fb\u02f1\u0003",
-    "\u0002\u0002\u0002\u02fc\u02ff\u0003\u0002\u0002\u0002\u02fd\u02fb\u0003",
-    "\u0002\u0002\u0002\u02fd\u02fe\u0003\u0002\u0002\u0002\u02fe\u0316\u0003",
-    "\u0002\u0002\u0002\u02ff\u02fd\u0003\u0002\u0002\u0002\u0300\u0306\u0005",
-    "T+\u0002\u0301\u0302\u0007\u001a\u0002\u0002\u0302\u0303\u00050\u0019",
-    "\u0002\u0303\u0304\u0007\u001b\u0002\u0002\u0304\u0306\u0003\u0002\u0002",
-    "\u0002\u0305\u0300\u0003\u0002\u0002\u0002\u0305\u0301\u0003\u0002\u0002",
-    "\u0002\u0306\u0311\u0003\u0002\u0002\u0002\u0307\u0308\u0007 \u0002",
-    "\u0002\u0308\u030c\u0005\u0080A\u0002\u0309\u030b\u0007)\u0002\u0002",
-    "\u030a\u0309\u0003\u0002\u0002\u0002\u030b\u030e\u0003\u0002\u0002\u0002",
-    "\u030c\u030a\u0003\u0002\u0002\u0002\u030c\u030d\u0003\u0002\u0002\u0002",
-    "\u030d\u030f\u0003\u0002\u0002\u0002\u030e\u030c\u0003\u0002\u0002\u0002",
-    "\u030f\u0310\u0005H%\u0002\u0310\u0312\u0003\u0002\u0002\u0002\u0311",
-    "\u0307\u0003\u0002\u0002\u0002\u0312\u0313\u0003\u0002\u0002\u0002\u0313",
-    "\u0311\u0003\u0002\u0002\u0002\u0313\u0314\u0003\u0002\u0002\u0002\u0314",
-    "\u0316\u0003\u0002\u0002\u0002\u0315\u02e9\u0003\u0002\u0002\u0002\u0315",
-    "\u0305\u0003\u0002\u0002\u0002\u0316K\u0003\u0002\u0002\u0002\u0317",
-    "\u031f\u0007\f\u0002\u0002\u0318\u031a\u0005\u0004\u0003\u0002\u0319",
-    "\u0318\u0003\u0002\u0002\u0002\u031a\u031d\u0003\u0002\u0002\u0002\u031b",
-    "\u0319\u0003\u0002\u0002\u0002\u031b\u031c\u0003\u0002\u0002\u0002\u031c",
-    "\u031e\u0003\u0002\u0002\u0002\u031d\u031b\u0003\u0002\u0002\u0002\u031e",
-    "\u0320\u00050\u0019\u0002\u031f\u031b\u0003\u0002\u0002\u0002\u031f",
-    "\u0320\u0003\u0002\u0002\u0002\u0320M\u0003\u0002\u0002\u0002\u0321",
-    "\u0325\u0007\r\u0002\u0002\u0322\u0324\u0005\u0004\u0003\u0002\u0323",
-    "\u0322\u0003\u0002\u0002\u0002\u0324\u0327\u0003\u0002\u0002\u0002\u0325",
-    "\u0323\u0003\u0002\u0002\u0002\u0325\u0326\u0003\u0002\u0002\u0002\u0326",
-    "\u0328\u0003\u0002\u0002\u0002\u0327\u0325\u0003\u0002\u0002\u0002\u0328",
-    "\u0330\u0005\u0080A\u0002\u0329\u032b\u0005\u0004\u0003\u0002\u032a",
-    "\u0329\u0003\u0002\u0002\u0002\u032b\u032e\u0003\u0002\u0002\u0002\u032c",
-    "\u032a\u0003\u0002\u0002\u0002\u032c\u032d\u0003\u0002\u0002\u0002\u032d",
-    "\u032f\u0003\u0002\u0002\u0002\u032e\u032c\u0003\u0002\u0002\u0002\u032f",
-    "\u0331\u00050\u0019\u0002\u0330\u032c\u0003\u0002\u0002\u0002\u0330",
-    "\u0331\u0003\u0002\u0002\u0002\u0331O\u0003\u0002\u0002\u0002\u0332",
-    "\u0336\u0007\u0013\u0002\u0002\u0333\u0335\u0005\u0004\u0003\u0002\u0334",
-    "\u0333\u0003\u0002\u0002\u0002\u0335\u0338\u0003\u0002\u0002\u0002\u0336",
-    "\u0334\u0003\u0002\u0002\u0002\u0336\u0337\u0003\u0002\u0002\u0002\u0337",
-    "\u0339\u0003\u0002\u0002\u0002\u0338\u0336\u0003\u0002\u0002\u0002\u0339",
-    "\u033d\u00056\u001c\u0002\u033a\u033c\u0005\u0004\u0003\u0002\u033b",
-    "\u033a\u0003\u0002\u0002\u0002\u033c\u033f\u0003\u0002\u0002\u0002\u033d",
-    "\u033b\u0003\u0002\u0002\u0002\u033d\u033e\u0003\u0002\u0002\u0002\u033e",
-    "\u0340\u0003\u0002\u0002\u0002\u033f\u033d\u0003\u0002\u0002\u0002\u0340",
-    "\u0352\u0005R*\u0002\u0341\u0343\u0005\u0004\u0003\u0002\u0342\u0341",
-    "\u0003\u0002\u0002\u0002\u0343\u0346\u0003\u0002\u0002\u0002\u0344\u0342",
-    "\u0003\u0002\u0002\u0002\u0344\u0345\u0003\u0002\u0002\u0002\u0345\u0347",
-    "\u0003\u0002\u0002\u0002\u0346\u0344\u0003\u0002\u0002\u0002\u0347\u034b",
-    "\u0007\u0014\u0002\u0002\u0348\u034a\u0005\u0004\u0003\u0002\u0349\u0348",
-    "\u0003\u0002\u0002\u0002\u034a\u034d\u0003\u0002\u0002\u0002\u034b\u0349",
-    "\u0003\u0002\u0002\u0002\u034b\u034c\u0003\u0002\u0002\u0002\u034c\u0350",
-    "\u0003\u0002\u0002\u0002\u034d\u034b\u0003\u0002\u0002\u0002\u034e\u0351",
-    "\u0005P)\u0002\u034f\u0351\u0005R*\u0002\u0350\u034e\u0003\u0002\u0002",
-    "\u0002\u0350\u034f\u0003\u0002\u0002\u0002\u0351\u0353\u0003\u0002\u0002",
-    "\u0002\u0352\u0344\u0003\u0002\u0002\u0002\u0352\u0353\u0003\u0002\u0002",
-    "\u0002\u0353Q\u0003\u0002\u0002\u0002\u0354\u0358\u0005 \u0011\u0002",
-    "\u0355\u0358\u0005$\u0013\u0002\u0356\u0358\u0005\u0080A\u0002\u0357",
-    "\u0354\u0003\u0002\u0002\u0002\u0357\u0355\u0003\u0002\u0002\u0002\u0357",
-    "\u0356\u0003\u0002\u0002\u0002\u0358S\u0003\u0002\u0002\u0002\u0359",
-    "\u035a\t\u0004\u0002\u0002\u035aU\u0003\u0002\u0002\u0002\u035b\u0379",
-    "\u0007.\u0002\u0002\u035c\u0379\u0007\'\u0002\u0002\u035d\u0379\u0007",
-    "\u001c\u0002\u0002\u035e\u0379\u0007&\u0002\u0002\u035f\u0361\u0007",
-    "\u001d\u0002\u0002\u0360\u035f\u0003\u0002\u0002\u0002\u0361\u0362\u0003",
-    "\u0002\u0002\u0002\u0362\u0360\u0003\u0002\u0002\u0002\u0362\u0363\u0003",
-    "\u0002\u0002\u0002\u0363\u0374\u0003\u0002\u0002\u0002\u0364\u0366\u0007",
-    "!\u0002\u0002\u0365\u0364\u0003\u0002\u0002\u0002\u0366\u0367\u0003",
-    "\u0002\u0002\u0002\u0367\u0365\u0003\u0002\u0002\u0002\u0367\u0368\u0003",
-    "\u0002\u0002\u0002\u0368\u036c\u0003\u0002\u0002\u0002\u0369\u036b\u0007",
-    ".\u0002\u0002\u036a\u0369\u0003\u0002\u0002\u0002\u036b\u036e\u0003",
-    "\u0002\u0002\u0002\u036c\u036a\u0003\u0002\u0002\u0002\u036c\u036d\u0003",
-    "\u0002\u0002\u0002\u036d\u0375\u0003\u0002\u0002\u0002\u036e\u036c\u0003",
-    "\u0002\u0002\u0002\u036f\u0371\u0007.\u0002\u0002\u0370\u036f\u0003",
-    "\u0002\u0002\u0002\u0371\u0372\u0003\u0002\u0002\u0002\u0372\u0370\u0003",
-    "\u0002\u0002\u0002\u0372\u0373\u0003\u0002\u0002\u0002\u0373\u0375\u0003",
-    "\u0002\u0002\u0002\u0374\u0365\u0003\u0002\u0002\u0002\u0374\u0370\u0003",
-    "\u0002\u0002\u0002\u0374\u0375\u0003\u0002\u0002\u0002\u0375\u0379\u0003",
-    "\u0002\u0002\u0002\u0376\u0379\u0007\"\u0002\u0002\u0377\u0379\u0007",
-    "%\u0002\u0002\u0378\u035b\u0003\u0002\u0002\u0002\u0378\u035c\u0003",
-    "\u0002\u0002\u0002\u0378\u035d\u0003\u0002\u0002\u0002\u0378\u035e\u0003",
-    "\u0002\u0002\u0002\u0378\u0360\u0003\u0002\u0002\u0002\u0378\u0376\u0003",
-    "\u0002\u0002\u0002\u0378\u0377\u0003\u0002\u0002\u0002\u0379W\u0003",
-    "\u0002\u0002\u0002\u037a\u037b\t\u0005\u0002\u0002\u037b\u0384\u0007",
-    ")\u0002\u0002\u037c\u037d\u0005Z.\u0002\u037d\u037e\u0007)\u0002\u0002",
-    "\u037e\u037f\u0005\\/\u0002\u037f\u0385\u0003\u0002\u0002\u0002\u0380",
-    "\u0381\u0005\\/\u0002\u0381\u0382\u0007)\u0002\u0002\u0382\u0383\u0005",
-    "Z.\u0002\u0383\u0385\u0003\u0002\u0002\u0002\u0384\u037c\u0003\u0002",
-    "\u0002\u0002\u0384\u0380\u0003\u0002\u0002\u0002\u0385Y\u0003\u0002",
-    "\u0002\u0002\u0386\u0387\u0005\u0080A\u0002\u0387\u0388\u0007)\u0002",
-    "\u0002\u0388\u0389\u0007\u000e\u0002\u0002\u0389\u038a\u0007)\u0002",
-    "\u0002\u038a\u038b\u0005V,\u0002\u038b[\u0003\u0002\u0002\u0002\u038c",
-    "\u038d\u0007\u0012\u0002\u0002\u038d\u038e\u0007)\u0002\u0002\u038e",
-    "\u038f\u0007-\u0002\u0002\u038f]\u0003\u0002\u0002\u0002\u0390\u0391",
-    "\u0007\u0007\u0002\u0002\u0391\u0392\u0005\u0004\u0003\u0002\u0392\u0396",
-    "\u0007/\u0002\u0002\u0393\u0395\u0005\u0004\u0003\u0002\u0394\u0393",
-    "\u0003\u0002\u0002\u0002\u0395\u0398\u0003\u0002\u0002\u0002\u0396\u0394",
-    "\u0003\u0002\u0002\u0002\u0396\u0397\u0003\u0002\u0002\u0002\u0397\u0399",
-    "\u0003\u0002\u0002\u0002\u0398\u0396\u0003\u0002\u0002\u0002\u0399\u039b",
-    "\u0007\'\u0002\u0002\u039a\u039c\t\u0002\u0002\u0002\u039b\u039a\u0003",
-    "\u0002\u0002\u0002\u039b\u039c\u0003\u0002\u0002\u0002\u039c\u039d\u0003",
-    "\u0002\u0002\u0002\u039d\u039e\u0005\u0080A\u0002\u039e_\u0003\u0002",
-    "\u0002\u0002\u039f\u03a1\u0007\b\u0002\u0002\u03a0\u03a2\u0005\u0004",
-    "\u0003\u0002\u03a1\u03a0\u0003\u0002\u0002\u0002\u03a2\u03a3\u0003\u0002",
-    "\u0002\u0002\u03a3\u03a1\u0003\u0002\u0002\u0002\u03a3\u03a4\u0003\u0002",
-    "\u0002\u0002\u03a4\u03a5\u0003\u0002\u0002\u0002\u03a5\u03a7\u0005b",
-    "2\u0002\u03a6\u03a8\u0005\u0004\u0003\u0002\u03a7\u03a6\u0003\u0002",
-    "\u0002\u0002\u03a8\u03a9\u0003\u0002\u0002\u0002\u03a9\u03a7\u0003\u0002",
-    "\u0002\u0002\u03a9\u03aa\u0003\u0002\u0002\u0002\u03aa\u03ae\u0003\u0002",
-    "\u0002\u0002\u03ab\u03af\u0005 \u0011\u0002\u03ac\u03af\u0005\u0080",
-    "A\u0002\u03ad\u03af\u0005$\u0013\u0002\u03ae\u03ab\u0003\u0002\u0002",
-    "\u0002\u03ae\u03ac\u0003\u0002\u0002\u0002\u03ae\u03ad\u0003\u0002\u0002",
-    "\u0002\u03afa\u0003\u0002\u0002\u0002\u03b0\u03b3\u0005\u0080A\u0002",
-    "\u03b1\u03b3\u0005J&\u0002\u03b2\u03b0\u0003\u0002\u0002\u0002\u03b2",
-    "\u03b1\u0003\u0002\u0002\u0002\u03b3c\u0003\u0002\u0002\u0002\u03b4",
-    "\u03b8\u0007\u0016\u0002\u0002\u03b5\u03b7\u0007)\u0002\u0002\u03b6",
-    "\u03b5\u0003\u0002\u0002\u0002\u03b7\u03ba\u0003\u0002\u0002\u0002\u03b8",
-    "\u03b6\u0003\u0002\u0002\u0002\u03b8\u03b9\u0003\u0002\u0002\u0002\u03b9",
-    "\u03bb\u0003\u0002\u0002\u0002\u03ba\u03b8\u0003\u0002\u0002\u0002\u03bb",
-    "\u03bf\u0007/\u0002\u0002\u03bc\u03be\u0007)\u0002\u0002\u03bd\u03bc",
-    "\u0003\u0002\u0002\u0002\u03be\u03c1\u0003\u0002\u0002\u0002\u03bf\u03bd",
-    "\u0003\u0002\u0002\u0002\u03bf\u03c0\u0003\u0002\u0002\u0002\u03c0\u03dd",
-    "\u0003\u0002\u0002\u0002\u03c1\u03bf\u0003\u0002\u0002\u0002\u03c2\u03c6",
-    "\u0007\u0018\u0002\u0002\u03c3\u03c5\u0005\u0004\u0003\u0002\u03c4\u03c3",
-    "\u0003\u0002\u0002\u0002\u03c5\u03c8\u0003\u0002\u0002\u0002\u03c6\u03c4",
-    "\u0003\u0002\u0002\u0002\u03c6\u03c7\u0003\u0002\u0002\u0002\u03c7\u03d1",
-    "\u0003\u0002\u0002\u0002\u03c8\u03c6\u0003\u0002\u0002\u0002\u03c9\u03cb",
-    "\u0005f4\u0002\u03ca\u03cc\u0005\u0004\u0003\u0002\u03cb\u03ca\u0003",
-    "\u0002\u0002\u0002\u03cc\u03cd\u0003\u0002\u0002\u0002\u03cd\u03cb\u0003",
-    "\u0002\u0002\u0002\u03cd\u03ce\u0003\u0002\u0002\u0002\u03ce\u03d0\u0003",
-    "\u0002\u0002\u0002\u03cf\u03c9\u0003\u0002\u0002\u0002\u03d0\u03d3\u0003",
-    "\u0002\u0002\u0002\u03d1\u03cf\u0003\u0002\u0002\u0002\u03d1\u03d2\u0003",
-    "\u0002\u0002\u0002\u03d2\u03d4\u0003\u0002\u0002\u0002\u03d3\u03d1\u0003",
-    "\u0002\u0002\u0002\u03d4\u03de\u0007\u0019\u0002\u0002\u03d5\u03d9\u0007",
-    "!\u0002\u0002\u03d6\u03d8\u0005\u0004\u0003\u0002\u03d7\u03d6\u0003",
-    "\u0002\u0002\u0002\u03d8\u03db\u0003\u0002\u0002\u0002\u03d9\u03d7\u0003",
-    "\u0002\u0002\u0002\u03d9\u03da\u0003\u0002\u0002\u0002\u03da\u03dc\u0003",
-    "\u0002\u0002\u0002\u03db\u03d9\u0003\u0002\u0002\u0002\u03dc\u03de\u0005",
-    "\u0080A\u0002\u03dd\u03c2\u0003\u0002\u0002\u0002\u03dd\u03d5\u0003",
-    "\u0002\u0002\u0002\u03dee\u0003\u0002\u0002\u0002\u03df\u03e3\u0005",
-    "h5\u0002\u03e0\u03e3\u0005l7\u0002\u03e1\u03e3\u0005r:\u0002\u03e2\u03df",
-    "\u0003\u0002\u0002\u0002\u03e2\u03e0\u0003\u0002\u0002\u0002\u03e2\u03e1",
-    "\u0003\u0002\u0002\u0002\u03e3g\u0003\u0002\u0002\u0002\u03e4\u03e8",
-    "\t\u0006\u0002\u0002\u03e5\u03e7\u0007)\u0002\u0002\u03e6\u03e5\u0003",
-    "\u0002\u0002\u0002\u03e7\u03ea\u0003\u0002\u0002\u0002\u03e8\u03e6\u0003",
-    "\u0002\u0002\u0002\u03e8\u03e9\u0003\u0002\u0002\u0002\u03e9\u03eb\u0003",
-    "\u0002\u0002\u0002\u03ea\u03e8\u0003\u0002\u0002\u0002\u03eb\u03ec\u0005",
-    "j6\u0002\u03eci\u0003\u0002\u0002\u0002\u03ed\u03f1\u0007\u001a\u0002",
-    "\u0002\u03ee\u03f0\u0005\u0004\u0003\u0002\u03ef\u03ee\u0003\u0002\u0002",
-    "\u0002\u03f0\u03f3\u0003\u0002\u0002\u0002\u03f1\u03ef\u0003\u0002\u0002",
-    "\u0002\u03f1\u03f2\u0003\u0002\u0002\u0002\u03f2\u03f4\u0003\u0002\u0002",
-    "\u0002\u03f3\u03f1\u0003\u0002\u0002\u0002\u03f4\u03f8\u0005\u0080A",
-    "\u0002\u03f5\u03f7\u0005\u0004\u0003\u0002\u03f6\u03f5\u0003\u0002\u0002",
-    "\u0002\u03f7\u03fa\u0003\u0002\u0002\u0002\u03f8\u03f6\u0003\u0002\u0002",
-    "\u0002\u03f8\u03f9\u0003\u0002\u0002\u0002\u03f9\u040b\u0003\u0002\u0002",
-    "\u0002\u03fa\u03f8\u0003\u0002\u0002\u0002\u03fb\u03ff\u0007\u0017\u0002",
-    "\u0002\u03fc\u03fe\u0005\u0004\u0003\u0002\u03fd\u03fc\u0003\u0002\u0002",
-    "\u0002\u03fe\u0401\u0003\u0002\u0002\u0002\u03ff\u03fd\u0003\u0002\u0002",
-    "\u0002\u03ff\u0400\u0003\u0002\u0002\u0002\u0400\u0402\u0003\u0002\u0002",
-    "\u0002\u0401\u03ff\u0003\u0002\u0002\u0002\u0402\u0406\u0005\u0080A",
-    "\u0002\u0403\u0405\u0005\u0004\u0003\u0002\u0404\u0403\u0003\u0002\u0002",
-    "\u0002\u0405\u0408\u0003\u0002\u0002\u0002\u0406\u0404\u0003\u0002\u0002",
-    "\u0002\u0406\u0407\u0003\u0002\u0002\u0002\u0407\u040a\u0003\u0002\u0002",
-    "\u0002\u0408\u0406\u0003\u0002\u0002\u0002\u0409\u03fb\u0003\u0002\u0002",
-    "\u0002\u040a\u040d\u0003\u0002\u0002\u0002\u040b\u0409\u0003\u0002\u0002",
-    "\u0002\u040b\u040c\u0003\u0002\u0002\u0002\u040c\u040e\u0003\u0002\u0002",
-    "\u0002\u040d\u040b\u0003\u0002\u0002\u0002\u040e\u0410\u0007\u001b\u0002",
-    "\u0002\u040f\u0411\t\u0002\u0002\u0002\u0410\u040f\u0003\u0002\u0002",
-    "\u0002\u0410\u0411\u0003\u0002\u0002\u0002\u0411\u0412\u0003\u0002\u0002",
-    "\u0002\u0412\u0416\u0007\'\u0002\u0002\u0413\u0415\u0005\u0004\u0003",
-    "\u0002\u0414\u0413\u0003\u0002\u0002\u0002\u0415\u0418\u0003\u0002\u0002",
-    "\u0002\u0416\u0414\u0003\u0002\u0002\u0002\u0416\u0417\u0003\u0002\u0002",
-    "\u0002\u0417\u0419\u0003\u0002\u0002\u0002\u0418\u0416\u0003\u0002\u0002",
-    "\u0002\u0419\u041a\u0005\u0080A\u0002\u041ak\u0003\u0002\u0002\u0002",
-    "\u041b\u041f\u0005n8\u0002\u041c\u041e\u0005\u0004\u0003\u0002\u041d",
-    "\u041c\u0003\u0002\u0002\u0002\u041e\u0421\u0003\u0002\u0002\u0002\u041f",
-    "\u041d\u0003\u0002\u0002\u0002\u041f\u0420\u0003\u0002\u0002\u0002\u0420",
-    "\u0423\u0003\u0002\u0002\u0002\u0421\u041f\u0003\u0002\u0002\u0002\u0422",
-    "\u041b\u0003\u0002\u0002\u0002\u0422\u0423\u0003\u0002\u0002\u0002\u0423",
-    "\u0424\u0003\u0002\u0002\u0002\u0424\u0428\u0005V,\u0002\u0425\u0427",
-    "\u0005\u0004\u0003\u0002\u0426\u0425\u0003\u0002\u0002\u0002\u0427\u042a",
-    "\u0003\u0002\u0002\u0002\u0428\u0426\u0003\u0002\u0002\u0002\u0428\u0429",
-    "\u0003\u0002\u0002\u0002\u0429\u042b\u0003\u0002\u0002\u0002\u042a\u0428",
-    "\u0003\u0002\u0002\u0002\u042b\u042f\u0005p9\u0002\u042c\u042e\u0005",
+    "\u0002\u0002\u0140\u0142\u0003\u0002\u0002\u0002\u0141\u013f\u0003\u0002",
+    "\u0002\u0002\u0142\u0143\u0007\u0019\u0002\u0002\u0143\u001b\u0003\u0002",
+    "\u0002\u0002\u0144\u0148\u0007/\u0002\u0002\u0145\u0147\u0005\u0004",
+    "\u0003\u0002\u0146\u0145\u0003\u0002\u0002\u0002\u0147\u014a\u0003\u0002",
+    "\u0002\u0002\u0148\u0146\u0003\u0002\u0002\u0002\u0148\u0149\u0003\u0002",
+    "\u0002\u0002\u0149\u014b\u0003\u0002\u0002\u0002\u014a\u0148\u0003\u0002",
+    "\u0002\u0002\u014b\u014f\u0007&\u0002\u0002\u014c\u014e\u0005\u0004",
+    "\u0003\u0002\u014d\u014c\u0003\u0002\u0002\u0002\u014e\u0151\u0003\u0002",
+    "\u0002\u0002\u014f\u014d\u0003\u0002\u0002\u0002\u014f\u0150\u0003\u0002",
+    "\u0002\u0002\u0150\u0152\u0003\u0002\u0002\u0002\u0151\u014f\u0003\u0002",
+    "\u0002\u0002\u0152\u0153\u0005\u0018\r\u0002\u0153\u001d\u0003\u0002",
+    "\u0002\u0002\u0154\u0158\u0005\u001c\u000f\u0002\u0155\u0157\u0005\u0004",
+    "\u0003\u0002\u0156\u0155\u0003\u0002\u0002\u0002\u0157\u015a\u0003\u0002",
+    "\u0002\u0002\u0158\u0156\u0003\u0002\u0002\u0002\u0158\u0159\u0003\u0002",
+    "\u0002\u0002\u0159\u016b\u0003\u0002\u0002\u0002\u015a\u0158\u0003\u0002",
+    "\u0002\u0002\u015b\u015f\u0007\u0017\u0002\u0002\u015c\u015e\u0005\u0004",
+    "\u0003\u0002\u015d\u015c\u0003\u0002\u0002\u0002\u015e\u0161\u0003\u0002",
+    "\u0002\u0002\u015f\u015d\u0003\u0002\u0002\u0002\u015f\u0160\u0003\u0002",
+    "\u0002\u0002\u0160\u0162\u0003\u0002\u0002\u0002\u0161\u015f\u0003\u0002",
+    "\u0002\u0002\u0162\u0166\u0005\u001c\u000f\u0002\u0163\u0165\u0005\u0004",
+    "\u0003\u0002\u0164\u0163\u0003\u0002\u0002\u0002\u0165\u0168\u0003\u0002",
+    "\u0002\u0002\u0166\u0164\u0003\u0002\u0002\u0002\u0166\u0167\u0003\u0002",
+    "\u0002\u0002\u0167\u016a\u0003\u0002\u0002\u0002\u0168\u0166\u0003\u0002",
+    "\u0002\u0002\u0169\u015b\u0003\u0002\u0002\u0002\u016a\u016d\u0003\u0002",
+    "\u0002\u0002\u016b\u0169\u0003\u0002\u0002\u0002\u016b\u016c\u0003\u0002",
+    "\u0002\u0002\u016c\u016f\u0003\u0002\u0002\u0002\u016d\u016b\u0003\u0002",
+    "\u0002\u0002\u016e\u0170\u0007\u0017\u0002\u0002\u016f\u016e\u0003\u0002",
+    "\u0002\u0002\u016f\u0170\u0003\u0002\u0002\u0002\u0170\u001f\u0003\u0002",
+    "\u0002\u0002\u0171\u0175\u0007/\u0002\u0002\u0172\u0174\u0005\u0004",
+    "\u0003\u0002\u0173\u0172\u0003\u0002\u0002\u0002\u0174\u0177\u0003\u0002",
+    "\u0002\u0002\u0175\u0173\u0003\u0002\u0002\u0002\u0175\u0176\u0003\u0002",
+    "\u0002\u0002\u0176\u0178\u0003\u0002\u0002\u0002\u0177\u0175\u0003\u0002",
+    "\u0002\u0002\u0178\u017c\u0007&\u0002\u0002\u0179\u017b\u0005\u0004",
+    "\u0003\u0002\u017a\u0179\u0003\u0002\u0002\u0002\u017b\u017e\u0003\u0002",
+    "\u0002\u0002\u017c\u017a\u0003\u0002\u0002\u0002\u017c\u017d\u0003\u0002",
+    "\u0002\u0002\u017d\u017f\u0003\u0002\u0002\u0002\u017e\u017c\u0003\u0002",
+    "\u0002\u0002\u017f\u0192\u0005\u0018\r\u0002\u0180\u0181\u0007\u0017",
+    "\u0002\u0002\u0181\u0185\u0007/\u0002\u0002\u0182\u0184\u0005\u0004",
+    "\u0003\u0002\u0183\u0182\u0003\u0002\u0002\u0002\u0184\u0187\u0003\u0002",
+    "\u0002\u0002\u0185\u0183\u0003\u0002\u0002\u0002\u0185\u0186\u0003\u0002",
+    "\u0002\u0002\u0186\u0188\u0003\u0002\u0002\u0002\u0187\u0185\u0003\u0002",
+    "\u0002\u0002\u0188\u018c\u0007&\u0002\u0002\u0189\u018b\u0005\u0004",
+    "\u0003\u0002\u018a\u0189\u0003\u0002\u0002\u0002\u018b\u018e\u0003\u0002",
+    "\u0002\u0002\u018c\u018a\u0003\u0002\u0002\u0002\u018c\u018d\u0003\u0002",
+    "\u0002\u0002\u018d\u018f\u0003\u0002\u0002\u0002\u018e\u018c\u0003\u0002",
+    "\u0002\u0002\u018f\u0191\u0005\u0018\r\u0002\u0190\u0180\u0003\u0002",
+    "\u0002\u0002\u0191\u0194\u0003\u0002\u0002\u0002\u0192\u0190\u0003\u0002",
+    "\u0002\u0002\u0192\u0193\u0003\u0002\u0002\u0002\u0193!\u0003\u0002",
+    "\u0002\u0002\u0194\u0192\u0003\u0002\u0002\u0002\u0195\u0197\u0007\u0006",
+    "\u0002\u0002\u0196\u0198\u0005\u0004\u0003\u0002\u0197\u0196\u0003\u0002",
+    "\u0002\u0002\u0198\u0199\u0003\u0002\u0002\u0002\u0199\u0197\u0003\u0002",
+    "\u0002\u0002\u0199\u019a\u0003\u0002\u0002\u0002\u019a\u01bf\u0003\u0002",
+    "\u0002\u0002\u019b\u019f\u0007/\u0002\u0002\u019c\u019e\u0005\u0004",
+    "\u0003\u0002\u019d\u019c\u0003\u0002\u0002\u0002\u019e\u01a1\u0003\u0002",
+    "\u0002\u0002\u019f\u019d\u0003\u0002\u0002\u0002\u019f\u01a0\u0003\u0002",
+    "\u0002\u0002\u01a0\u01a3\u0003\u0002\u0002\u0002\u01a1\u019f\u0003\u0002",
+    "\u0002\u0002\u01a2\u019b\u0003\u0002\u0002\u0002\u01a2\u01a3\u0003\u0002",
+    "\u0002\u0002\u01a3\u01a4\u0003\u0002\u0002\u0002\u01a4\u01a6\u0007\u001a",
+    "\u0002\u0002\u01a5\u01a7\u0005 \u0011\u0002\u01a6\u01a5\u0003\u0002",
+    "\u0002\u0002\u01a6\u01a7\u0003\u0002\u0002\u0002\u01a7\u01a8\u0003\u0002",
+    "\u0002\u0002\u01a8\u01ac\u0007\u001b\u0002\u0002\u01a9\u01ab\u0005\u0004",
+    "\u0003\u0002\u01aa\u01a9\u0003\u0002\u0002\u0002\u01ab\u01ae\u0003\u0002",
+    "\u0002\u0002\u01ac\u01aa\u0003\u0002\u0002\u0002\u01ac\u01ad\u0003\u0002",
+    "\u0002\u0002\u01ad\u01bd\u0003\u0002\u0002\u0002\u01ae\u01ac\u0003\u0002",
+    "\u0002\u0002\u01af\u01b1\u0005\u0004\u0003\u0002\u01b0\u01af\u0003\u0002",
+    "\u0002\u0002\u01b0\u01b1\u0003\u0002\u0002\u0002\u01b1\u01b2\u0003\u0002",
+    "\u0002\u0002\u01b2\u01b4\u0007&\u0002\u0002\u01b3\u01b5\u0005\u0004",
+    "\u0003\u0002\u01b4\u01b3\u0003\u0002\u0002\u0002\u01b4\u01b5\u0003\u0002",
+    "\u0002\u0002\u01b5\u01b6\u0003\u0002\u0002\u0002\u01b6\u01ba\u0005\u0018",
+    "\r\u0002\u01b7\u01b9\u0005\u0004\u0003\u0002\u01b8\u01b7\u0003\u0002",
+    "\u0002\u0002\u01b9\u01bc\u0003\u0002\u0002\u0002\u01ba\u01b8\u0003\u0002",
+    "\u0002\u0002\u01ba\u01bb\u0003\u0002\u0002\u0002\u01bb\u01be\u0003\u0002",
+    "\u0002\u0002\u01bc\u01ba\u0003\u0002\u0002\u0002\u01bd\u01b0\u0003\u0002",
+    "\u0002\u0002\u01bd\u01be\u0003\u0002\u0002\u0002\u01be\u01c0\u0003\u0002",
+    "\u0002\u0002\u01bf\u01a2\u0003\u0002\u0002\u0002\u01bf\u01c0\u0003\u0002",
+    "\u0002\u0002\u01c0\u01c1\u0003\u0002\u0002\u0002\u01c1\u01c3\u0005$",
+    "\u0013\u0002\u01c2\u01c4\u0007\'\u0002\u0002\u01c3\u01c2\u0003\u0002",
+    "\u0002\u0002\u01c3\u01c4\u0003\u0002\u0002\u0002\u01c4#\u0003\u0002",
+    "\u0002\u0002\u01c5\u01cf\u0005&\u0014\u0002\u01c6\u01ca\u0007!\u0002",
+    "\u0002\u01c7\u01c9\u0005\u0004\u0003\u0002\u01c8\u01c7\u0003\u0002\u0002",
+    "\u0002\u01c9\u01cc\u0003\u0002\u0002\u0002\u01ca\u01c8\u0003\u0002\u0002",
+    "\u0002\u01ca\u01cb\u0003\u0002\u0002\u0002\u01cb\u01cd\u0003\u0002\u0002",
+    "\u0002\u01cc\u01ca\u0003\u0002\u0002\u0002\u01cd\u01cf\u00056\u001c",
+    "\u0002\u01ce\u01c5\u0003\u0002\u0002\u0002\u01ce\u01c6\u0003\u0002\u0002",
+    "\u0002\u01cf%\u0003\u0002\u0002\u0002\u01d0\u01d2\u0007\u0018\u0002",
+    "\u0002\u01d1\u01d3\u0005(\u0015\u0002\u01d2\u01d1\u0003\u0002\u0002",
+    "\u0002\u01d3\u01d4\u0003\u0002\u0002\u0002\u01d4\u01d2\u0003\u0002\u0002",
+    "\u0002\u01d4\u01d5\u0003\u0002\u0002\u0002\u01d5\u01d9\u0003\u0002\u0002",
+    "\u0002\u01d6\u01d8\u0005\u0004\u0003\u0002\u01d7\u01d6\u0003\u0002\u0002",
+    "\u0002\u01d8\u01db\u0003\u0002\u0002\u0002\u01d9\u01d7\u0003\u0002\u0002",
+    "\u0002\u01d9\u01da\u0003\u0002\u0002\u0002\u01da\u01dc\u0003\u0002\u0002",
+    "\u0002\u01db\u01d9\u0003\u0002\u0002\u0002\u01dc\u01dd\u0007\u0019\u0002",
+    "\u0002\u01dd\'\u0003\u0002\u0002\u0002\u01de\u01e0\u0005\u0004\u0003",
+    "\u0002\u01df\u01de\u0003\u0002\u0002\u0002\u01e0\u01e3\u0003\u0002\u0002",
+    "\u0002\u01e1\u01df\u0003\u0002\u0002\u0002\u01e1\u01e2\u0003\u0002\u0002",
+    "\u0002\u01e2\u01ec\u0003\u0002\u0002\u0002\u01e3\u01e1\u0003\u0002\u0002",
+    "\u0002\u01e4\u01ed\u0005*\u0016\u0002\u01e5\u01ed\u0005J&\u0002\u01e6",
+    "\u01ed\u0005L\'\u0002\u01e7\u01ed\u0005N(\u0002\u01e8\u01ed\u00050\u0019",
+    "\u0002\u01e9\u01ea\u00056\u001c\u0002\u01ea\u01eb\u0007\'\u0002\u0002",
+    "\u01eb\u01ed\u0003\u0002\u0002\u0002\u01ec\u01e4\u0003\u0002\u0002\u0002",
+    "\u01ec\u01e5\u0003\u0002\u0002\u0002\u01ec\u01e6\u0003\u0002\u0002\u0002",
+    "\u01ec\u01e7\u0003\u0002\u0002\u0002\u01ec\u01e8\u0003\u0002\u0002\u0002",
+    "\u01ec\u01e9\u0003\u0002\u0002\u0002\u01ed)\u0003\u0002\u0002\u0002",
+    "\u01ee\u01f1\u0005,\u0017\u0002\u01ef\u01f1\u0005.\u0018\u0002\u01f0",
+    "\u01ee\u0003\u0002\u0002\u0002\u01f0\u01ef\u0003\u0002\u0002\u0002\u01f1",
+    "\u01f2\u0003\u0002\u0002\u0002\u01f2\u01f3\u0007\'\u0002\u0002\u01f3",
+    "+\u0003\u0002\u0002\u0002\u01f4\u01f8\u0007\n\u0002\u0002\u01f5\u01f7",
+    "\u0005\u0004\u0003\u0002\u01f6\u01f5\u0003\u0002\u0002\u0002\u01f7\u01fa",
+    "\u0003\u0002\u0002\u0002\u01f8\u01f6\u0003\u0002\u0002\u0002\u01f8\u01f9",
+    "\u0003\u0002\u0002\u0002\u01f9\u01fb\u0003\u0002\u0002\u0002\u01fa\u01f8",
+    "\u0003\u0002\u0002\u0002\u01fb\u01ff\u0007/\u0002\u0002\u01fc\u01fe",
+    "\u0005\u0004\u0003\u0002\u01fd\u01fc\u0003\u0002\u0002\u0002\u01fe\u0201",
+    "\u0003\u0002\u0002\u0002\u01ff\u01fd\u0003\u0002\u0002\u0002\u01ff\u0200",
+    "\u0003\u0002\u0002\u0002\u0200\u0207\u0003\u0002\u0002\u0002\u0201\u01ff",
+    "\u0003\u0002\u0002\u0002\u0202\u0204\u0007&\u0002\u0002\u0203\u0205",
+    "\u0005\u0004\u0003\u0002\u0204\u0203\u0003\u0002\u0002\u0002\u0204\u0205",
+    "\u0003\u0002\u0002\u0002\u0205\u0206\u0003\u0002\u0002\u0002\u0206\u0208",
+    "\u0005\u0018\r\u0002\u0207\u0202\u0003\u0002\u0002\u0002\u0207\u0208",
+    "\u0003\u0002\u0002\u0002\u0208\u020c\u0003\u0002\u0002\u0002\u0209\u020b",
+    "\u0005\u0004\u0003\u0002\u020a\u0209\u0003\u0002\u0002\u0002\u020b\u020e",
+    "\u0003\u0002\u0002\u0002\u020c\u020a\u0003\u0002\u0002\u0002\u020c\u020d",
+    "\u0003\u0002\u0002\u0002\u020d\u020f\u0003\u0002\u0002\u0002\u020e\u020c",
+    "\u0003\u0002\u0002\u0002\u020f\u0213\u0007!\u0002\u0002\u0210\u0212",
+    "\u0005\u0004\u0003\u0002\u0211\u0210\u0003\u0002\u0002\u0002\u0212\u0215",
+    "\u0003\u0002\u0002\u0002\u0213\u0211\u0003\u0002\u0002\u0002\u0213\u0214",
+    "\u0003\u0002\u0002\u0002\u0214\u0216\u0003\u0002\u0002\u0002\u0215\u0213",
+    "\u0003\u0002\u0002\u0002\u0216\u0217\u00056\u001c\u0002\u0217-\u0003",
+    "\u0002\u0002\u0002\u0218\u021c\u0007\u000b\u0002\u0002\u0219\u021b\u0005",
+    "\u0004\u0003\u0002\u021a\u0219\u0003\u0002\u0002\u0002\u021b\u021e\u0003",
+    "\u0002\u0002\u0002\u021c\u021a\u0003\u0002\u0002\u0002\u021c\u021d\u0003",
+    "\u0002\u0002\u0002\u021d\u021f\u0003\u0002\u0002\u0002\u021e\u021c\u0003",
+    "\u0002\u0002\u0002\u021f\u0223\u0007/\u0002\u0002\u0220\u0222\u0005",
+    "\u0004\u0003\u0002\u0221\u0220\u0003\u0002\u0002\u0002\u0222\u0225\u0003",
+    "\u0002\u0002\u0002\u0223\u0221\u0003\u0002\u0002\u0002\u0223\u0224\u0003",
+    "\u0002\u0002\u0002\u0224\u022b\u0003\u0002\u0002\u0002\u0225\u0223\u0003",
+    "\u0002\u0002\u0002\u0226\u0228\u0007&\u0002\u0002\u0227\u0229\u0005",
+    "\u0004\u0003\u0002\u0228\u0227\u0003\u0002\u0002\u0002\u0228\u0229\u0003",
+    "\u0002\u0002\u0002\u0229\u022a\u0003\u0002\u0002\u0002\u022a\u022c\u0005",
+    "\u0018\r\u0002\u022b\u0226\u0003\u0002\u0002\u0002\u022b\u022c\u0003",
+    "\u0002\u0002\u0002\u022c\u0230\u0003\u0002\u0002\u0002\u022d\u022f\u0005",
+    "\u0004\u0003\u0002\u022e\u022d\u0003\u0002\u0002\u0002\u022f\u0232\u0003",
+    "\u0002\u0002\u0002\u0230\u022e\u0003\u0002\u0002\u0002\u0230\u0231\u0003",
+    "\u0002\u0002\u0002\u0231\u0233\u0003\u0002\u0002\u0002\u0232\u0230\u0003",
+    "\u0002\u0002\u0002\u0233\u0237\u0007!\u0002\u0002\u0234\u0236\u0005",
+    "\u0004\u0003\u0002\u0235\u0234\u0003\u0002\u0002\u0002\u0236\u0239\u0003",
+    "\u0002\u0002\u0002\u0237\u0235\u0003\u0002\u0002\u0002\u0237\u0238\u0003",
+    "\u0002\u0002\u0002\u0238\u023a\u0003\u0002\u0002\u0002\u0239\u0237\u0003",
+    "\u0002\u0002\u0002\u023a\u023b\u00056\u001c\u0002\u023b/\u0003\u0002",
+    "\u0002\u0002\u023c\u0240\u0005~@\u0002\u023d\u023f\u0005\u0004\u0003",
+    "\u0002\u023e\u023d\u0003\u0002\u0002\u0002\u023f\u0242\u0003\u0002\u0002",
+    "\u0002\u0240\u023e\u0003\u0002\u0002\u0002\u0240\u0241\u0003\u0002\u0002",
+    "\u0002\u0241\u0243\u0003\u0002\u0002\u0002\u0242\u0240\u0003\u0002\u0002",
+    "\u0002\u0243\u0247\u0007!\u0002\u0002\u0244\u0246\u0005\u0004\u0003",
+    "\u0002\u0245\u0244\u0003\u0002\u0002\u0002\u0246\u0249\u0003\u0002\u0002",
+    "\u0002\u0247\u0245\u0003\u0002\u0002\u0002\u0247\u0248\u0003\u0002\u0002",
+    "\u0002\u0248\u024a\u0003\u0002\u0002\u0002\u0249\u0247\u0003\u0002\u0002",
+    "\u0002\u024a\u024b\u00056\u001c\u0002\u024b\u024c\u0007\'\u0002\u0002",
+    "\u024c1\u0003\u0002\u0002\u0002\u024d\u0254\u0007 \u0002\u0002\u024e",
+    "\u0254\u0007/\u0002\u0002\u024f\u0254\u0005R*\u0002\u0250\u0254\u0005",
+    "\"\u0012\u0002\u0251\u0254\u0005H%\u0002\u0252\u0254\u00058\u001d\u0002",
+    "\u0253\u024d\u0003\u0002\u0002\u0002\u0253\u024e\u0003\u0002\u0002\u0002",
+    "\u0253\u024f\u0003\u0002\u0002\u0002\u0253\u0250\u0003\u0002\u0002\u0002",
+    "\u0253\u0251\u0003\u0002\u0002\u0002\u0253\u0252\u0003\u0002\u0002\u0002",
+    "\u02543\u0003\u0002\u0002\u0002\u0255\u0259\u00052\u001a\u0002\u0256",
+    "\u0258\u0005\u0004\u0003\u0002\u0257\u0256\u0003\u0002\u0002\u0002\u0258",
+    "\u025b\u0003\u0002\u0002\u0002\u0259\u0257\u0003\u0002\u0002\u0002\u0259",
+    "\u025a\u0003\u0002\u0002\u0002\u025a\u025d\u0003\u0002\u0002\u0002\u025b",
+    "\u0259\u0003\u0002\u0002\u0002\u025c\u0255\u0003\u0002\u0002\u0002\u025d",
+    "\u025e\u0003\u0002\u0002\u0002\u025e\u025c\u0003\u0002\u0002\u0002\u025e",
+    "\u025f\u0003\u0002\u0002\u0002\u025f\u0262\u0003\u0002\u0002\u0002\u0260",
+    "\u0262\u0005T+\u0002\u0261\u025c\u0003\u0002\u0002\u0002\u0261\u0260",
+    "\u0003\u0002\u0002\u0002\u02625\u0003\u0002\u0002\u0002\u0263\u026d",
+    "\u00054\u001b\u0002\u0264\u0266\u0005\u0004\u0003\u0002\u0265\u0264",
+    "\u0003\u0002\u0002\u0002\u0266\u0269\u0003\u0002\u0002\u0002\u0267\u0265",
+    "\u0003\u0002\u0002\u0002\u0267\u0268\u0003\u0002\u0002\u0002\u0268\u026a",
+    "\u0003\u0002\u0002\u0002\u0269\u0267\u0003\u0002\u0002\u0002\u026a\u026c",
+    "\u00054\u001b\u0002\u026b\u0267\u0003\u0002\u0002\u0002\u026c\u026f",
+    "\u0003\u0002\u0002\u0002\u026d\u026b\u0003\u0002\u0002\u0002\u026d\u026e",
+    "\u0003\u0002\u0002\u0002\u026e7\u0003\u0002\u0002\u0002\u026f\u026d",
+    "\u0003\u0002\u0002\u0002\u0270\u0273\u0005B\"\u0002\u0271\u0273\u0005",
+    "F$\u0002\u0272\u0270\u0003\u0002\u0002\u0002\u0272\u0271\u0003\u0002",
+    "\u0002\u0002\u02739\u0003\u0002\u0002\u0002\u0274\u0278\u00056\u001c",
+    "\u0002\u0275\u0277\u0005\u0004\u0003\u0002\u0276\u0275\u0003\u0002\u0002",
+    "\u0002\u0277\u027a\u0003\u0002\u0002\u0002\u0278\u0276\u0003\u0002\u0002",
+    "\u0002\u0278\u0279\u0003\u0002\u0002\u0002\u0279\u028b\u0003\u0002\u0002",
+    "\u0002\u027a\u0278\u0003\u0002\u0002\u0002\u027b\u027f\u0007\u0017\u0002",
+    "\u0002\u027c\u027e\u0005\u0004\u0003\u0002\u027d\u027c\u0003\u0002\u0002",
+    "\u0002\u027e\u0281\u0003\u0002\u0002\u0002\u027f\u027d\u0003\u0002\u0002",
+    "\u0002\u027f\u0280\u0003\u0002\u0002\u0002\u0280\u0282\u0003\u0002\u0002",
+    "\u0002\u0281\u027f\u0003\u0002\u0002\u0002\u0282\u0286\u00056\u001c",
+    "\u0002\u0283\u0285\u0005\u0004\u0003\u0002\u0284\u0283\u0003\u0002\u0002",
+    "\u0002\u0285\u0288\u0003\u0002\u0002\u0002\u0286\u0284\u0003\u0002\u0002",
+    "\u0002\u0286\u0287\u0003\u0002\u0002\u0002\u0287\u028a\u0003\u0002\u0002",
+    "\u0002\u0288\u0286\u0003\u0002\u0002\u0002\u0289\u027b\u0003\u0002\u0002",
+    "\u0002\u028a\u028d\u0003\u0002\u0002\u0002\u028b\u0289\u0003\u0002\u0002",
+    "\u0002\u028b\u028c\u0003\u0002\u0002\u0002\u028c\u028f\u0003\u0002\u0002",
+    "\u0002\u028d\u028b\u0003\u0002\u0002\u0002\u028e\u0290\u0007\u0017\u0002",
+    "\u0002\u028f\u028e\u0003\u0002\u0002\u0002\u028f\u0290\u0003\u0002\u0002",
+    "\u0002\u0290;\u0003\u0002\u0002\u0002\u0291\u0295\u0007/\u0002\u0002",
+    "\u0292\u0294\u0005\u0004\u0003\u0002\u0293\u0292\u0003\u0002\u0002\u0002",
+    "\u0294\u0297\u0003\u0002\u0002\u0002\u0295\u0293\u0003\u0002\u0002\u0002",
+    "\u0295\u0296\u0003\u0002\u0002\u0002\u0296\u0298\u0003\u0002\u0002\u0002",
+    "\u0297\u0295\u0003\u0002\u0002\u0002\u0298\u029c\u0007&\u0002\u0002",
+    "\u0299\u029b\u0005\u0004\u0003\u0002\u029a\u0299\u0003\u0002\u0002\u0002",
+    "\u029b\u029e\u0003\u0002\u0002\u0002\u029c\u029a\u0003\u0002\u0002\u0002",
+    "\u029c\u029d\u0003\u0002\u0002\u0002\u029d\u029f\u0003\u0002\u0002\u0002",
+    "\u029e\u029c\u0003\u0002\u0002\u0002\u029f\u02a3\u00056\u001c\u0002",
+    "\u02a0\u02a2\u0005\u0004\u0003\u0002\u02a1\u02a0\u0003\u0002\u0002\u0002",
+    "\u02a2\u02a5\u0003\u0002\u0002\u0002\u02a3\u02a1\u0003\u0002\u0002\u0002",
+    "\u02a3\u02a4\u0003\u0002\u0002\u0002\u02a4\u02c4\u0003\u0002\u0002\u0002",
+    "\u02a5\u02a3\u0003\u0002\u0002\u0002\u02a6\u02aa\u0007\u0017\u0002\u0002",
+    "\u02a7\u02a9\u0005\u0004\u0003\u0002\u02a8\u02a7\u0003\u0002\u0002\u0002",
+    "\u02a9\u02ac\u0003\u0002\u0002\u0002\u02aa\u02a8\u0003\u0002\u0002\u0002",
+    "\u02aa\u02ab\u0003\u0002\u0002\u0002\u02ab\u02ad\u0003\u0002\u0002\u0002",
+    "\u02ac\u02aa\u0003\u0002\u0002\u0002\u02ad\u02b1\u0007/\u0002\u0002",
+    "\u02ae\u02b0\u0005\u0004\u0003\u0002\u02af\u02ae\u0003\u0002\u0002\u0002",
+    "\u02b0\u02b3\u0003\u0002\u0002\u0002\u02b1\u02af\u0003\u0002\u0002\u0002",
+    "\u02b1\u02b2\u0003\u0002\u0002\u0002\u02b2\u02b4\u0003\u0002\u0002\u0002",
+    "\u02b3\u02b1\u0003\u0002\u0002\u0002\u02b4\u02b8\u0007&\u0002\u0002",
+    "\u02b5\u02b7\u0005\u0004\u0003\u0002\u02b6\u02b5\u0003\u0002\u0002\u0002",
+    "\u02b7\u02ba\u0003\u0002\u0002\u0002\u02b8\u02b6\u0003\u0002\u0002\u0002",
+    "\u02b8\u02b9\u0003\u0002\u0002\u0002\u02b9\u02bb\u0003\u0002\u0002\u0002",
+    "\u02ba\u02b8\u0003\u0002\u0002\u0002\u02bb\u02bf\u00056\u001c\u0002",
+    "\u02bc\u02be\u0005\u0004\u0003\u0002\u02bd\u02bc\u0003\u0002\u0002\u0002",
+    "\u02be\u02c1\u0003\u0002\u0002\u0002\u02bf\u02bd\u0003\u0002\u0002\u0002",
+    "\u02bf\u02c0\u0003\u0002\u0002\u0002\u02c0\u02c3\u0003\u0002\u0002\u0002",
+    "\u02c1\u02bf\u0003\u0002\u0002\u0002\u02c2\u02a6\u0003\u0002\u0002\u0002",
+    "\u02c3\u02c6\u0003\u0002\u0002\u0002\u02c4\u02c2\u0003\u0002\u0002\u0002",
+    "\u02c4\u02c5\u0003\u0002\u0002\u0002\u02c5\u02c8\u0003\u0002\u0002\u0002",
+    "\u02c6\u02c4\u0003\u0002\u0002\u0002\u02c7\u02c9\u0007\u0017\u0002\u0002",
+    "\u02c8\u02c7\u0003\u0002\u0002\u0002\u02c8\u02c9\u0003\u0002\u0002\u0002",
+    "\u02c9=\u0003\u0002\u0002\u0002\u02ca\u02ce\u0007\u0015\u0002\u0002",
+    "\u02cb\u02cd\u0007)\u0002\u0002\u02cc\u02cb\u0003\u0002\u0002\u0002",
+    "\u02cd\u02d0\u0003\u0002\u0002\u0002\u02ce\u02cc\u0003\u0002\u0002\u0002",
+    "\u02ce\u02cf\u0003\u0002\u0002\u0002\u02cf\u02d1\u0003\u0002\u0002\u0002",
+    "\u02d0\u02ce\u0003\u0002\u0002\u0002\u02d1\u02d5\u0005\u0018\r\u0002",
+    "\u02d2\u02d4\u0007)\u0002\u0002\u02d3\u02d2\u0003\u0002\u0002\u0002",
+    "\u02d4\u02d7\u0003\u0002\u0002\u0002\u02d5\u02d3\u0003\u0002\u0002\u0002",
+    "\u02d5\u02d6\u0003\u0002\u0002\u0002\u02d6?\u0003\u0002\u0002\u0002",
+    "\u02d7\u02d5\u0003\u0002\u0002\u0002\u02d8\u02dc\u0007\u001e\u0002\u0002",
+    "\u02d9\u02db\u0005\u0004\u0003\u0002\u02da\u02d9\u0003\u0002\u0002\u0002",
+    "\u02db\u02de\u0003\u0002\u0002\u0002\u02dc\u02da\u0003\u0002\u0002\u0002",
+    "\u02dc\u02dd\u0003\u0002\u0002\u0002\u02dd\u02e0\u0003\u0002\u0002\u0002",
+    "\u02de\u02dc\u0003\u0002\u0002\u0002\u02df\u02e1\u0005:\u001e\u0002",
+    "\u02e0\u02df\u0003\u0002\u0002\u0002\u02e0\u02e1\u0003\u0002\u0002\u0002",
+    "\u02e1\u02e5\u0003\u0002\u0002\u0002\u02e2\u02e4\u0005\u0004\u0003\u0002",
+    "\u02e3\u02e2\u0003\u0002\u0002\u0002\u02e4\u02e7\u0003\u0002\u0002\u0002",
+    "\u02e5\u02e3\u0003\u0002\u0002\u0002\u02e5\u02e6\u0003\u0002\u0002\u0002",
+    "\u02e6\u02e8\u0003\u0002\u0002\u0002\u02e7\u02e5\u0003\u0002\u0002\u0002",
+    "\u02e8\u02e9\u0007\u001f\u0002\u0002\u02e9A\u0003\u0002\u0002\u0002",
+    "\u02ea\u02ef\u0005@!\u0002\u02eb\u02ec\u0005> \u0002\u02ec\u02ed\u0005",
+    "@!\u0002\u02ed\u02ef\u0003\u0002\u0002\u0002\u02ee\u02ea\u0003\u0002",
+    "\u0002\u0002\u02ee\u02eb\u0003\u0002\u0002\u0002\u02efC\u0003\u0002",
+    "\u0002\u0002\u02f0\u02f4\u0007\u0018\u0002\u0002\u02f1\u02f3\u0005\u0004",
+    "\u0003\u0002\u02f2\u02f1\u0003\u0002\u0002\u0002\u02f3\u02f6\u0003\u0002",
+    "\u0002\u0002\u02f4\u02f2\u0003\u0002\u0002\u0002\u02f4\u02f5\u0003\u0002",
+    "\u0002\u0002\u02f5\u02f7\u0003\u0002\u0002\u0002\u02f6\u02f4\u0003\u0002",
+    "\u0002\u0002\u02f7\u02fb\u0005<\u001f\u0002\u02f8\u02fa\u0005\u0004",
+    "\u0003\u0002\u02f9\u02f8\u0003\u0002\u0002\u0002\u02fa\u02fd\u0003\u0002",
+    "\u0002\u0002\u02fb\u02f9\u0003\u0002\u0002\u0002\u02fb\u02fc\u0003\u0002",
+    "\u0002\u0002\u02fc\u02fe\u0003\u0002\u0002\u0002\u02fd\u02fb\u0003\u0002",
+    "\u0002\u0002\u02fe\u02ff\u0007\u0019\u0002\u0002\u02ffE\u0003\u0002",
+    "\u0002\u0002\u0300\u0301\u0005> \u0002\u0301\u0302\u0005D#\u0002\u0302",
+    "G\u0003\u0002\u0002\u0002\u0303\u0307\u0007\u001a\u0002\u0002\u0304",
+    "\u0306\u0005\u0004\u0003\u0002\u0305\u0304\u0003\u0002\u0002\u0002\u0306",
+    "\u0309\u0003\u0002\u0002\u0002\u0307\u0305\u0003\u0002\u0002\u0002\u0307",
+    "\u0308\u0003\u0002\u0002\u0002\u0308\u030b\u0003\u0002\u0002\u0002\u0309",
+    "\u0307\u0003\u0002\u0002\u0002\u030a\u030c\u0005:\u001e\u0002\u030b",
+    "\u030a\u0003\u0002\u0002\u0002\u030b\u030c\u0003\u0002\u0002\u0002\u030c",
+    "\u0310\u0003\u0002\u0002\u0002\u030d\u030f\u0005\u0004\u0003\u0002\u030e",
+    "\u030d\u0003\u0002\u0002\u0002\u030f\u0312\u0003\u0002\u0002\u0002\u0310",
+    "\u030e\u0003\u0002\u0002\u0002\u0310\u0311\u0003\u0002\u0002\u0002\u0311",
+    "\u0313\u0003\u0002\u0002\u0002\u0312\u0310\u0003\u0002\u0002\u0002\u0313",
+    "\u0314\u0007\u001b\u0002\u0002\u0314I\u0003\u0002\u0002\u0002\u0315",
+    "\u0323\u0007\f\u0002\u0002\u0316\u0318\u0005\u0004\u0003\u0002\u0317",
+    "\u0316\u0003\u0002\u0002\u0002\u0318\u031b\u0003\u0002\u0002\u0002\u0319",
+    "\u0317\u0003\u0002\u0002\u0002\u0319\u031a\u0003\u0002\u0002\u0002\u031a",
+    "\u031c\u0003\u0002\u0002\u0002\u031b\u0319\u0003\u0002\u0002\u0002\u031c",
+    "\u0320\u00056\u001c\u0002\u031d\u031f\u0005\u0004\u0003\u0002\u031e",
+    "\u031d\u0003\u0002\u0002\u0002\u031f\u0322\u0003\u0002\u0002\u0002\u0320",
+    "\u031e\u0003\u0002\u0002\u0002\u0320\u0321\u0003\u0002\u0002\u0002\u0321",
+    "\u0324\u0003\u0002\u0002\u0002\u0322\u0320\u0003\u0002\u0002\u0002\u0323",
+    "\u0319\u0003\u0002\u0002\u0002\u0323\u0324\u0003\u0002\u0002\u0002\u0324",
+    "\u0325\u0003\u0002\u0002\u0002\u0325\u0326\u0007\'\u0002\u0002\u0326",
+    "K\u0003\u0002\u0002\u0002\u0327\u032b\u0007\r\u0002\u0002\u0328\u032a",
+    "\u0005\u0004\u0003\u0002\u0329\u0328\u0003\u0002\u0002\u0002\u032a\u032d",
+    "\u0003\u0002\u0002\u0002\u032b\u0329\u0003\u0002\u0002\u0002\u032b\u032c",
+    "\u0003\u0002\u0002\u0002\u032c\u032e\u0003\u0002\u0002\u0002\u032d\u032b",
+    "\u0003\u0002\u0002\u0002\u032e\u033c\u0005^0\u0002\u032f\u0331\u0005",
+    "\u0004\u0003\u0002\u0330\u032f\u0003\u0002\u0002\u0002\u0331\u0334\u0003",
+    "\u0002\u0002\u0002\u0332\u0330\u0003\u0002\u0002\u0002\u0332\u0333\u0003",
+    "\u0002\u0002\u0002\u0333\u0335\u0003\u0002\u0002\u0002\u0334\u0332\u0003",
+    "\u0002\u0002\u0002\u0335\u0339\u00056\u001c\u0002\u0336\u0338\u0005",
+    "\u0004\u0003\u0002\u0337\u0336\u0003\u0002\u0002\u0002\u0338\u033b\u0003",
+    "\u0002\u0002\u0002\u0339\u0337\u0003\u0002\u0002\u0002\u0339\u033a\u0003",
+    "\u0002\u0002\u0002\u033a\u033d\u0003\u0002\u0002\u0002\u033b\u0339\u0003",
+    "\u0002\u0002\u0002\u033c\u0332\u0003\u0002\u0002\u0002\u033c\u033d\u0003",
+    "\u0002\u0002\u0002\u033d\u033e\u0003\u0002\u0002\u0002\u033e\u033f\u0007",
+    "\'\u0002\u0002\u033fM\u0003\u0002\u0002\u0002\u0340\u0344\u0007\u0013",
+    "\u0002\u0002\u0341\u0343\u0005\u0004\u0003\u0002\u0342\u0341\u0003\u0002",
+    "\u0002\u0002\u0343\u0346\u0003\u0002\u0002\u0002\u0344\u0342\u0003\u0002",
+    "\u0002\u0002\u0344\u0345\u0003\u0002\u0002\u0002\u0345\u0347\u0003\u0002",
+    "\u0002\u0002\u0346\u0344\u0003\u0002\u0002\u0002\u0347\u034b\u00056",
+    "\u001c\u0002\u0348\u034a\u0005\u0004\u0003\u0002\u0349\u0348\u0003\u0002",
+    "\u0002\u0002\u034a\u034d\u0003\u0002\u0002\u0002\u034b\u0349\u0003\u0002",
+    "\u0002\u0002\u034b\u034c\u0003\u0002\u0002\u0002\u034c\u034e\u0003\u0002",
+    "\u0002\u0002\u034d\u034b\u0003\u0002\u0002\u0002\u034e\u0360\u0005P",
+    ")\u0002\u034f\u0351\u0005\u0004\u0003\u0002\u0350\u034f\u0003\u0002",
+    "\u0002\u0002\u0351\u0354\u0003\u0002\u0002\u0002\u0352\u0350\u0003\u0002",
+    "\u0002\u0002\u0352\u0353\u0003\u0002\u0002\u0002\u0353\u0355\u0003\u0002",
+    "\u0002\u0002\u0354\u0352\u0003\u0002\u0002\u0002\u0355\u0359\u0007\u0014",
+    "\u0002\u0002\u0356\u0358\u0005\u0004\u0003\u0002\u0357\u0356\u0003\u0002",
+    "\u0002\u0002\u0358\u035b\u0003\u0002\u0002\u0002\u0359\u0357\u0003\u0002",
+    "\u0002\u0002\u0359\u035a\u0003\u0002\u0002\u0002\u035a\u035e\u0003\u0002",
+    "\u0002\u0002\u035b\u0359\u0003\u0002\u0002\u0002\u035c\u035f\u0005N",
+    "(\u0002\u035d\u035f\u0005P)\u0002\u035e\u035c\u0003\u0002\u0002\u0002",
+    "\u035e\u035d\u0003\u0002\u0002\u0002\u035f\u0361\u0003\u0002\u0002\u0002",
+    "\u0360\u0352\u0003\u0002\u0002\u0002\u0360\u0361\u0003\u0002\u0002\u0002",
+    "\u0361O\u0003\u0002\u0002\u0002\u0362\u0366\u0005\"\u0012\u0002\u0363",
+    "\u0366\u0005&\u0014\u0002\u0364\u0366\u0005^0\u0002\u0365\u0362\u0003",
+    "\u0002\u0002\u0002\u0365\u0363\u0003\u0002\u0002\u0002\u0365\u0364\u0003",
+    "\u0002\u0002\u0002\u0366Q\u0003\u0002\u0002\u0002\u0367\u0368\t\u0004",
+    "\u0002\u0002\u0368S\u0003\u0002\u0002\u0002\u0369\u0386\u0007.\u0002",
+    "\u0002\u036a\u0386\u0007&\u0002\u0002\u036b\u0386\u0007\u001c\u0002",
+    "\u0002\u036c\u036e\u0007\u001d\u0002\u0002\u036d\u036c\u0003\u0002\u0002",
+    "\u0002\u036e\u036f\u0003\u0002\u0002\u0002\u036f\u036d\u0003\u0002\u0002",
+    "\u0002\u036f\u0370\u0003\u0002\u0002\u0002\u0370\u0381\u0003\u0002\u0002",
+    "\u0002\u0371\u0373\u0007!\u0002\u0002\u0372\u0371\u0003\u0002\u0002",
+    "\u0002\u0373\u0374\u0003\u0002\u0002\u0002\u0374\u0372\u0003\u0002\u0002",
+    "\u0002\u0374\u0375\u0003\u0002\u0002\u0002\u0375\u0379\u0003\u0002\u0002",
+    "\u0002\u0376\u0378\u0007.\u0002\u0002\u0377\u0376\u0003\u0002\u0002",
+    "\u0002\u0378\u037b\u0003\u0002\u0002\u0002\u0379\u0377\u0003\u0002\u0002",
+    "\u0002\u0379\u037a\u0003\u0002\u0002\u0002\u037a\u0382\u0003\u0002\u0002",
+    "\u0002\u037b\u0379\u0003\u0002\u0002\u0002\u037c\u037e\u0007.\u0002",
+    "\u0002\u037d\u037c\u0003\u0002\u0002\u0002\u037e\u037f\u0003\u0002\u0002",
+    "\u0002\u037f\u037d\u0003\u0002\u0002\u0002\u037f\u0380\u0003\u0002\u0002",
+    "\u0002\u0380\u0382\u0003\u0002\u0002\u0002\u0381\u0372\u0003\u0002\u0002",
+    "\u0002\u0381\u037d\u0003\u0002\u0002\u0002\u0381\u0382\u0003\u0002\u0002",
+    "\u0002\u0382\u0386\u0003\u0002\u0002\u0002\u0383\u0386\u0007\"\u0002",
+    "\u0002\u0384\u0386\u0007%\u0002\u0002\u0385\u0369\u0003\u0002\u0002",
+    "\u0002\u0385\u036a\u0003\u0002\u0002\u0002\u0385\u036b\u0003\u0002\u0002",
+    "\u0002\u0385\u036d\u0003\u0002\u0002\u0002\u0385\u0383\u0003\u0002\u0002",
+    "\u0002\u0385\u0384\u0003\u0002\u0002\u0002\u0386U\u0003\u0002\u0002",
+    "\u0002\u0387\u0388\t\u0005\u0002\u0002\u0388\u0391\u0007)\u0002\u0002",
+    "\u0389\u038a\u0005X-\u0002\u038a\u038b\u0007)\u0002\u0002\u038b\u038c",
+    "\u0005Z.\u0002\u038c\u0392\u0003\u0002\u0002\u0002\u038d\u038e\u0005",
+    "Z.\u0002\u038e\u038f\u0007)\u0002\u0002\u038f\u0390\u0005X-\u0002\u0390",
+    "\u0392\u0003\u0002\u0002\u0002\u0391\u0389\u0003\u0002\u0002\u0002\u0391",
+    "\u038d\u0003\u0002\u0002\u0002\u0392W\u0003\u0002\u0002\u0002\u0393",
+    "\u0394\u0005^0\u0002\u0394\u0395\u0007)\u0002\u0002\u0395\u0396\u0007",
+    "\u000e\u0002\u0002\u0396\u0397\u0007)\u0002\u0002\u0397\u0398\u0005",
+    "T+\u0002\u0398Y\u0003\u0002\u0002\u0002\u0399\u039a\u0007\u0012\u0002",
+    "\u0002\u039a\u039b\u0007)\u0002\u0002\u039b\u039c\u0007-\u0002\u0002",
+    "\u039c[\u0003\u0002\u0002\u0002\u039d\u03a1\u0007\u0007\u0002\u0002",
+    "\u039e\u03a0\u0005\u0004\u0003\u0002\u039f\u039e\u0003\u0002\u0002\u0002",
+    "\u03a0\u03a3\u0003\u0002\u0002\u0002\u03a1\u039f\u0003\u0002\u0002\u0002",
+    "\u03a1\u03a2\u0003\u0002\u0002\u0002\u03a2\u03a4\u0003\u0002\u0002\u0002",
+    "\u03a3\u03a1\u0003\u0002\u0002\u0002\u03a4\u03a8\u0007/\u0002\u0002",
+    "\u03a5\u03a7\u0005\u0004\u0003\u0002\u03a6\u03a5\u0003\u0002\u0002\u0002",
+    "\u03a7\u03aa\u0003\u0002\u0002\u0002\u03a8\u03a6\u0003\u0002\u0002\u0002",
+    "\u03a8\u03a9\u0003\u0002\u0002\u0002\u03a9\u03ab\u0003\u0002\u0002\u0002",
+    "\u03aa\u03a8\u0003\u0002\u0002\u0002\u03ab\u03af\u0007&\u0002\u0002",
+    "\u03ac\u03ae\u0005\u0004\u0003\u0002\u03ad\u03ac\u0003\u0002\u0002\u0002",
+    "\u03ae\u03b1\u0003\u0002\u0002\u0002\u03af\u03ad\u0003\u0002\u0002\u0002",
+    "\u03af\u03b0\u0003\u0002\u0002\u0002\u03b0\u03b2\u0003\u0002\u0002\u0002",
+    "\u03b1\u03af\u0003\u0002\u0002\u0002\u03b2\u03b3\u0005\u0018\r\u0002",
+    "\u03b3]\u0003\u0002\u0002\u0002\u03b4\u03b5\u0005\u0014\u000b\u0002",
+    "\u03b5_\u0003\u0002\u0002\u0002\u03b6\u03b8\u0007\b\u0002\u0002\u03b7",
+    "\u03b9\u0005\u0004\u0003\u0002\u03b8\u03b7\u0003\u0002\u0002\u0002\u03b9",
+    "\u03ba\u0003\u0002\u0002\u0002\u03ba\u03b8\u0003\u0002\u0002\u0002\u03ba",
+    "\u03bb\u0003\u0002\u0002\u0002\u03bb\u03bc\u0003\u0002\u0002\u0002\u03bc",
+    "\u03be\u0005^0\u0002\u03bd\u03bf\u0005\u0004\u0003\u0002\u03be\u03bd",
+    "\u0003\u0002\u0002\u0002\u03bf\u03c0\u0003\u0002\u0002\u0002\u03c0\u03be",
+    "\u0003\u0002\u0002\u0002\u03c0\u03c1\u0003\u0002\u0002\u0002\u03c1\u03c5",
+    "\u0003\u0002\u0002\u0002\u03c2\u03c6\u0005\"\u0012\u0002\u03c3\u03c6",
+    "\u0005\u0014\u000b\u0002\u03c4\u03c6\u0005&\u0014\u0002\u03c5\u03c2",
+    "\u0003\u0002\u0002\u0002\u03c5\u03c3\u0003\u0002\u0002\u0002\u03c5\u03c4",
+    "\u0003\u0002\u0002\u0002\u03c6a\u0003\u0002\u0002\u0002\u03c7\u03cb",
+    "\u0007\u0016\u0002\u0002\u03c8\u03ca\u0007)\u0002\u0002\u03c9\u03c8",
+    "\u0003\u0002\u0002\u0002\u03ca\u03cd\u0003\u0002\u0002\u0002\u03cb\u03c9",
+    "\u0003\u0002\u0002\u0002\u03cb\u03cc\u0003\u0002\u0002\u0002\u03cc\u03ce",
+    "\u0003\u0002\u0002\u0002\u03cd\u03cb\u0003\u0002\u0002\u0002\u03ce\u03d2",
+    "\u0007/\u0002\u0002\u03cf\u03d1\u0007)\u0002\u0002\u03d0\u03cf\u0003",
+    "\u0002\u0002\u0002\u03d1\u03d4\u0003\u0002\u0002\u0002\u03d2\u03d0\u0003",
+    "\u0002\u0002\u0002\u03d2\u03d3\u0003\u0002\u0002\u0002\u03d3\u03de\u0003",
+    "\u0002\u0002\u0002\u03d4\u03d2\u0003\u0002\u0002\u0002\u03d5\u03df\u0005",
+    "d3\u0002\u03d6\u03da\u0007!\u0002\u0002\u03d7\u03d9\u0005\u0004\u0003",
+    "\u0002\u03d8\u03d7\u0003\u0002\u0002\u0002\u03d9\u03dc\u0003\u0002\u0002",
+    "\u0002\u03da\u03d8\u0003\u0002\u0002\u0002\u03da\u03db\u0003\u0002\u0002",
+    "\u0002\u03db\u03dd\u0003\u0002\u0002\u0002\u03dc\u03da\u0003\u0002\u0002",
+    "\u0002\u03dd\u03df\u0007/\u0002\u0002\u03de\u03d5\u0003\u0002\u0002",
+    "\u0002\u03de\u03d6\u0003\u0002\u0002\u0002\u03dfc\u0003\u0002\u0002",
+    "\u0002\u03e0\u03e2\u0007\u0018\u0002\u0002\u03e1\u03e3\u0005f4\u0002",
+    "\u03e2\u03e1\u0003\u0002\u0002\u0002\u03e2\u03e3\u0003\u0002\u0002\u0002",
+    "\u03e3\u03e7\u0003\u0002\u0002\u0002\u03e4\u03e6\u0005\u0004\u0003\u0002",
+    "\u03e5\u03e4\u0003\u0002\u0002\u0002\u03e6\u03e9\u0003\u0002\u0002\u0002",
+    "\u03e7\u03e5\u0003\u0002\u0002\u0002\u03e7\u03e8\u0003\u0002\u0002\u0002",
+    "\u03e8\u03ea\u0003\u0002\u0002\u0002\u03e9\u03e7\u0003\u0002\u0002\u0002",
+    "\u03ea\u03eb\u0007\u0019\u0002\u0002\u03ebe\u0003\u0002\u0002\u0002",
+    "\u03ec\u03ee\u0005\u0004\u0003\u0002\u03ed\u03ec\u0003\u0002\u0002\u0002",
+    "\u03ee\u03f1\u0003\u0002\u0002\u0002\u03ef\u03ed\u0003\u0002\u0002\u0002",
+    "\u03ef\u03f0\u0003\u0002\u0002\u0002\u03f0\u03f2\u0003\u0002\u0002\u0002",
+    "\u03f1\u03ef\u0003\u0002\u0002\u0002\u03f2\u03f6\u0005h5\u0002\u03f3",
+    "\u03f5\u0005\u0004\u0003\u0002\u03f4\u03f3\u0003\u0002\u0002\u0002\u03f5",
+    "\u03f8\u0003\u0002\u0002\u0002\u03f6\u03f4\u0003\u0002\u0002\u0002\u03f6",
+    "\u03f7\u0003\u0002\u0002\u0002\u03f7\u0409\u0003\u0002\u0002\u0002\u03f8",
+    "\u03f6\u0003\u0002\u0002\u0002\u03f9\u03fd\u0007\u0017\u0002\u0002\u03fa",
+    "\u03fc\u0005\u0004\u0003\u0002\u03fb\u03fa\u0003\u0002\u0002\u0002\u03fc",
+    "\u03ff\u0003\u0002\u0002\u0002\u03fd\u03fb\u0003\u0002\u0002\u0002\u03fd",
+    "\u03fe\u0003\u0002\u0002\u0002\u03fe\u0400\u0003\u0002\u0002\u0002\u03ff",
+    "\u03fd\u0003\u0002\u0002\u0002\u0400\u0404\u0005h5\u0002\u0401\u0403",
+    "\u0005\u0004\u0003\u0002\u0402\u0401\u0003\u0002\u0002\u0002\u0403\u0406",
+    "\u0003\u0002\u0002\u0002\u0404\u0402\u0003\u0002\u0002\u0002\u0404\u0405",
+    "\u0003\u0002\u0002\u0002\u0405\u0408\u0003\u0002\u0002\u0002\u0406\u0404",
+    "\u0003\u0002\u0002\u0002\u0407\u03f9\u0003\u0002\u0002\u0002\u0408\u040b",
+    "\u0003\u0002\u0002\u0002\u0409\u0407\u0003\u0002\u0002\u0002\u0409\u040a",
+    "\u0003\u0002\u0002\u0002\u040a\u040d\u0003\u0002\u0002\u0002\u040b\u0409",
+    "\u0003\u0002\u0002\u0002\u040c\u040e\u0007\u0017\u0002\u0002\u040d\u040c",
+    "\u0003\u0002\u0002\u0002\u040d\u040e\u0003\u0002\u0002\u0002\u040eg",
+    "\u0003\u0002\u0002\u0002\u040f\u0413\u0005j6\u0002\u0410\u0413\u0005",
+    "n8\u0002\u0411\u0413\u0005t;\u0002\u0412\u040f\u0003\u0002\u0002\u0002",
+    "\u0412\u0410\u0003\u0002\u0002\u0002\u0412\u0411\u0003\u0002\u0002\u0002",
+    "\u0413i\u0003\u0002\u0002\u0002\u0414\u0418\t\u0006\u0002\u0002\u0415",
+    "\u0417\u0007)\u0002\u0002\u0416\u0415\u0003\u0002\u0002\u0002\u0417",
+    "\u041a\u0003\u0002\u0002\u0002\u0418\u0416\u0003\u0002\u0002\u0002\u0418",
+    "\u0419\u0003\u0002\u0002\u0002\u0419\u041b\u0003\u0002\u0002\u0002\u041a",
+    "\u0418\u0003\u0002\u0002\u0002\u041b\u041c\u0005l7\u0002\u041ck\u0003",
+    "\u0002\u0002\u0002\u041d\u0421\u0007\u001a\u0002\u0002\u041e\u0420\u0005",
+    "\u0004\u0003\u0002\u041f\u041e\u0003\u0002\u0002\u0002\u0420\u0423\u0003",
+    "\u0002\u0002\u0002\u0421\u041f\u0003\u0002\u0002\u0002\u0421\u0422\u0003",
+    "\u0002\u0002\u0002\u0422\u0424\u0003\u0002\u0002\u0002\u0423\u0421\u0003",
+    "\u0002\u0002\u0002\u0424\u0428\u0005\u0018\r\u0002\u0425\u0427\u0005",
+    "\u0004\u0003\u0002\u0426\u0425\u0003\u0002\u0002\u0002\u0427\u042a\u0003",
+    "\u0002\u0002\u0002\u0428\u0426\u0003\u0002\u0002\u0002\u0428\u0429\u0003",
+    "\u0002\u0002\u0002\u0429\u043b\u0003\u0002\u0002\u0002\u042a\u0428\u0003",
+    "\u0002\u0002\u0002\u042b\u042f\u0007\u0017\u0002\u0002\u042c\u042e\u0005",
     "\u0004\u0003\u0002\u042d\u042c\u0003\u0002\u0002\u0002\u042e\u0431\u0003",
     "\u0002\u0002\u0002\u042f\u042d\u0003\u0002\u0002\u0002\u042f\u0430\u0003",
     "\u0002\u0002\u0002\u0430\u0432\u0003\u0002\u0002\u0002\u0431\u042f\u0003",
-    "\u0002\u0002\u0002\u0432\u0436\u0007\'\u0002\u0002\u0433\u0435\u0005",
+    "\u0002\u0002\u0002\u0432\u0436\u0005\u0018\r\u0002\u0433\u0435\u0005",
     "\u0004\u0003\u0002\u0434\u0433\u0003\u0002\u0002\u0002\u0435\u0438\u0003",
     "\u0002\u0002\u0002\u0436\u0434\u0003\u0002\u0002\u0002\u0436\u0437\u0003",
-    "\u0002\u0002\u0002\u0437\u0439\u0003\u0002\u0002\u0002\u0438\u0436\u0003",
-    "\u0002\u0002\u0002\u0439\u043a\u0005\u0080A\u0002\u043am\u0003\u0002",
-    "\u0002\u0002\u043b\u043c\u0005\u0080A\u0002\u043co\u0003\u0002\u0002",
-    "\u0002\u043d\u043e\u0005\u0080A\u0002\u043eq\u0003\u0002\u0002\u0002",
-    "\u043f\u0443\u0007/\u0002\u0002\u0440\u0442\u0007)\u0002\u0002\u0441",
-    "\u0440\u0003\u0002\u0002\u0002\u0442\u0445\u0003\u0002\u0002\u0002\u0443",
-    "\u0441\u0003\u0002\u0002\u0002\u0443\u0444\u0003\u0002\u0002\u0002\u0444",
-    "\u0446\u0003\u0002\u0002\u0002\u0445\u0443\u0003\u0002\u0002\u0002\u0446",
-    "\u044a\u0007\'\u0002\u0002\u0447\u0449\u0007)\u0002\u0002\u0448\u0447",
-    "\u0003\u0002\u0002\u0002\u0449\u044c\u0003\u0002\u0002\u0002\u044a\u0448",
-    "\u0003\u0002\u0002\u0002\u044a\u044b\u0003\u0002\u0002\u0002\u044b\u044d",
-    "\u0003\u0002\u0002\u0002\u044c\u044a\u0003\u0002\u0002\u0002\u044d\u044e",
-    "\u0005\u0080A\u0002\u044es\u0003\u0002\u0002\u0002\u044f\u0460\u0005",
-    "\u0014\u000b\u0002\u0450\u0452\u0005\u0004\u0003\u0002\u0451\u0450\u0003",
-    "\u0002\u0002\u0002\u0452\u0455\u0003\u0002\u0002\u0002\u0453\u0451\u0003",
-    "\u0002\u0002\u0002\u0453\u0454\u0003\u0002\u0002\u0002\u0454\u0456\u0003",
-    "\u0002\u0002\u0002\u0455\u0453\u0003\u0002\u0002\u0002\u0456\u045a\u0007",
-    "&\u0002\u0002\u0457\u0459\u0005\u0004\u0003\u0002\u0458\u0457\u0003",
-    "\u0002\u0002\u0002\u0459\u045c\u0003\u0002\u0002\u0002\u045a\u0458\u0003",
-    "\u0002\u0002\u0002\u045a\u045b\u0003\u0002\u0002\u0002\u045b\u045d\u0003",
-    "\u0002\u0002\u0002\u045c\u045a\u0003\u0002\u0002\u0002\u045d\u045f\u0005",
-    "\u0014\u000b\u0002\u045e\u0453\u0003\u0002\u0002\u0002\u045f\u0462\u0003",
-    "\u0002\u0002\u0002\u0460\u045e\u0003\u0002\u0002\u0002\u0460\u0461\u0003",
-    "\u0002\u0002\u0002\u0461u\u0003\u0002\u0002\u0002\u0462\u0460\u0003",
-    "\u0002\u0002\u0002\u0463\u0465\u0007/\u0002\u0002\u0464\u0466\t\u0002",
-    "\u0002\u0002\u0465\u0464\u0003\u0002\u0002\u0002\u0465\u0466\u0003\u0002",
-    "\u0002\u0002\u0466\u0467\u0003\u0002\u0002\u0002\u0467\u0469\u0007\'",
-    "\u0002\u0002\u0468\u046a\t\u0002\u0002\u0002\u0469\u0468\u0003\u0002",
-    "\u0002\u0002\u0469\u046a\u0003\u0002\u0002\u0002\u046a\u046b\u0003\u0002",
-    "\u0002\u0002\u046b\u0478\u0005t;\u0002\u046c\u046d\u0007\u0017\u0002",
-    "\u0002\u046d\u046f\u0007/\u0002\u0002\u046e\u0470\t\u0002\u0002\u0002",
-    "\u046f\u046e\u0003\u0002\u0002\u0002\u046f\u0470\u0003\u0002\u0002\u0002",
-    "\u0470\u0471\u0003\u0002\u0002\u0002\u0471\u0473\u0007\'\u0002\u0002",
-    "\u0472\u0474\t\u0002\u0002\u0002\u0473\u0472\u0003\u0002\u0002\u0002",
-    "\u0473\u0474\u0003\u0002\u0002\u0002\u0474\u0475\u0003\u0002\u0002\u0002",
-    "\u0475\u0477\u0005t;\u0002\u0476\u046c\u0003\u0002\u0002\u0002\u0477",
-    "\u047a\u0003\u0002\u0002\u0002\u0478\u0476\u0003\u0002\u0002\u0002\u0478",
-    "\u0479\u0003\u0002\u0002\u0002\u0479w\u0003\u0002\u0002\u0002\u047a",
-    "\u0478\u0003\u0002\u0002\u0002\u047b\u047d\u0007\t\u0002\u0002\u047c",
-    "\u047e\t\u0002\u0002\u0002\u047d\u047c\u0003\u0002\u0002\u0002\u047e",
-    "\u047f\u0003\u0002\u0002\u0002\u047f\u047d\u0003\u0002\u0002\u0002\u047f",
-    "\u0480\u0003\u0002\u0002\u0002\u0480\u0488\u0003\u0002\u0002\u0002\u0481",
-    "\u0489\u0005\u0080A\u0002\u0482\u0489\u0005\u0012\n\u0002\u0483\u0489",
-    "\u0005*\u0016\u0002\u0484\u0489\u0005 \u0011\u0002\u0485\u0489\u0005",
-    "X-\u0002\u0486\u0489\u0005^0\u0002\u0487\u0489\u0005d3\u0002\u0488\u0481",
-    "\u0003\u0002\u0002\u0002\u0488\u0482\u0003\u0002\u0002\u0002\u0488\u0483",
-    "\u0003\u0002\u0002\u0002\u0488\u0484\u0003\u0002\u0002\u0002\u0488\u0485",
-    "\u0003\u0002\u0002\u0002\u0488\u0486\u0003\u0002\u0002\u0002\u0488\u0487",
-    "\u0003\u0002\u0002\u0002\u0489y\u0003\u0002\u0002\u0002\u048a\u048f",
-    "\u0005|?\u0002\u048b\u048c\u0007\u0017\u0002\u0002\u048c\u048e\u0005",
-    "|?\u0002\u048d\u048b\u0003\u0002\u0002\u0002\u048e\u0491\u0003\u0002",
-    "\u0002\u0002\u048f\u048d\u0003\u0002\u0002\u0002\u048f\u0490\u0003\u0002",
-    "\u0002\u0002\u0490{\u0003\u0002\u0002\u0002\u0491\u048f\u0003\u0002",
-    "\u0002\u0002\u0492\u0497\u0005~@\u0002\u0493\u0494\u0007)\u0002\u0002",
-    "\u0494\u0495\u0007\u000e\u0002\u0002\u0495\u0496\u0007)\u0002\u0002",
-    "\u0496\u0498\u0005~@\u0002\u0497\u0493\u0003\u0002\u0002\u0002\u0497",
-    "\u0498\u0003\u0002\u0002\u0002\u0498}\u0003\u0002\u0002\u0002\u0499",
-    "\u049c\u0007/\u0002\u0002\u049a\u049c\u0005V,\u0002\u049b\u0499\u0003",
-    "\u0002\u0002\u0002\u049b\u049a\u0003\u0002\u0002\u0002\u049c\u007f\u0003",
-    "\u0002\u0002\u0002\u049d\u049f\u0005\u0082B\u0002\u049e\u049d\u0003",
-    "\u0002\u0002\u0002\u049f\u04a0\u0003\u0002\u0002\u0002\u04a0\u049e\u0003",
-    "\u0002\u0002\u0002\u04a0\u04a1\u0003\u0002\u0002\u0002\u04a1\u0081\u0003",
-    "\u0002\u0002\u0002\u04a2\u04a6\u0007/\u0002\u0002\u04a3\u04a6\u0007",
-    " \u0002\u0002\u04a4\u04a6\u0005\u0084C\u0002\u04a5\u04a2\u0003\u0002",
-    "\u0002\u0002\u04a5\u04a3\u0003\u0002\u0002\u0002\u04a5\u04a4\u0003\u0002",
-    "\u0002\u0002\u04a6\u0083\u0003\u0002\u0002\u0002\u04a7\u04ab\u0007\u001e",
-    "\u0002\u0002\u04a8\u04aa\u0007)\u0002\u0002\u04a9\u04a8\u0003\u0002",
-    "\u0002\u0002\u04aa\u04ad\u0003\u0002\u0002\u0002\u04ab\u04a9\u0003\u0002",
-    "\u0002\u0002\u04ab\u04ac\u0003\u0002\u0002\u0002\u04ac\u04ae\u0003\u0002",
-    "\u0002\u0002\u04ad\u04ab\u0003\u0002\u0002\u0002\u04ae\u04b2\u00050",
-    "\u0019\u0002\u04af\u04b1\u0007)\u0002\u0002\u04b0\u04af\u0003\u0002",
-    "\u0002\u0002\u04b1\u04b4\u0003\u0002\u0002\u0002\u04b2\u04b0\u0003\u0002",
-    "\u0002\u0002\u04b2\u04b3\u0003\u0002\u0002\u0002\u04b3\u04b5\u0003\u0002",
-    "\u0002\u0002\u04b4\u04b2\u0003\u0002\u0002\u0002\u04b5\u04b6\u0007\u001f",
-    "\u0002\u0002\u04b6\u0085\u0003\u0002\u0002\u0002\u00b0\u0089\u008f\u009d",
-    "\u009f\u00a1\u00a4\u00aa\u00b3\u00b9\u00c7\u00cc\u00d2\u00d8\u00da\u00e0",
-    "\u00e6\u00ec\u00f0\u00f5\u00fc\u0100\u0106\u010a\u0112\u0119\u0120\u0127",
-    "\u012c\u0135\u0139\u013f\u0145\u014b\u014e\u0154\u0158\u015e\u0165\u016b",
-    "\u016e\u0172\u0178\u017c\u0180\u0186\u0189\u018b\u0194\u0198\u019e\u01a4",
-    "\u01a9\u01b4\u01b9\u01bd\u01c3\u01ca\u01cf\u01d2\u01d7\u01de\u01e7\u01ee",
-    "\u01f3\u01f6\u01fb\u0202\u020b\u0212\u0219\u0222\u0226\u022c\u0231\u0237",
-    "\u023e\u0247\u024f\u0255\u025c\u025f\u0265\u0269\u026e\u0277\u027e\u0285",
-    "\u028c\u0290\u0298\u029f\u02a6\u02ad\u02b1\u02ba\u02c1\u02c9\u02d1\u02d7",
-    "\u02db\u02e0\u02e5\u02ed\u02f6\u02fd\u0305\u030c\u0313\u0315\u031b\u031f",
-    "\u0325\u032c\u0330\u0336\u033d\u0344\u034b\u0350\u0352\u0357\u0362\u0367",
-    "\u036c\u0372\u0374\u0378\u0384\u0396\u039b\u03a3\u03a9\u03ae\u03b2\u03b8",
-    "\u03bf\u03c6\u03cd\u03d1\u03d9\u03dd\u03e2\u03e8\u03f1\u03f8\u03ff\u0406",
-    "\u040b\u0410\u0416\u041f\u0422\u0428\u042f\u0436\u0443\u044a\u0453\u045a",
-    "\u0460\u0465\u0469\u046f\u0473\u0478\u047f\u0488\u048f\u0497\u049b\u04a0",
-    "\u04a5\u04ab\u04b2"].join("");
+    "\u0002\u0002\u0002\u0437\u043a\u0003\u0002\u0002\u0002\u0438\u0436\u0003",
+    "\u0002\u0002\u0002\u0439\u042b\u0003\u0002\u0002\u0002\u043a\u043d\u0003",
+    "\u0002\u0002\u0002\u043b\u0439\u0003\u0002\u0002\u0002\u043b\u043c\u0003",
+    "\u0002\u0002\u0002\u043c\u043e\u0003\u0002\u0002\u0002\u043d\u043b\u0003",
+    "\u0002\u0002\u0002\u043e\u0440\u0007\u001b\u0002\u0002\u043f\u0441\u0005",
+    "\u0004\u0003\u0002\u0440\u043f\u0003\u0002\u0002\u0002\u0440\u0441\u0003",
+    "\u0002\u0002\u0002\u0441\u0442\u0003\u0002\u0002\u0002\u0442\u0446\u0007",
+    "&\u0002\u0002\u0443\u0445\u0005\u0004\u0003\u0002\u0444\u0443\u0003",
+    "\u0002\u0002\u0002\u0445\u0448\u0003\u0002\u0002\u0002\u0446\u0444\u0003",
+    "\u0002\u0002\u0002\u0446\u0447\u0003\u0002\u0002\u0002\u0447\u0449\u0003",
+    "\u0002\u0002\u0002\u0448\u0446\u0003\u0002\u0002\u0002\u0449\u044a\u0005",
+    "\u0018\r\u0002\u044am\u0003\u0002\u0002\u0002\u044b\u044f\u0005p9\u0002",
+    "\u044c\u044e\u0005\u0004\u0003\u0002\u044d\u044c\u0003\u0002\u0002\u0002",
+    "\u044e\u0451\u0003\u0002\u0002\u0002\u044f\u044d\u0003\u0002\u0002\u0002",
+    "\u044f\u0450\u0003\u0002\u0002\u0002\u0450\u0453\u0003\u0002\u0002\u0002",
+    "\u0451\u044f\u0003\u0002\u0002\u0002\u0452\u044b\u0003\u0002\u0002\u0002",
+    "\u0452\u0453\u0003\u0002\u0002\u0002\u0453\u0454\u0003\u0002\u0002\u0002",
+    "\u0454\u0458\u0005T+\u0002\u0455\u0457\u0005\u0004\u0003\u0002\u0456",
+    "\u0455\u0003\u0002\u0002\u0002\u0457\u045a\u0003\u0002\u0002\u0002\u0458",
+    "\u0456\u0003\u0002\u0002\u0002\u0458\u0459\u0003\u0002\u0002\u0002\u0459",
+    "\u045b\u0003\u0002\u0002\u0002\u045a\u0458\u0003\u0002\u0002\u0002\u045b",
+    "\u045f\u0005r:\u0002\u045c\u045e\u0005\u0004\u0003\u0002\u045d\u045c",
+    "\u0003\u0002\u0002\u0002\u045e\u0461\u0003\u0002\u0002\u0002\u045f\u045d",
+    "\u0003\u0002\u0002\u0002\u045f\u0460\u0003\u0002\u0002\u0002\u0460\u0462",
+    "\u0003\u0002\u0002\u0002\u0461\u045f\u0003\u0002\u0002\u0002\u0462\u0466",
+    "\u0007&\u0002\u0002\u0463\u0465\u0005\u0004\u0003\u0002\u0464\u0463",
+    "\u0003\u0002\u0002\u0002\u0465\u0468\u0003\u0002\u0002\u0002\u0466\u0464",
+    "\u0003\u0002\u0002\u0002\u0466\u0467\u0003\u0002\u0002\u0002\u0467\u0469",
+    "\u0003\u0002\u0002\u0002\u0468\u0466\u0003\u0002\u0002\u0002\u0469\u046a",
+    "\u0005\u0018\r\u0002\u046ao\u0003\u0002\u0002\u0002\u046b\u046c\u0005",
+    "\u0018\r\u0002\u046cq\u0003\u0002\u0002\u0002\u046d\u046e\u0005\u0018",
+    "\r\u0002\u046es\u0003\u0002\u0002\u0002\u046f\u0473\u0007/\u0002\u0002",
+    "\u0470\u0472\u0007)\u0002\u0002\u0471\u0470\u0003\u0002\u0002\u0002",
+    "\u0472\u0475\u0003\u0002\u0002\u0002\u0473\u0471\u0003\u0002\u0002\u0002",
+    "\u0473\u0474\u0003\u0002\u0002\u0002\u0474\u0476\u0003\u0002\u0002\u0002",
+    "\u0475\u0473\u0003\u0002\u0002\u0002\u0476\u047a\u0007&\u0002\u0002",
+    "\u0477\u0479\u0007)\u0002\u0002\u0478\u0477\u0003\u0002\u0002\u0002",
+    "\u0479\u047c\u0003\u0002\u0002\u0002\u047a\u0478\u0003\u0002\u0002\u0002",
+    "\u047a\u047b\u0003\u0002\u0002\u0002\u047b\u047d\u0003\u0002\u0002\u0002",
+    "\u047c\u047a\u0003\u0002\u0002\u0002\u047d\u047e\u0005\u0018\r\u0002",
+    "\u047eu\u0003\u0002\u0002\u0002\u047f\u0481\u0007\t\u0002\u0002\u0480",
+    "\u0482\t\u0002\u0002\u0002\u0481\u0480\u0003\u0002\u0002\u0002\u0482",
+    "\u0483\u0003\u0002\u0002\u0002\u0483\u0481\u0003\u0002\u0002\u0002\u0483",
+    "\u0484\u0003\u0002\u0002\u0002\u0484\u048e\u0003\u0002\u0002\u0002\u0485",
+    "\u048f\u0005^0\u0002\u0486\u048f\u0005\u0012\n\u0002\u0487\u0488\u0005",
+    ",\u0017\u0002\u0488\u0489\u0007\'\u0002\u0002\u0489\u048f\u0003\u0002",
+    "\u0002\u0002\u048a\u048f\u0005\"\u0012\u0002\u048b\u048f\u0005V,\u0002",
+    "\u048c\u048f\u0005\\/\u0002\u048d\u048f\u0005b2\u0002\u048e\u0485\u0003",
+    "\u0002\u0002\u0002\u048e\u0486\u0003\u0002\u0002\u0002\u048e\u0487\u0003",
+    "\u0002\u0002\u0002\u048e\u048a\u0003\u0002\u0002\u0002\u048e\u048b\u0003",
+    "\u0002\u0002\u0002\u048e\u048c\u0003\u0002\u0002\u0002\u048e\u048d\u0003",
+    "\u0002\u0002\u0002\u048fw\u0003\u0002\u0002\u0002\u0490\u0495\u0005",
+    "z>\u0002\u0491\u0492\u0007\u0017\u0002\u0002\u0492\u0494\u0005z>\u0002",
+    "\u0493\u0491\u0003\u0002\u0002\u0002\u0494\u0497\u0003\u0002\u0002\u0002",
+    "\u0495\u0493\u0003\u0002\u0002\u0002\u0495\u0496\u0003\u0002\u0002\u0002",
+    "\u0496y\u0003\u0002\u0002\u0002\u0497\u0495\u0003\u0002\u0002\u0002",
+    "\u0498\u04a5\u0005|?\u0002\u0499\u049b\u0007)\u0002\u0002\u049a\u0499",
+    "\u0003\u0002\u0002\u0002\u049b\u049c\u0003\u0002\u0002\u0002\u049c\u049a",
+    "\u0003\u0002\u0002\u0002\u049c\u049d\u0003\u0002\u0002\u0002\u049d\u049e",
+    "\u0003\u0002\u0002\u0002\u049e\u04a0\u0007\u000e\u0002\u0002\u049f\u04a1",
+    "\u0007)\u0002\u0002\u04a0\u049f\u0003\u0002\u0002\u0002\u04a1\u04a2",
+    "\u0003\u0002\u0002\u0002\u04a2\u04a0\u0003\u0002\u0002\u0002\u04a2\u04a3",
+    "\u0003\u0002\u0002\u0002\u04a3\u04a4\u0003\u0002\u0002\u0002\u04a4\u04a6",
+    "\u0005|?\u0002\u04a5\u049a\u0003\u0002\u0002\u0002\u04a5\u04a6\u0003",
+    "\u0002\u0002\u0002\u04a6{\u0003\u0002\u0002\u0002\u04a7\u04aa\u0007",
+    "/\u0002\u0002\u04a8\u04aa\u0005T+\u0002\u04a9\u04a7\u0003\u0002\u0002",
+    "\u0002\u04a9\u04a8\u0003\u0002\u0002\u0002\u04aa}\u0003\u0002\u0002",
+    "\u0002\u04ab\u04ad\u0005\u0080A\u0002\u04ac\u04ab\u0003\u0002\u0002",
+    "\u0002\u04ad\u04ae\u0003\u0002\u0002\u0002\u04ae\u04ac\u0003\u0002\u0002",
+    "\u0002\u04ae\u04af\u0003\u0002\u0002\u0002\u04af\u007f\u0003\u0002\u0002",
+    "\u0002\u04b0\u04ba\u0007/\u0002\u0002\u04b1\u04b3\u0005\u0004\u0003",
+    "\u0002\u04b2\u04b1\u0003\u0002\u0002\u0002\u04b3\u04b6\u0003\u0002\u0002",
+    "\u0002\u04b4\u04b2\u0003\u0002\u0002\u0002\u04b4\u04b5\u0003\u0002\u0002",
+    "\u0002\u04b5\u04b7\u0003\u0002\u0002\u0002\u04b6\u04b4\u0003\u0002\u0002",
+    "\u0002\u04b7\u04ba\u0007 \u0002\u0002\u04b8\u04ba\u0005\u0082B\u0002",
+    "\u04b9\u04b0\u0003\u0002\u0002\u0002\u04b9\u04b4\u0003\u0002\u0002\u0002",
+    "\u04b9\u04b8\u0003\u0002\u0002\u0002\u04ba\u0081\u0003\u0002\u0002\u0002",
+    "\u04bb\u04bf\u0007\u001e\u0002\u0002\u04bc\u04be\u0007)\u0002\u0002",
+    "\u04bd\u04bc\u0003\u0002\u0002\u0002\u04be\u04c1\u0003\u0002\u0002\u0002",
+    "\u04bf\u04bd\u0003\u0002\u0002\u0002\u04bf\u04c0\u0003\u0002\u0002\u0002",
+    "\u04c0\u04c2\u0003\u0002\u0002\u0002\u04c1\u04bf\u0003\u0002\u0002\u0002",
+    "\u04c2\u04c6\u00056\u001c\u0002\u04c3\u04c5\u0007)\u0002\u0002\u04c4",
+    "\u04c3\u0003\u0002\u0002\u0002\u04c5\u04c8\u0003\u0002\u0002\u0002\u04c6",
+    "\u04c4\u0003\u0002\u0002\u0002\u04c6\u04c7\u0003\u0002\u0002\u0002\u04c7",
+    "\u04c9\u0003\u0002\u0002\u0002\u04c8\u04c6\u0003\u0002\u0002\u0002\u04c9",
+    "\u04ca\u0007\u001f\u0002\u0002\u04ca\u0083\u0003\u0002\u0002\u0002\u00b0",
+    "\u0087\u008d\u009d\u009f\u00a1\u00a4\u00aa\u00b3\u00b9\u00c7\u00cc\u00d2",
+    "\u00d8\u00da\u00e0\u00e6\u00ec\u00f0\u00f5\u00fc\u0100\u0105\u010b\u0112",
+    "\u0119\u0120\u0125\u012e\u0132\u0138\u013f\u0148\u014f\u0158\u015f\u0166",
+    "\u016b\u016f\u0175\u017c\u0185\u018c\u0192\u0199\u019f\u01a2\u01a6\u01ac",
+    "\u01b0\u01b4\u01ba\u01bd\u01bf\u01c3\u01ca\u01ce\u01d4\u01d9\u01e1\u01ec",
+    "\u01f0\u01f8\u01ff\u0204\u0207\u020c\u0213\u021c\u0223\u0228\u022b\u0230",
+    "\u0237\u0240\u0247\u0253\u0259\u025e\u0261\u0267\u026d\u0272\u0278\u027f",
+    "\u0286\u028b\u028f\u0295\u029c\u02a3\u02aa\u02b1\u02b8\u02bf\u02c4\u02c8",
+    "\u02ce\u02d5\u02dc\u02e0\u02e5\u02ee\u02f4\u02fb\u0307\u030b\u0310\u0319",
+    "\u0320\u0323\u032b\u0332\u0339\u033c\u0344\u034b\u0352\u0359\u035e\u0360",
+    "\u0365\u036f\u0374\u0379\u037f\u0381\u0385\u0391\u03a1\u03a8\u03af\u03ba",
+    "\u03c0\u03c5\u03cb\u03d2\u03da\u03de\u03e2\u03e7\u03ef\u03f6\u03fd\u0404",
+    "\u0409\u040d\u0412\u0418\u0421\u0428\u042f\u0436\u043b\u0440\u0446\u044f",
+    "\u0452\u0458\u045f\u0466\u0473\u047a\u0483\u048e\u0495\u049c\u04a2\u04a5",
+    "\u04a9\u04ae\u04b4\u04b9\u04bf\u04c6"].join("");
 var atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
 var decisionsToDFA = atn.decisionToState.map(function (ds, index) { return new antlr4.dfa.DFA(ds, index); });
 var sharedContextCache = new antlr4.PredictionContextCache();
@@ -2511,33 +2524,33 @@ var literalNames = [null, "'import'", "'from'", "'type'", "'fn'", "'event'",
     "'emit'", "'as'", null, "'prefix'", "'infix'", "'precedence'",
     "'if'", "'else'", "'new'", "'interface'", null, "'{'",
     "'}'", "'('", "')'", "'<'", "'>'", "'['", "']'", "'.'",
-    "'='", "'@'", "'./'", "'../'", "'/'", "'|'", "':'"];
+    "'='", "'@'", "'./'", "'../'", "'/'", "':'", "';'"];
 var symbolicNames = [null, "IMPORT", "FROM", "TYPE", "FN", "EVENT", "ON",
     "EXPORT", "CONST", "LET", "RETURN", "EMIT", "AS",
     "BOOLCONSTANT", "PREFIX", "INFIX", "PRECEDENCE", "IF",
     "ELSE", "NEW", "INTERFACE", "SEP", "OPENBODY", "CLOSEBODY",
     "OPENARGS", "CLOSEARGS", "OPENGENERIC", "CLOSEGENERIC",
     "OPENARRAY", "CLOSEARRAY", "METHODSEP", "EQUALS",
-    "GLOBAL", "CURDIR", "PARDIR", "DIRSEP", "OR", "TYPESEP",
-    "NEWLINE", "WS", "SINGLELINECOMMENT", "MULTILINECOMMENT",
+    "GLOBAL", "CURDIR", "PARDIR", "DIRSEP", "TYPESEP",
+    "EOS", "NEWLINE", "WS", "SINGLELINECOMMENT", "MULTILINECOMMENT",
     "STRINGCONSTANT", "NUMBERCONSTANT", "GENERALOPERATORS",
     "VARNAME"];
 var ruleNames = ["module", "blank", "imports", "standardImport", "fromImport",
     "dependency", "localdependency", "globaldependency",
-    "types", "othertype", "typename", "typegenerics", "fulltypename",
-    "typebody", "typeline", "functions", "fullfunctionbody",
-    "functionbody", "statements", "declarations", "constdeclaration",
-    "letdeclaration", "assignments", "assignables", "basicassignables",
-    "operatororassignable", "withoperators", "groups", "typeofn",
-    "objectliterals", "arrayliteral", "typeliteral", "mapliteral",
-    "mapline", "assignablelist", "fncall", "calls", "exits",
-    "emits", "conditionals", "blocklikes", "constants", "operators",
-    "operatormapping", "fntoop", "opprecedence", "events",
-    "handlers", "eventref", "interfaces", "interfaceline",
-    "functiontypeline", "functiontype", "operatortypeline",
-    "leftarg", "rightarg", "propertytypeline", "argtype",
-    "arglist", "exports", "varlist", "renameablevar", "varop",
-    "varn", "varsegment", "arrayaccess"];
+    "types", "typename", "typegenerics", "fulltypename",
+    "typebody", "typeline", "typelist", "arglist", "functions",
+    "fullfunctionbody", "functionbody", "statements", "declarations",
+    "constdeclaration", "letdeclaration", "assignments",
+    "baseassignable", "withoperators", "assignables", "objectliterals",
+    "assignablelist", "typeassignlist", "literaldec", "arraybase",
+    "arrayliteral", "typebase", "typeliteral", "fncall",
+    "exits", "emits", "conditionals", "blocklikes", "constants",
+    "operators", "operatormapping", "fntoop", "opprecedence",
+    "events", "eventref", "handlers", "interfaces", "interfacebody",
+    "interfacelist", "interfaceline", "functiontypeline",
+    "functiontype", "operatortypeline", "leftarg", "rightarg",
+    "propertytypeline", "exports", "varlist", "renameablevar",
+    "varop", "varn", "varsegment", "arrayaccess"];
 function LnParser(input) {
     antlr4.Parser.call(this, input);
     this._interp = new antlr4.atn.ParserATNSimulator(this, atn, decisionsToDFA, sharedContextCache);
@@ -2589,8 +2602,8 @@ LnParser.GLOBAL = 32;
 LnParser.CURDIR = 33;
 LnParser.PARDIR = 34;
 LnParser.DIRSEP = 35;
-LnParser.OR = 36;
-LnParser.TYPESEP = 37;
+LnParser.TYPESEP = 36;
+LnParser.EOS = 37;
 LnParser.NEWLINE = 38;
 LnParser.WS = 39;
 LnParser.SINGLELINECOMMENT = 40;
@@ -2608,63 +2621,62 @@ LnParser.RULE_dependency = 5;
 LnParser.RULE_localdependency = 6;
 LnParser.RULE_globaldependency = 7;
 LnParser.RULE_types = 8;
-LnParser.RULE_othertype = 9;
-LnParser.RULE_typename = 10;
-LnParser.RULE_typegenerics = 11;
-LnParser.RULE_fulltypename = 12;
-LnParser.RULE_typebody = 13;
-LnParser.RULE_typeline = 14;
-LnParser.RULE_functions = 15;
-LnParser.RULE_fullfunctionbody = 16;
-LnParser.RULE_functionbody = 17;
-LnParser.RULE_statements = 18;
-LnParser.RULE_declarations = 19;
-LnParser.RULE_constdeclaration = 20;
-LnParser.RULE_letdeclaration = 21;
-LnParser.RULE_assignments = 22;
-LnParser.RULE_assignables = 23;
-LnParser.RULE_basicassignables = 24;
-LnParser.RULE_operatororassignable = 25;
-LnParser.RULE_withoperators = 26;
-LnParser.RULE_groups = 27;
-LnParser.RULE_typeofn = 28;
-LnParser.RULE_objectliterals = 29;
-LnParser.RULE_arrayliteral = 30;
-LnParser.RULE_typeliteral = 31;
-LnParser.RULE_mapliteral = 32;
-LnParser.RULE_mapline = 33;
-LnParser.RULE_assignablelist = 34;
+LnParser.RULE_typename = 9;
+LnParser.RULE_typegenerics = 10;
+LnParser.RULE_fulltypename = 11;
+LnParser.RULE_typebody = 12;
+LnParser.RULE_typeline = 13;
+LnParser.RULE_typelist = 14;
+LnParser.RULE_arglist = 15;
+LnParser.RULE_functions = 16;
+LnParser.RULE_fullfunctionbody = 17;
+LnParser.RULE_functionbody = 18;
+LnParser.RULE_statements = 19;
+LnParser.RULE_declarations = 20;
+LnParser.RULE_constdeclaration = 21;
+LnParser.RULE_letdeclaration = 22;
+LnParser.RULE_assignments = 23;
+LnParser.RULE_baseassignable = 24;
+LnParser.RULE_withoperators = 25;
+LnParser.RULE_assignables = 26;
+LnParser.RULE_objectliterals = 27;
+LnParser.RULE_assignablelist = 28;
+LnParser.RULE_typeassignlist = 29;
+LnParser.RULE_literaldec = 30;
+LnParser.RULE_arraybase = 31;
+LnParser.RULE_arrayliteral = 32;
+LnParser.RULE_typebase = 33;
+LnParser.RULE_typeliteral = 34;
 LnParser.RULE_fncall = 35;
-LnParser.RULE_calls = 36;
-LnParser.RULE_exits = 37;
-LnParser.RULE_emits = 38;
-LnParser.RULE_conditionals = 39;
-LnParser.RULE_blocklikes = 40;
-LnParser.RULE_constants = 41;
-LnParser.RULE_operators = 42;
-LnParser.RULE_operatormapping = 43;
-LnParser.RULE_fntoop = 44;
-LnParser.RULE_opprecedence = 45;
-LnParser.RULE_events = 46;
+LnParser.RULE_exits = 36;
+LnParser.RULE_emits = 37;
+LnParser.RULE_conditionals = 38;
+LnParser.RULE_blocklikes = 39;
+LnParser.RULE_constants = 40;
+LnParser.RULE_operators = 41;
+LnParser.RULE_operatormapping = 42;
+LnParser.RULE_fntoop = 43;
+LnParser.RULE_opprecedence = 44;
+LnParser.RULE_events = 45;
+LnParser.RULE_eventref = 46;
 LnParser.RULE_handlers = 47;
-LnParser.RULE_eventref = 48;
-LnParser.RULE_interfaces = 49;
-LnParser.RULE_interfaceline = 50;
-LnParser.RULE_functiontypeline = 51;
-LnParser.RULE_functiontype = 52;
-LnParser.RULE_operatortypeline = 53;
-LnParser.RULE_leftarg = 54;
-LnParser.RULE_rightarg = 55;
-LnParser.RULE_propertytypeline = 56;
-LnParser.RULE_argtype = 57;
-LnParser.RULE_arglist = 58;
-LnParser.RULE_exports = 59;
-LnParser.RULE_varlist = 60;
-LnParser.RULE_renameablevar = 61;
-LnParser.RULE_varop = 62;
-LnParser.RULE_varn = 63;
-LnParser.RULE_varsegment = 64;
-LnParser.RULE_arrayaccess = 65;
+LnParser.RULE_interfaces = 48;
+LnParser.RULE_interfacebody = 49;
+LnParser.RULE_interfacelist = 50;
+LnParser.RULE_interfaceline = 51;
+LnParser.RULE_functiontypeline = 52;
+LnParser.RULE_functiontype = 53;
+LnParser.RULE_operatortypeline = 54;
+LnParser.RULE_leftarg = 55;
+LnParser.RULE_rightarg = 56;
+LnParser.RULE_propertytypeline = 57;
+LnParser.RULE_exports = 58;
+LnParser.RULE_varlist = 59;
+LnParser.RULE_renameablevar = 60;
+LnParser.RULE_varop = 61;
+LnParser.RULE_varn = 62;
+LnParser.RULE_varsegment = 63;
+LnParser.RULE_arrayaccess = 64;
 function ModuleContext(parser, parent, invokingState) {
     if (parent === undefined) {
         parent = null;
@@ -2710,17 +2722,6 @@ ModuleContext.prototype.types = function (i) {
     }
     else {
         return this.getTypedRuleContext(TypesContext, i);
-    }
-};
-ModuleContext.prototype.constdeclaration = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(ConstdeclarationContext);
-    }
-    else {
-        return this.getTypedRuleContext(ConstdeclarationContext, i);
     }
 };
 ModuleContext.prototype.functions = function (i) {
@@ -2789,6 +2790,28 @@ ModuleContext.prototype.exports = function (i) {
         return this.getTypedRuleContext(ExportsContext, i);
     }
 };
+ModuleContext.prototype.constdeclaration = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(ConstdeclarationContext);
+    }
+    else {
+        return this.getTypedRuleContext(ConstdeclarationContext, i);
+    }
+};
+ModuleContext.prototype.EOS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTokens(LnParser.EOS);
+    }
+    else {
+        return this.getToken(LnParser.EOS, i);
+    }
+};
 ModuleContext.prototype.EOF = function () {
     return this.getToken(LnParser.EOF, 0);
 };
@@ -2825,25 +2848,25 @@ LnParser.prototype.module = function () {
             case LnParser.NEWLINE:
             case LnParser.WS:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 135;
+                this.state = 133;
                 this._errHandler.sync(this);
                 var _alt = this._interp.adaptivePredict(this._input, 0, this._ctx);
                 while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
                     if (_alt === 1) {
-                        this.state = 132;
+                        this.state = 130;
                         this.blank();
                     }
-                    this.state = 137;
+                    this.state = 135;
                     this._errHandler.sync(this);
                     _alt = this._interp.adaptivePredict(this._input, 0, this._ctx);
                 }
-                this.state = 141;
+                this.state = 139;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.IMPORT || _la === LnParser.FROM) {
-                    this.state = 138;
+                    this.state = 136;
                     this.imports();
-                    this.state = 143;
+                    this.state = 141;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
@@ -2855,12 +2878,14 @@ LnParser.prototype.module = function () {
                     this._errHandler.sync(this);
                     switch (this._input.LA(1)) {
                         case LnParser.TYPE:
-                            this.state = 144;
+                            this.state = 142;
                             this.types();
                             break;
                         case LnParser.CONST:
-                            this.state = 145;
+                            this.state = 143;
                             this.constdeclaration();
+                            this.state = 144;
+                            this.match(LnParser.EOS);
                             break;
                         case LnParser.FN:
                             this.state = 146;
@@ -3603,8 +3628,8 @@ TypesContext.prototype.typebody = function () {
 TypesContext.prototype.EQUALS = function () {
     return this.getToken(LnParser.EQUALS, 0);
 };
-TypesContext.prototype.othertype = function () {
-    return this.getTypedRuleContext(OthertypeContext, 0);
+TypesContext.prototype.fulltypename = function () {
+    return this.getTypedRuleContext(FulltypenameContext, 0);
 };
 TypesContext.prototype.blank = function (i) {
     if (i === undefined) {
@@ -3651,22 +3676,20 @@ LnParser.prototype.types = function () {
         } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
         this.state = 230;
         this.typename();
-        this.state = 234;
-        this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 16, this._ctx);
-        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if (_alt === 1) {
-                this.state = 231;
-                this.blank();
-            }
-            this.state = 236;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 16, this._ctx);
-        }
         this.state = 238;
         this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        if (_la === LnParser.OPENGENERIC) {
+        var la_ = this._interp.adaptivePredict(this._input, 17, this._ctx);
+        if (la_ === 1) {
+            this.state = 234;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                this.state = 231;
+                this.blank();
+                this.state = 236;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+            }
             this.state = 237;
             this.typegenerics();
         }
@@ -3701,95 +3724,10 @@ LnParser.prototype.types = function () {
                     _la = this._input.LA(1);
                 }
                 this.state = 253;
-                this.othertype();
+                this.fulltypename();
                 break;
             default:
                 throw new antlr4.error.NoViableAltException(this);
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function OthertypeContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = LnParser.RULE_othertype;
-    return this;
-}
-OthertypeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-OthertypeContext.prototype.constructor = OthertypeContext;
-OthertypeContext.prototype.typename = function () {
-    return this.getTypedRuleContext(TypenameContext, 0);
-};
-OthertypeContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-OthertypeContext.prototype.typegenerics = function () {
-    return this.getTypedRuleContext(TypegenericsContext, 0);
-};
-OthertypeContext.prototype.enterRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.enterOthertype(this);
-    }
-};
-OthertypeContext.prototype.exitRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.exitOthertype(this);
-    }
-};
-LnParser.OthertypeContext = OthertypeContext;
-LnParser.prototype.othertype = function () {
-    var localctx = new OthertypeContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 18, LnParser.RULE_othertype);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 256;
-        this.typename();
-        this.state = 260;
-        this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 21, this._ctx);
-        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if (_alt === 1) {
-                this.state = 257;
-                this.blank();
-            }
-            this.state = 262;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 21, this._ctx);
-        }
-        this.state = 264;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        if (_la === LnParser.OPENGENERIC) {
-            this.state = 263;
-            this.typegenerics();
         }
     }
     catch (re) {
@@ -3821,8 +3759,19 @@ function TypenameContext(parser, parent, invokingState) {
 }
 TypenameContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 TypenameContext.prototype.constructor = TypenameContext;
-TypenameContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
+TypenameContext.prototype.VARNAME = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTokens(LnParser.VARNAME);
+    }
+    else {
+        return this.getToken(LnParser.VARNAME, i);
+    }
+};
+TypenameContext.prototype.METHODSEP = function () {
+    return this.getToken(LnParser.METHODSEP, 0);
 };
 TypenameContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
@@ -3837,11 +3786,20 @@ TypenameContext.prototype.exitRule = function (listener) {
 LnParser.TypenameContext = TypenameContext;
 LnParser.prototype.typename = function () {
     var localctx = new TypenameContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 20, LnParser.RULE_typename);
+    this.enterRule(localctx, 18, LnParser.RULE_typename);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 266;
-        this.varn();
+        this.state = 256;
+        this.match(LnParser.VARNAME);
+        this.state = 259;
+        this._errHandler.sync(this);
+        var la_ = this._interp.adaptivePredict(this._input, 21, this._ctx);
+        if (la_ === 1) {
+            this.state = 257;
+            this.match(LnParser.METHODSEP);
+            this.state = 258;
+            this.match(LnParser.VARNAME);
+        }
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -3924,12 +3882,24 @@ TypegenericsContext.prototype.exitRule = function (listener) {
 LnParser.TypegenericsContext = TypegenericsContext;
 LnParser.prototype.typegenerics = function () {
     var localctx = new TypegenericsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 22, LnParser.RULE_typegenerics);
+    this.enterRule(localctx, 20, LnParser.RULE_typegenerics);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 268;
+        this.state = 261;
         this.match(LnParser.OPENGENERIC);
+        this.state = 265;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 262;
+            this.blank();
+            this.state = 267;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 268;
+        this.fulltypename();
         this.state = 272;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
@@ -3940,24 +3910,24 @@ LnParser.prototype.typegenerics = function () {
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 275;
-        this.fulltypename();
-        this.state = 279;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 276;
-            this.blank();
-            this.state = 281;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 298;
+        this.state = 291;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.SEP) {
-            this.state = 282;
+            this.state = 275;
             this.match(LnParser.SEP);
+            this.state = 279;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                this.state = 276;
+                this.blank();
+                this.state = 281;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+            }
+            this.state = 282;
+            this.fulltypename();
             this.state = 286;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
@@ -3968,23 +3938,11 @@ LnParser.prototype.typegenerics = function () {
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 289;
-            this.fulltypename();
             this.state = 293;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 290;
-                this.blank();
-                this.state = 295;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-            }
-            this.state = 300;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
         }
-        this.state = 301;
+        this.state = 294;
         this.match(LnParser.CLOSEGENERIC);
     }
     catch (re) {
@@ -4016,8 +3974,11 @@ function FulltypenameContext(parser, parent, invokingState) {
 }
 FulltypenameContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 FulltypenameContext.prototype.constructor = FulltypenameContext;
-FulltypenameContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
+FulltypenameContext.prototype.typename = function () {
+    return this.getTypedRuleContext(TypenameContext, 0);
+};
+FulltypenameContext.prototype.typegenerics = function () {
+    return this.getTypedRuleContext(TypegenericsContext, 0);
 };
 FulltypenameContext.prototype.blank = function (i) {
     if (i === undefined) {
@@ -4029,9 +3990,6 @@ FulltypenameContext.prototype.blank = function (i) {
     else {
         return this.getTypedRuleContext(BlankContext, i);
     }
-};
-FulltypenameContext.prototype.typegenerics = function () {
-    return this.getTypedRuleContext(TypegenericsContext, 0);
 };
 FulltypenameContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
@@ -4046,29 +4004,27 @@ FulltypenameContext.prototype.exitRule = function (listener) {
 LnParser.FulltypenameContext = FulltypenameContext;
 LnParser.prototype.fulltypename = function () {
     var localctx = new FulltypenameContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 24, LnParser.RULE_fulltypename);
+    this.enterRule(localctx, 22, LnParser.RULE_fulltypename);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 303;
-        this.varn();
-        this.state = 307;
+        this.state = 296;
+        this.typename();
+        this.state = 304;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 28, this._ctx);
-        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if (_alt === 1) {
-                this.state = 304;
-                this.blank();
-            }
-            this.state = 309;
+        var la_ = this._interp.adaptivePredict(this._input, 28, this._ctx);
+        if (la_ === 1) {
+            this.state = 300;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 28, this._ctx);
-        }
-        this.state = 311;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        if (_la === LnParser.OPENGENERIC) {
-            this.state = 310;
+            _la = this._input.LA(1);
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                this.state = 297;
+                this.blank();
+                this.state = 302;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+            }
+            this.state = 303;
             this.typegenerics();
         }
     }
@@ -4104,6 +4060,9 @@ TypebodyContext.prototype.constructor = TypebodyContext;
 TypebodyContext.prototype.OPENBODY = function () {
     return this.getToken(LnParser.OPENBODY, 0);
 };
+TypebodyContext.prototype.typelist = function () {
+    return this.getTypedRuleContext(TypelistContext, 0);
+};
 TypebodyContext.prototype.CLOSEBODY = function () {
     return this.getToken(LnParser.CLOSEBODY, 0);
 };
@@ -4116,28 +4075,6 @@ TypebodyContext.prototype.blank = function (i) {
     }
     else {
         return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-TypebodyContext.prototype.typeline = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(TypelineContext);
-    }
-    else {
-        return this.getTypedRuleContext(TypelineContext, i);
-    }
-};
-TypebodyContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.WS);
-    }
-    else {
-        return this.getToken(LnParser.WS, i);
     }
 };
 TypebodyContext.prototype.enterRule = function (listener) {
@@ -4153,58 +4090,35 @@ TypebodyContext.prototype.exitRule = function (listener) {
 LnParser.TypebodyContext = TypebodyContext;
 LnParser.prototype.typebody = function () {
     var localctx = new TypebodyContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 26, LnParser.RULE_typebody);
+    this.enterRule(localctx, 24, LnParser.RULE_typebody);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 313;
+        this.state = 306;
         this.match(LnParser.OPENBODY);
-        this.state = 317;
-        this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 30, this._ctx);
-        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if (_alt === 1) {
-                this.state = 314;
-                this.blank();
-            }
-            this.state = 319;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 30, this._ctx);
-        }
-        this.state = 327;
-        this._errHandler.sync(this);
-        var _alt = 1;
-        do {
-            switch (_alt) {
-                case 1:
-                    this.state = 323;
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                    while (_la === LnParser.WS) {
-                        this.state = 320;
-                        this.match(LnParser.WS);
-                        this.state = 325;
-                        this._errHandler.sync(this);
-                        _la = this._input.LA(1);
-                    }
-                    this.state = 326;
-                    this.typeline();
-                    break;
-                default:
-                    throw new antlr4.error.NoViableAltException(this);
-            }
-            this.state = 329;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 32, this._ctx);
-        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
-        this.state = 332;
+        this.state = 310;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 331;
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 307;
             this.blank();
+            this.state = 312;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
         }
-        this.state = 334;
+        this.state = 313;
+        this.typelist();
+        this.state = 317;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 314;
+            this.blank();
+            this.state = 319;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 320;
         this.match(LnParser.CLOSEBODY);
     }
     catch (re) {
@@ -4245,26 +4159,15 @@ TypelineContext.prototype.TYPESEP = function () {
 TypelineContext.prototype.fulltypename = function () {
     return this.getTypedRuleContext(FulltypenameContext, 0);
 };
-TypelineContext.prototype.NEWLINE = function (i) {
+TypelineContext.prototype.blank = function (i) {
     if (i === undefined) {
         i = null;
     }
     if (i === null) {
-        return this.getTokens(LnParser.NEWLINE);
+        return this.getTypedRuleContexts(BlankContext);
     }
     else {
-        return this.getToken(LnParser.NEWLINE, i);
-    }
-};
-TypelineContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.WS);
-    }
-    else {
-        return this.getToken(LnParser.WS, i);
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
 TypelineContext.prototype.enterRule = function (listener) {
@@ -4280,55 +4183,336 @@ TypelineContext.prototype.exitRule = function (listener) {
 LnParser.TypelineContext = TypelineContext;
 LnParser.prototype.typeline = function () {
     var localctx = new TypelineContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 28, LnParser.RULE_typeline);
+    this.enterRule(localctx, 26, LnParser.RULE_typeline);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 336;
+        this.state = 322;
         this.match(LnParser.VARNAME);
-        this.state = 338;
+        this.state = 326;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 337;
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 323;
+            this.blank();
+            this.state = 328;
+            this._errHandler.sync(this);
             _la = this._input.LA(1);
-            if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
-                this._errHandler.recoverInline(this);
-            }
-            else {
-                this._errHandler.reportMatch(this);
-                this.consume();
-            }
         }
-        this.state = 340;
+        this.state = 329;
         this.match(LnParser.TYPESEP);
+        this.state = 333;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 330;
+            this.blank();
+            this.state = 335;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 336;
+        this.fulltypename();
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+function TypelistContext(parser, parent, invokingState) {
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = LnParser.RULE_typelist;
+    return this;
+}
+TypelistContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+TypelistContext.prototype.constructor = TypelistContext;
+TypelistContext.prototype.typeline = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(TypelineContext);
+    }
+    else {
+        return this.getTypedRuleContext(TypelineContext, i);
+    }
+};
+TypelistContext.prototype.blank = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(BlankContext);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
+    }
+};
+TypelistContext.prototype.SEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTokens(LnParser.SEP);
+    }
+    else {
+        return this.getToken(LnParser.SEP, i);
+    }
+};
+TypelistContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.enterTypelist(this);
+    }
+};
+TypelistContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.exitTypelist(this);
+    }
+};
+LnParser.TypelistContext = TypelistContext;
+LnParser.prototype.typelist = function () {
+    var localctx = new TypelistContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 28, LnParser.RULE_typelist);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 338;
+        this.typeline();
         this.state = 342;
         this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 341;
-            _la = this._input.LA(1);
-            if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
-                this._errHandler.recoverInline(this);
+        var _alt = this._interp.adaptivePredict(this._input, 33, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
+                this.state = 339;
+                this.blank();
             }
-            else {
-                this._errHandler.reportMatch(this);
-                this.consume();
-            }
+            this.state = 344;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 33, this._ctx);
         }
-        this.state = 344;
-        this.fulltypename();
-        this.state = 348;
+        this.state = 361;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 36, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
                 this.state = 345;
-                this.match(LnParser.NEWLINE);
+                this.match(LnParser.SEP);
+                this.state = 349;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                    this.state = 346;
+                    this.blank();
+                    this.state = 351;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                }
+                this.state = 352;
+                this.typeline();
+                this.state = 356;
+                this._errHandler.sync(this);
+                var _alt = this._interp.adaptivePredict(this._input, 35, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 353;
+                        this.blank();
+                    }
+                    this.state = 358;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 35, this._ctx);
+                }
             }
-            this.state = 350;
+            this.state = 363;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 36, this._ctx);
+        }
+        this.state = 365;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        if (_la === LnParser.SEP) {
+            this.state = 364;
+            this.match(LnParser.SEP);
+        }
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+function ArglistContext(parser, parent, invokingState) {
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = LnParser.RULE_arglist;
+    return this;
+}
+ArglistContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+ArglistContext.prototype.constructor = ArglistContext;
+ArglistContext.prototype.VARNAME = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTokens(LnParser.VARNAME);
+    }
+    else {
+        return this.getToken(LnParser.VARNAME, i);
+    }
+};
+ArglistContext.prototype.TYPESEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTokens(LnParser.TYPESEP);
+    }
+    else {
+        return this.getToken(LnParser.TYPESEP, i);
+    }
+};
+ArglistContext.prototype.fulltypename = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(FulltypenameContext);
+    }
+    else {
+        return this.getTypedRuleContext(FulltypenameContext, i);
+    }
+};
+ArglistContext.prototype.blank = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(BlankContext);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
+    }
+};
+ArglistContext.prototype.SEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTokens(LnParser.SEP);
+    }
+    else {
+        return this.getToken(LnParser.SEP, i);
+    }
+};
+ArglistContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.enterArglist(this);
+    }
+};
+ArglistContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.exitArglist(this);
+    }
+};
+LnParser.ArglistContext = ArglistContext;
+LnParser.prototype.arglist = function () {
+    var localctx = new ArglistContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 30, LnParser.RULE_arglist);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 367;
+        this.match(LnParser.VARNAME);
+        this.state = 371;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 368;
+            this.blank();
+            this.state = 373;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 374;
+        this.match(LnParser.TYPESEP);
+        this.state = 378;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 375;
+            this.blank();
+            this.state = 380;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 381;
+        this.fulltypename();
+        this.state = 400;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.SEP) {
+            this.state = 382;
+            this.match(LnParser.SEP);
+            this.state = 383;
+            this.match(LnParser.VARNAME);
+            this.state = 387;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                this.state = 384;
+                this.blank();
+                this.state = 389;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+            }
+            this.state = 390;
+            this.match(LnParser.TYPESEP);
+            this.state = 394;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                this.state = 391;
+                this.blank();
+                this.state = 396;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+            }
+            this.state = 397;
+            this.fulltypename();
+            this.state = 402;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
         }
     }
     catch (re) {
@@ -4383,6 +4567,9 @@ FunctionsContext.prototype.OPENARGS = function () {
 FunctionsContext.prototype.CLOSEARGS = function () {
     return this.getToken(LnParser.CLOSEARGS, 0);
 };
+FunctionsContext.prototype.EOS = function () {
+    return this.getToken(LnParser.EOS, 0);
+};
 FunctionsContext.prototype.VARNAME = function () {
     return this.getToken(LnParser.VARNAME, 0);
 };
@@ -4392,30 +4579,8 @@ FunctionsContext.prototype.arglist = function () {
 FunctionsContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-FunctionsContext.prototype.argtype = function () {
-    return this.getTypedRuleContext(ArgtypeContext, 0);
-};
-FunctionsContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.WS);
-    }
-    else {
-        return this.getToken(LnParser.WS, i);
-    }
-};
-FunctionsContext.prototype.NEWLINE = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.NEWLINE);
-    }
-    else {
-        return this.getToken(LnParser.NEWLINE, i);
-    }
+FunctionsContext.prototype.fulltypename = function () {
+    return this.getTypedRuleContext(FulltypenameContext, 0);
 };
 FunctionsContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
@@ -4430,116 +4595,109 @@ FunctionsContext.prototype.exitRule = function (listener) {
 LnParser.FunctionsContext = FunctionsContext;
 LnParser.prototype.functions = function () {
     var localctx = new FunctionsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 30, LnParser.RULE_functions);
+    this.enterRule(localctx, 32, LnParser.RULE_functions);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 351;
+        this.state = 403;
         this.match(LnParser.FN);
-        this.state = 353;
+        this.state = 405;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
-            this.state = 352;
+            this.state = 404;
             this.blank();
-            this.state = 355;
+            this.state = 407;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
-        this.state = 393;
+        this.state = 445;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.OPENARGS || _la === LnParser.VARNAME) {
-            this.state = 364;
+            this.state = 416;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             if (_la === LnParser.VARNAME) {
-                this.state = 357;
+                this.state = 409;
                 this.match(LnParser.VARNAME);
-                this.state = 361;
+                this.state = 413;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 358;
+                    this.state = 410;
                     this.blank();
-                    this.state = 363;
+                    this.state = 415;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
             }
-            this.state = 366;
+            this.state = 418;
             this.match(LnParser.OPENARGS);
-            this.state = 368;
+            this.state = 420;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             if (_la === LnParser.VARNAME) {
-                this.state = 367;
+                this.state = 419;
                 this.arglist();
             }
-            this.state = 370;
+            this.state = 422;
             this.match(LnParser.CLOSEARGS);
-            this.state = 374;
+            this.state = 426;
             this._errHandler.sync(this);
-            var _alt = this._interp.adaptivePredict(this._input, 41, this._ctx);
+            var _alt = this._interp.adaptivePredict(this._input, 47, this._ctx);
             while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
                 if (_alt === 1) {
-                    this.state = 371;
+                    this.state = 423;
                     this.blank();
                 }
-                this.state = 376;
+                this.state = 428;
                 this._errHandler.sync(this);
-                _alt = this._interp.adaptivePredict(this._input, 41, this._ctx);
+                _alt = this._interp.adaptivePredict(this._input, 47, this._ctx);
             }
-            this.state = 391;
+            this.state = 443;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
-            if (((((_la - 37)) & ~0x1f) == 0 && ((1 << (_la - 37)) & ((1 << (LnParser.TYPESEP - 37)) | (1 << (LnParser.NEWLINE - 37)) | (1 << (LnParser.WS - 37)))) !== 0)) {
-                this.state = 378;
+            if (((((_la - 36)) & ~0x1f) == 0 && ((1 << (_la - 36)) & ((1 << (LnParser.TYPESEP - 36)) | (1 << (LnParser.NEWLINE - 36)) | (1 << (LnParser.WS - 36)))) !== 0)) {
+                this.state = 430;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 377;
-                    _la = this._input.LA(1);
-                    if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
-                        this._errHandler.recoverInline(this);
-                    }
-                    else {
-                        this._errHandler.reportMatch(this);
-                        this.consume();
-                    }
+                    this.state = 429;
+                    this.blank();
                 }
-                this.state = 380;
+                this.state = 432;
                 this.match(LnParser.TYPESEP);
-                this.state = 382;
+                this.state = 434;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 381;
-                    _la = this._input.LA(1);
-                    if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
-                        this._errHandler.recoverInline(this);
-                    }
-                    else {
-                        this._errHandler.reportMatch(this);
-                        this.consume();
-                    }
+                    this.state = 433;
+                    this.blank();
                 }
-                this.state = 384;
-                this.argtype();
-                this.state = 388;
+                this.state = 436;
+                this.fulltypename();
+                this.state = 440;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 385;
+                    this.state = 437;
                     this.blank();
-                    this.state = 390;
+                    this.state = 442;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
             }
         }
-        this.state = 395;
+        this.state = 447;
         this.fullfunctionbody();
+        this.state = 449;
+        this._errHandler.sync(this);
+        var la_ = this._interp.adaptivePredict(this._input, 53, this._ctx);
+        if (la_ === 1) {
+            this.state = 448;
+            this.match(LnParser.EOS);
+        }
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -4603,32 +4761,32 @@ FullfunctionbodyContext.prototype.exitRule = function (listener) {
 LnParser.FullfunctionbodyContext = FullfunctionbodyContext;
 LnParser.prototype.fullfunctionbody = function () {
     var localctx = new FullfunctionbodyContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 32, LnParser.RULE_fullfunctionbody);
+    this.enterRule(localctx, 34, LnParser.RULE_fullfunctionbody);
     var _la = 0; // Token type
     try {
-        this.state = 406;
+        this.state = 460;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.OPENBODY:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 397;
+                this.state = 451;
                 this.functionbody();
                 break;
             case LnParser.EQUALS:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 398;
+                this.state = 452;
                 this.match(LnParser.EQUALS);
-                this.state = 402;
+                this.state = 456;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 399;
+                    this.state = 453;
                     this.blank();
-                    this.state = 404;
+                    this.state = 458;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 405;
+                this.state = 459;
                 this.assignables();
                 break;
             default:
@@ -4670,17 +4828,6 @@ FunctionbodyContext.prototype.OPENBODY = function () {
 FunctionbodyContext.prototype.CLOSEBODY = function () {
     return this.getToken(LnParser.CLOSEBODY, 0);
 };
-FunctionbodyContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
 FunctionbodyContext.prototype.statements = function (i) {
     if (i === undefined) {
         i = null;
@@ -4690,6 +4837,17 @@ FunctionbodyContext.prototype.statements = function (i) {
     }
     else {
         return this.getTypedRuleContext(StatementsContext, i);
+    }
+};
+FunctionbodyContext.prototype.blank = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(BlankContext);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
     }
 };
 FunctionbodyContext.prototype.enterRule = function (listener) {
@@ -4705,43 +4863,39 @@ FunctionbodyContext.prototype.exitRule = function (listener) {
 LnParser.FunctionbodyContext = FunctionbodyContext;
 LnParser.prototype.functionbody = function () {
     var localctx = new FunctionbodyContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 34, LnParser.RULE_functionbody);
+    this.enterRule(localctx, 36, LnParser.RULE_functionbody);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 408;
+        this.state = 462;
         this.match(LnParser.OPENBODY);
-        this.state = 412;
+        this.state = 464;
         this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 409;
-            this.blank();
-            this.state = 414;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 416;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
+        var _alt = 1;
         do {
-            this.state = 415;
-            this.statements();
-            this.state = 418;
+            switch (_alt) {
+                case 1:
+                    this.state = 463;
+                    this.statements();
+                    break;
+                default:
+                    throw new antlr4.error.NoViableAltException(this);
+            }
+            this.state = 466;
             this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        } while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.CONST) | (1 << LnParser.LET) | (1 << LnParser.RETURN) | (1 << LnParser.EMIT) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.IF) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 42)) & ~0x1f) == 0 && ((1 << (_la - 42)) & ((1 << (LnParser.STRINGCONSTANT - 42)) | (1 << (LnParser.NUMBERCONSTANT - 42)) | (1 << (LnParser.VARNAME - 42)))) !== 0));
-        this.state = 423;
+            _alt = this._interp.adaptivePredict(this._input, 56, this._ctx);
+        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+        this.state = 471;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 420;
+            this.state = 468;
             this.blank();
-            this.state = 425;
+            this.state = 473;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 426;
+        this.state = 474;
         this.match(LnParser.CLOSEBODY);
     }
     catch (re) {
@@ -4776,12 +4930,6 @@ StatementsContext.prototype.constructor = StatementsContext;
 StatementsContext.prototype.declarations = function () {
     return this.getTypedRuleContext(DeclarationsContext, 0);
 };
-StatementsContext.prototype.assignments = function () {
-    return this.getTypedRuleContext(AssignmentsContext, 0);
-};
-StatementsContext.prototype.calls = function () {
-    return this.getTypedRuleContext(CallsContext, 0);
-};
 StatementsContext.prototype.exits = function () {
     return this.getTypedRuleContext(ExitsContext, 0);
 };
@@ -4790,6 +4938,9 @@ StatementsContext.prototype.emits = function () {
 };
 StatementsContext.prototype.conditionals = function () {
     return this.getTypedRuleContext(ConditionalsContext, 0);
+};
+StatementsContext.prototype.assignments = function () {
+    return this.getTypedRuleContext(AssignmentsContext, 0);
 };
 StatementsContext.prototype.blank = function (i) {
     if (i === undefined) {
@@ -4801,6 +4952,12 @@ StatementsContext.prototype.blank = function (i) {
     else {
         return this.getTypedRuleContext(BlankContext, i);
     }
+};
+StatementsContext.prototype.assignables = function () {
+    return this.getTypedRuleContext(AssignablesContext, 0);
+};
+StatementsContext.prototype.EOS = function () {
+    return this.getToken(LnParser.EOS, 0);
 };
 StatementsContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
@@ -4815,54 +4972,52 @@ StatementsContext.prototype.exitRule = function (listener) {
 LnParser.StatementsContext = StatementsContext;
 LnParser.prototype.statements = function () {
     var localctx = new StatementsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 36, LnParser.RULE_statements);
+    this.enterRule(localctx, 38, LnParser.RULE_statements);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 434;
+        this.state = 479;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input, 52, this._ctx);
+        var _alt = this._interp.adaptivePredict(this._input, 58, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
+                this.state = 476;
+                this.blank();
+            }
+            this.state = 481;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 58, this._ctx);
+        }
+        this.state = 490;
+        this._errHandler.sync(this);
+        var la_ = this._interp.adaptivePredict(this._input, 59, this._ctx);
         switch (la_) {
             case 1:
-                this.state = 428;
+                this.state = 482;
                 this.declarations();
                 break;
             case 2:
-                this.state = 429;
-                this.assignments();
-                break;
-            case 3:
-                this.state = 430;
-                this.calls();
-                break;
-            case 4:
-                this.state = 431;
+                this.state = 483;
                 this.exits();
                 break;
-            case 5:
-                this.state = 432;
+            case 3:
+                this.state = 484;
                 this.emits();
                 break;
-            case 6:
-                this.state = 433;
+            case 4:
+                this.state = 485;
                 this.conditionals();
                 break;
+            case 5:
+                this.state = 486;
+                this.assignments();
+                break;
+            case 6:
+                this.state = 487;
+                this.assignables();
+                this.state = 488;
+                this.match(LnParser.EOS);
+                break;
         }
-        this.state = 437;
-        this._errHandler.sync(this);
-        var _alt = 1;
-        do {
-            switch (_alt) {
-                case 1:
-                    this.state = 436;
-                    this.blank();
-                    break;
-                default:
-                    throw new antlr4.error.NoViableAltException(this);
-            }
-            this.state = 439;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 53, this._ctx);
-        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -4893,6 +5048,9 @@ function DeclarationsContext(parser, parent, invokingState) {
 }
 DeclarationsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 DeclarationsContext.prototype.constructor = DeclarationsContext;
+DeclarationsContext.prototype.EOS = function () {
+    return this.getToken(LnParser.EOS, 0);
+};
 DeclarationsContext.prototype.constdeclaration = function () {
     return this.getTypedRuleContext(ConstdeclarationContext, 0);
 };
@@ -4912,23 +5070,25 @@ DeclarationsContext.prototype.exitRule = function (listener) {
 LnParser.DeclarationsContext = DeclarationsContext;
 LnParser.prototype.declarations = function () {
     var localctx = new DeclarationsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 38, LnParser.RULE_declarations);
+    this.enterRule(localctx, 40, LnParser.RULE_declarations);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 443;
+        this.state = 494;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.CONST:
-                this.state = 441;
+                this.state = 492;
                 this.constdeclaration();
                 break;
             case LnParser.LET:
-                this.state = 442;
+                this.state = 493;
                 this.letdeclaration();
                 break;
             default:
                 throw new antlr4.error.NoViableAltException(this);
         }
+        this.state = 496;
+        this.match(LnParser.EOS);
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -4985,8 +5145,8 @@ ConstdeclarationContext.prototype.blank = function (i) {
 ConstdeclarationContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-ConstdeclarationContext.prototype.othertype = function () {
-    return this.getTypedRuleContext(OthertypeContext, 0);
+ConstdeclarationContext.prototype.fulltypename = function () {
+    return this.getTypedRuleContext(FulltypenameContext, 0);
 };
 ConstdeclarationContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
@@ -5001,75 +5161,75 @@ ConstdeclarationContext.prototype.exitRule = function (listener) {
 LnParser.ConstdeclarationContext = ConstdeclarationContext;
 LnParser.prototype.constdeclaration = function () {
     var localctx = new ConstdeclarationContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 40, LnParser.RULE_constdeclaration);
+    this.enterRule(localctx, 42, LnParser.RULE_constdeclaration);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 445;
+        this.state = 498;
         this.match(LnParser.CONST);
-        this.state = 449;
+        this.state = 502;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 446;
+            this.state = 499;
             this.blank();
-            this.state = 451;
+            this.state = 504;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 452;
+        this.state = 505;
         this.match(LnParser.VARNAME);
-        this.state = 456;
+        this.state = 509;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 56, this._ctx);
+        var _alt = this._interp.adaptivePredict(this._input, 62, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 453;
+                this.state = 506;
                 this.blank();
             }
-            this.state = 458;
+            this.state = 511;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 56, this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 62, this._ctx);
         }
-        this.state = 464;
+        this.state = 517;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.TYPESEP) {
-            this.state = 459;
+            this.state = 512;
             this.match(LnParser.TYPESEP);
-            this.state = 461;
+            this.state = 514;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 460;
+                this.state = 513;
                 this.blank();
             }
-            this.state = 463;
-            this.othertype();
+            this.state = 516;
+            this.fulltypename();
         }
-        this.state = 469;
+        this.state = 522;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 466;
+            this.state = 519;
             this.blank();
-            this.state = 471;
+            this.state = 524;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 472;
+        this.state = 525;
         this.match(LnParser.EQUALS);
-        this.state = 476;
+        this.state = 529;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 473;
+            this.state = 526;
             this.blank();
-            this.state = 478;
+            this.state = 531;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 479;
+        this.state = 532;
         this.assignables();
     }
     catch (re) {
@@ -5127,8 +5287,8 @@ LetdeclarationContext.prototype.blank = function (i) {
 LetdeclarationContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-LetdeclarationContext.prototype.othertype = function () {
-    return this.getTypedRuleContext(OthertypeContext, 0);
+LetdeclarationContext.prototype.fulltypename = function () {
+    return this.getTypedRuleContext(FulltypenameContext, 0);
 };
 LetdeclarationContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
@@ -5143,75 +5303,75 @@ LetdeclarationContext.prototype.exitRule = function (listener) {
 LnParser.LetdeclarationContext = LetdeclarationContext;
 LnParser.prototype.letdeclaration = function () {
     var localctx = new LetdeclarationContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 42, LnParser.RULE_letdeclaration);
+    this.enterRule(localctx, 44, LnParser.RULE_letdeclaration);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 481;
+        this.state = 534;
         this.match(LnParser.LET);
-        this.state = 485;
+        this.state = 538;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 482;
+            this.state = 535;
             this.blank();
-            this.state = 487;
+            this.state = 540;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 488;
+        this.state = 541;
         this.match(LnParser.VARNAME);
-        this.state = 492;
+        this.state = 545;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 62, this._ctx);
+        var _alt = this._interp.adaptivePredict(this._input, 68, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 489;
+                this.state = 542;
                 this.blank();
             }
-            this.state = 494;
+            this.state = 547;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 62, this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 68, this._ctx);
         }
-        this.state = 500;
+        this.state = 553;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.TYPESEP) {
-            this.state = 495;
+            this.state = 548;
             this.match(LnParser.TYPESEP);
-            this.state = 497;
+            this.state = 550;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 496;
+                this.state = 549;
                 this.blank();
             }
-            this.state = 499;
-            this.othertype();
+            this.state = 552;
+            this.fulltypename();
         }
-        this.state = 505;
+        this.state = 558;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 502;
+            this.state = 555;
             this.blank();
-            this.state = 507;
+            this.state = 560;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 508;
+        this.state = 561;
         this.match(LnParser.EQUALS);
-        this.state = 512;
+        this.state = 565;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 509;
+            this.state = 562;
             this.blank();
-            this.state = 514;
+            this.state = 567;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 515;
+        this.state = 568;
         this.assignables();
     }
     catch (re) {
@@ -5252,6 +5412,9 @@ AssignmentsContext.prototype.EQUALS = function () {
 AssignmentsContext.prototype.assignables = function () {
     return this.getTypedRuleContext(AssignablesContext, 0);
 };
+AssignmentsContext.prototype.EOS = function () {
+    return this.getToken(LnParser.EOS, 0);
+};
 AssignmentsContext.prototype.blank = function (i) {
     if (i === undefined) {
         i = null;
@@ -5276,36 +5439,38 @@ AssignmentsContext.prototype.exitRule = function (listener) {
 LnParser.AssignmentsContext = AssignmentsContext;
 LnParser.prototype.assignments = function () {
     var localctx = new AssignmentsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 44, LnParser.RULE_assignments);
+    this.enterRule(localctx, 46, LnParser.RULE_assignments);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 517;
+        this.state = 570;
         this.varn();
-        this.state = 521;
+        this.state = 574;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 518;
+            this.state = 571;
             this.blank();
-            this.state = 523;
+            this.state = 576;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 524;
+        this.state = 577;
         this.match(LnParser.EQUALS);
-        this.state = 528;
+        this.state = 581;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 525;
+            this.state = 578;
             this.blank();
-            this.state = 530;
+            this.state = 583;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 531;
+        this.state = 584;
         this.assignables();
+        this.state = 585;
+        this.match(LnParser.EOS);
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -5322,7 +5487,7 @@ LnParser.prototype.assignments = function () {
     }
     return localctx;
 };
-function AssignablesContext(parser, parent, invokingState) {
+function BaseassignableContext(parser, parent, invokingState) {
     if (parent === undefined) {
         parent = null;
     }
@@ -5331,231 +5496,79 @@ function AssignablesContext(parser, parent, invokingState) {
     }
     antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
-    this.ruleIndex = LnParser.RULE_assignables;
+    this.ruleIndex = LnParser.RULE_baseassignable;
     return this;
 }
-AssignablesContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-AssignablesContext.prototype.constructor = AssignablesContext;
-AssignablesContext.prototype.basicassignables = function () {
-    return this.getTypedRuleContext(BasicassignablesContext, 0);
+BaseassignableContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+BaseassignableContext.prototype.constructor = BaseassignableContext;
+BaseassignableContext.prototype.METHODSEP = function () {
+    return this.getToken(LnParser.METHODSEP, 0);
 };
-AssignablesContext.prototype.withoperators = function () {
-    return this.getTypedRuleContext(WithoperatorsContext, 0);
+BaseassignableContext.prototype.VARNAME = function () {
+    return this.getToken(LnParser.VARNAME, 0);
 };
-AssignablesContext.prototype.enterRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.enterAssignables(this);
-    }
-};
-AssignablesContext.prototype.exitRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.exitAssignables(this);
-    }
-};
-LnParser.AssignablesContext = AssignablesContext;
-LnParser.prototype.assignables = function () {
-    var localctx = new AssignablesContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 46, LnParser.RULE_assignables);
-    try {
-        this.state = 535;
-        this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input, 69, this._ctx);
-        switch (la_) {
-            case 1:
-                this.enterOuterAlt(localctx, 1);
-                this.state = 533;
-                this.basicassignables();
-                break;
-            case 2:
-                this.enterOuterAlt(localctx, 2);
-                this.state = 534;
-                this.withoperators();
-                break;
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function BasicassignablesContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = LnParser.RULE_basicassignables;
-    return this;
-}
-BasicassignablesContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-BasicassignablesContext.prototype.constructor = BasicassignablesContext;
-BasicassignablesContext.prototype.functions = function () {
-    return this.getTypedRuleContext(FunctionsContext, 0);
-};
-BasicassignablesContext.prototype.calls = function () {
-    return this.getTypedRuleContext(CallsContext, 0);
-};
-BasicassignablesContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
-};
-BasicassignablesContext.prototype.constants = function () {
+BaseassignableContext.prototype.constants = function () {
     return this.getTypedRuleContext(ConstantsContext, 0);
 };
-BasicassignablesContext.prototype.groups = function () {
-    return this.getTypedRuleContext(GroupsContext, 0);
+BaseassignableContext.prototype.functions = function () {
+    return this.getTypedRuleContext(FunctionsContext, 0);
 };
-BasicassignablesContext.prototype.typeofn = function () {
-    return this.getTypedRuleContext(TypeofnContext, 0);
+BaseassignableContext.prototype.fncall = function () {
+    return this.getTypedRuleContext(FncallContext, 0);
 };
-BasicassignablesContext.prototype.objectliterals = function () {
+BaseassignableContext.prototype.objectliterals = function () {
     return this.getTypedRuleContext(ObjectliteralsContext, 0);
 };
-BasicassignablesContext.prototype.enterRule = function (listener) {
+BaseassignableContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
-        listener.enterBasicassignables(this);
+        listener.enterBaseassignable(this);
     }
 };
-BasicassignablesContext.prototype.exitRule = function (listener) {
+BaseassignableContext.prototype.exitRule = function (listener) {
     if (listener instanceof LnListener) {
-        listener.exitBasicassignables(this);
+        listener.exitBaseassignable(this);
     }
 };
-LnParser.BasicassignablesContext = BasicassignablesContext;
-LnParser.prototype.basicassignables = function () {
-    var localctx = new BasicassignablesContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 48, LnParser.RULE_basicassignables);
+LnParser.BaseassignableContext = BaseassignableContext;
+LnParser.prototype.baseassignable = function () {
+    var localctx = new BaseassignableContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 48, LnParser.RULE_baseassignable);
     try {
-        this.state = 544;
-        this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input, 70, this._ctx);
-        switch (la_) {
-            case 1:
-                this.enterOuterAlt(localctx, 1);
-                this.state = 537;
-                this.functions();
-                break;
-            case 2:
-                this.enterOuterAlt(localctx, 2);
-                this.state = 538;
-                this.calls();
-                break;
-            case 3:
-                this.enterOuterAlt(localctx, 3);
-                this.state = 539;
-                this.varn();
-                break;
-            case 4:
-                this.enterOuterAlt(localctx, 4);
-                this.state = 540;
-                this.constants();
-                break;
-            case 5:
-                this.enterOuterAlt(localctx, 5);
-                this.state = 541;
-                this.groups();
-                break;
-            case 6:
-                this.enterOuterAlt(localctx, 6);
-                this.state = 542;
-                this.typeofn();
-                break;
-            case 7:
-                this.enterOuterAlt(localctx, 7);
-                this.state = 543;
-                this.objectliterals();
-                break;
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function OperatororassignableContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = LnParser.RULE_operatororassignable;
-    return this;
-}
-OperatororassignableContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-OperatororassignableContext.prototype.constructor = OperatororassignableContext;
-OperatororassignableContext.prototype.operators = function () {
-    return this.getTypedRuleContext(OperatorsContext, 0);
-};
-OperatororassignableContext.prototype.basicassignables = function () {
-    return this.getTypedRuleContext(BasicassignablesContext, 0);
-};
-OperatororassignableContext.prototype.enterRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.enterOperatororassignable(this);
-    }
-};
-OperatororassignableContext.prototype.exitRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.exitOperatororassignable(this);
-    }
-};
-LnParser.OperatororassignableContext = OperatororassignableContext;
-LnParser.prototype.operatororassignable = function () {
-    var localctx = new OperatororassignableContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 50, LnParser.RULE_operatororassignable);
-    try {
-        this.state = 548;
+        this.state = 593;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
-            case LnParser.OPENGENERIC:
-            case LnParser.CLOSEGENERIC:
-            case LnParser.GLOBAL:
-            case LnParser.DIRSEP:
-            case LnParser.OR:
-            case LnParser.TYPESEP:
-            case LnParser.GENERALOPERATORS:
-                this.enterOuterAlt(localctx, 1);
-                this.state = 546;
-                this.operators();
-                break;
-            case LnParser.TYPE:
-            case LnParser.FN:
-            case LnParser.BOOLCONSTANT:
-            case LnParser.NEW:
-            case LnParser.OPENARGS:
-            case LnParser.OPENARRAY:
             case LnParser.METHODSEP:
-            case LnParser.STRINGCONSTANT:
-            case LnParser.NUMBERCONSTANT:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 587;
+                this.match(LnParser.METHODSEP);
+                break;
             case LnParser.VARNAME:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 547;
-                this.basicassignables();
+                this.state = 588;
+                this.match(LnParser.VARNAME);
+                break;
+            case LnParser.BOOLCONSTANT:
+            case LnParser.STRINGCONSTANT:
+            case LnParser.NUMBERCONSTANT:
+                this.enterOuterAlt(localctx, 3);
+                this.state = 589;
+                this.constants();
+                break;
+            case LnParser.FN:
+                this.enterOuterAlt(localctx, 4);
+                this.state = 590;
+                this.functions();
+                break;
+            case LnParser.OPENARGS:
+                this.enterOuterAlt(localctx, 5);
+                this.state = 591;
+                this.fncall();
+                break;
+            case LnParser.NEW:
+            case LnParser.OPENARRAY:
+                this.enterOuterAlt(localctx, 6);
+                this.state = 592;
+                this.objectliterals();
                 break;
             default:
                 throw new antlr4.error.NoViableAltException(this);
@@ -5590,27 +5603,30 @@ function WithoperatorsContext(parser, parent, invokingState) {
 }
 WithoperatorsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 WithoperatorsContext.prototype.constructor = WithoperatorsContext;
-WithoperatorsContext.prototype.operatororassignable = function (i) {
+WithoperatorsContext.prototype.baseassignable = function (i) {
     if (i === undefined) {
         i = null;
     }
     if (i === null) {
-        return this.getTypedRuleContexts(OperatororassignableContext);
+        return this.getTypedRuleContexts(BaseassignableContext);
     }
     else {
-        return this.getTypedRuleContext(OperatororassignableContext, i);
+        return this.getTypedRuleContext(BaseassignableContext, i);
     }
 };
-WithoperatorsContext.prototype.WS = function (i) {
+WithoperatorsContext.prototype.blank = function (i) {
     if (i === undefined) {
         i = null;
     }
     if (i === null) {
-        return this.getTokens(LnParser.WS);
+        return this.getTypedRuleContexts(BlankContext);
     }
     else {
-        return this.getToken(LnParser.WS, i);
+        return this.getTypedRuleContext(BlankContext, i);
     }
+};
+WithoperatorsContext.prototype.operators = function () {
+    return this.getTypedRuleContext(OperatorsContext, 0);
 };
 WithoperatorsContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
@@ -5625,37 +5641,63 @@ WithoperatorsContext.prototype.exitRule = function (listener) {
 LnParser.WithoperatorsContext = WithoperatorsContext;
 LnParser.prototype.withoperators = function () {
     var localctx = new WithoperatorsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 52, LnParser.RULE_withoperators);
+    this.enterRule(localctx, 50, LnParser.RULE_withoperators);
     try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 557;
+        this.state = 607;
         this._errHandler.sync(this);
-        var _alt = 1;
-        do {
-            switch (_alt) {
-                case 1:
-                    this.state = 550;
-                    this.operatororassignable();
-                    this.state = 554;
-                    this._errHandler.sync(this);
-                    var _alt = this._interp.adaptivePredict(this._input, 72, this._ctx);
-                    while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                        if (_alt === 1) {
-                            this.state = 551;
-                            this.match(LnParser.WS);
-                        }
-                        this.state = 556;
-                        this._errHandler.sync(this);
-                        _alt = this._interp.adaptivePredict(this._input, 72, this._ctx);
+        switch (this._input.LA(1)) {
+            case LnParser.FN:
+            case LnParser.BOOLCONSTANT:
+            case LnParser.NEW:
+            case LnParser.OPENARGS:
+            case LnParser.OPENARRAY:
+            case LnParser.METHODSEP:
+            case LnParser.STRINGCONSTANT:
+            case LnParser.NUMBERCONSTANT:
+            case LnParser.VARNAME:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 602;
+                this._errHandler.sync(this);
+                var _alt = 1;
+                do {
+                    switch (_alt) {
+                        case 1:
+                            this.state = 595;
+                            this.baseassignable();
+                            this.state = 599;
+                            this._errHandler.sync(this);
+                            var _alt = this._interp.adaptivePredict(this._input, 76, this._ctx);
+                            while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                                if (_alt === 1) {
+                                    this.state = 596;
+                                    this.blank();
+                                }
+                                this.state = 601;
+                                this._errHandler.sync(this);
+                                _alt = this._interp.adaptivePredict(this._input, 76, this._ctx);
+                            }
+                            break;
+                        default:
+                            throw new antlr4.error.NoViableAltException(this);
                     }
-                    break;
-                default:
-                    throw new antlr4.error.NoViableAltException(this);
-            }
-            this.state = 559;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 73, this._ctx);
-        } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+                    this.state = 604;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 77, this._ctx);
+                } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
+                break;
+            case LnParser.OPENGENERIC:
+            case LnParser.CLOSEGENERIC:
+            case LnParser.GLOBAL:
+            case LnParser.DIRSEP:
+            case LnParser.TYPESEP:
+            case LnParser.GENERALOPERATORS:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 606;
+                this.operators();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
+        }
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -5672,7 +5714,7 @@ LnParser.prototype.withoperators = function () {
     }
     return localctx;
 };
-function GroupsContext(parser, parent, invokingState) {
+function AssignablesContext(parser, parent, invokingState) {
     if (parent === undefined) {
         parent = null;
     }
@@ -5681,152 +5723,74 @@ function GroupsContext(parser, parent, invokingState) {
     }
     antlr4.ParserRuleContext.call(this, parent, invokingState);
     this.parser = parser;
-    this.ruleIndex = LnParser.RULE_groups;
+    this.ruleIndex = LnParser.RULE_assignables;
     return this;
 }
-GroupsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-GroupsContext.prototype.constructor = GroupsContext;
-GroupsContext.prototype.OPENARGS = function () {
-    return this.getToken(LnParser.OPENARGS, 0);
-};
-GroupsContext.prototype.withoperators = function () {
-    return this.getTypedRuleContext(WithoperatorsContext, 0);
-};
-GroupsContext.prototype.CLOSEARGS = function () {
-    return this.getToken(LnParser.CLOSEARGS, 0);
-};
-GroupsContext.prototype.WS = function (i) {
+AssignablesContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+AssignablesContext.prototype.constructor = AssignablesContext;
+AssignablesContext.prototype.withoperators = function (i) {
     if (i === undefined) {
         i = null;
     }
     if (i === null) {
-        return this.getTokens(LnParser.WS);
+        return this.getTypedRuleContexts(WithoperatorsContext);
     }
     else {
-        return this.getToken(LnParser.WS, i);
+        return this.getTypedRuleContext(WithoperatorsContext, i);
     }
 };
-GroupsContext.prototype.enterRule = function (listener) {
+AssignablesContext.prototype.blank = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(BlankContext);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
+    }
+};
+AssignablesContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
-        listener.enterGroups(this);
+        listener.enterAssignables(this);
     }
 };
-GroupsContext.prototype.exitRule = function (listener) {
+AssignablesContext.prototype.exitRule = function (listener) {
     if (listener instanceof LnListener) {
-        listener.exitGroups(this);
+        listener.exitAssignables(this);
     }
 };
-LnParser.GroupsContext = GroupsContext;
-LnParser.prototype.groups = function () {
-    var localctx = new GroupsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 54, LnParser.RULE_groups);
+LnParser.AssignablesContext = AssignablesContext;
+LnParser.prototype.assignables = function () {
+    var localctx = new AssignablesContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 52, LnParser.RULE_assignables);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 561;
-        this.match(LnParser.OPENARGS);
-        this.state = 565;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.WS) {
-            this.state = 562;
-            this.match(LnParser.WS);
-            this.state = 567;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 568;
+        this.state = 609;
         this.withoperators();
-        this.state = 572;
+        this.state = 619;
         this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.WS) {
-            this.state = 569;
-            this.match(LnParser.WS);
-            this.state = 574;
+        var _alt = this._interp.adaptivePredict(this._input, 80, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
+                this.state = 613;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                    this.state = 610;
+                    this.blank();
+                    this.state = 615;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                }
+                this.state = 616;
+                this.withoperators();
+            }
+            this.state = 621;
             this._errHandler.sync(this);
-            _la = this._input.LA(1);
+            _alt = this._interp.adaptivePredict(this._input, 80, this._ctx);
         }
-        this.state = 575;
-        this.match(LnParser.CLOSEARGS);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function TypeofnContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = LnParser.RULE_typeofn;
-    return this;
-}
-TypeofnContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-TypeofnContext.prototype.constructor = TypeofnContext;
-TypeofnContext.prototype.TYPE = function () {
-    return this.getToken(LnParser.TYPE, 0);
-};
-TypeofnContext.prototype.basicassignables = function () {
-    return this.getTypedRuleContext(BasicassignablesContext, 0);
-};
-TypeofnContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.WS);
-    }
-    else {
-        return this.getToken(LnParser.WS, i);
-    }
-};
-TypeofnContext.prototype.enterRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.enterTypeofn(this);
-    }
-};
-TypeofnContext.prototype.exitRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.exitTypeofn(this);
-    }
-};
-LnParser.TypeofnContext = TypeofnContext;
-LnParser.prototype.typeofn = function () {
-    var localctx = new TypeofnContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 56, LnParser.RULE_typeofn);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 577;
-        this.match(LnParser.TYPE);
-        this.state = 581;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.WS) {
-            this.state = 578;
-            this.match(LnParser.WS);
-            this.state = 583;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 584;
-        this.basicassignables();
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -5863,9 +5827,6 @@ ObjectliteralsContext.prototype.arrayliteral = function () {
 ObjectliteralsContext.prototype.typeliteral = function () {
     return this.getTypedRuleContext(TypeliteralContext, 0);
 };
-ObjectliteralsContext.prototype.mapliteral = function () {
-    return this.getTypedRuleContext(MapliteralContext, 0);
-};
 ObjectliteralsContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
         listener.enterObjectliterals(this);
@@ -5879,572 +5840,23 @@ ObjectliteralsContext.prototype.exitRule = function (listener) {
 LnParser.ObjectliteralsContext = ObjectliteralsContext;
 LnParser.prototype.objectliterals = function () {
     var localctx = new ObjectliteralsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 58, LnParser.RULE_objectliterals);
+    this.enterRule(localctx, 54, LnParser.RULE_objectliterals);
     try {
-        this.state = 589;
+        this.state = 624;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input, 77, this._ctx);
+        var la_ = this._interp.adaptivePredict(this._input, 81, this._ctx);
         switch (la_) {
             case 1:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 586;
+                this.state = 622;
                 this.arrayliteral();
                 break;
             case 2:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 587;
+                this.state = 623;
                 this.typeliteral();
                 break;
-            case 3:
-                this.enterOuterAlt(localctx, 3);
-                this.state = 588;
-                this.mapliteral();
-                break;
         }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function ArrayliteralContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = LnParser.RULE_arrayliteral;
-    return this;
-}
-ArrayliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-ArrayliteralContext.prototype.constructor = ArrayliteralContext;
-ArrayliteralContext.prototype.OPENARRAY = function () {
-    return this.getToken(LnParser.OPENARRAY, 0);
-};
-ArrayliteralContext.prototype.CLOSEARRAY = function () {
-    return this.getToken(LnParser.CLOSEARRAY, 0);
-};
-ArrayliteralContext.prototype.NEW = function () {
-    return this.getToken(LnParser.NEW, 0);
-};
-ArrayliteralContext.prototype.othertype = function () {
-    return this.getTypedRuleContext(OthertypeContext, 0);
-};
-ArrayliteralContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-ArrayliteralContext.prototype.assignablelist = function () {
-    return this.getTypedRuleContext(AssignablelistContext, 0);
-};
-ArrayliteralContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.WS);
-    }
-    else {
-        return this.getToken(LnParser.WS, i);
-    }
-};
-ArrayliteralContext.prototype.enterRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.enterArrayliteral(this);
-    }
-};
-ArrayliteralContext.prototype.exitRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.exitArrayliteral(this);
-    }
-};
-LnParser.ArrayliteralContext = ArrayliteralContext;
-LnParser.prototype.arrayliteral = function () {
-    var localctx = new ArrayliteralContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 60, LnParser.RULE_arrayliteral);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 605;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        if (_la === LnParser.NEW) {
-            this.state = 591;
-            this.match(LnParser.NEW);
-            this.state = 595;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            while (_la === LnParser.WS) {
-                this.state = 592;
-                this.match(LnParser.WS);
-                this.state = 597;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-            }
-            this.state = 598;
-            this.othertype();
-            this.state = 602;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            while (_la === LnParser.WS) {
-                this.state = 599;
-                this.match(LnParser.WS);
-                this.state = 604;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-            }
-        }
-        this.state = 607;
-        this.match(LnParser.OPENARRAY);
-        this.state = 611;
-        this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 81, this._ctx);
-        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if (_alt === 1) {
-                this.state = 608;
-                this.blank();
-            }
-            this.state = 613;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 81, this._ctx);
-        }
-        this.state = 615;
-        this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input, 82, this._ctx);
-        if (la_ === 1) {
-            this.state = 614;
-            this.assignablelist();
-        }
-        this.state = 620;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 617;
-            this.blank();
-            this.state = 622;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 623;
-        this.match(LnParser.CLOSEARRAY);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function TypeliteralContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = LnParser.RULE_typeliteral;
-    return this;
-}
-TypeliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-TypeliteralContext.prototype.constructor = TypeliteralContext;
-TypeliteralContext.prototype.NEW = function () {
-    return this.getToken(LnParser.NEW, 0);
-};
-TypeliteralContext.prototype.othertype = function () {
-    return this.getTypedRuleContext(OthertypeContext, 0);
-};
-TypeliteralContext.prototype.OPENBODY = function () {
-    return this.getToken(LnParser.OPENBODY, 0);
-};
-TypeliteralContext.prototype.CLOSEBODY = function () {
-    return this.getToken(LnParser.CLOSEBODY, 0);
-};
-TypeliteralContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.WS);
-    }
-    else {
-        return this.getToken(LnParser.WS, i);
-    }
-};
-TypeliteralContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-TypeliteralContext.prototype.assignments = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(AssignmentsContext);
-    }
-    else {
-        return this.getTypedRuleContext(AssignmentsContext, i);
-    }
-};
-TypeliteralContext.prototype.enterRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.enterTypeliteral(this);
-    }
-};
-TypeliteralContext.prototype.exitRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.exitTypeliteral(this);
-    }
-};
-LnParser.TypeliteralContext = TypeliteralContext;
-LnParser.prototype.typeliteral = function () {
-    var localctx = new TypeliteralContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 62, LnParser.RULE_typeliteral);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 625;
-        this.match(LnParser.NEW);
-        this.state = 629;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.WS) {
-            this.state = 626;
-            this.match(LnParser.WS);
-            this.state = 631;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 632;
-        this.othertype();
-        this.state = 636;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.WS) {
-            this.state = 633;
-            this.match(LnParser.WS);
-            this.state = 638;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 639;
-        this.match(LnParser.OPENBODY);
-        this.state = 643;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 640;
-            this.blank();
-            this.state = 645;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 652;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        do {
-            this.state = 646;
-            this.assignments();
-            this.state = 648;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            do {
-                this.state = 647;
-                this.blank();
-                this.state = 650;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-            } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
-            this.state = 654;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        } while (((((_la - 28)) & ~0x1f) == 0 && ((1 << (_la - 28)) & ((1 << (LnParser.OPENARRAY - 28)) | (1 << (LnParser.METHODSEP - 28)) | (1 << (LnParser.VARNAME - 28)))) !== 0));
-        this.state = 656;
-        this.match(LnParser.CLOSEBODY);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function MapliteralContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = LnParser.RULE_mapliteral;
-    return this;
-}
-MapliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-MapliteralContext.prototype.constructor = MapliteralContext;
-MapliteralContext.prototype.NEW = function () {
-    return this.getToken(LnParser.NEW, 0);
-};
-MapliteralContext.prototype.othertype = function () {
-    return this.getTypedRuleContext(OthertypeContext, 0);
-};
-MapliteralContext.prototype.OPENBODY = function () {
-    return this.getToken(LnParser.OPENBODY, 0);
-};
-MapliteralContext.prototype.CLOSEBODY = function () {
-    return this.getToken(LnParser.CLOSEBODY, 0);
-};
-MapliteralContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.WS);
-    }
-    else {
-        return this.getToken(LnParser.WS, i);
-    }
-};
-MapliteralContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-MapliteralContext.prototype.mapline = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(MaplineContext);
-    }
-    else {
-        return this.getTypedRuleContext(MaplineContext, i);
-    }
-};
-MapliteralContext.prototype.enterRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.enterMapliteral(this);
-    }
-};
-MapliteralContext.prototype.exitRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.exitMapliteral(this);
-    }
-};
-LnParser.MapliteralContext = MapliteralContext;
-LnParser.prototype.mapliteral = function () {
-    var localctx = new MapliteralContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 64, LnParser.RULE_mapliteral);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 658;
-        this.match(LnParser.NEW);
-        this.state = 662;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.WS) {
-            this.state = 659;
-            this.match(LnParser.WS);
-            this.state = 664;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 665;
-        this.othertype();
-        this.state = 669;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.WS) {
-            this.state = 666;
-            this.match(LnParser.WS);
-            this.state = 671;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 672;
-        this.match(LnParser.OPENBODY);
-        this.state = 676;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 673;
-            this.blank();
-            this.state = 678;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 687;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.TYPE) | (1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (LnParser.GLOBAL - 32)) | (1 << (LnParser.DIRSEP - 32)) | (1 << (LnParser.OR - 32)) | (1 << (LnParser.TYPESEP - 32)) | (1 << (LnParser.STRINGCONSTANT - 32)) | (1 << (LnParser.NUMBERCONSTANT - 32)) | (1 << (LnParser.GENERALOPERATORS - 32)) | (1 << (LnParser.VARNAME - 32)))) !== 0)) {
-            this.state = 679;
-            this.mapline();
-            this.state = 681;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            do {
-                this.state = 680;
-                this.blank();
-                this.state = 683;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-            } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
-            this.state = 689;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 690;
-        this.match(LnParser.CLOSEBODY);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function MaplineContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = LnParser.RULE_mapline;
-    return this;
-}
-MaplineContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-MaplineContext.prototype.constructor = MaplineContext;
-MaplineContext.prototype.assignables = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(AssignablesContext);
-    }
-    else {
-        return this.getTypedRuleContext(AssignablesContext, i);
-    }
-};
-MaplineContext.prototype.TYPESEP = function () {
-    return this.getToken(LnParser.TYPESEP, 0);
-};
-MaplineContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.WS);
-    }
-    else {
-        return this.getToken(LnParser.WS, i);
-    }
-};
-MaplineContext.prototype.enterRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.enterMapline(this);
-    }
-};
-MaplineContext.prototype.exitRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.exitMapline(this);
-    }
-};
-LnParser.MaplineContext = MaplineContext;
-LnParser.prototype.mapline = function () {
-    var localctx = new MaplineContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 66, LnParser.RULE_mapline);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 692;
-        this.assignables();
-        this.state = 696;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.WS) {
-            this.state = 693;
-            this.match(LnParser.WS);
-            this.state = 698;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 699;
-        this.match(LnParser.TYPESEP);
-        this.state = 703;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.WS) {
-            this.state = 700;
-            this.match(LnParser.WS);
-            this.state = 705;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 706;
-        this.assignables();
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -6521,65 +5933,680 @@ AssignablelistContext.prototype.exitRule = function (listener) {
 LnParser.AssignablelistContext = AssignablelistContext;
 LnParser.prototype.assignablelist = function () {
     var localctx = new AssignablelistContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 68, LnParser.RULE_assignablelist);
+    this.enterRule(localctx, 56, LnParser.RULE_assignablelist);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 711;
+        this.state = 626;
+        this.assignables();
+        this.state = 630;
+        this._errHandler.sync(this);
+        var _alt = this._interp.adaptivePredict(this._input, 82, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
+                this.state = 627;
+                this.blank();
+            }
+            this.state = 632;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 82, this._ctx);
+        }
+        this.state = 649;
+        this._errHandler.sync(this);
+        var _alt = this._interp.adaptivePredict(this._input, 85, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
+                this.state = 633;
+                this.match(LnParser.SEP);
+                this.state = 637;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                    this.state = 634;
+                    this.blank();
+                    this.state = 639;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                }
+                this.state = 640;
+                this.assignables();
+                this.state = 644;
+                this._errHandler.sync(this);
+                var _alt = this._interp.adaptivePredict(this._input, 84, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 641;
+                        this.blank();
+                    }
+                    this.state = 646;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 84, this._ctx);
+                }
+            }
+            this.state = 651;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 85, this._ctx);
+        }
+        this.state = 653;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        if (_la === LnParser.SEP) {
+            this.state = 652;
+            this.match(LnParser.SEP);
+        }
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+function TypeassignlistContext(parser, parent, invokingState) {
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = LnParser.RULE_typeassignlist;
+    return this;
+}
+TypeassignlistContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+TypeassignlistContext.prototype.constructor = TypeassignlistContext;
+TypeassignlistContext.prototype.VARNAME = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTokens(LnParser.VARNAME);
+    }
+    else {
+        return this.getToken(LnParser.VARNAME, i);
+    }
+};
+TypeassignlistContext.prototype.TYPESEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTokens(LnParser.TYPESEP);
+    }
+    else {
+        return this.getToken(LnParser.TYPESEP, i);
+    }
+};
+TypeassignlistContext.prototype.assignables = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(AssignablesContext);
+    }
+    else {
+        return this.getTypedRuleContext(AssignablesContext, i);
+    }
+};
+TypeassignlistContext.prototype.blank = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(BlankContext);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
+    }
+};
+TypeassignlistContext.prototype.SEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTokens(LnParser.SEP);
+    }
+    else {
+        return this.getToken(LnParser.SEP, i);
+    }
+};
+TypeassignlistContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.enterTypeassignlist(this);
+    }
+};
+TypeassignlistContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.exitTypeassignlist(this);
+    }
+};
+LnParser.TypeassignlistContext = TypeassignlistContext;
+LnParser.prototype.typeassignlist = function () {
+    var localctx = new TypeassignlistContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 58, LnParser.RULE_typeassignlist);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 655;
+        this.match(LnParser.VARNAME);
+        this.state = 659;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 708;
+            this.state = 656;
             this.blank();
-            this.state = 713;
+            this.state = 661;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 714;
+        this.state = 662;
+        this.match(LnParser.TYPESEP);
+        this.state = 666;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 663;
+            this.blank();
+            this.state = 668;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 669;
         this.assignables();
-        this.state = 725;
+        this.state = 673;
+        this._errHandler.sync(this);
+        var _alt = this._interp.adaptivePredict(this._input, 89, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
+                this.state = 670;
+                this.blank();
+            }
+            this.state = 675;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 89, this._ctx);
+        }
+        this.state = 706;
+        this._errHandler.sync(this);
+        var _alt = this._interp.adaptivePredict(this._input, 94, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
+                this.state = 676;
+                this.match(LnParser.SEP);
+                this.state = 680;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                    this.state = 677;
+                    this.blank();
+                    this.state = 682;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                }
+                this.state = 683;
+                this.match(LnParser.VARNAME);
+                this.state = 687;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                    this.state = 684;
+                    this.blank();
+                    this.state = 689;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                }
+                this.state = 690;
+                this.match(LnParser.TYPESEP);
+                this.state = 694;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                    this.state = 691;
+                    this.blank();
+                    this.state = 696;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                }
+                this.state = 697;
+                this.assignables();
+                this.state = 701;
+                this._errHandler.sync(this);
+                var _alt = this._interp.adaptivePredict(this._input, 93, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 698;
+                        this.blank();
+                    }
+                    this.state = 703;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 93, this._ctx);
+                }
+            }
+            this.state = 708;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 94, this._ctx);
+        }
+        this.state = 710;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        if (_la === LnParser.SEP) {
+            this.state = 709;
+            this.match(LnParser.SEP);
+        }
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+function LiteraldecContext(parser, parent, invokingState) {
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = LnParser.RULE_literaldec;
+    return this;
+}
+LiteraldecContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+LiteraldecContext.prototype.constructor = LiteraldecContext;
+LiteraldecContext.prototype.NEW = function () {
+    return this.getToken(LnParser.NEW, 0);
+};
+LiteraldecContext.prototype.fulltypename = function () {
+    return this.getTypedRuleContext(FulltypenameContext, 0);
+};
+LiteraldecContext.prototype.WS = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTokens(LnParser.WS);
+    }
+    else {
+        return this.getToken(LnParser.WS, i);
+    }
+};
+LiteraldecContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.enterLiteraldec(this);
+    }
+};
+LiteraldecContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.exitLiteraldec(this);
+    }
+};
+LnParser.LiteraldecContext = LiteraldecContext;
+LnParser.prototype.literaldec = function () {
+    var localctx = new LiteraldecContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 60, LnParser.RULE_literaldec);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 712;
+        this.match(LnParser.NEW);
+        this.state = 716;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.WS) {
+            this.state = 713;
+            this.match(LnParser.WS);
+            this.state = 718;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 719;
+        this.fulltypename();
+        this.state = 723;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.WS) {
+            this.state = 720;
+            this.match(LnParser.WS);
+            this.state = 725;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+function ArraybaseContext(parser, parent, invokingState) {
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = LnParser.RULE_arraybase;
+    return this;
+}
+ArraybaseContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+ArraybaseContext.prototype.constructor = ArraybaseContext;
+ArraybaseContext.prototype.OPENARRAY = function () {
+    return this.getToken(LnParser.OPENARRAY, 0);
+};
+ArraybaseContext.prototype.CLOSEARRAY = function () {
+    return this.getToken(LnParser.CLOSEARRAY, 0);
+};
+ArraybaseContext.prototype.blank = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(BlankContext);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
+    }
+};
+ArraybaseContext.prototype.assignablelist = function () {
+    return this.getTypedRuleContext(AssignablelistContext, 0);
+};
+ArraybaseContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.enterArraybase(this);
+    }
+};
+ArraybaseContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.exitArraybase(this);
+    }
+};
+LnParser.ArraybaseContext = ArraybaseContext;
+LnParser.prototype.arraybase = function () {
+    var localctx = new ArraybaseContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 62, LnParser.RULE_arraybase);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 726;
+        this.match(LnParser.OPENARRAY);
+        this.state = 730;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 98, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 715;
-                this.match(LnParser.SEP);
-                this.state = 719;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 716;
-                    this.blank();
-                    this.state = 721;
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                }
-                this.state = 722;
-                this.assignables();
+                this.state = 727;
+                this.blank();
             }
-            this.state = 727;
+            this.state = 732;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 98, this._ctx);
         }
-        this.state = 729;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        if (_la === LnParser.SEP) {
-            this.state = 728;
-            this.match(LnParser.SEP);
-        }
         this.state = 734;
         this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 100, this._ctx);
-        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if (_alt === 1) {
-                this.state = 731;
-                this.blank();
-            }
-            this.state = 736;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 100, this._ctx);
+        _la = this._input.LA(1);
+        if ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (LnParser.GLOBAL - 32)) | (1 << (LnParser.DIRSEP - 32)) | (1 << (LnParser.TYPESEP - 32)) | (1 << (LnParser.STRINGCONSTANT - 32)) | (1 << (LnParser.NUMBERCONSTANT - 32)) | (1 << (LnParser.GENERALOPERATORS - 32)) | (1 << (LnParser.VARNAME - 32)))) !== 0)) {
+            this.state = 733;
+            this.assignablelist();
         }
+        this.state = 739;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 736;
+            this.blank();
+            this.state = 741;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 742;
+        this.match(LnParser.CLOSEARRAY);
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+function ArrayliteralContext(parser, parent, invokingState) {
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = LnParser.RULE_arrayliteral;
+    return this;
+}
+ArrayliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+ArrayliteralContext.prototype.constructor = ArrayliteralContext;
+ArrayliteralContext.prototype.arraybase = function () {
+    return this.getTypedRuleContext(ArraybaseContext, 0);
+};
+ArrayliteralContext.prototype.literaldec = function () {
+    return this.getTypedRuleContext(LiteraldecContext, 0);
+};
+ArrayliteralContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.enterArrayliteral(this);
+    }
+};
+ArrayliteralContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.exitArrayliteral(this);
+    }
+};
+LnParser.ArrayliteralContext = ArrayliteralContext;
+LnParser.prototype.arrayliteral = function () {
+    var localctx = new ArrayliteralContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 64, LnParser.RULE_arrayliteral);
+    try {
+        this.state = 748;
+        this._errHandler.sync(this);
+        switch (this._input.LA(1)) {
+            case LnParser.OPENARRAY:
+                this.enterOuterAlt(localctx, 1);
+                this.state = 744;
+                this.arraybase();
+                break;
+            case LnParser.NEW:
+                this.enterOuterAlt(localctx, 2);
+                this.state = 745;
+                this.literaldec();
+                this.state = 746;
+                this.arraybase();
+                break;
+            default:
+                throw new antlr4.error.NoViableAltException(this);
+        }
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+function TypebaseContext(parser, parent, invokingState) {
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = LnParser.RULE_typebase;
+    return this;
+}
+TypebaseContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+TypebaseContext.prototype.constructor = TypebaseContext;
+TypebaseContext.prototype.OPENBODY = function () {
+    return this.getToken(LnParser.OPENBODY, 0);
+};
+TypebaseContext.prototype.typeassignlist = function () {
+    return this.getTypedRuleContext(TypeassignlistContext, 0);
+};
+TypebaseContext.prototype.CLOSEBODY = function () {
+    return this.getToken(LnParser.CLOSEBODY, 0);
+};
+TypebaseContext.prototype.blank = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(BlankContext);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
+    }
+};
+TypebaseContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.enterTypebase(this);
+    }
+};
+TypebaseContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.exitTypebase(this);
+    }
+};
+LnParser.TypebaseContext = TypebaseContext;
+LnParser.prototype.typebase = function () {
+    var localctx = new TypebaseContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 66, LnParser.RULE_typebase);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 750;
+        this.match(LnParser.OPENBODY);
+        this.state = 754;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 751;
+            this.blank();
+            this.state = 756;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 757;
+        this.typeassignlist();
+        this.state = 761;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 758;
+            this.blank();
+            this.state = 763;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 764;
+        this.match(LnParser.CLOSEBODY);
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+function TypeliteralContext(parser, parent, invokingState) {
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = LnParser.RULE_typeliteral;
+    return this;
+}
+TypeliteralContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+TypeliteralContext.prototype.constructor = TypeliteralContext;
+TypeliteralContext.prototype.literaldec = function () {
+    return this.getTypedRuleContext(LiteraldecContext, 0);
+};
+TypeliteralContext.prototype.typebase = function () {
+    return this.getTypedRuleContext(TypebaseContext, 0);
+};
+TypeliteralContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.enterTypeliteral(this);
+    }
+};
+TypeliteralContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.exitTypeliteral(this);
+    }
+};
+LnParser.TypeliteralContext = TypeliteralContext;
+LnParser.prototype.typeliteral = function () {
+    var localctx = new TypeliteralContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 68, LnParser.RULE_typeliteral);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 766;
+        this.literaldec();
+        this.state = 767;
+        this.typebase();
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -6616,6 +6643,17 @@ FncallContext.prototype.OPENARGS = function () {
 FncallContext.prototype.CLOSEARGS = function () {
     return this.getToken(LnParser.CLOSEARGS, 0);
 };
+FncallContext.prototype.blank = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(BlankContext);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
+    }
+};
 FncallContext.prototype.assignablelist = function () {
     return this.getTypedRuleContext(AssignablelistContext, 0);
 };
@@ -6636,226 +6674,39 @@ LnParser.prototype.fncall = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 737;
+        this.state = 769;
         this.match(LnParser.OPENARGS);
-        this.state = 739;
+        this.state = 773;
+        this._errHandler.sync(this);
+        var _alt = this._interp.adaptivePredict(this._input, 104, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
+                this.state = 770;
+                this.blank();
+            }
+            this.state = 775;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 104, this._ctx);
+        }
+        this.state = 777;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.TYPE) | (1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (LnParser.GLOBAL - 32)) | (1 << (LnParser.DIRSEP - 32)) | (1 << (LnParser.OR - 32)) | (1 << (LnParser.TYPESEP - 32)) | (1 << (LnParser.NEWLINE - 32)) | (1 << (LnParser.WS - 32)) | (1 << (LnParser.STRINGCONSTANT - 32)) | (1 << (LnParser.NUMBERCONSTANT - 32)) | (1 << (LnParser.GENERALOPERATORS - 32)) | (1 << (LnParser.VARNAME - 32)))) !== 0)) {
-            this.state = 738;
+        if ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (LnParser.GLOBAL - 32)) | (1 << (LnParser.DIRSEP - 32)) | (1 << (LnParser.TYPESEP - 32)) | (1 << (LnParser.STRINGCONSTANT - 32)) | (1 << (LnParser.NUMBERCONSTANT - 32)) | (1 << (LnParser.GENERALOPERATORS - 32)) | (1 << (LnParser.VARNAME - 32)))) !== 0)) {
+            this.state = 776;
             this.assignablelist();
         }
-        this.state = 741;
-        this.match(LnParser.CLOSEARGS);
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function CallsContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = LnParser.RULE_calls;
-    return this;
-}
-CallsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-CallsContext.prototype.constructor = CallsContext;
-CallsContext.prototype.varn = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(VarnContext);
-    }
-    else {
-        return this.getTypedRuleContext(VarnContext, i);
-    }
-};
-CallsContext.prototype.fncall = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(FncallContext);
-    }
-    else {
-        return this.getTypedRuleContext(FncallContext, i);
-    }
-};
-CallsContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.WS);
-    }
-    else {
-        return this.getToken(LnParser.WS, i);
-    }
-};
-CallsContext.prototype.METHODSEP = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.METHODSEP);
-    }
-    else {
-        return this.getToken(LnParser.METHODSEP, i);
-    }
-};
-CallsContext.prototype.constants = function () {
-    return this.getTypedRuleContext(ConstantsContext, 0);
-};
-CallsContext.prototype.OPENARGS = function () {
-    return this.getToken(LnParser.OPENARGS, 0);
-};
-CallsContext.prototype.assignables = function () {
-    return this.getTypedRuleContext(AssignablesContext, 0);
-};
-CallsContext.prototype.CLOSEARGS = function () {
-    return this.getToken(LnParser.CLOSEARGS, 0);
-};
-CallsContext.prototype.enterRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.enterCalls(this);
-    }
-};
-CallsContext.prototype.exitRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.exitCalls(this);
-    }
-};
-LnParser.CallsContext = CallsContext;
-LnParser.prototype.calls = function () {
-    var localctx = new CallsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 72, LnParser.RULE_calls);
-    var _la = 0; // Token type
-    try {
-        this.state = 787;
+        this.state = 782;
         this._errHandler.sync(this);
-        switch (this._input.LA(1)) {
-            case LnParser.OPENARRAY:
-            case LnParser.METHODSEP:
-            case LnParser.VARNAME:
-                this.enterOuterAlt(localctx, 1);
-                this.state = 743;
-                this.varn();
-                this.state = 747;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-                while (_la === LnParser.WS) {
-                    this.state = 744;
-                    this.match(LnParser.WS);
-                    this.state = 749;
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                }
-                this.state = 750;
-                this.fncall();
-                this.state = 763;
-                this._errHandler.sync(this);
-                var _alt = this._interp.adaptivePredict(this._input, 104, this._ctx);
-                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-                    if (_alt === 1) {
-                        this.state = 751;
-                        this.match(LnParser.METHODSEP);
-                        this.state = 752;
-                        this.varn();
-                        this.state = 756;
-                        this._errHandler.sync(this);
-                        _la = this._input.LA(1);
-                        while (_la === LnParser.WS) {
-                            this.state = 753;
-                            this.match(LnParser.WS);
-                            this.state = 758;
-                            this._errHandler.sync(this);
-                            _la = this._input.LA(1);
-                        }
-                        this.state = 759;
-                        this.fncall();
-                    }
-                    this.state = 765;
-                    this._errHandler.sync(this);
-                    _alt = this._interp.adaptivePredict(this._input, 104, this._ctx);
-                }
-                break;
-            case LnParser.BOOLCONSTANT:
-            case LnParser.OPENARGS:
-            case LnParser.STRINGCONSTANT:
-            case LnParser.NUMBERCONSTANT:
-                this.enterOuterAlt(localctx, 2);
-                this.state = 771;
-                this._errHandler.sync(this);
-                switch (this._input.LA(1)) {
-                    case LnParser.BOOLCONSTANT:
-                    case LnParser.STRINGCONSTANT:
-                    case LnParser.NUMBERCONSTANT:
-                        this.state = 766;
-                        this.constants();
-                        break;
-                    case LnParser.OPENARGS:
-                        this.state = 767;
-                        this.match(LnParser.OPENARGS);
-                        this.state = 768;
-                        this.assignables();
-                        this.state = 769;
-                        this.match(LnParser.CLOSEARGS);
-                        break;
-                    default:
-                        throw new antlr4.error.NoViableAltException(this);
-                }
-                this.state = 783;
-                this._errHandler.sync(this);
-                var _alt = 1;
-                do {
-                    switch (_alt) {
-                        case 1:
-                            this.state = 773;
-                            this.match(LnParser.METHODSEP);
-                            this.state = 774;
-                            this.varn();
-                            this.state = 778;
-                            this._errHandler.sync(this);
-                            _la = this._input.LA(1);
-                            while (_la === LnParser.WS) {
-                                this.state = 775;
-                                this.match(LnParser.WS);
-                                this.state = 780;
-                                this._errHandler.sync(this);
-                                _la = this._input.LA(1);
-                            }
-                            this.state = 781;
-                            this.fncall();
-                            break;
-                        default:
-                            throw new antlr4.error.NoViableAltException(this);
-                    }
-                    this.state = 785;
-                    this._errHandler.sync(this);
-                    _alt = this._interp.adaptivePredict(this._input, 107, this._ctx);
-                } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
-                break;
-            default:
-                throw new antlr4.error.NoViableAltException(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 779;
+            this.blank();
+            this.state = 784;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
         }
+        this.state = 785;
+        this.match(LnParser.CLOSEARGS);
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -6889,6 +6740,9 @@ ExitsContext.prototype.constructor = ExitsContext;
 ExitsContext.prototype.RETURN = function () {
     return this.getToken(LnParser.RETURN, 0);
 };
+ExitsContext.prototype.EOS = function () {
+    return this.getToken(LnParser.EOS, 0);
+};
 ExitsContext.prototype.assignables = function () {
     return this.getTypedRuleContext(AssignablesContext, 0);
 };
@@ -6916,29 +6770,41 @@ ExitsContext.prototype.exitRule = function (listener) {
 LnParser.ExitsContext = ExitsContext;
 LnParser.prototype.exits = function () {
     var localctx = new ExitsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 74, LnParser.RULE_exits);
+    this.enterRule(localctx, 72, LnParser.RULE_exits);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 789;
+        this.state = 787;
         this.match(LnParser.RETURN);
-        this.state = 797;
+        this.state = 801;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input, 110, this._ctx);
-        if (la_ === 1) {
-            this.state = 793;
+        _la = this._input.LA(1);
+        if ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (LnParser.GLOBAL - 32)) | (1 << (LnParser.DIRSEP - 32)) | (1 << (LnParser.TYPESEP - 32)) | (1 << (LnParser.NEWLINE - 32)) | (1 << (LnParser.WS - 32)) | (1 << (LnParser.STRINGCONSTANT - 32)) | (1 << (LnParser.NUMBERCONSTANT - 32)) | (1 << (LnParser.GENERALOPERATORS - 32)) | (1 << (LnParser.VARNAME - 32)))) !== 0)) {
+            this.state = 791;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 790;
+                this.state = 788;
                 this.blank();
-                this.state = 795;
+                this.state = 793;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 796;
+            this.state = 794;
             this.assignables();
+            this.state = 798;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                this.state = 795;
+                this.blank();
+                this.state = 800;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+            }
         }
+        this.state = 803;
+        this.match(LnParser.EOS);
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -6972,8 +6838,11 @@ EmitsContext.prototype.constructor = EmitsContext;
 EmitsContext.prototype.EMIT = function () {
     return this.getToken(LnParser.EMIT, 0);
 };
-EmitsContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
+EmitsContext.prototype.eventref = function () {
+    return this.getTypedRuleContext(EventrefContext, 0);
+};
+EmitsContext.prototype.EOS = function () {
+    return this.getToken(LnParser.EOS, 0);
 };
 EmitsContext.prototype.blank = function (i) {
     if (i === undefined) {
@@ -7002,41 +6871,53 @@ EmitsContext.prototype.exitRule = function (listener) {
 LnParser.EmitsContext = EmitsContext;
 LnParser.prototype.emits = function () {
     var localctx = new EmitsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 76, LnParser.RULE_emits);
+    this.enterRule(localctx, 74, LnParser.RULE_emits);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 799;
+        this.state = 805;
         this.match(LnParser.EMIT);
-        this.state = 803;
+        this.state = 809;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 800;
+            this.state = 806;
             this.blank();
-            this.state = 805;
+            this.state = 811;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 806;
-        this.varn();
-        this.state = 814;
+        this.state = 812;
+        this.eventref();
+        this.state = 826;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input, 113, this._ctx);
-        if (la_ === 1) {
-            this.state = 810;
+        _la = this._input.LA(1);
+        if ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (LnParser.GLOBAL - 32)) | (1 << (LnParser.DIRSEP - 32)) | (1 << (LnParser.TYPESEP - 32)) | (1 << (LnParser.NEWLINE - 32)) | (1 << (LnParser.WS - 32)) | (1 << (LnParser.STRINGCONSTANT - 32)) | (1 << (LnParser.NUMBERCONSTANT - 32)) | (1 << (LnParser.GENERALOPERATORS - 32)) | (1 << (LnParser.VARNAME - 32)))) !== 0)) {
+            this.state = 816;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 807;
+                this.state = 813;
                 this.blank();
-                this.state = 812;
+                this.state = 818;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 813;
+            this.state = 819;
             this.assignables();
+            this.state = 823;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+            while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                this.state = 820;
+                this.blank();
+                this.state = 825;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+            }
         }
+        this.state = 828;
+        this.match(LnParser.EOS);
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -7070,8 +6951,8 @@ ConditionalsContext.prototype.constructor = ConditionalsContext;
 ConditionalsContext.prototype.IF = function () {
     return this.getToken(LnParser.IF, 0);
 };
-ConditionalsContext.prototype.withoperators = function () {
-    return this.getTypedRuleContext(WithoperatorsContext, 0);
+ConditionalsContext.prototype.assignables = function () {
+    return this.getTypedRuleContext(AssignablesContext, 0);
 };
 ConditionalsContext.prototype.blocklikes = function (i) {
     if (i === undefined) {
@@ -7114,75 +6995,73 @@ ConditionalsContext.prototype.exitRule = function (listener) {
 LnParser.ConditionalsContext = ConditionalsContext;
 LnParser.prototype.conditionals = function () {
     var localctx = new ConditionalsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 78, LnParser.RULE_conditionals);
+    this.enterRule(localctx, 76, LnParser.RULE_conditionals);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 816;
-        this.match(LnParser.IF);
-        this.state = 820;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 817;
-            this.blank();
-            this.state = 822;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 823;
-        this.withoperators();
-        this.state = 827;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 824;
-            this.blank();
-            this.state = 829;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
         this.state = 830;
+        this.match(LnParser.IF);
+        this.state = 834;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 831;
+            this.blank();
+            this.state = 836;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 837;
+        this.assignables();
+        this.state = 841;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 838;
+            this.blank();
+            this.state = 843;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 844;
         this.blocklikes();
-        this.state = 848;
+        this.state = 862;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input, 119, this._ctx);
         if (la_ === 1) {
-            this.state = 834;
+            this.state = 848;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 831;
+                this.state = 845;
                 this.blank();
-                this.state = 836;
+                this.state = 850;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 837;
+            this.state = 851;
             this.match(LnParser.ELSE);
-            this.state = 841;
+            this.state = 855;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 838;
+                this.state = 852;
                 this.blank();
-                this.state = 843;
+                this.state = 857;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 846;
+            this.state = 860;
             this._errHandler.sync(this);
             switch (this._input.LA(1)) {
                 case LnParser.IF:
-                    this.state = 844;
+                    this.state = 858;
                     this.conditionals();
                     break;
                 case LnParser.FN:
                 case LnParser.OPENBODY:
-                case LnParser.OPENARRAY:
-                case LnParser.METHODSEP:
                 case LnParser.VARNAME:
-                    this.state = 845;
+                    this.state = 859;
                     this.blocklikes();
                     break;
                 default:
@@ -7225,8 +7104,8 @@ BlocklikesContext.prototype.functions = function () {
 BlocklikesContext.prototype.functionbody = function () {
     return this.getTypedRuleContext(FunctionbodyContext, 0);
 };
-BlocklikesContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
+BlocklikesContext.prototype.eventref = function () {
+    return this.getTypedRuleContext(EventrefContext, 0);
 };
 BlocklikesContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
@@ -7241,27 +7120,25 @@ BlocklikesContext.prototype.exitRule = function (listener) {
 LnParser.BlocklikesContext = BlocklikesContext;
 LnParser.prototype.blocklikes = function () {
     var localctx = new BlocklikesContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 80, LnParser.RULE_blocklikes);
+    this.enterRule(localctx, 78, LnParser.RULE_blocklikes);
     try {
-        this.state = 853;
+        this.state = 867;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.FN:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 850;
+                this.state = 864;
                 this.functions();
                 break;
             case LnParser.OPENBODY:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 851;
+                this.state = 865;
                 this.functionbody();
                 break;
-            case LnParser.OPENARRAY:
-            case LnParser.METHODSEP:
             case LnParser.VARNAME:
                 this.enterOuterAlt(localctx, 3);
-                this.state = 852;
-                this.varn();
+                this.state = 866;
+                this.eventref();
                 break;
             default:
                 throw new antlr4.error.NoViableAltException(this);
@@ -7318,11 +7195,11 @@ ConstantsContext.prototype.exitRule = function (listener) {
 LnParser.ConstantsContext = ConstantsContext;
 LnParser.prototype.constants = function () {
     var localctx = new ConstantsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 82, LnParser.RULE_constants);
+    this.enterRule(localctx, 80, LnParser.RULE_constants);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 855;
+        this.state = 869;
         _la = this._input.LA(1);
         if (!(((((_la - 13)) & ~0x1f) == 0 && ((1 << (_la - 13)) & ((1 << (LnParser.BOOLCONSTANT - 13)) | (1 << (LnParser.STRINGCONSTANT - 13)) | (1 << (LnParser.NUMBERCONSTANT - 13)))) !== 0))) {
             this._errHandler.recoverInline(this);
@@ -7378,9 +7255,6 @@ OperatorsContext.prototype.TYPESEP = function () {
 OperatorsContext.prototype.OPENGENERIC = function () {
     return this.getToken(LnParser.OPENGENERIC, 0);
 };
-OperatorsContext.prototype.OR = function () {
-    return this.getToken(LnParser.OR, 0);
-};
 OperatorsContext.prototype.GLOBAL = function () {
     return this.getToken(LnParser.GLOBAL, 0);
 };
@@ -7422,98 +7296,94 @@ OperatorsContext.prototype.exitRule = function (listener) {
 LnParser.OperatorsContext = OperatorsContext;
 LnParser.prototype.operators = function () {
     var localctx = new OperatorsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 84, LnParser.RULE_operators);
+    this.enterRule(localctx, 82, LnParser.RULE_operators);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 886;
+        this.state = 899;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.GENERALOPERATORS:
-                this.state = 857;
+                this.state = 871;
                 this.match(LnParser.GENERALOPERATORS);
                 break;
             case LnParser.TYPESEP:
-                this.state = 858;
+                this.state = 872;
                 this.match(LnParser.TYPESEP);
                 break;
             case LnParser.OPENGENERIC:
-                this.state = 859;
+                this.state = 873;
                 this.match(LnParser.OPENGENERIC);
                 break;
-            case LnParser.OR:
-                this.state = 860;
-                this.match(LnParser.OR);
-                break;
             case LnParser.CLOSEGENERIC:
-                this.state = 862;
+                this.state = 875;
                 this._errHandler.sync(this);
                 var _alt = 1;
                 do {
                     switch (_alt) {
                         case 1:
-                            this.state = 861;
+                            this.state = 874;
                             this.match(LnParser.CLOSEGENERIC);
                             break;
                         default:
                             throw new antlr4.error.NoViableAltException(this);
                     }
-                    this.state = 864;
+                    this.state = 877;
                     this._errHandler.sync(this);
                     _alt = this._interp.adaptivePredict(this._input, 121, this._ctx);
                 } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
-                this.state = 882;
+                this.state = 895;
                 this._errHandler.sync(this);
                 var la_ = this._interp.adaptivePredict(this._input, 125, this._ctx);
                 if (la_ === 1) {
-                    this.state = 867;
+                    this.state = 880;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                     do {
-                        this.state = 866;
+                        this.state = 879;
                         this.match(LnParser.EQUALS);
-                        this.state = 869;
+                        this.state = 882;
                         this._errHandler.sync(this);
                         _la = this._input.LA(1);
                     } while (_la === LnParser.EQUALS);
-                    this.state = 874;
+                    this.state = 887;
                     this._errHandler.sync(this);
                     var _alt = this._interp.adaptivePredict(this._input, 123, this._ctx);
                     while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
                         if (_alt === 1) {
-                            this.state = 871;
+                            this.state = 884;
                             this.match(LnParser.GENERALOPERATORS);
                         }
-                        this.state = 876;
+                        this.state = 889;
                         this._errHandler.sync(this);
                         _alt = this._interp.adaptivePredict(this._input, 123, this._ctx);
                     }
                 }
                 else if (la_ === 2) {
-                    this.state = 878;
+                    this.state = 891;
                     this._errHandler.sync(this);
                     var _alt = 1;
                     do {
                         switch (_alt) {
                             case 1:
-                                this.state = 877;
+                                this.state = 890;
                                 this.match(LnParser.GENERALOPERATORS);
                                 break;
                             default:
                                 throw new antlr4.error.NoViableAltException(this);
                         }
-                        this.state = 880;
+                        this.state = 893;
                         this._errHandler.sync(this);
                         _alt = this._interp.adaptivePredict(this._input, 124, this._ctx);
                     } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
                 }
                 break;
             case LnParser.GLOBAL:
-                this.state = 884;
+                this.state = 897;
                 this.match(LnParser.GLOBAL);
                 break;
             case LnParser.DIRSEP:
-                this.state = 885;
+                this.state = 898;
                 this.match(LnParser.DIRSEP);
                 break;
             default:
@@ -7585,11 +7455,11 @@ OperatormappingContext.prototype.exitRule = function (listener) {
 LnParser.OperatormappingContext = OperatormappingContext;
 LnParser.prototype.operatormapping = function () {
     var localctx = new OperatormappingContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 86, LnParser.RULE_operatormapping);
+    this.enterRule(localctx, 84, LnParser.RULE_operatormapping);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 888;
+        this.state = 901;
         _la = this._input.LA(1);
         if (!(_la === LnParser.PREFIX || _la === LnParser.INFIX)) {
             this._errHandler.recoverInline(this);
@@ -7598,27 +7468,25 @@ LnParser.prototype.operatormapping = function () {
             this._errHandler.reportMatch(this);
             this.consume();
         }
-        this.state = 889;
+        this.state = 902;
         this.match(LnParser.WS);
-        this.state = 898;
+        this.state = 911;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
-            case LnParser.OPENARRAY:
-            case LnParser.METHODSEP:
             case LnParser.VARNAME:
-                this.state = 890;
+                this.state = 903;
                 this.fntoop();
-                this.state = 891;
+                this.state = 904;
                 this.match(LnParser.WS);
-                this.state = 892;
+                this.state = 905;
                 this.opprecedence();
                 break;
             case LnParser.PRECEDENCE:
-                this.state = 894;
+                this.state = 907;
                 this.opprecedence();
-                this.state = 895;
+                this.state = 908;
                 this.match(LnParser.WS);
-                this.state = 896;
+                this.state = 909;
                 this.fntoop();
                 break;
             default:
@@ -7654,8 +7522,8 @@ function FntoopContext(parser, parent, invokingState) {
 }
 FntoopContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 FntoopContext.prototype.constructor = FntoopContext;
-FntoopContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
+FntoopContext.prototype.eventref = function () {
+    return this.getTypedRuleContext(EventrefContext, 0);
 };
 FntoopContext.prototype.WS = function (i) {
     if (i === undefined) {
@@ -7687,18 +7555,18 @@ FntoopContext.prototype.exitRule = function (listener) {
 LnParser.FntoopContext = FntoopContext;
 LnParser.prototype.fntoop = function () {
     var localctx = new FntoopContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 88, LnParser.RULE_fntoop);
+    this.enterRule(localctx, 86, LnParser.RULE_fntoop);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 900;
-        this.varn();
-        this.state = 901;
+        this.state = 913;
+        this.eventref();
+        this.state = 914;
         this.match(LnParser.WS);
-        this.state = 902;
+        this.state = 915;
         this.match(LnParser.AS);
-        this.state = 903;
+        this.state = 916;
         this.match(LnParser.WS);
-        this.state = 904;
+        this.state = 917;
         this.operators();
     }
     catch (re) {
@@ -7752,14 +7620,14 @@ OpprecedenceContext.prototype.exitRule = function (listener) {
 LnParser.OpprecedenceContext = OpprecedenceContext;
 LnParser.prototype.opprecedence = function () {
     var localctx = new OpprecedenceContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 90, LnParser.RULE_opprecedence);
+    this.enterRule(localctx, 88, LnParser.RULE_opprecedence);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 906;
+        this.state = 919;
         this.match(LnParser.PRECEDENCE);
-        this.state = 907;
+        this.state = 920;
         this.match(LnParser.WS);
-        this.state = 908;
+        this.state = 921;
         this.match(LnParser.NUMBERCONSTANT);
     }
     catch (re) {
@@ -7794,6 +7662,15 @@ EventsContext.prototype.constructor = EventsContext;
 EventsContext.prototype.EVENT = function () {
     return this.getToken(LnParser.EVENT, 0);
 };
+EventsContext.prototype.VARNAME = function () {
+    return this.getToken(LnParser.VARNAME, 0);
+};
+EventsContext.prototype.TYPESEP = function () {
+    return this.getToken(LnParser.TYPESEP, 0);
+};
+EventsContext.prototype.fulltypename = function () {
+    return this.getTypedRuleContext(FulltypenameContext, 0);
+};
 EventsContext.prototype.blank = function (i) {
     if (i === undefined) {
         i = null;
@@ -7804,21 +7681,6 @@ EventsContext.prototype.blank = function (i) {
     else {
         return this.getTypedRuleContext(BlankContext, i);
     }
-};
-EventsContext.prototype.VARNAME = function () {
-    return this.getToken(LnParser.VARNAME, 0);
-};
-EventsContext.prototype.TYPESEP = function () {
-    return this.getToken(LnParser.TYPESEP, 0);
-};
-EventsContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
-};
-EventsContext.prototype.WS = function () {
-    return this.getToken(LnParser.WS, 0);
-};
-EventsContext.prototype.NEWLINE = function () {
-    return this.getToken(LnParser.NEWLINE, 0);
 };
 EventsContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
@@ -7833,44 +7695,99 @@ EventsContext.prototype.exitRule = function (listener) {
 LnParser.EventsContext = EventsContext;
 LnParser.prototype.events = function () {
     var localctx = new EventsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 92, LnParser.RULE_events);
+    this.enterRule(localctx, 90, LnParser.RULE_events);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 910;
+        this.state = 923;
         this.match(LnParser.EVENT);
-        this.state = 911;
-        this.blank();
-        this.state = 912;
-        this.match(LnParser.VARNAME);
-        this.state = 916;
+        this.state = 927;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 913;
+            this.state = 924;
             this.blank();
-            this.state = 918;
+            this.state = 929;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 919;
-        this.match(LnParser.TYPESEP);
-        this.state = 921;
+        this.state = 930;
+        this.match(LnParser.VARNAME);
+        this.state = 934;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 920;
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 931;
+            this.blank();
+            this.state = 936;
+            this._errHandler.sync(this);
             _la = this._input.LA(1);
-            if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
-                this._errHandler.recoverInline(this);
-            }
-            else {
-                this._errHandler.reportMatch(this);
-                this.consume();
-            }
         }
-        this.state = 923;
-        this.varn();
+        this.state = 937;
+        this.match(LnParser.TYPESEP);
+        this.state = 941;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 938;
+            this.blank();
+            this.state = 943;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 944;
+        this.fulltypename();
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+function EventrefContext(parser, parent, invokingState) {
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = LnParser.RULE_eventref;
+    return this;
+}
+EventrefContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+EventrefContext.prototype.constructor = EventrefContext;
+EventrefContext.prototype.typename = function () {
+    return this.getTypedRuleContext(TypenameContext, 0);
+};
+EventrefContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.enterEventref(this);
+    }
+};
+EventrefContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.exitEventref(this);
+    }
+};
+LnParser.EventrefContext = EventrefContext;
+LnParser.prototype.eventref = function () {
+    var localctx = new EventrefContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 92, LnParser.RULE_eventref);
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 946;
+        this.typename();
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -7910,8 +7827,8 @@ HandlersContext.prototype.eventref = function () {
 HandlersContext.prototype.functions = function () {
     return this.getTypedRuleContext(FunctionsContext, 0);
 };
-HandlersContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
+HandlersContext.prototype.typename = function () {
+    return this.getTypedRuleContext(TypenameContext, 0);
 };
 HandlersContext.prototype.functionbody = function () {
     return this.getTypedRuleContext(FunctionbodyContext, 0);
@@ -7944,115 +7861,47 @@ LnParser.prototype.handlers = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 925;
+        this.state = 948;
         this.match(LnParser.ON);
-        this.state = 927;
+        this.state = 950;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
-            this.state = 926;
+            this.state = 949;
             this.blank();
-            this.state = 929;
+            this.state = 952;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
-        this.state = 931;
+        this.state = 954;
         this.eventref();
-        this.state = 933;
+        this.state = 956;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
-            this.state = 932;
+            this.state = 955;
             this.blank();
-            this.state = 935;
+            this.state = 958;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
-        this.state = 940;
+        this.state = 963;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.FN:
-                this.state = 937;
+                this.state = 960;
                 this.functions();
                 break;
-            case LnParser.OPENARRAY:
-            case LnParser.METHODSEP:
             case LnParser.VARNAME:
-                this.state = 938;
-                this.varn();
+                this.state = 961;
+                this.typename();
                 break;
             case LnParser.OPENBODY:
-                this.state = 939;
+                this.state = 962;
                 this.functionbody();
                 break;
             default:
                 throw new antlr4.error.NoViableAltException(this);
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function EventrefContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = LnParser.RULE_eventref;
-    return this;
-}
-EventrefContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-EventrefContext.prototype.constructor = EventrefContext;
-EventrefContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
-};
-EventrefContext.prototype.calls = function () {
-    return this.getTypedRuleContext(CallsContext, 0);
-};
-EventrefContext.prototype.enterRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.enterEventref(this);
-    }
-};
-EventrefContext.prototype.exitRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.exitEventref(this);
-    }
-};
-LnParser.EventrefContext = EventrefContext;
-LnParser.prototype.eventref = function () {
-    var localctx = new EventrefContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 96, LnParser.RULE_eventref);
-    try {
-        this.state = 944;
-        this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input, 133, this._ctx);
-        switch (la_) {
-            case 1:
-                this.enterOuterAlt(localctx, 1);
-                this.state = 942;
-                this.varn();
-                break;
-            case 2:
-                this.enterOuterAlt(localctx, 2);
-                this.state = 943;
-                this.calls();
-                break;
         }
     }
     catch (re) {
@@ -8087,8 +7936,19 @@ InterfacesContext.prototype.constructor = InterfacesContext;
 InterfacesContext.prototype.INTERFACE = function () {
     return this.getToken(LnParser.INTERFACE, 0);
 };
-InterfacesContext.prototype.VARNAME = function () {
-    return this.getToken(LnParser.VARNAME, 0);
+InterfacesContext.prototype.VARNAME = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTokens(LnParser.VARNAME);
+    }
+    else {
+        return this.getToken(LnParser.VARNAME, i);
+    }
+};
+InterfacesContext.prototype.interfacebody = function () {
+    return this.getTypedRuleContext(InterfacebodyContext, 0);
 };
 InterfacesContext.prototype.WS = function (i) {
     if (i === undefined) {
@@ -8101,17 +7961,8 @@ InterfacesContext.prototype.WS = function (i) {
         return this.getToken(LnParser.WS, i);
     }
 };
-InterfacesContext.prototype.OPENBODY = function () {
-    return this.getToken(LnParser.OPENBODY, 0);
-};
-InterfacesContext.prototype.CLOSEBODY = function () {
-    return this.getToken(LnParser.CLOSEBODY, 0);
-};
 InterfacesContext.prototype.EQUALS = function () {
     return this.getToken(LnParser.EQUALS, 0);
-};
-InterfacesContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
 };
 InterfacesContext.prototype.blank = function (i) {
     if (i === undefined) {
@@ -8122,17 +7973,6 @@ InterfacesContext.prototype.blank = function (i) {
     }
     else {
         return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-InterfacesContext.prototype.interfaceline = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(InterfacelineContext);
-    }
-    else {
-        return this.getTypedRuleContext(InterfacelineContext, i);
     }
 };
 InterfacesContext.prototype.enterRule = function (listener) {
@@ -8148,91 +7988,294 @@ InterfacesContext.prototype.exitRule = function (listener) {
 LnParser.InterfacesContext = InterfacesContext;
 LnParser.prototype.interfaces = function () {
     var localctx = new InterfacesContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 98, LnParser.RULE_interfaces);
+    this.enterRule(localctx, 96, LnParser.RULE_interfaces);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 946;
+        this.state = 965;
         this.match(LnParser.INTERFACE);
-        this.state = 950;
+        this.state = 969;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 947;
+            this.state = 966;
             this.match(LnParser.WS);
-            this.state = 952;
+            this.state = 971;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 953;
+        this.state = 972;
         this.match(LnParser.VARNAME);
-        this.state = 957;
+        this.state = 976;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 954;
+            this.state = 973;
             this.match(LnParser.WS);
-            this.state = 959;
+            this.state = 978;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 987;
+        this.state = 988;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.OPENBODY:
-                this.state = 960;
-                this.match(LnParser.OPENBODY);
-                this.state = 964;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 961;
-                    this.blank();
-                    this.state = 966;
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                }
-                this.state = 975;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-                while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.FN) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (LnParser.GLOBAL - 32)) | (1 << (LnParser.DIRSEP - 32)) | (1 << (LnParser.OR - 32)) | (1 << (LnParser.TYPESEP - 32)) | (1 << (LnParser.GENERALOPERATORS - 32)) | (1 << (LnParser.VARNAME - 32)))) !== 0)) {
-                    this.state = 967;
-                    this.interfaceline();
-                    this.state = 969;
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                    do {
-                        this.state = 968;
-                        this.blank();
-                        this.state = 971;
-                        this._errHandler.sync(this);
-                        _la = this._input.LA(1);
-                    } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
-                    this.state = 977;
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                }
-                this.state = 978;
-                this.match(LnParser.CLOSEBODY);
+                this.state = 979;
+                this.interfacebody();
                 break;
             case LnParser.EQUALS:
-                this.state = 979;
+                this.state = 980;
                 this.match(LnParser.EQUALS);
-                this.state = 983;
+                this.state = 984;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 980;
+                    this.state = 981;
                     this.blank();
-                    this.state = 985;
+                    this.state = 986;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 986;
-                this.varn();
+                this.state = 987;
+                this.match(LnParser.VARNAME);
                 break;
             default:
                 throw new antlr4.error.NoViableAltException(this);
+        }
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+function InterfacebodyContext(parser, parent, invokingState) {
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = LnParser.RULE_interfacebody;
+    return this;
+}
+InterfacebodyContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+InterfacebodyContext.prototype.constructor = InterfacebodyContext;
+InterfacebodyContext.prototype.OPENBODY = function () {
+    return this.getToken(LnParser.OPENBODY, 0);
+};
+InterfacebodyContext.prototype.CLOSEBODY = function () {
+    return this.getToken(LnParser.CLOSEBODY, 0);
+};
+InterfacebodyContext.prototype.interfacelist = function () {
+    return this.getTypedRuleContext(InterfacelistContext, 0);
+};
+InterfacebodyContext.prototype.blank = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(BlankContext);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
+    }
+};
+InterfacebodyContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.enterInterfacebody(this);
+    }
+};
+InterfacebodyContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.exitInterfacebody(this);
+    }
+};
+LnParser.InterfacebodyContext = InterfacebodyContext;
+LnParser.prototype.interfacebody = function () {
+    var localctx = new InterfacebodyContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 98, LnParser.RULE_interfacebody);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 990;
+        this.match(LnParser.OPENBODY);
+        this.state = 992;
+        this._errHandler.sync(this);
+        var la_ = this._interp.adaptivePredict(this._input, 138, this._ctx);
+        if (la_ === 1) {
+            this.state = 991;
+            this.interfacelist();
+        }
+        this.state = 997;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 994;
+            this.blank();
+            this.state = 999;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 1000;
+        this.match(LnParser.CLOSEBODY);
+    }
+    catch (re) {
+        if (re instanceof antlr4.error.RecognitionException) {
+            localctx.exception = re;
+            this._errHandler.reportError(this, re);
+            this._errHandler.recover(this, re);
+        }
+        else {
+            throw re;
+        }
+    }
+    finally {
+        this.exitRule();
+    }
+    return localctx;
+};
+function InterfacelistContext(parser, parent, invokingState) {
+    if (parent === undefined) {
+        parent = null;
+    }
+    if (invokingState === undefined || invokingState === null) {
+        invokingState = -1;
+    }
+    antlr4.ParserRuleContext.call(this, parent, invokingState);
+    this.parser = parser;
+    this.ruleIndex = LnParser.RULE_interfacelist;
+    return this;
+}
+InterfacelistContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
+InterfacelistContext.prototype.constructor = InterfacelistContext;
+InterfacelistContext.prototype.interfaceline = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(InterfacelineContext);
+    }
+    else {
+        return this.getTypedRuleContext(InterfacelineContext, i);
+    }
+};
+InterfacelistContext.prototype.blank = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(BlankContext);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
+    }
+};
+InterfacelistContext.prototype.SEP = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTokens(LnParser.SEP);
+    }
+    else {
+        return this.getToken(LnParser.SEP, i);
+    }
+};
+InterfacelistContext.prototype.enterRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.enterInterfacelist(this);
+    }
+};
+InterfacelistContext.prototype.exitRule = function (listener) {
+    if (listener instanceof LnListener) {
+        listener.exitInterfacelist(this);
+    }
+};
+LnParser.InterfacelistContext = InterfacelistContext;
+LnParser.prototype.interfacelist = function () {
+    var localctx = new InterfacelistContext(this, this._ctx, this.state);
+    this.enterRule(localctx, 100, LnParser.RULE_interfacelist);
+    var _la = 0; // Token type
+    try {
+        this.enterOuterAlt(localctx, 1);
+        this.state = 1005;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 1002;
+            this.blank();
+            this.state = 1007;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 1008;
+        this.interfaceline();
+        this.state = 1012;
+        this._errHandler.sync(this);
+        var _alt = this._interp.adaptivePredict(this._input, 141, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
+                this.state = 1009;
+                this.blank();
+            }
+            this.state = 1014;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 141, this._ctx);
+        }
+        this.state = 1031;
+        this._errHandler.sync(this);
+        var _alt = this._interp.adaptivePredict(this._input, 144, this._ctx);
+        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+            if (_alt === 1) {
+                this.state = 1015;
+                this.match(LnParser.SEP);
+                this.state = 1019;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                    this.state = 1016;
+                    this.blank();
+                    this.state = 1021;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                }
+                this.state = 1022;
+                this.interfaceline();
+                this.state = 1026;
+                this._errHandler.sync(this);
+                var _alt = this._interp.adaptivePredict(this._input, 143, this._ctx);
+                while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
+                    if (_alt === 1) {
+                        this.state = 1023;
+                        this.blank();
+                    }
+                    this.state = 1028;
+                    this._errHandler.sync(this);
+                    _alt = this._interp.adaptivePredict(this._input, 143, this._ctx);
+                }
+            }
+            this.state = 1033;
+            this._errHandler.sync(this);
+            _alt = this._interp.adaptivePredict(this._input, 144, this._ctx);
+        }
+        this.state = 1035;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        if (_la === LnParser.SEP) {
+            this.state = 1034;
+            this.match(LnParser.SEP);
         }
     }
     catch (re) {
@@ -8286,25 +8329,25 @@ InterfacelineContext.prototype.exitRule = function (listener) {
 LnParser.InterfacelineContext = InterfacelineContext;
 LnParser.prototype.interfaceline = function () {
     var localctx = new InterfacelineContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 100, LnParser.RULE_interfaceline);
+    this.enterRule(localctx, 102, LnParser.RULE_interfaceline);
     try {
-        this.state = 992;
+        this.state = 1040;
         this._errHandler.sync(this);
-        var la_ = this._interp.adaptivePredict(this._input, 141, this._ctx);
+        var la_ = this._interp.adaptivePredict(this._input, 146, this._ctx);
         switch (la_) {
             case 1:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 989;
+                this.state = 1037;
                 this.functiontypeline();
                 break;
             case 2:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 990;
+                this.state = 1038;
                 this.operatortypeline();
                 break;
             case 3:
                 this.enterOuterAlt(localctx, 3);
-                this.state = 991;
+                this.state = 1039;
                 this.propertytypeline();
                 break;
         }
@@ -8371,11 +8414,11 @@ FunctiontypelineContext.prototype.exitRule = function (listener) {
 LnParser.FunctiontypelineContext = FunctiontypelineContext;
 LnParser.prototype.functiontypeline = function () {
     var localctx = new FunctiontypelineContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 102, LnParser.RULE_functiontypeline);
+    this.enterRule(localctx, 104, LnParser.RULE_functiontypeline);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 994;
+        this.state = 1042;
         _la = this._input.LA(1);
         if (!(_la === LnParser.FN || _la === LnParser.VARNAME)) {
             this._errHandler.recoverInline(this);
@@ -8384,17 +8427,17 @@ LnParser.prototype.functiontypeline = function () {
             this._errHandler.reportMatch(this);
             this.consume();
         }
-        this.state = 998;
+        this.state = 1046;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 995;
+            this.state = 1043;
             this.match(LnParser.WS);
-            this.state = 1000;
+            this.state = 1048;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1001;
+        this.state = 1049;
         this.functiontype();
     }
     catch (re) {
@@ -8429,15 +8472,15 @@ FunctiontypeContext.prototype.constructor = FunctiontypeContext;
 FunctiontypeContext.prototype.OPENARGS = function () {
     return this.getToken(LnParser.OPENARGS, 0);
 };
-FunctiontypeContext.prototype.varn = function (i) {
+FunctiontypeContext.prototype.fulltypename = function (i) {
     if (i === undefined) {
         i = null;
     }
     if (i === null) {
-        return this.getTypedRuleContexts(VarnContext);
+        return this.getTypedRuleContexts(FulltypenameContext);
     }
     else {
-        return this.getTypedRuleContext(VarnContext, i);
+        return this.getTypedRuleContext(FulltypenameContext, i);
     }
 };
 FunctiontypeContext.prototype.CLOSEARGS = function () {
@@ -8468,12 +8511,6 @@ FunctiontypeContext.prototype.SEP = function (i) {
         return this.getToken(LnParser.SEP, i);
     }
 };
-FunctiontypeContext.prototype.WS = function () {
-    return this.getToken(LnParser.WS, 0);
-};
-FunctiontypeContext.prototype.NEWLINE = function () {
-    return this.getToken(LnParser.NEWLINE, 0);
-};
 FunctiontypeContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
         listener.enterFunctiontype(this);
@@ -8487,96 +8524,89 @@ FunctiontypeContext.prototype.exitRule = function (listener) {
 LnParser.FunctiontypeContext = FunctiontypeContext;
 LnParser.prototype.functiontype = function () {
     var localctx = new FunctiontypeContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 104, LnParser.RULE_functiontype);
+    this.enterRule(localctx, 106, LnParser.RULE_functiontype);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1003;
+        this.state = 1051;
         this.match(LnParser.OPENARGS);
-        this.state = 1007;
+        this.state = 1055;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1004;
+            this.state = 1052;
             this.blank();
-            this.state = 1009;
+            this.state = 1057;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1010;
-        this.varn();
-        this.state = 1014;
+        this.state = 1058;
+        this.fulltypename();
+        this.state = 1062;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1011;
+            this.state = 1059;
             this.blank();
-            this.state = 1016;
+            this.state = 1064;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1033;
+        this.state = 1081;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.SEP) {
-            this.state = 1017;
+            this.state = 1065;
             this.match(LnParser.SEP);
-            this.state = 1021;
+            this.state = 1069;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 1018;
+                this.state = 1066;
                 this.blank();
-                this.state = 1023;
+                this.state = 1071;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 1024;
-            this.varn();
-            this.state = 1028;
+            this.state = 1072;
+            this.fulltypename();
+            this.state = 1076;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 1025;
+                this.state = 1073;
                 this.blank();
-                this.state = 1030;
+                this.state = 1078;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 1035;
+            this.state = 1083;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1036;
+        this.state = 1084;
         this.match(LnParser.CLOSEARGS);
-        this.state = 1038;
+        this.state = 1086;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1037;
-            _la = this._input.LA(1);
-            if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
-                this._errHandler.recoverInline(this);
-            }
-            else {
-                this._errHandler.reportMatch(this);
-                this.consume();
-            }
+            this.state = 1085;
+            this.blank();
         }
-        this.state = 1040;
+        this.state = 1088;
         this.match(LnParser.TYPESEP);
-        this.state = 1044;
+        this.state = 1092;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1041;
+            this.state = 1089;
             this.blank();
-            this.state = 1046;
+            this.state = 1094;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1047;
-        this.varn();
+        this.state = 1095;
+        this.fulltypename();
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -8616,8 +8646,8 @@ OperatortypelineContext.prototype.rightarg = function () {
 OperatortypelineContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-OperatortypelineContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
+OperatortypelineContext.prototype.fulltypename = function () {
+    return this.getTypedRuleContext(FulltypenameContext, 0);
 };
 OperatortypelineContext.prototype.leftarg = function () {
     return this.getTypedRuleContext(LeftargContext, 0);
@@ -8646,65 +8676,65 @@ OperatortypelineContext.prototype.exitRule = function (listener) {
 LnParser.OperatortypelineContext = OperatortypelineContext;
 LnParser.prototype.operatortypeline = function () {
     var localctx = new OperatortypelineContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 106, LnParser.RULE_operatortypeline);
+    this.enterRule(localctx, 108, LnParser.RULE_operatortypeline);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1056;
+        this.state = 1104;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
-        if (((((_la - 28)) & ~0x1f) == 0 && ((1 << (_la - 28)) & ((1 << (LnParser.OPENARRAY - 28)) | (1 << (LnParser.METHODSEP - 28)) | (1 << (LnParser.VARNAME - 28)))) !== 0)) {
-            this.state = 1049;
+        if (_la === LnParser.VARNAME) {
+            this.state = 1097;
             this.leftarg();
-            this.state = 1053;
+            this.state = 1101;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 1050;
+                this.state = 1098;
                 this.blank();
-                this.state = 1055;
+                this.state = 1103;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
         }
-        this.state = 1058;
+        this.state = 1106;
         this.operators();
-        this.state = 1062;
+        this.state = 1110;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1059;
+            this.state = 1107;
             this.blank();
-            this.state = 1064;
+            this.state = 1112;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1065;
+        this.state = 1113;
         this.rightarg();
-        this.state = 1069;
+        this.state = 1117;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1066;
+            this.state = 1114;
             this.blank();
-            this.state = 1071;
+            this.state = 1119;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1072;
+        this.state = 1120;
         this.match(LnParser.TYPESEP);
-        this.state = 1076;
+        this.state = 1124;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1073;
+            this.state = 1121;
             this.blank();
-            this.state = 1078;
+            this.state = 1126;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1079;
-        this.varn();
+        this.state = 1127;
+        this.fulltypename();
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -8735,8 +8765,8 @@ function LeftargContext(parser, parent, invokingState) {
 }
 LeftargContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 LeftargContext.prototype.constructor = LeftargContext;
-LeftargContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
+LeftargContext.prototype.fulltypename = function () {
+    return this.getTypedRuleContext(FulltypenameContext, 0);
 };
 LeftargContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
@@ -8751,11 +8781,11 @@ LeftargContext.prototype.exitRule = function (listener) {
 LnParser.LeftargContext = LeftargContext;
 LnParser.prototype.leftarg = function () {
     var localctx = new LeftargContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 108, LnParser.RULE_leftarg);
+    this.enterRule(localctx, 110, LnParser.RULE_leftarg);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1081;
-        this.varn();
+        this.state = 1129;
+        this.fulltypename();
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -8786,8 +8816,8 @@ function RightargContext(parser, parent, invokingState) {
 }
 RightargContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 RightargContext.prototype.constructor = RightargContext;
-RightargContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
+RightargContext.prototype.fulltypename = function () {
+    return this.getTypedRuleContext(FulltypenameContext, 0);
 };
 RightargContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
@@ -8802,11 +8832,11 @@ RightargContext.prototype.exitRule = function (listener) {
 LnParser.RightargContext = RightargContext;
 LnParser.prototype.rightarg = function () {
     var localctx = new RightargContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 110, LnParser.RULE_rightarg);
+    this.enterRule(localctx, 112, LnParser.RULE_rightarg);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1083;
-        this.varn();
+        this.state = 1131;
+        this.fulltypename();
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -8843,8 +8873,8 @@ PropertytypelineContext.prototype.VARNAME = function () {
 PropertytypelineContext.prototype.TYPESEP = function () {
     return this.getToken(LnParser.TYPESEP, 0);
 };
-PropertytypelineContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
+PropertytypelineContext.prototype.fulltypename = function () {
+    return this.getTypedRuleContext(FulltypenameContext, 0);
 };
 PropertytypelineContext.prototype.WS = function (i) {
     if (i === undefined) {
@@ -8870,343 +8900,36 @@ PropertytypelineContext.prototype.exitRule = function (listener) {
 LnParser.PropertytypelineContext = PropertytypelineContext;
 LnParser.prototype.propertytypeline = function () {
     var localctx = new PropertytypelineContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 112, LnParser.RULE_propertytypeline);
+    this.enterRule(localctx, 114, LnParser.RULE_propertytypeline);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1085;
+        this.state = 1133;
         this.match(LnParser.VARNAME);
-        this.state = 1089;
+        this.state = 1137;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 1086;
+            this.state = 1134;
             this.match(LnParser.WS);
-            this.state = 1091;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 1092;
-        this.match(LnParser.TYPESEP);
-        this.state = 1096;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.WS) {
-            this.state = 1093;
-            this.match(LnParser.WS);
-            this.state = 1098;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 1099;
-        this.varn();
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function ArgtypeContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = LnParser.RULE_argtype;
-    return this;
-}
-ArgtypeContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-ArgtypeContext.prototype.constructor = ArgtypeContext;
-ArgtypeContext.prototype.othertype = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(OthertypeContext);
-    }
-    else {
-        return this.getTypedRuleContext(OthertypeContext, i);
-    }
-};
-ArgtypeContext.prototype.OR = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.OR);
-    }
-    else {
-        return this.getToken(LnParser.OR, i);
-    }
-};
-ArgtypeContext.prototype.blank = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(BlankContext);
-    }
-    else {
-        return this.getTypedRuleContext(BlankContext, i);
-    }
-};
-ArgtypeContext.prototype.enterRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.enterArgtype(this);
-    }
-};
-ArgtypeContext.prototype.exitRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.exitArgtype(this);
-    }
-};
-LnParser.ArgtypeContext = ArgtypeContext;
-LnParser.prototype.argtype = function () {
-    var localctx = new ArgtypeContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 114, LnParser.RULE_argtype);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 1101;
-        this.othertype();
-        this.state = 1118;
-        this._errHandler.sync(this);
-        var _alt = this._interp.adaptivePredict(this._input, 159, this._ctx);
-        while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
-            if (_alt === 1) {
-                this.state = 1105;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 1102;
-                    this.blank();
-                    this.state = 1107;
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                }
-                this.state = 1108;
-                this.match(LnParser.OR);
-                this.state = 1112;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 1109;
-                    this.blank();
-                    this.state = 1114;
-                    this._errHandler.sync(this);
-                    _la = this._input.LA(1);
-                }
-                this.state = 1115;
-                this.othertype();
-            }
-            this.state = 1120;
-            this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 159, this._ctx);
-        }
-    }
-    catch (re) {
-        if (re instanceof antlr4.error.RecognitionException) {
-            localctx.exception = re;
-            this._errHandler.reportError(this, re);
-            this._errHandler.recover(this, re);
-        }
-        else {
-            throw re;
-        }
-    }
-    finally {
-        this.exitRule();
-    }
-    return localctx;
-};
-function ArglistContext(parser, parent, invokingState) {
-    if (parent === undefined) {
-        parent = null;
-    }
-    if (invokingState === undefined || invokingState === null) {
-        invokingState = -1;
-    }
-    antlr4.ParserRuleContext.call(this, parent, invokingState);
-    this.parser = parser;
-    this.ruleIndex = LnParser.RULE_arglist;
-    return this;
-}
-ArglistContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
-ArglistContext.prototype.constructor = ArglistContext;
-ArglistContext.prototype.VARNAME = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.VARNAME);
-    }
-    else {
-        return this.getToken(LnParser.VARNAME, i);
-    }
-};
-ArglistContext.prototype.TYPESEP = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.TYPESEP);
-    }
-    else {
-        return this.getToken(LnParser.TYPESEP, i);
-    }
-};
-ArglistContext.prototype.argtype = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(ArgtypeContext);
-    }
-    else {
-        return this.getTypedRuleContext(ArgtypeContext, i);
-    }
-};
-ArglistContext.prototype.SEP = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.SEP);
-    }
-    else {
-        return this.getToken(LnParser.SEP, i);
-    }
-};
-ArglistContext.prototype.WS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.WS);
-    }
-    else {
-        return this.getToken(LnParser.WS, i);
-    }
-};
-ArglistContext.prototype.NEWLINE = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.NEWLINE);
-    }
-    else {
-        return this.getToken(LnParser.NEWLINE, i);
-    }
-};
-ArglistContext.prototype.enterRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.enterArglist(this);
-    }
-};
-ArglistContext.prototype.exitRule = function (listener) {
-    if (listener instanceof LnListener) {
-        listener.exitArglist(this);
-    }
-};
-LnParser.ArglistContext = ArglistContext;
-LnParser.prototype.arglist = function () {
-    var localctx = new ArglistContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 116, LnParser.RULE_arglist);
-    var _la = 0; // Token type
-    try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 1121;
-        this.match(LnParser.VARNAME);
-        this.state = 1123;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1122;
-            _la = this._input.LA(1);
-            if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
-                this._errHandler.recoverInline(this);
-            }
-            else {
-                this._errHandler.reportMatch(this);
-                this.consume();
-            }
-        }
-        this.state = 1125;
-        this.match(LnParser.TYPESEP);
-        this.state = 1127;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1126;
-            _la = this._input.LA(1);
-            if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
-                this._errHandler.recoverInline(this);
-            }
-            else {
-                this._errHandler.reportMatch(this);
-                this.consume();
-            }
-        }
-        this.state = 1129;
-        this.argtype();
-        this.state = 1142;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.SEP) {
-            this.state = 1130;
-            this.match(LnParser.SEP);
-            this.state = 1131;
-            this.match(LnParser.VARNAME);
-            this.state = 1133;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 1132;
-                _la = this._input.LA(1);
-                if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
-                    this._errHandler.recoverInline(this);
-                }
-                else {
-                    this._errHandler.reportMatch(this);
-                    this.consume();
-                }
-            }
-            this.state = 1135;
-            this.match(LnParser.TYPESEP);
-            this.state = 1137;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 1136;
-                _la = this._input.LA(1);
-                if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
-                    this._errHandler.recoverInline(this);
-                }
-                else {
-                    this._errHandler.reportMatch(this);
-                    this.consume();
-                }
-            }
             this.state = 1139;
-            this.argtype();
-            this.state = 1144;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
+        this.state = 1140;
+        this.match(LnParser.TYPESEP);
+        this.state = 1144;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.WS) {
+            this.state = 1141;
+            this.match(LnParser.WS);
+            this.state = 1146;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
+        this.state = 1147;
+        this.fulltypename();
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -9240,14 +8963,11 @@ ExportsContext.prototype.constructor = ExportsContext;
 ExportsContext.prototype.EXPORT = function () {
     return this.getToken(LnParser.EXPORT, 0);
 };
-ExportsContext.prototype.varn = function () {
-    return this.getTypedRuleContext(VarnContext, 0);
+ExportsContext.prototype.eventref = function () {
+    return this.getTypedRuleContext(EventrefContext, 0);
 };
 ExportsContext.prototype.types = function () {
     return this.getTypedRuleContext(TypesContext, 0);
-};
-ExportsContext.prototype.constdeclaration = function () {
-    return this.getTypedRuleContext(ConstdeclarationContext, 0);
 };
 ExportsContext.prototype.functions = function () {
     return this.getTypedRuleContext(FunctionsContext, 0);
@@ -9283,6 +9003,12 @@ ExportsContext.prototype.NEWLINE = function (i) {
         return this.getToken(LnParser.NEWLINE, i);
     }
 };
+ExportsContext.prototype.constdeclaration = function () {
+    return this.getTypedRuleContext(ConstdeclarationContext, 0);
+};
+ExportsContext.prototype.EOS = function () {
+    return this.getToken(LnParser.EOS, 0);
+};
 ExportsContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
         listener.enterExports(this);
@@ -9296,17 +9022,17 @@ ExportsContext.prototype.exitRule = function (listener) {
 LnParser.ExportsContext = ExportsContext;
 LnParser.prototype.exports = function () {
     var localctx = new ExportsContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 118, LnParser.RULE_exports);
+    this.enterRule(localctx, 116, LnParser.RULE_exports);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1145;
+        this.state = 1149;
         this.match(LnParser.EXPORT);
-        this.state = 1147;
+        this.state = 1151;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
-            this.state = 1146;
+            this.state = 1150;
             _la = this._input.LA(1);
             if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
                 this._errHandler.recoverInline(this);
@@ -9315,42 +9041,42 @@ LnParser.prototype.exports = function () {
                 this._errHandler.reportMatch(this);
                 this.consume();
             }
-            this.state = 1149;
+            this.state = 1153;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
-        this.state = 1158;
+        this.state = 1164;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
-            case LnParser.OPENARRAY:
-            case LnParser.METHODSEP:
             case LnParser.VARNAME:
-                this.state = 1151;
-                this.varn();
+                this.state = 1155;
+                this.eventref();
                 break;
             case LnParser.TYPE:
-                this.state = 1152;
+                this.state = 1156;
                 this.types();
                 break;
             case LnParser.CONST:
-                this.state = 1153;
+                this.state = 1157;
                 this.constdeclaration();
+                this.state = 1158;
+                this.match(LnParser.EOS);
                 break;
             case LnParser.FN:
-                this.state = 1154;
+                this.state = 1160;
                 this.functions();
                 break;
             case LnParser.PREFIX:
             case LnParser.INFIX:
-                this.state = 1155;
+                this.state = 1161;
                 this.operatormapping();
                 break;
             case LnParser.EVENT:
-                this.state = 1156;
+                this.state = 1162;
                 this.events();
                 break;
             case LnParser.INTERFACE:
-                this.state = 1157;
+                this.state = 1163;
                 this.interfaces();
                 break;
             default:
@@ -9421,21 +9147,21 @@ VarlistContext.prototype.exitRule = function (listener) {
 LnParser.VarlistContext = VarlistContext;
 LnParser.prototype.varlist = function () {
     var localctx = new VarlistContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 120, LnParser.RULE_varlist);
+    this.enterRule(localctx, 118, LnParser.RULE_varlist);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1160;
+        this.state = 1166;
         this.renameablevar();
-        this.state = 1165;
+        this.state = 1171;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.SEP) {
-            this.state = 1161;
-            this.match(LnParser.SEP);
-            this.state = 1162;
-            this.renameablevar();
             this.state = 1167;
+            this.match(LnParser.SEP);
+            this.state = 1168;
+            this.renameablevar();
+            this.state = 1173;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
@@ -9480,6 +9206,9 @@ RenameablevarContext.prototype.varop = function (i) {
         return this.getTypedRuleContext(VaropContext, i);
     }
 };
+RenameablevarContext.prototype.AS = function () {
+    return this.getToken(LnParser.AS, 0);
+};
 RenameablevarContext.prototype.WS = function (i) {
     if (i === undefined) {
         i = null;
@@ -9490,9 +9219,6 @@ RenameablevarContext.prototype.WS = function (i) {
     else {
         return this.getToken(LnParser.WS, i);
     }
-};
-RenameablevarContext.prototype.AS = function () {
-    return this.getToken(LnParser.AS, 0);
 };
 RenameablevarContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
@@ -9507,23 +9233,39 @@ RenameablevarContext.prototype.exitRule = function (listener) {
 LnParser.RenameablevarContext = RenameablevarContext;
 LnParser.prototype.renameablevar = function () {
     var localctx = new RenameablevarContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 122, LnParser.RULE_renameablevar);
+    this.enterRule(localctx, 120, LnParser.RULE_renameablevar);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1168;
+        this.state = 1174;
         this.varop();
-        this.state = 1173;
+        this.state = 1187;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.WS) {
-            this.state = 1169;
-            this.match(LnParser.WS);
-            this.state = 1170;
+            this.state = 1176;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+            do {
+                this.state = 1175;
+                this.match(LnParser.WS);
+                this.state = 1178;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+            } while (_la === LnParser.WS);
+            this.state = 1180;
             this.match(LnParser.AS);
-            this.state = 1171;
-            this.match(LnParser.WS);
-            this.state = 1172;
+            this.state = 1182;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+            do {
+                this.state = 1181;
+                this.match(LnParser.WS);
+                this.state = 1184;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+            } while (_la === LnParser.WS);
+            this.state = 1186;
             this.varop();
         }
     }
@@ -9575,25 +9317,24 @@ VaropContext.prototype.exitRule = function (listener) {
 LnParser.VaropContext = VaropContext;
 LnParser.prototype.varop = function () {
     var localctx = new VaropContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 124, LnParser.RULE_varop);
+    this.enterRule(localctx, 122, LnParser.RULE_varop);
     try {
-        this.state = 1177;
+        this.state = 1191;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.VARNAME:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 1175;
+                this.state = 1189;
                 this.match(LnParser.VARNAME);
                 break;
             case LnParser.OPENGENERIC:
             case LnParser.CLOSEGENERIC:
             case LnParser.GLOBAL:
             case LnParser.DIRSEP:
-            case LnParser.OR:
             case LnParser.TYPESEP:
             case LnParser.GENERALOPERATORS:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 1176;
+                this.state = 1190;
                 this.operators();
                 break;
             default:
@@ -9653,24 +9394,24 @@ VarnContext.prototype.exitRule = function (listener) {
 LnParser.VarnContext = VarnContext;
 LnParser.prototype.varn = function () {
     var localctx = new VarnContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 126, LnParser.RULE_varn);
+    this.enterRule(localctx, 124, LnParser.RULE_varn);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1180;
+        this.state = 1194;
         this._errHandler.sync(this);
         var _alt = 1;
         do {
             switch (_alt) {
                 case 1:
-                    this.state = 1179;
+                    this.state = 1193;
                     this.varsegment();
                     break;
                 default:
                     throw new antlr4.error.NoViableAltException(this);
             }
-            this.state = 1182;
+            this.state = 1196;
             this._errHandler.sync(this);
-            _alt = this._interp.adaptivePredict(this._input, 170, this._ctx);
+            _alt = this._interp.adaptivePredict(this._input, 169, this._ctx);
         } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
     }
     catch (re) {
@@ -9708,6 +9449,17 @@ VarsegmentContext.prototype.VARNAME = function () {
 VarsegmentContext.prototype.METHODSEP = function () {
     return this.getToken(LnParser.METHODSEP, 0);
 };
+VarsegmentContext.prototype.blank = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(BlankContext);
+    }
+    else {
+        return this.getTypedRuleContext(BlankContext, i);
+    }
+};
 VarsegmentContext.prototype.arrayaccess = function () {
     return this.getTypedRuleContext(ArrayaccessContext, 0);
 };
@@ -9724,24 +9476,37 @@ VarsegmentContext.prototype.exitRule = function (listener) {
 LnParser.VarsegmentContext = VarsegmentContext;
 LnParser.prototype.varsegment = function () {
     var localctx = new VarsegmentContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 128, LnParser.RULE_varsegment);
+    this.enterRule(localctx, 126, LnParser.RULE_varsegment);
+    var _la = 0; // Token type
     try {
-        this.state = 1187;
+        this.state = 1207;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.VARNAME:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 1184;
+                this.state = 1198;
                 this.match(LnParser.VARNAME);
                 break;
             case LnParser.METHODSEP:
+            case LnParser.NEWLINE:
+            case LnParser.WS:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 1185;
+                this.state = 1202;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+                while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                    this.state = 1199;
+                    this.blank();
+                    this.state = 1204;
+                    this._errHandler.sync(this);
+                    _la = this._input.LA(1);
+                }
+                this.state = 1205;
                 this.match(LnParser.METHODSEP);
                 break;
             case LnParser.OPENARRAY:
                 this.enterOuterAlt(localctx, 3);
-                this.state = 1186;
+                this.state = 1206;
                 this.arrayaccess();
                 break;
             default:
@@ -9810,35 +9575,35 @@ ArrayaccessContext.prototype.exitRule = function (listener) {
 LnParser.ArrayaccessContext = ArrayaccessContext;
 LnParser.prototype.arrayaccess = function () {
     var localctx = new ArrayaccessContext(this, this._ctx, this.state);
-    this.enterRule(localctx, 130, LnParser.RULE_arrayaccess);
+    this.enterRule(localctx, 128, LnParser.RULE_arrayaccess);
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1189;
+        this.state = 1209;
         this.match(LnParser.OPENARRAY);
-        this.state = 1193;
+        this.state = 1213;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 1190;
+            this.state = 1210;
             this.match(LnParser.WS);
-            this.state = 1195;
+            this.state = 1215;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1196;
+        this.state = 1216;
         this.assignables();
-        this.state = 1200;
+        this.state = 1220;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 1197;
+            this.state = 1217;
             this.match(LnParser.WS);
-            this.state = 1202;
+            this.state = 1222;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1203;
+        this.state = 1223;
         this.match(LnParser.CLOSEARRAY);
     }
     catch (re) {
@@ -10117,12 +9882,12 @@ let Event = /** @class */ (() => {
         }
         static fromAst(eventAst, scope) {
             const name = eventAst.VARNAME().getText();
-            const type = scope.deepGet(eventAst.varn().getText());
+            const type = scope.deepGet(eventAst.fulltypename().getText());
             if (!type) {
-                throw new Error("Could not find specified type: " + eventAst.varn().getText());
+                throw new Error("Could not find specified type: " + eventAst.fulltypename().getText());
             }
             else if (!(type instanceof Type_1.default)) {
-                throw new Error(eventAst.varn().getText() + " is not a type");
+                throw new Error(eventAst.fulltypename().getText() + " is not a type");
             }
             return new Event(name, type, false);
         }
@@ -10189,6 +9954,9 @@ class Microstatement {
                 }
                 else if (this.inputNames.length > 0) {
                     outString += " = " + this.inputNames[0]; // Doesn't appear the list is ever used here
+                }
+                else {
+                    outString += "NO!";
                 }
                 break;
             case StatementType_1.default.CALL:
@@ -10404,370 +10172,175 @@ ${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
         }
         microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, scope.deepGet(constType), [constVal], []));
     }
-    static fromBasicAssignablesAst(basicAssignablesAst, // TODO: Eliminate ANTLR
+    static fromObjectLiteralsAst(objectLiteralsAst, // TODO: Eliminate ANTLR
     scope, microstatements) {
-        // Functions will be inlined in a second pass over the microstatements whereever it is called.
-        // For now we still create the function object and the microstatement to assign it
-        if (basicAssignablesAst.functions() != null) {
-            const fnToAssign = UserFunction_1.default.fromAst(basicAssignablesAst.functions(), scope);
-            Microstatement.closureDef([fnToAssign], scope, microstatements);
-            return;
-        }
-        // Here is where we inline the functions that were defined elsewhere or just above here! Or if
-        // it's a built-in function, we just call it as originally expected.
-        if (basicAssignablesAst.calls() != null) {
-            Microstatement.fromCallsAst(basicAssignablesAst.calls(), scope, microstatements);
-            return;
-        }
-        // A `var` assignment is simply a renaming of a variable. We need to find the existing
-        // microstatement for that `var` name and "tag it" in the scope as an alias that can be looked
-        // up later. For now, we'll include a useless reassignment for simplicity's sake.
-        if (basicAssignablesAst.varn() != null) {
-            let original = Microstatement.fromVarName(basicAssignablesAst.varn().getText(), scope, microstatements);
-            if (!original) {
-                const maybeFn = scope.deepGet(basicAssignablesAst.varn().getText());
-                if (maybeFn &&
-                    maybeFn instanceof Array &&
-                    !(maybeFn[0] instanceof Operator_1.default)
-                    && typeof maybeFn[0].getName === 'function') {
-                    Microstatement.closureDef(maybeFn, scope, microstatements);
-                    return;
-                }
+        if (objectLiteralsAst.arrayliteral()) {
+            // Array literals first need all of the microstatements of the array contents defined, then
+            // a `newarr` opcode call is inserted for the object literal itself, then `pusharr` opcode
+            // calls are emitted to insert the relevant data into the array, and finally the array itself
+            // is REREFed for the outer microstatement generation call.
+            const arrayLiteralContents = [];
+            const assignablelist = objectLiteralsAst.arrayliteral().arraybase().assignablelist();
+            const assignableLen = assignablelist ? assignablelist.assignables().length : 0;
+            for (let i = 0; i < assignableLen; i++) {
+                Microstatement.fromAssignablesAst(assignablelist.assignables(i), scope, microstatements);
+                arrayLiteralContents.push(microstatements[microstatements.length - 1]);
             }
-            Microstatement.fromVarAst(basicAssignablesAst.varn(), scope, microstatements);
-            return;
-        }
-        // `constants` are relatively simple affair.
-        if (basicAssignablesAst.constants() != null) {
-            Microstatement.fromConstantsAst(basicAssignablesAst.constants(), scope, microstatements);
-            return;
-        }
-        // `groups` are just grouped `withOperators`.
-        if (basicAssignablesAst.groups() != null) {
-            Microstatement.fromWithOperatorsAst(basicAssignablesAst.groups().withoperators(), scope, microstatements);
-            return;
-        }
-        // `typeof` is a special statement to get the type from a variable. This is usually static but
-        // can be dynamic in certain cases. That's going to be tough to represent in the bytecode that
-        // otherwise strips all of the type data away. (Though with all functions inlined the type
-        // "branches" can be serialized in some fashion back to bare types. Only event handlers and
-        // event emission on ADTs, or opcodes that return ADTs remain a concern.)
-        // TODO: For now, ignore this complexity and assume it can just be serialized.
-        if (basicAssignablesAst.typeofn() != null) {
-            // First evaluate the type's basicassignables.
-            Microstatement.fromBasicAssignablesAst(basicAssignablesAst.typeofn().basicassignables(), scope, microstatements);
-            // The last microstatement is the one we want to get the type data from.
-            const last = microstatements[microstatements.length - 1];
-            const constName = "_" + uuid_1.v4().replace(/-/g, "_");
-            microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, Type_1.default.builtinTypes["string"], [`"${!!last.outputType.alias ? last.outputType.alias.typename : last.outputType.typename}"`], []));
-            return;
-        }
-        // The conversion of object literals is devolved to alangraphcode when types are erased, at this
-        // stage they're just passed through as-is. TODO: This is assuming everything inside of them are
-        // constants. That is not a valid assumption and should be revisited.
-        if (!!basicAssignablesAst.objectliterals()) {
-            if (basicAssignablesAst.objectliterals().arrayliteral()) {
-                // Array literals first need all of the microstatements of the array contents defined, then
-                // a `newarr` opcode call is inserted for the object literal itself, then `pusharr` opcode
-                // calls are emitted to insert the relevant data into the array, and finally the array itself
-                // is REREFed for the outer microstatement generation call.
-                const arrayLiteralContents = [];
-                const assignablelist = basicAssignablesAst.objectliterals().arrayliteral().assignablelist();
-                const assignableLen = assignablelist ? assignablelist.assignables().length : 0;
-                for (let i = 0; i < assignableLen; i++) {
-                    Microstatement.fromAssignablesAst(assignablelist.assignables(i), scope, microstatements);
-                    arrayLiteralContents.push(microstatements[microstatements.length - 1]);
-                }
-                let typeBox = null;
-                if (basicAssignablesAst.objectliterals().arrayliteral().othertype()) {
-                    typeBox = scope.deepGet(basicAssignablesAst.objectliterals().arrayliteral().othertype().getText().trim());
-                    if (!typeBox) {
-                        // Try to define it if it's a generic type
-                        if (basicAssignablesAst.objectliterals().arrayliteral().othertype().typegenerics()) {
-                            const outerTypeBox = scope.deepGet(basicAssignablesAst.objectliterals().arrayliteral().othertype().typename().getText().trim());
-                            if (!outerTypeBox) {
-                                throw new Error(`${basicAssignablesAst.objectliterals().arrayliteral().othertype().getText()}  is not defined
-${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
-                            }
-                            outerTypeBox.solidify(basicAssignablesAst.objectliterals().arrayliteral().othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
-                            ), scope);
-                            typeBox = scope.deepGet(basicAssignablesAst.objectliterals().arrayliteral().othertype().getText().trim());
-                        }
-                    }
-                    if (!(typeBox instanceof Type_1.default)) {
-                        throw new Error(`${basicAssignablesAst.objectliterals().arrayliteral().othertype().getText().trim()} is not a type
-${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
-                    }
-                }
-                else if (arrayLiteralContents.length > 0) {
-                    const innerType = arrayLiteralContents[0].outputType.typename;
-                    Type_1.default.builtinTypes['Array'].solidify([innerType], scope);
-                    typeBox = scope.deepGet(`Array<${innerType}>`);
-                }
-                else {
-                    throw new Error(`Ambiguous array type, please specify the type for an empty array with the syntax \`new Array<MyType> []\`
-${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
-                }
-                // Create a new variable to hold the size of the array literal
-                const lenName = "_" + uuid_1.v4().replace(/-/g, "_");
-                microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, lenName, Type_1.default.builtinTypes['int64'], [`${arrayLiteralContents.length}`], []));
-                // Add the opcode to create a new array with the specified size
-                const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('newarr')[0].microstatementInlining([lenName], scope, microstatements);
-                // Get the array microstatement and extract the name and insert the correct type
-                const array = microstatements[microstatements.length - 1];
-                array.outputType = typeBox;
-                // Try to use the "real" type if knowable
-                if (arrayLiteralContents.length > 0) {
-                    array.outputType = Type_1.default.builtinTypes['Array'].solidify([arrayLiteralContents[0].outputType.typename], scope);
-                }
-                const arrayName = array.outputName;
-                // Push the values into the array
-                for (let i = 0; i < arrayLiteralContents.length; i++) {
-                    // Create a new variable to hold the size of the array value
-                    const size = FIXED_TYPES.includes(arrayLiteralContents[i].outputType.typename) ? "8" : "0";
-                    const sizeName = "_" + uuid_1.v4().replace(/-/g, "_");
-                    microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], [size], []));
-                    // Push the value into the array
-                    const opcodes = require('./opcodes').default;
-                    opcodes.exportScope.get('pusharr')[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
-                }
-                // REREF the array
-                microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, arrayName, array.outputType, [], []));
-                return;
-            }
-            if (basicAssignablesAst.objectliterals().typeliteral()) {
-                // User types are represented in AMM and lower as `Array<any>`. This reduces the number of
-                // concepts that have to be maintained in the execution layer (and is really what C structs
-                // are, anyways). The order of the properties on the specified type directly map to the
-                // order that they are inserted into the Array, not the order they're defined in the object
-                // literal notation, so reads and updates later on can occur predictably by mapping the name
-                // of the property to its array index.
-                //
-                // If the type literal is missing any fields, that's a hard compile error to make sure
-                // accessing undefined data is impossible. If a value might not be needed, they should use
-                // the `Option` type and provide a `None` value there.
-                let typeBox = scope.deepGet(basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim());
-                if (typeBox === null) {
+            let typeBox = null;
+            if (objectLiteralsAst.arrayliteral().literaldec()) {
+                typeBox = scope.deepGet(objectLiteralsAst.arrayliteral().literaldec().fulltypename().getText().trim());
+                if (!typeBox) {
                     // Try to define it if it's a generic type
-                    if (basicAssignablesAst.objectliterals().typeliteral().othertype().typegenerics()) {
-                        const outerTypeBox = scope.deepGet(basicAssignablesAst.objectliterals().typeliteral().othertype().typename().getText().trim());
-                        if (outerTypeBox === null) {
-                            throw new Error(`${basicAssignablesAst.objectliterals().typeliteral().othertype().getText()}  is not defined
-${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
+                    if (objectLiteralsAst.arrayliteral().literaldec().fulltypename().typegenerics()) {
+                        const outerTypeBox = scope.deepGet(objectLiteralsAst.arrayliteral().literaldec().fulltypename().typename().getText().trim());
+                        if (!outerTypeBox) {
+                            throw new Error(`${objectLiteralsAst.arrayliteral().literaldec().fulltypename().getText()}  is not defined
+${objectLiteralsAst.getText()} on line ${objectLiteralsAst.start.line}:${objectLiteralsAst.start.column}`);
                         }
-                        outerTypeBox.solidify(basicAssignablesAst.objectliterals().typeliteral().othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                        outerTypeBox.solidify(objectLiteralsAst.arrayliteral().literaldec().fulltypename().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                         ), scope);
-                        typeBox = scope.deepGet(basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim());
+                        typeBox = scope.deepGet(objectLiteralsAst.arrayliteral().literaldec().fulltypename().getText().trim());
                     }
                 }
                 if (!(typeBox instanceof Type_1.default)) {
-                    throw new Error(`${basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim()} is not a type
-${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
+                    throw new Error(`${objectLiteralsAst.arrayliteral().literaldec().fulltypename().getText().trim()} is not a type
+${objectLiteralsAst.getText()} on line ${objectLiteralsAst.start.line}:${objectLiteralsAst.start.column}`);
                 }
-                const assignmentAsts = basicAssignablesAst.objectliterals().typeliteral().assignments();
-                // First check that the assignments are well-formed and actually have an assignables field
-                for (const assignmentAst of assignmentAsts) {
-                    if (!assignmentAst.assignables()) {
-                        throw new Error(`${basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim()} object literal improperly defined
-${assignmentAst.varn().getText()} not set
-${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
-                    }
-                }
-                const fields = Object.keys(typeBox.properties);
-                let missingFields = [];
-                let foundFields = [];
-                let extraFields = [];
-                let astLookup = {};
-                for (const assignmentAst of assignmentAsts) {
-                    const name = assignmentAst.varn().getText();
-                    astLookup[name] = assignmentAst;
-                    if (!fields.includes(name)) {
-                        extraFields.push(name);
-                    }
-                    if (foundFields.includes(name)) {
-                        extraFields.push(name);
-                    }
-                    foundFields.push(name);
-                }
-                for (const field of fields) {
-                    if (!foundFields.includes(field)) {
-                        missingFields.push(field);
-                    }
-                }
-                if (missingFields.length > 0 || extraFields.length > 0) {
-                    let errMsg = `${basicAssignablesAst.objectliterals().typeliteral().othertype().getText().trim()} object literal improperly defined`;
-                    if (missingFields.length > 0) {
-                        errMsg += '\n' + `Missing fields: ${missingFields.join(', ')}`;
-                    }
-                    if (extraFields.length > 0) {
-                        errMsg += '\n' + `Extra fields: ${extraFields.join(', ')}`;
-                    }
-                    errMsg += '\n' +
-                        basicAssignablesAst.getText() +
-                        " on line " +
-                        basicAssignablesAst.start.line +
-                        ":" +
-                        basicAssignablesAst.start.column;
-                    throw new Error(errMsg);
-                }
-                // The assignment looks good, now we'll mimic the array literal logic mostly
-                const arrayLiteralContents = [];
-                for (let i = 0; i < fields.length; i++) {
-                    Microstatement.fromAssignablesAst(astLookup[fields[i]].assignables(), scope, microstatements);
-                    arrayLiteralContents.push(microstatements[microstatements.length - 1]);
-                }
-                // Create a new variable to hold the size of the array literal
-                const lenName = "_" + uuid_1.v4().replace(/-/g, "_");
-                microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, lenName, Type_1.default.builtinTypes['int64'], [`${fields.length}`], []));
-                // Add the opcode to create a new array with the specified size
+            }
+            else if (arrayLiteralContents.length > 0) {
+                const innerType = arrayLiteralContents[0].outputType.typename;
+                Type_1.default.builtinTypes['Array'].solidify([innerType], scope);
+                typeBox = scope.deepGet(`Array<${innerType}>`);
+            }
+            else {
+                throw new Error(`Ambiguous array type, please specify the type for an empty array with the syntax \`new Array<MyType> []\`
+${objectLiteralsAst.getText()} on line ${objectLiteralsAst.start.line}:${objectLiteralsAst.start.column}`);
+            }
+            // Create a new variable to hold the size of the array literal
+            const lenName = "_" + uuid_1.v4().replace(/-/g, "_");
+            microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, lenName, Type_1.default.builtinTypes['int64'], [`${arrayLiteralContents.length}`], []));
+            // Add the opcode to create a new array with the specified size
+            const opcodes = require('./opcodes').default;
+            opcodes.exportScope.get('newarr')[0].microstatementInlining([lenName], scope, microstatements);
+            // Get the array microstatement and extract the name and insert the correct type
+            const array = microstatements[microstatements.length - 1];
+            array.outputType = typeBox;
+            // Try to use the "real" type if knowable
+            if (arrayLiteralContents.length > 0) {
+                array.outputType = Type_1.default.builtinTypes['Array'].solidify([arrayLiteralContents[0].outputType.typename], scope);
+            }
+            const arrayName = array.outputName;
+            // Push the values into the array
+            for (let i = 0; i < arrayLiteralContents.length; i++) {
+                // Create a new variable to hold the size of the array value
+                const size = FIXED_TYPES.includes(arrayLiteralContents[i].outputType.typename) ? "8" : "0";
+                const sizeName = "_" + uuid_1.v4().replace(/-/g, "_");
+                microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], [size], []));
+                // Push the value into the array
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('newarr')[0].microstatementInlining([lenName], scope, microstatements);
-                // Get the array microstatement and extract the name and insert the correct type
-                const array = microstatements[microstatements.length - 1];
-                array.outputType = typeBox;
-                const arrayName = array.outputName;
-                // Push the values into the array
-                for (let i = 0; i < arrayLiteralContents.length; i++) {
-                    // Create a new variable to hold the size of the array value
-                    const size = FIXED_TYPES.includes(arrayLiteralContents[i].outputType.typename) ? "8" : "0";
-                    const sizeName = "_" + uuid_1.v4().replace(/-/g, "_");
-                    microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], [size], []));
-                    // Push the value into the array
-                    const opcodes = require('./opcodes').default;
-                    opcodes.exportScope.get('pusharr')[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
-                }
-                // REREF the array
-                microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, arrayName, array.outputType, [], []));
-                return;
+                opcodes.exportScope.get('pusharr')[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
             }
-            // If object literal parsing has made it this far, it's a Map literal that is not yet supported
-            throw new Error(`${basicAssignablesAst.objectliterals().mapliteral().othertype().getText().trim()} not yet supported
-${basicAssignablesAst.getText()} on line ${basicAssignablesAst.start.line}:${basicAssignablesAst.start.column}`);
+            // REREF the array
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, arrayName, array.outputType, [], []));
         }
-    }
-    static fromWithOperatorsAst(withOperatorsAst, // TODO: Eliminate ANTLR
-    scope, microstatements) {
-        // Short circuit on the trivial case
-        if (withOperatorsAst.operatororassignable().length === 1 &&
-            !!withOperatorsAst.operatororassignable(0).basicassignables()) {
-            Microstatement.fromBasicAssignablesAst(withOperatorsAst.operatororassignable(0).basicassignables(), scope, microstatements);
-        }
-        let withOperatorsList = [];
-        for (const operatorOrAssignable of withOperatorsAst.operatororassignable()) {
-            if (operatorOrAssignable.operators() != null) {
-                const operator = operatorOrAssignable.operators();
-                const op = scope.deepGet(operator.getText());
-                if (op == null || !(op instanceof Array && op[0] instanceof Operator_1.default)) {
-                    throw new Error("Operator " + operator.getText() + " is not defined");
-                }
-                withOperatorsList.push(op);
-            }
-            if (operatorOrAssignable.basicassignables() != null) {
-                Microstatement.fromBasicAssignablesAst(operatorOrAssignable.basicassignables(), scope, microstatements);
-                const last = microstatements[microstatements.length - 1];
-                withOperatorsList.push(last);
-            }
-        }
-        // Now to combine these operators and values in the correct order. A compiled language could
-        // never do something so inefficient, but I don't care about performance right now, so here's
-        // the algorithm: while the list length is greater than 1, perform the two steps:
-        // 1. Find the operator with the greatest precedence
-        // 2. Apply the underlying function to the values on either side of the operator (or just the
-        //    right side if the operator is a prefix operator), then replace the operator with the
-        //    returned value in the list and delete the impacted values.
-        while (withOperatorsList.length > 1) {
-            let maxPrecedence = -1;
-            let maxOperatorLoc = -1;
-            let maxOperatorListLoc = -1;
-            for (let i = 0; i < withOperatorsList.length; i++) {
-                if (withOperatorsList[i] instanceof Array && withOperatorsList[i][0] instanceof Operator_1.default) {
-                    const ops = withOperatorsList[i];
-                    let op = null;
-                    let operatorListLoc = -1;
-                    let operatorPrecedence = -127;
-                    if (ops.length == 1) {
-                        op = ops[0];
-                        operatorListLoc = 0;
+        else if (!!objectLiteralsAst.typeliteral()) {
+            // User types are represented in AMM and lower as `Array<any>`. This reduces the number of
+            // concepts that have to be maintained in the execution layer (and is really what C structs
+            // are, anyways). The order of the properties on the specified type directly map to the
+            // order that they are inserted into the Array, not the order they're defined in the object
+            // literal notation, so reads and updates later on can occur predictably by mapping the name
+            // of the property to its array index.
+            //
+            // If the type literal is missing any fields, that's a hard compile error to make sure
+            // accessing undefined data is impossible. If a value might not be needed, they should use
+            // the `Option` type and provide a `None` value there.
+            let typeBox = scope.deepGet(objectLiteralsAst.typeliteral().literaldec().fulltypename().getText().trim());
+            if (typeBox === null) {
+                // Try to define it if it's a generic type
+                if (objectLiteralsAst.typeliteral().literaldec().fulltypename().typegenerics()) {
+                    const outerTypeBox = scope.deepGet(objectLiteralsAst.typeliteral().literaldec().fulltypename().typename().getText().trim());
+                    if (outerTypeBox === null) {
+                        throw new Error(`${objectLiteralsAst.typeliteral().literaldec().fulltypename().getText()}  is not defined
+${objectLiteralsAst.getText()} on line ${objectLiteralsAst.start.line}:${objectLiteralsAst.start.column}`);
                     }
-                    else {
-                        // TODO: We need to identify which particular operator applies in this case.
-                        // We're just going to short-circuit this process on the first operator that matches
-                        // but we need to come up with a "best match" behavior (ie, if one argument is an int8
-                        // it may choose the int64-based operator because it was first and it can cast int8 to
-                        // int64 and then miss the specialized int8 version of the function).
-                        let left = null;
-                        if (i != 0)
-                            left = withOperatorsList[i - 1];
-                        let right = null;
-                        if (i != withOperatorsList.length - 1)
-                            right = withOperatorsList[i + 1];
-                        // Skip over any operator that is followed by another operator as it must be a prefix
-                        // operator (or a syntax error, but we'll catch that later)
-                        if (right === null || right instanceof Microstatement) {
-                            for (let j = 0; j < ops.length; j++) {
-                                if (ops[j].precedence > operatorPrecedence &&
-                                    ops[j].applicableFunction(!left ? // Left is special, if two operators are in a row, this one
-                                        null : // needs to be a prefix operator for this to work at all
-                                        left instanceof Microstatement ?
-                                            left.outputType :
-                                            null, right === null ? null : right.outputType, scope) != null) {
-                                    op = ops[j];
-                                    operatorListLoc = j;
-                                    operatorPrecedence = op.precedence;
-                                }
-                            }
-                        }
-                        // During the process of determining the operator ordering, there may be tests that
-                        // will not match because operator precedence will convert the neighboring types into
-                        // types that will match. This is complicated and doing this statically will be more
-                        // difficult, but for now, just skip over these.
-                        if (op == null)
-                            continue;
-                    }
-                    if (op.precedence > maxPrecedence) {
-                        maxPrecedence = op.precedence;
-                        maxOperatorLoc = i;
-                        maxOperatorListLoc = operatorListLoc;
-                    }
+                    outerTypeBox.solidify(objectLiteralsAst.typeliteral().literaldec().fulltypename().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                    ), scope);
+                    typeBox = scope.deepGet(objectLiteralsAst.typeliteral().literaldec().fulltypename().getText().trim());
                 }
             }
-            if (maxPrecedence == -1 || maxOperatorLoc == -1) {
-                let errMsg = `Cannot resolve operators with remaining statement
-${withOperatorsAst.getText()}`;
-                let withOperatorsTranslation = [];
-                for (let i = 0; i < withOperatorsList.length; i++) {
-                    const node = withOperatorsList[i];
-                    if (node instanceof Array && node[0] instanceof Operator_1.default) {
-                        withOperatorsTranslation.push(node[0].name);
-                    }
-                    else {
-                        withOperatorsTranslation.push("<" + node.outputType.typename + ">");
-                    }
+            if (!(typeBox instanceof Type_1.default)) {
+                throw new Error(`${objectLiteralsAst.typeliteral().literaldec().fulltypename().getText().trim()} is not a type
+${objectLiteralsAst.getText()} on line ${objectLiteralsAst.start.line}:${objectLiteralsAst.start.column}`);
+            }
+            const assignlist = objectLiteralsAst.typeliteral().typebase().typeassignlist();
+            const assignfields = assignlist.VARNAME().map((f) => f.getText());
+            const assignvals = assignlist.assignables();
+            const fields = Object.keys(typeBox.properties);
+            let missingFields = [];
+            let foundFields = [];
+            let extraFields = [];
+            let astLookup = {};
+            for (let i = 0; i < assignfields.length; i++) {
+                const assignfield = assignfields[i];
+                const assignval = assignvals[i];
+                astLookup[assignfield] = assignval;
+                if (!fields.includes(assignfield)) {
+                    extraFields.push(assignfield);
                 }
-                errMsg += '\n' + withOperatorsTranslation.join(' ');
+                if (foundFields.includes(assignfield)) {
+                    extraFields.push(assignfield);
+                }
+                foundFields.push(assignfield);
+            }
+            for (const field of fields) {
+                if (!foundFields.includes(field)) {
+                    missingFields.push(field);
+                }
+            }
+            if (missingFields.length > 0 || extraFields.length > 0) {
+                let errMsg = `${objectLiteralsAst.typeliteral().literaldec().fulltypename().getText().trim()} object literal improperly defined`;
+                if (missingFields.length > 0) {
+                    errMsg += '\n' + `Missing fields: ${missingFields.join(', ')}`;
+                }
+                if (extraFields.length > 0) {
+                    errMsg += '\n' + `Extra fields: ${extraFields.join(', ')}`;
+                }
+                errMsg += '\n' +
+                    objectLiteralsAst.getText() +
+                    " on line " +
+                    objectLiteralsAst.start.line +
+                    ":" +
+                    objectLiteralsAst.start.column;
                 throw new Error(errMsg);
             }
-            const op = withOperatorsList[maxOperatorLoc][maxOperatorListLoc];
-            let realArgNames = [];
-            let realArgTypes = [];
-            if (!op.isPrefix) {
-                const left = withOperatorsList[maxOperatorLoc - 1];
-                realArgNames.push(left.outputName);
-                realArgTypes.push(left.outputType);
+            // The assignment looks good, now we'll mimic the array literal logic mostly
+            const arrayLiteralContents = [];
+            for (let i = 0; i < fields.length; i++) {
+                Microstatement.fromAssignablesAst(astLookup[fields[i]], scope, microstatements);
+                arrayLiteralContents.push(microstatements[microstatements.length - 1]);
             }
-            const right = withOperatorsList[maxOperatorLoc + 1];
-            realArgNames.push(right.outputName);
-            realArgTypes.push(right.outputType);
-            UserFunction_1.default
-                .dispatchFn(op.potentialFunctions, realArgTypes, scope)
-                .microstatementInlining(realArgNames, scope, microstatements);
-            const last = microstatements[microstatements.length - 1];
-            withOperatorsList[maxOperatorLoc] = last;
-            withOperatorsList.splice(maxOperatorLoc + 1, 1);
-            if (!op.isPrefix) {
-                withOperatorsList.splice(maxOperatorLoc - 1, 1);
+            // Create a new variable to hold the size of the array literal
+            const lenName = "_" + uuid_1.v4().replace(/-/g, "_");
+            microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, lenName, Type_1.default.builtinTypes['int64'], [`${fields.length}`], []));
+            // Add the opcode to create a new array with the specified size
+            const opcodes = require('./opcodes').default;
+            opcodes.exportScope.get('newarr')[0].microstatementInlining([lenName], scope, microstatements);
+            // Get the array microstatement and extract the name and insert the correct type
+            const array = microstatements[microstatements.length - 1];
+            array.outputType = typeBox;
+            const arrayName = array.outputName;
+            // Push the values into the array
+            for (let i = 0; i < arrayLiteralContents.length; i++) {
+                // Create a new variable to hold the size of the array value
+                const size = FIXED_TYPES.includes(arrayLiteralContents[i].outputType.typename) ? "8" : "0";
+                const sizeName = "_" + uuid_1.v4().replace(/-/g, "_");
+                microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], [size], []));
+                // Push the value into the array
+                const opcodes = require('./opcodes').default;
+                opcodes.exportScope.get('pusharr')[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
             }
+            // REREF the array
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, arrayName, array.outputType, [], []));
         }
     }
     static closureDef(fns, scope, microstatements) {
@@ -10799,12 +10372,12 @@ ${withOperatorsAst.getText()}`;
         // if closure is not void return the last inner statement
         // TODO: Revisit this, if the closure doesn't have a type defined, sometimes it can only be
         // determined in the calling context and shouldn't be assumed to be `void`
-        if (innerMicrostatements.length > 0 && fn.returnType !== Type_1.default.builtinTypes.void) {
+        if (innerMicrostatements.length > 0 && fn.getReturnType() !== Type_1.default.builtinTypes.void) {
             const last = innerMicrostatements[innerMicrostatements.length - 1];
             innerMicrostatements.push(new Microstatement(StatementType_1.default.EXIT, scope, true, last.outputName, last.outputType));
         }
         microstatements.push(new Microstatement(StatementType_1.default.CLOSURE, scope, true, // TODO: Figure out if this is true or not
-        constName, Type_1.default.builtinTypes['function'], [], [], '', fn.pure, innerMicrostatements, fn.args, fn.returnType));
+        constName, Type_1.default.builtinTypes['function'], [], [], '', fn.pure, innerMicrostatements, fn.args, fn.getReturnType()));
     }
     static fromEmitsAst(emitsAst, // TODO: Eliminate ANTLR
     scope, microstatements) {
@@ -10812,9 +10385,9 @@ ${withOperatorsAst.getText()}`;
             // If there's an assignable value here, add it to the list of microstatements first, then
             // rewrite the final const assignment as the emit statement.
             Microstatement.fromAssignablesAst(emitsAst.assignables(), scope, microstatements);
-            const eventBox = scope.deepGet(emitsAst.varn().getText()); // TODO: Port to fromVarAst when Box is removed
+            const eventBox = scope.deepGet(emitsAst.eventref().getText()); // TODO: Port to fromVarAst when Box is removed
             if (!(eventBox instanceof Event_1.default)) {
-                throw new Error(`${emitsAst.varn().getText()} is not an event!
+                throw new Error(`${emitsAst.eventref().getText()} is not an event!
 ${emitsAst.getText()} on line ${emitsAst.start.line}:${emitsAst.start.column}`);
             }
             const last = microstatements[microstatements.length - 1];
@@ -10827,13 +10400,13 @@ ${emitsAst.getText()} on line ${emitsAst.start.line}:${emitsAst.start.column}`);
         }
         else {
             // Otherwise, create an emit statement with no value
-            const eventBox = scope.deepGet(emitsAst.varn().getText()); // TODO: Port to fromVarAst
+            const eventBox = scope.deepGet(emitsAst.eventref().getText()); // TODO: Port to fromVarAst
             if (!(eventBox instanceof Event_1.default)) {
-                throw new Error(`${emitsAst.varn().getText()} is not an event!
+                throw new Error(`${emitsAst.eventref().getText()} is not an event!
 ${emitsAst.getText()} on line ${emitsAst.start.line}:${emitsAst.start.column}`);
             }
             if (eventBox.type != Type_1.default.builtinTypes.void) {
-                throw new Error(`${emitsAst.varn().getText()} must have a value emitted to it!
+                throw new Error(`${emitsAst.eventref().getText()} must have a value emitted to it!
 ${emitsAst.getText()} on line ${emitsAst.start.line}:${emitsAst.start.column}`);
             }
             microstatements.push(new Microstatement(StatementType_1.default.EMIT, scope, true, eventBox.name, Type_1.default.builtinTypes.void, [], []));
@@ -10851,142 +10424,6 @@ ${emitsAst.getText()} on line ${emitsAst.start.line}:${emitsAst.start.column}`);
             // Otherwise, create a microstatement with no value
             const constName = "_" + uuid_1.v4().replace(/-/g, "_");
             microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, Type_1.default.builtinTypes.void, ["void"], null));
-        }
-    }
-    static fromCallsAst(callsAst, // TODO: Eliminate ANTLR
-    scope, microstatements) {
-        // Function call syntax also supports method chaining syntax, and you can chain off of any
-        // assignable value (where they're wrapped in parens for clarity, with a special exception for
-        // constants that would be unambiguous). This means there are three classes of function calls:
-        // 1. Simple function call `fn(args)`
-        // 2. Chained function calls `fn1(args1).fn2(args2)` (equivalent to `fn2(fn1(args1), args2)`)
-        // 3. Chained data function calls `arg1.fn1(args2).fn2(args3)` (`fn2(fn1(arg1, args2), args3)`)
-        // Four possible paths here:
-        // 1. Only function calls potentially chained to each other.
-        // 2. A constant is the first value, then function calls chained afterwards
-        // 3. Any other value type wrapped in parens, then function calls chained afterwards.
-        // 4. A variable name then a `.` then a function name. Both can contain dots, as well
-        // These four can be taken care of in the following way: If it's 2 or 3, eval them and
-        // generate the relevant microstatements. Take the last microstatement and store in a
-        // `firstArg` variable. If it's the first case, `firstArg` is `null`. If it's the final case,
-        // disambiguate it by iterating through the potential `varname.methodname` combinations and if
-        // one is found, that gets set as the `firstArg`, but this is only done if its the first run
-        // through the loops *and* no `firstArg` value already exists. After that, loop through the 
-        // `var` and `fncall` entries, evaluating the arguments and adding to the `realArg*` lists
-        // (and putting the `firstArg` value in the first entry of each if it exists). Then perform
-        // the function `microstatementInlining` and take the last microstatement as the new
-        // `firstArg` for the next loop iteration until all method calls have been taken care of.
-        let firstArg = null;
-        if (callsAst.constants() != null) {
-            Microstatement.fromConstantsAst(callsAst.constants(), scope, microstatements);
-            firstArg = microstatements[microstatements.length - 1];
-        }
-        if (callsAst.assignables() != null) {
-            Microstatement.fromAssignablesAst(callsAst.assignables(), scope, microstatements);
-            firstArg = microstatements[microstatements.length - 1];
-        }
-        // TODO: Port to fromVarAst, though this one is very tricky
-        for (let i = 0; i < callsAst.varn().length; i++) {
-            // First, resolve the function. TODO: Need to add support for closure functions defined in
-            // the same function, which would not be in an outer scope passed in.
-            let fnBox = scope.deepGet(callsAst.varn(i).getText());
-            if (i == 0 && firstArg == null && fnBox == null) {
-                // This may be a method-style access on something with nested scoping
-                // TODO: Make this more robust in the future. Currently assuming the last ".something" is
-                // the method call and everything before it is easily accessible through the scopes.
-                const varSegs = callsAst.varn(0).getText().split(".");
-                const methodName = varSegs[varSegs.length - 1];
-                let scopePath = "";
-                for (let j = 0; j < varSegs.length - 1; j++) {
-                    scopePath += varSegs[j] + ".";
-                }
-                scopePath = scopePath.substring(0, scopePath.length - 1);
-                firstArg = Microstatement.fromVarName(scopePath, scope, microstatements);
-                if (firstArg == null) { // It wasn't this, either, just return the same error
-                    throw new Error("Undefined function called: " + callsAst.varn(0).getText());
-                }
-                fnBox = scope.deepGet(methodName);
-            }
-            // Build up a list of the arguments to be passed into the function, first 'eval'ing them and
-            // getting the relevant microstatements defined.
-            let realArgNames = [];
-            let realArgTypes = [];
-            if (firstArg != null) {
-                if (firstArg.alias !== "") {
-                    for (const m of microstatements) {
-                        if (m.outputName === firstArg.outputName && m.outputType.iface === null) {
-                            firstArg = m;
-                            break;
-                        }
-                    }
-                }
-                else if (firstArg.outputType.iface !== null) {
-                    for (const m of microstatements) {
-                        if (m.outputName === firstArg.outputName && m.outputType.iface === null) {
-                            firstArg = m;
-                            break;
-                        }
-                    }
-                }
-                realArgNames.push(firstArg.outputName);
-                realArgTypes.push(firstArg.outputType);
-            }
-            if (callsAst.fncall(i).assignablelist() != null) {
-                for (const assignablesAst of callsAst.fncall(i).assignablelist().assignables()) {
-                    Microstatement.fromAssignablesAst(assignablesAst, scope, microstatements);
-                    let last = microstatements[microstatements.length - 1];
-                    if (last.alias !== "" || last.outputType.iface !== null) {
-                        for (const m of microstatements) {
-                            if (m.outputName === last.outputName && m.outputType.iface === null) {
-                                last = m;
-                                break;
-                            }
-                        }
-                    }
-                    realArgNames.push(last.outputName);
-                    realArgTypes.push(last.outputType);
-                }
-            }
-            // Do a scan of the microstatements for an inner defined closure that is being called.
-            // TODO: What if they decided to shove this closure into an object but then use it directly?
-            if (!fnBox ||
-                !(fnBox instanceof Array && fnBox[0].microstatementInlining instanceof Function)) {
-                const fnName = callsAst.varn(i).getText();
-                let actualFnName;
-                for (let i = microstatements.length - 1; i >= 0; i--) {
-                    if (microstatements[i].alias === fnName) {
-                        actualFnName = microstatements[i].outputName;
-                        continue;
-                    }
-                    if (microstatements[i].outputName === actualFnName &&
-                        microstatements[i].statementType === StatementType_1.default.CLOSUREDEF) {
-                        const m = [...microstatements, ...microstatements[i].closureStatements];
-                        // Remove the leading argument as that's the closure reference and shouldn't be included
-                        realArgNames.shift();
-                        realArgTypes.shift();
-                        const fn = UserFunction_1.default.dispatchFn(microstatements[i].fns, realArgTypes, scope);
-                        const interfaceMap = new Map();
-                        Object.values(fn.getArguments()).forEach((t, i) => t.typeApplies(realArgTypes[i], scope, interfaceMap));
-                        Microstatement.closureFromUserFunction(fn, fn.scope || scope, m, interfaceMap);
-                        const closure = m.pop();
-                        microstatements.push(...closure.closureStatements.filter(s => s.statementType !== StatementType_1.default.EXIT));
-                        return;
-                    }
-                }
-            }
-            if (!fnBox ||
-                !(fnBox instanceof Array && fnBox[0].microstatementInlining instanceof Function)) {
-                throw new Error(`${callsAst.varn(i).getText()} is not a function!
-${callsAst.getText()} on line ${callsAst.start.line}:${callsAst.start.column}`);
-            }
-            // Generate the relevant microstatements for this function. UserFunctions get inlined with the
-            // return statement turned into a const assignment as the last statement, while built-in
-            // functions are kept as function calls with the correct renaming.
-            UserFunction_1.default
-                .dispatchFn(fnBox, realArgTypes, scope)
-                .microstatementInlining(realArgNames, scope, microstatements);
-            // Set the output as the firstArg for the next chained call, if any
-            firstArg = microstatements[microstatements.length - 1];
         }
     }
     static fromAssignmentsAst(assignmentsAst, // TODO: Eliminate ANTLR
@@ -11068,133 +10505,70 @@ ${letName} on line ${assignmentsAst.line}:${assignmentsAst.start.column}`);
                     }
                 }
             }
-            // An assignable may either be a basic constant or could be broken down into other
-            // microstatements. The classification with assignables is: if it's a `withoperators` type it
-            // *always* becomes multiple microstatements and it should return the variable name it
-            // generated to store the data. If it's a `basicassignables` type it could be either a
-            // "true constant" or generate multiple microstatements. The types that fall under the
-            // "true constant" category are: functions, var, and constants.
-            if (assignmentsAst.assignables().withoperators() != null) {
-                // Update the microstatements list with the operator serialization
-                Microstatement.fromWithOperatorsAst(assignmentsAst.assignables().withoperators(), scope, microstatements);
-                // By definition the last microstatement is the const assignment we care about, so we can
-                // just mutate its object to rename the output variable name to the name we need instead.
-                const last = microstatements[microstatements.length - 1];
-                last.outputName = actualLetName;
-                last.statementType = StatementType_1.default.ASSIGNMENT;
-                // Attempt to "merge" the output types, useful for multiple branches assigning into the same
-                // variable but only part of the type information is known in each branch (like in `Result`
-                // or `Either` with the result value only in one branch or one type in each of the branches
-                // for `Either`).
-                if (original.outputType.typename !== last.outputType.typename) {
-                    if (!!original.outputType.iface) {
-                        // Just overwrite if it's an interface type
-                        original.outputType = last.outputType;
-                    }
-                    else if (!!original.outputType.originalType &&
-                        !!last.outputType.originalType &&
-                        original.outputType.originalType.typename === last.outputType.originalType.typename) {
-                        // The tricky path, let's try to merge the two types together
-                        const baseType = original.outputType.originalType;
-                        const originalTypeAst = Ast.fulltypenameAstFromString(original.outputType.typename);
-                        const lastTypeAst = Ast.fulltypenameAstFromString(last.outputType.typename);
-                        const originalTypeGenerics = originalTypeAst.typegenerics();
-                        const lastTypeGenerics = lastTypeAst.typegenerics();
-                        const originalSubtypes = originalTypeGenerics ? originalTypeGenerics.fulltypename().map((t) => t.getText()) : [];
-                        const lastSubtypes = lastTypeGenerics ? lastTypeGenerics.fulltypename().map((t) => t.getText()) : [];
-                        const newSubtypes = [];
-                        for (let i = 0; i < originalSubtypes.length; i++) {
-                            if (originalSubtypes[i] === lastSubtypes[i]) {
-                                newSubtypes.push(originalSubtypes[i]);
-                            }
-                            else {
-                                const originalSubtype = scope.deepGet(originalSubtypes[i]);
-                                if (!!originalSubtype.iface) {
-                                    newSubtypes.push(lastSubtypes[i]);
-                                }
-                                else if (!!originalSubtype.originalType) {
-                                    // TODO: Support nesting
-                                    newSubtypes.push(originalSubtypes[i]);
-                                }
-                                else {
-                                    newSubtypes.push(originalSubtypes[i]);
-                                }
-                            }
-                        }
-                        const newType = baseType.solidify(newSubtypes, scope);
-                        original.outputType = newType;
-                    }
-                    else {
-                        // Hmm... what to do here?
-                        original.outputType = last.outputType;
+            Microstatement.fromAssignablesAst(assignmentsAst.assignables(), scope, microstatements);
+            // By definition the last microstatement is the const assignment we care about, so we can
+            // just mutate its object to rename the output variable name to the name we need instead.
+            let last = microstatements[microstatements.length - 1];
+            if (last.statementType === StatementType_1.default.REREF) {
+                // Find what it's rereferencing and adjust that, instead
+                for (let i = microstatements.length - 2; i >= 0; i--) {
+                    let m = microstatements[i];
+                    if (m.outputName === last.outputName && m.statementType !== StatementType_1.default.REREF) {
+                        last = m;
+                        break;
                     }
                 }
-                return;
             }
-            if (assignmentsAst.assignables().basicassignables() != null) {
-                Microstatement.fromBasicAssignablesAst(assignmentsAst.assignables().basicassignables(), scope, microstatements);
-                // The same rule as above, the last microstatement is already a const assignment for the
-                // value that we care about, so just rename its variable to the one that will be expected by
-                // other code.
-                const last = microstatements[microstatements.length - 1];
-                last.outputName = actualLetName;
-                last.statementType = StatementType_1.default.ASSIGNMENT;
-                // Attempt to "merge" the output types, useful for multiple branches assigning into the same
-                // variable but only part of the type information is known in each branch (like in `Result`
-                // or `Either` with the result value only in one branch or one type in each of the branches
-                // for `Either`).
-                // TODO: DRY up the two code blocks with near-identical type inference code.
-                if (original.outputType.typename !== last.outputType.typename) {
-                    if (!!original.outputType.iface) {
-                        // Just overwrite if it's an interface type
-                        original.outputType = last.outputType;
-                    }
-                    else if (!!original.outputType.originalType &&
-                        !!last.outputType.originalType &&
-                        original.outputType.originalType.typename === last.outputType.originalType.typename) {
-                        // The tricky path, let's try to merge the two types together
-                        const baseType = original.outputType.originalType;
-                        const originalTypeAst = Ast.fulltypenameAstFromString(original.outputType.typename);
-                        const lastTypeAst = Ast.fulltypenameAstFromString(last.outputType.typename);
-                        const originalTypeGenerics = originalTypeAst.typegenerics();
-                        const lastTypeGenerics = lastTypeAst.typegenerics();
-                        const originalSubtypes = originalTypeGenerics ? originalTypeGenerics.fulltypename().map((t) => t.getText()) : [];
-                        const lastSubtypes = lastTypeGenerics ? lastTypeGenerics.fulltypename().map((t) => t.getText()) : [];
-                        const newSubtypes = [];
-                        for (let i = 0; i < originalSubtypes.length; i++) {
-                            if (originalSubtypes[i] === lastSubtypes[i]) {
-                                newSubtypes.push(originalSubtypes[i]);
-                            }
-                            else {
-                                const originalSubtype = scope.deepGet(originalSubtypes[i]);
-                                if (!!originalSubtype.iface) {
-                                    newSubtypes.push(lastSubtypes[i]);
-                                }
-                                else if (!!originalSubtype.originalType) {
-                                    // TODO: Support nesting
-                                    newSubtypes.push(originalSubtypes[i]);
-                                }
-                                else {
-                                    newSubtypes.push(originalSubtypes[i]);
-                                }
-                            }
-                        }
-                        const newType = baseType.solidify(newSubtypes, scope);
-                        original.outputType = newType;
-                    }
-                    else {
-                        // Hmm... what to do here?
-                        original.outputType = last.outputType;
-                    }
-                }
-                else {
+            last.outputName = actualLetName;
+            last.statementType = StatementType_1.default.ASSIGNMENT;
+            // Attempt to "merge" the output types, useful for multiple branches assigning into the same
+            // variable but only part of the type information is known in each branch (like in `Result`
+            // or `Either` with the result value only in one branch or one type in each of the branches
+            // for `Either`).
+            if (original.outputType.typename !== last.outputType.typename) {
+                if (!!original.outputType.iface) {
+                    // Just overwrite if it's an interface type
                     original.outputType = last.outputType;
                 }
-                return;
+                else if (!!original.outputType.originalType &&
+                    !!last.outputType.originalType &&
+                    original.outputType.originalType.typename === last.outputType.originalType.typename) {
+                    // The tricky path, let's try to merge the two types together
+                    const baseType = original.outputType.originalType;
+                    const originalTypeAst = Ast.fulltypenameAstFromString(original.outputType.typename);
+                    const lastTypeAst = Ast.fulltypenameAstFromString(last.outputType.typename);
+                    const originalTypeGenerics = originalTypeAst.typegenerics();
+                    const lastTypeGenerics = lastTypeAst.typegenerics();
+                    const originalSubtypes = originalTypeGenerics ? originalTypeGenerics.fulltypename().map((t) => t.getText()) : [];
+                    const lastSubtypes = lastTypeGenerics ? lastTypeGenerics.fulltypename().map((t) => t.getText()) : [];
+                    const newSubtypes = [];
+                    for (let i = 0; i < originalSubtypes.length; i++) {
+                        if (originalSubtypes[i] === lastSubtypes[i]) {
+                            newSubtypes.push(originalSubtypes[i]);
+                        }
+                        else {
+                            let originalSubtype = scope.deepGet(originalSubtypes[i]);
+                            if (!!originalSubtype.iface) {
+                                newSubtypes.push(lastSubtypes[i]);
+                            }
+                            else if (!!originalSubtype.originalType) {
+                                // TODO: Support nesting
+                                newSubtypes.push(originalSubtypes[i]);
+                            }
+                            else {
+                                newSubtypes.push(originalSubtypes[i]);
+                            }
+                        }
+                    }
+                    const newType = baseType.solidify(newSubtypes, scope);
+                    original.outputType = newType;
+                }
+                else {
+                    // Hmm... what to do here?
+                    original.outputType = last.outputType;
+                }
             }
-            // This should not be reachable
-            throw new Error(`Unknown malformed input in re-assignment
-${letName} on line ${assignmentsAst.start.line}:${assignmentsAst.start.column}`);
+            return;
         }
         // The more complicated path. First, rule out that the first segment is not a `scope`.
         const testBox = scope.deepGet(segments[0].getText());
@@ -11237,19 +10611,7 @@ ${assignmentsAst.varn().getText()} on line ${assignmentsAst.varn().start.line}:$
                 original = microstatements[microstatements.length - 1];
             }
         }
-        // An assignable may either be a basic constant or could be broken down into other microstatements
-        // The classification with assignables is: if it's a `withoperators` type it *always* becomes
-        // multiple microstatements and it should return the variable name it generated to store the data.
-        // If it's a `basicassignables` type it could be either a "true constant" or generate multiple
-        // microstatements. The types that fall under the "true constant" category are: functions,
-        // var, and constants.
-        if (assignmentsAst.assignables().withoperators() != null) {
-            // Update the microstatements list with the operator serialization
-            Microstatement.fromWithOperatorsAst(assignmentsAst.assignables().withoperators(), scope, microstatements);
-        }
-        else if (assignmentsAst.assignables().basicassignables() != null) {
-            Microstatement.fromBasicAssignablesAst(assignmentsAst.assignables().basicassignables(), scope, microstatements);
-        }
+        Microstatement.fromAssignablesAst(assignmentsAst.assignables(), scope, microstatements);
         // Grab a reference to the final assignment variable.
         const assign = microstatements[microstatements.length - 1];
         // Next, determine which kind of final segment this is and perform the appropriate action to
@@ -11301,98 +10663,56 @@ ${letName} on line ${assignmentsAst.start.line}:${assignmentsAst.start.column}`)
     static fromLetdeclarationAst(letdeclarationAst, // TODO: Eliminate ANTLR
     scope, microstatements) {
         const letAlias = letdeclarationAst.VARNAME().getText();
-        const letTypeHint = letdeclarationAst.othertype() ? letdeclarationAst.othertype().getText() : '';
+        const letTypeHint = letdeclarationAst.fulltypename() ? letdeclarationAst.fulltypename().getText() : '';
         const typeBox = scope.deepGet(letTypeHint);
         if (typeBox === null && letTypeHint !== '') {
             // Try to define it if it's a generic type
-            if (letdeclarationAst.othertype().typegenerics()) {
-                const outerTypeBox = scope.deepGet(letdeclarationAst.othertype().typename().getText());
+            if (letdeclarationAst.fulltypename().typegenerics()) {
+                const outerTypeBox = scope.deepGet(letdeclarationAst.fulltypename().typename().getText());
                 if (outerTypeBox === null) {
-                    throw new Error(`${letdeclarationAst.othertype().typename().getText()}  is not defined
+                    throw new Error(`${letdeclarationAst.fulltypename().typename().getText()}  is not defined
 ${letdeclarationAst.getText()} on line ${letdeclarationAst.start.line}:${letdeclarationAst.start.column}`);
                 }
-                outerTypeBox.solidify(letdeclarationAst.othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                outerTypeBox.solidify(letdeclarationAst.fulltypename().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                 ), scope);
             }
         }
-        // An assignable may either be a basic constant or could be broken down into other microstatements
-        // The classification with assignables is: if it's a `withoperators` type it *always* becomes
-        // multiple microstatements and it should return the variable name it generated to store the data.
-        // If it's a `basicassignables` type it could be either a "true constant" or generate multiple
-        // microstatements. The types that fall under the "true constant" category are: functions,
-        // var, and constants.
-        if (letdeclarationAst.assignables().withoperators() != null) {
-            // Update the microstatements list with the operator serialization
-            Microstatement.fromWithOperatorsAst(letdeclarationAst.assignables().withoperators(), scope, microstatements);
-            // By definition the last microstatement is the const assignment we care about, so we can just
-            // mutate its object to rename the output variable name to the name we need instead.
-            // EXCEPT with Arrays and User Types. The last is a REREF, so follow it back to the original
-            // and mutate that, instead
-            let val = microstatements[microstatements.length - 1];
-            if (val.statementType === StatementType_1.default.REREF) {
-                val = Microstatement.fromVarName(val.alias, scope, microstatements);
-            }
-            val.statementType = StatementType_1.default.LETDEC;
-            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, val.outputName, val.outputType, [], [], letAlias));
-            return;
+        Microstatement.fromAssignablesAst(letdeclarationAst.assignables(), scope, microstatements);
+        // By definition the last microstatement is the const assignment we care about, so we can just
+        // mutate its object to rename the output variable name to the name we need instead.
+        // EXCEPT with Arrays and User Types. The last is a REREF, so follow it back to the original
+        // and mutate that, instead
+        let val = microstatements[microstatements.length - 1];
+        if (val.statementType === StatementType_1.default.REREF) {
+            val = Microstatement.fromVarName(val.alias, scope, microstatements);
         }
-        if (letdeclarationAst.assignables().basicassignables() != null) {
-            Microstatement.fromBasicAssignablesAst(letdeclarationAst.assignables().basicassignables(), scope, microstatements);
-            // By definition the last microstatement is the const assignment we care about, so we can just
-            // mutate its object to rename the output variable name to the name we need instead.
-            // EXCEPT with Arrays and User Types. The last is a REREF, so follow it back to the original
-            // and mutate that, instead
-            let val = microstatements[microstatements.length - 1];
-            if (val.statementType === StatementType_1.default.REREF) {
-                val = Microstatement.fromVarName(val.alias, scope, microstatements);
-            }
-            val.statementType = StatementType_1.default.LETDEC;
-            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, val.outputName, val.outputType, [], [], letAlias));
-            return;
-        }
+        val.statementType = StatementType_1.default.LETDEC;
+        microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, val.outputName, val.outputType, [], [], letAlias));
     }
     static fromConstdeclarationAst(constdeclarationAst, // TODO: Eliminate ANTLR
     scope, microstatements) {
         const constName = "_" + uuid_1.v4().replace(/-/g, "_");
         const constAlias = constdeclarationAst.VARNAME().getText();
-        const constTypeHint = constdeclarationAst.othertype() ?
-            constdeclarationAst.othertype().getText() :
+        const constTypeHint = constdeclarationAst.fulltypename() ?
+            constdeclarationAst.fulltypename().getText() :
             '';
         const typeBox = scope.deepGet(constTypeHint);
         if (typeBox === null && constTypeHint !== '') {
             // Try to define it if it's a generic type
-            if (constdeclarationAst.othertype().typegenerics()) {
-                const outerTypeBox = scope.deepGet(constdeclarationAst.othertype().typename().getText());
+            if (constdeclarationAst.fulltypename().typegenerics()) {
+                const outerTypeBox = scope.deepGet(constdeclarationAst.fulltypename().typename().getText());
                 if (outerTypeBox === null) {
-                    throw new Error(`${constdeclarationAst.othertype().typename().getText()}  is not defined
+                    throw new Error(`${constdeclarationAst.fulltypename().typename().getText()}  is not defined
 ${constdeclarationAst.getText()} on line ${constdeclarationAst.start.line}:${constdeclarationAst.start.column}`);
                 }
-                outerTypeBox.solidify(constdeclarationAst.othertype().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
+                outerTypeBox.solidify(constdeclarationAst.fulltypename().typegenerics().fulltypename().map((t) => t.getText() // TODO: Eliminate ANTLR
                 ), scope);
             }
         }
-        // An assignable may either be a basic constant or could be broken down into other microstatements
-        // The classification with assignables is: if it's a `withoperators` type it *always* becomes
-        // multiple microstatements and it should return the variable name it generated to store the data.
-        // If it's a `basicassignables` type it could be either a "true constant" or generate multiple
-        // microstatements. The types that fall under the "true constant" category are: functions,
-        // var, and constants.
-        if (constdeclarationAst.assignables().withoperators() != null) {
-            // Update the microstatements list with the operator serialization
-            Microstatement.fromWithOperatorsAst(constdeclarationAst.assignables().withoperators(), scope, microstatements);
-            // By definition the last microstatement is the const assignment we care about, so we can just
-            // mutate its object to rename the output variable name to the name we need instead.
-            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, microstatements[microstatements.length - 1].outputName, microstatements[microstatements.length - 1].outputType, [], [], constAlias));
-            return;
-        }
-        if (constdeclarationAst.assignables().basicassignables() != null) {
-            Microstatement.fromBasicAssignablesAst(constdeclarationAst.assignables().basicassignables(), scope, microstatements);
-            // The same rule as above, the last microstatement is already a const assignment for the value
-            // that we care about, so just rename its variable to the one that will be expected by other
-            // code.
-            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, microstatements[microstatements.length - 1].outputName, microstatements[microstatements.length - 1].outputType, [], [], constAlias));
-            return;
-        }
+        Microstatement.fromAssignablesAst(constdeclarationAst.assignables(), scope, microstatements);
+        // By definition the last microstatement is the const assignment we care about, so we can just
+        // mutate its object to rename the output variable name to the name we need instead.
+        microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, microstatements[microstatements.length - 1].outputName, microstatements[microstatements.length - 1].outputType, [], [], constAlias));
     }
     // DFS recursive algo to get the microstatements in a valid ordering
     static fromStatementsAst(statementAst, // TODO: Eliminate ANTLR
@@ -11408,8 +10728,8 @@ ${constdeclarationAst.getText()} on line ${constdeclarationAst.start.line}:${con
         if (statementAst.assignments() != null) {
             Microstatement.fromAssignmentsAst(statementAst.assignments(), scope, microstatements);
         }
-        if (statementAst.calls() != null) {
-            Microstatement.fromCallsAst(statementAst.calls(), scope, microstatements);
+        if (statementAst.assignables() != null) {
+            Microstatement.fromAssignablesAst(statementAst.assignables(), scope, microstatements);
         }
         if (statementAst.exits() != null) {
             Microstatement.fromExitsAst(statementAst.exits(), scope, microstatements);
@@ -11419,13 +10739,434 @@ ${constdeclarationAst.getText()} on line ${constdeclarationAst.start.line}:${con
         }
         return microstatements;
     }
+    static fromBaseAssignableAst(baseAssignableAsts, // TODO: Eliminate ANTLR
+    scope, microstatements) {
+        // The base assignables array are a lightly annotated set of primitives that can be combined
+        // together to produce an assignable value. Certain combinations of these primitives are invalid
+        // and TODO provide good error messaging when these are encountered. A state machine of valid
+        // transitions is defined below:
+        //
+        // null -> { var, obj, fn, const, group }
+        // var -> { dot, arraccess, call, eos }
+        // obj -> { dot, arraccess, eos }
+        // fn -> { call, eos }
+        // const -> { dot, eos }
+        // group -> { dot, arraccess, eos }
+        // call -> { call, arraccess, dot, eos }
+        // arraccess -> { arraccess, dot, call, eos }
+        //
+        // Where `null` is the initial state and `eos` is end-of-statement terminating state. `var` is
+        // some variable-name-like value (could be a scope, variable, property, or function name). `obj`
+        // is object literal syntax, `fn` is function literal syntax, `const` is a constant literal.
+        // `group)` is re-using the function call syntax to handle operator grouping (eg `2 * (3 + 4)`).
+        // Because of how operators are mixed in with the assignables, the only time this syntax is used
+        // as an operator grouping syntax is if it is the first element in the array. Otherwise it is
+        // being used as a function call for a given function (either defined by a variable, an
+        // inline-defined function, or a returned function from another call or array access) as `call`.
+        // Finally `arraccess` is when an array (and ideally later a HashMap) is accessed. This mode is
+        // also abusing the `obj` syntax, but only when it's an array literal with only one value and no
+        // `new Array<foo>` type definition *and* when there are prior elements in the list. This means
+        // `[0][0]` is unambiguous and would return a Result-wrapped zero value, for instance.
+        //
+        // The exact meaning of `var.var...` chains varies based on the elements of the array both
+        // before and after such a chain. If the start of such a list, and if a `call` is at the end, it
+        // could be something like `scope.variable.property.functionName(args)` where `.property` can
+        // repeat multiple times over. Basically, to properly parse any `.var` requires both the prior
+        // state *and* look-ahead to the next element in the list.
+        //
+        // All of this to re-iterate that for the sake of compile time, some of the complexities of the
+        // grammar have been moved from the ANTLR definition into the compiler itself for performance
+        // reasons, explaining the complicated iterative logic that follows.
+        let currVal = null;
+        for (let i = 0; i < baseAssignableAsts.length; i++) {
+            const baseassignable = baseAssignableAsts[i];
+            if (!!baseassignable.METHODSEP()) {
+                if (i === 0) {
+                    throw new Error(`Invalid start of assignable statement. Cannot begin with a dot (.)
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                }
+                const prevassignable = baseAssignableAsts[i - 1];
+                if (!!prevassignable.METHODSEP()) {
+                    throw new Error(`Invalid property access. You accidentally typed a dot twice in a row.
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                }
+                else if (!!prevassignable.functions()) {
+                    throw new Error(`Invalid property access. Functions do not have properties.
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                }
+                // TODO: Do we even do anything else in this branch?
+            }
+            else if (!!baseassignable.VARNAME()) {
+                const nextassignable = baseAssignableAsts[i + 1];
+                if (!!nextassignable && !!nextassignable.fncall()) {
+                    // This is a function call path
+                    const fncall = nextassignable.fncall();
+                    const argAsts = fncall.assignablelist() ? fncall.assignablelist().assignables() : [];
+                    const argMicrostatements = argAsts.map(arg => {
+                        Microstatement.fromAssignablesAst(arg, scope, microstatements);
+                        return microstatements[microstatements.length - 1];
+                    });
+                    if (currVal === null) {
+                        // This is a basic function call
+                        const realArgNames = argMicrostatements.map(arg => arg.outputName);
+                        const realArgTypes = argMicrostatements.map(arg => arg.outputType);
+                        // Do a scan of the microstatements for an inner defined closure that might exist.
+                        const fn = scope.deepGet(baseassignable.VARNAME().getText());
+                        if (!fn ||
+                            !(fn instanceof Array && fn[0].microstatementInlining instanceof Function)) {
+                            const fnName = baseassignable.VARNAME().getText();
+                            let actualFnName;
+                            let inlinedClosure = false;
+                            for (let i = microstatements.length - 1; i >= 0; i--) {
+                                if (microstatements[i].alias === fnName) {
+                                    actualFnName = microstatements[i].outputName;
+                                    continue;
+                                }
+                                if (microstatements[i].outputName === actualFnName &&
+                                    microstatements[i].statementType === StatementType_1.default.CLOSUREDEF) {
+                                    const m = [...microstatements, ...microstatements[i].closureStatements];
+                                    const fn = UserFunction_1.default.dispatchFn(microstatements[i].fns, realArgTypes, scope);
+                                    const interfaceMap = new Map();
+                                    Object.values(fn.getArguments()).forEach((t, i) => t.typeApplies(realArgTypes[i], scope, interfaceMap));
+                                    Microstatement.closureFromUserFunction(fn, fn.scope || scope, m, interfaceMap);
+                                    const closure = m.pop();
+                                    microstatements.push(...closure.closureStatements.filter(s => s.statementType !== StatementType_1.default.EXIT));
+                                    currVal = microstatements[microstatements.length - 1];
+                                    inlinedClosure = true;
+                                    break;
+                                }
+                            }
+                            if (!inlinedClosure) {
+                                throw new Error(`${baseassignable.VARNAME().getText()} is not a function but used as one.
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                            }
+                        }
+                        else {
+                            // Generate the relevant microstatements for this function. UserFunctions get inlined
+                            // with the return statement turned into a const assignment as the last statement,
+                            // while built-in functions are kept as function calls with the correct renaming.
+                            UserFunction_1.default
+                                .dispatchFn(fn, realArgTypes, scope)
+                                .microstatementInlining(realArgNames, scope, microstatements);
+                            currVal = microstatements[microstatements.length - 1];
+                        }
+                    }
+                    else if (currVal instanceof Scope_1.default) {
+                        // This is calling a function by its parent scope
+                        const realArgNames = argMicrostatements.map(arg => arg.outputName);
+                        const realArgTypes = argMicrostatements.map(arg => arg.outputType);
+                        const fn = currVal.deepGet(baseassignable.VARNAME().getText());
+                        if (!fn ||
+                            !(fn instanceof Array && fn[0].microstatementInlining instanceof Function)) {
+                            throw new Error(`${baseassignable.VARNAME().getText()} is not a function but used as one.
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                        }
+                        // Generate the relevant microstatements for this function. UserFunctions get inlined
+                        // with the return statement turned into a const assignment as the last statement,
+                        // while built-in functions are kept as function calls with the correct renaming.
+                        UserFunction_1.default
+                            .dispatchFn(fn, realArgTypes, scope)
+                            .microstatementInlining(realArgNames, scope, microstatements);
+                        currVal = microstatements[microstatements.length - 1];
+                    }
+                    else { // It's a method-style function call
+                        const realArgNames = [
+                            currVal.outputName,
+                            ...argMicrostatements.map(arg => arg.outputName)
+                        ];
+                        const realArgTypes = [
+                            currVal.outputType,
+                            ...argMicrostatements.map(arg => arg.outputType)
+                        ];
+                        const fn = scope.deepGet(baseassignable.VARNAME().getText());
+                        if (!fn ||
+                            !(fn instanceof Array && fn[0].microstatementInlining instanceof Function)) {
+                            throw new Error(`${baseassignable.VARNAME().getText()} is not a function but used as one.
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                        }
+                        // Generate the relevant microstatements for this function. UserFunctions get inlined
+                        // with the return statement turned into a const assignment as the last statement,
+                        // while built-in functions are kept as function calls with the correct renaming.
+                        UserFunction_1.default
+                            .dispatchFn(fn, realArgTypes, scope)
+                            .microstatementInlining(realArgNames, scope, microstatements);
+                        currVal = microstatements[microstatements.length - 1];
+                    }
+                    // Intentionally skip over the `fncall` block on the next iteration
+                    i++;
+                }
+                else {
+                    if (currVal === null) {
+                        let thing = Microstatement.fromVarName(baseassignable.VARNAME().getText(), scope, microstatements);
+                        if (!thing) {
+                            thing = scope.deepGet(baseassignable.VARNAME().getText());
+                        }
+                        if (!thing) {
+                            throw new Error(`${baseassignable.VARNAME().getText()} not found.
+  ${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                        }
+                        currVal = thing;
+                    }
+                    else if (currVal instanceof Scope_1.default) {
+                        const thing = currVal.deepGet(baseassignable.VARNAME().getText());
+                        if (!thing) {
+                            throw new Error(`${baseassignable.VARNAME().getText()} not found in other scope.
+  ${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                        }
+                        currVal = thing;
+                    }
+                    else if (currVal instanceof Microstatement) {
+                        const fieldName = baseassignable.VARNAME().getText();
+                        const fields = Object.keys(currVal.outputType.properties);
+                        const fieldNum = fields.indexOf(fieldName);
+                        if (fieldNum < 0) {
+                            // Invalid object access
+                            throw new Error(`${fieldName} property not found.
+  ${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                        }
+                        // Create a new variable to hold the address within the array literal
+                        const addrName = "_" + uuid_1.v4().replace(/-/g, "_");
+                        microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, addrName, Type_1.default.builtinTypes['int64'], [`${fieldNum}`], []));
+                        // Insert a `register` opcode.
+                        const opcodes = require('./opcodes').default;
+                        opcodes.exportScope.get('register')[0].microstatementInlining([currVal.outputName, addrName], scope, microstatements);
+                        // We'll need a reference to this for later
+                        const typeRecord = currVal;
+                        // Set the original to this newly-generated microstatement
+                        currVal = microstatements[microstatements.length - 1];
+                        // Now we do something odd, but correct here; we need to replace the `outputType` from
+                        // `any` to the type that was actually copied so function resolution continues to work
+                        currVal.outputType = typeRecord.outputType.properties[fieldName];
+                    }
+                    else {
+                        // What is this?
+                        throw new Error(`Impossible path found. Bug in compiler, please report!
+Previous value type: ${typeof currVal}
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                    }
+                }
+            }
+            else if (!!baseassignable.constants()) {
+                if (currVal !== null) {
+                    throw new Error(`Unexpected constant value detected.
+Previous value type: ${typeof currVal}
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                }
+                Microstatement.fromConstantsAst(baseassignable.constants(), scope, microstatements);
+                currVal = microstatements[microstatements.length - 1];
+            }
+            else if (!!baseassignable.functions()) {
+                if (currVal !== null) {
+                    throw new Error(`Unexpected function definition detected.
+Previous value type: ${typeof currVal}
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                }
+                // So the closures eval correctly, we add the alias microstatements to the scope
+                // TODO: Is this the right approach?
+                microstatements.filter(m => !!m.alias).forEach(m => scope.put(m.alias, m));
+                const fn = UserFunction_1.default.fromFunctionsAst(baseassignable.functions(), scope);
+                currVal = fn; // TODO: Is this the right choice here?
+            }
+            else if (!!baseassignable.objectliterals()) {
+                if (currVal === null) {
+                    // Has to be a "normal" object literal in this case
+                    Microstatement.fromObjectLiteralsAst(baseassignable.objectliterals(), scope, microstatements);
+                    currVal = microstatements[microstatements.length - 1];
+                }
+                else {
+                    // Can only be an array accessor syntax
+                    const objlit = baseassignable.objectliterals();
+                    if (!!objlit.typeliteral() || !!objlit.arrayliteral().literaldec()) {
+                        throw new Error(`Unexpected object literal definition detected.
+Previous value type: ${typeof currVal}
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                    }
+                    const arrbase = objlit.arrayliteral().arraybase();
+                    if (!arrbase.assignablelist() || arrbase.assignablelist().assignables().length !== 1) {
+                        throw new Error(`Array access must provide only one index value to query the array with
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                    }
+                    const assignableAst = arrbase.assignablelist().assignables(0);
+                    Microstatement.fromAssignablesAst(assignableAst, scope, microstatements);
+                    const arrIndex = microstatements[microstatements.length - 1];
+                    if (arrIndex.outputType.typename !== 'int64') {
+                        throw new Error(`Array access must be done with an int64 value
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                    }
+                    if (!(currVal instanceof Microstatement) ||
+                        currVal.outputType.originalType.typename !== 'Array') {
+                        throw new Error(`Array access may only be performed on arrays.
+Previous value type: ${currVal.outputType.typename}
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                    }
+                    // All of those safeguards out of the way, time to extract the desired value
+                    // Insert a `resfrom` opcode.
+                    const opcodes = require('./opcodes').default;
+                    opcodes.exportScope.get('resfrom')[0].microstatementInlining([currVal.outputName, arrIndex.outputName], scope, microstatements);
+                    // We'll need a reference to this for later
+                    const arrayRecord = currVal;
+                    // Update to this newly-generated microstatement
+                    currVal = microstatements[microstatements.length - 1];
+                    // Now we do something odd, but correct here; we need to replace the `outputType` from
+                    // `any` to the type that was actually copied so function resolution continues to work
+                    currVal.outputType = Type_1.default.builtinTypes.Result.solidify([Object.values(arrayRecord.outputType.properties)[0].typename], scope);
+                }
+            }
+            else if (!!baseassignable.fncall()) {
+                // It's a `fncall` syntax block but it wasn't caught in a function call before, so it's
+                // either a function call on a returned function type, or it's an assignable group
+                if (!currVal) {
+                    // It's probably an assignable group
+                    if (!baseassignable.fncall().assignablelist() ||
+                        baseassignable.fncall().assignablelist().assignables().length !== 1) {
+                        throw new Error(`Expected a group of assignable values, but got a function call signature.
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                    }
+                    // It *is* an assignable group!
+                    Microstatement.fromAssignablesAst(baseassignable.fncall().assignablelist().assignables(0), scope, microstatements);
+                    currVal = microstatements[microstatements.length - 1];
+                }
+                else {
+                    // TODO: handle functions/closures being called from access out of other function returns
+                    // and the like
+                }
+            }
+            else {
+                throw new Error(`Compiler error! Completely unhandled input.
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+            }
+        }
+        if (!(currVal instanceof Microstatement)) {
+            if (currVal instanceof UserFunction_1.default) {
+                Microstatement.closureDef([currVal], currVal.scope || scope, microstatements);
+            }
+            else if (currVal instanceof Array && currVal[0] instanceof UserFunction_1.default) {
+                Microstatement.closureDef(currVal, currVal[0].scope || scope, microstatements);
+            }
+        }
+        else if (currVal.statementType !== StatementType_1.default.EMIT) {
+            microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, currVal.outputName, currVal.outputType, [], [], currVal.alias));
+        }
+    }
     static fromAssignablesAst(assignablesAst, // TODO: Eliminate ANTLR
     scope, microstatements) {
-        if (assignablesAst.basicassignables() != null) {
-            Microstatement.fromBasicAssignablesAst(assignablesAst.basicassignables(), scope, microstatements);
+        const withoperators = assignablesAst.withoperators();
+        let withOperatorsList = [];
+        for (const operatorOrAssignable of withoperators) {
+            if (!!operatorOrAssignable.operators()) {
+                const operator = operatorOrAssignable.operators();
+                const op = scope.deepGet(operator.getText());
+                if (op == null || !(op instanceof Array && op[0] instanceof Operator_1.default)) {
+                    throw new Error("Operator " + operator.getText() + " is not defined");
+                }
+                withOperatorsList.push(op);
+            }
+            else if (!!operatorOrAssignable.baseassignable() &&
+                operatorOrAssignable.baseassignable().length > 0) {
+                Microstatement.fromBaseAssignableAst(operatorOrAssignable.baseassignable(), scope, microstatements);
+                const last = microstatements[microstatements.length - 1];
+                withOperatorsList.push(last);
+            }
         }
-        else {
-            Microstatement.fromWithOperatorsAst(assignablesAst.withoperators(), scope, microstatements);
+        // Now to combine these operators and values in the correct order. A compiled language could
+        // never do something so inefficient, but I don't care about performance right now, so here's
+        // the algorithm: while the list length is greater than 1, perform the two steps:
+        // 1. Find the operator with the greatest precedence
+        // 2. Apply the underlying function to the values on either side of the operator (or just the
+        //    right side if the operator is a prefix operator), then replace the operator with the
+        //    returned value in the list and delete the impacted values.
+        while (withOperatorsList.length > 1) {
+            let maxPrecedence = -1;
+            let maxOperatorLoc = -1;
+            let maxOperatorListLoc = -1;
+            for (let i = 0; i < withOperatorsList.length; i++) {
+                if (withOperatorsList[i] instanceof Array && withOperatorsList[i][0] instanceof Operator_1.default) {
+                    const ops = withOperatorsList[i];
+                    let op = null;
+                    let operatorListLoc = -1;
+                    let operatorPrecedence = -127;
+                    if (ops.length == 1) {
+                        op = ops[0];
+                        operatorListLoc = 0;
+                    }
+                    else {
+                        // TODO: We need to identify which particular operator applies in this case.
+                        // We're just going to short-circuit this process on the first operator that matches
+                        // but we need to come up with a "best match" behavior (ie, if one argument is an int8
+                        // it may choose the int64-based operator because it was first and it can cast int8 to
+                        // int64 and then miss the specialized int8 version of the function).
+                        let left = null;
+                        if (i != 0)
+                            left = withOperatorsList[i - 1];
+                        let right = null;
+                        if (i != withOperatorsList.length - 1)
+                            right = withOperatorsList[i + 1];
+                        // Skip over any operator that is followed by another operator as it must be a prefix
+                        // operator (or a syntax error, but we'll catch that later)
+                        if (right === null || right instanceof Microstatement) {
+                            for (let j = 0; j < ops.length; j++) {
+                                if (ops[j].precedence > operatorPrecedence &&
+                                    ops[j].applicableFunction(!left ? // Left is special, if two operators are in a row, this one
+                                        null : // needs to be a prefix operator for this to work at all
+                                        left instanceof Microstatement ?
+                                            left.outputType :
+                                            null, right === null ? null : right.outputType, scope) != null) {
+                                    op = ops[j];
+                                    operatorListLoc = j;
+                                    operatorPrecedence = op.precedence;
+                                }
+                            }
+                        }
+                        // During the process of determining the operator ordering, there may be tests that
+                        // will not match because operator precedence will convert the neighboring types into
+                        // types that will match. This is complicated and doing this statically will be more
+                        // difficult, but for now, just skip over these.
+                        if (op == null)
+                            continue;
+                    }
+                    if (op.precedence > maxPrecedence) {
+                        maxPrecedence = op.precedence;
+                        maxOperatorLoc = i;
+                        maxOperatorListLoc = operatorListLoc;
+                    }
+                }
+            }
+            if (maxPrecedence == -1 || maxOperatorLoc == -1) {
+                let errMsg = `Cannot resolve operators with remaining statement
+${assignablesAst.getText()}`;
+                let withOperatorsTranslation = [];
+                for (let i = 0; i < withOperatorsList.length; i++) {
+                    const node = withOperatorsList[i];
+                    if (node instanceof Array && node[0] instanceof Operator_1.default) {
+                        withOperatorsTranslation.push(node[0].name);
+                    }
+                    else {
+                        withOperatorsTranslation.push("<" + node.outputType.typename + ">");
+                    }
+                }
+                errMsg += '\n' + withOperatorsTranslation.join(' ');
+                throw new Error(errMsg);
+            }
+            const op = withOperatorsList[maxOperatorLoc][maxOperatorListLoc];
+            let realArgNames = [];
+            let realArgTypes = [];
+            if (!op.isPrefix) {
+                const left = withOperatorsList[maxOperatorLoc - 1];
+                realArgNames.push(left.outputName);
+                realArgTypes.push(left.outputType);
+            }
+            const right = withOperatorsList[maxOperatorLoc + 1];
+            realArgNames.push(right.outputName);
+            realArgTypes.push(right.outputType);
+            UserFunction_1.default
+                .dispatchFn(op.potentialFunctions, realArgTypes, scope)
+                .microstatementInlining(realArgNames, scope, microstatements);
+            const last = microstatements[microstatements.length - 1];
+            withOperatorsList[maxOperatorLoc] = last;
+            withOperatorsList.splice(maxOperatorLoc + 1, 1);
+            if (!op.isPrefix) {
+                withOperatorsList.splice(maxOperatorLoc - 1, 1);
+            }
         }
     }
     static fromStatement(statement, microstatements, secondaryScope = null) {
@@ -11603,7 +11344,7 @@ class Module {
             const isPrefix = operatorAst.INFIX() === null;
             const name = operatorAst.fntoop().operators().getText().trim();
             const precedence = parseInt(operatorAst.opprecedence().NUMBERCONSTANT().getText(), 10);
-            const fns = module.moduleScope.deepGet(operatorAst.fntoop().varn().getText());
+            const fns = module.moduleScope.deepGet(operatorAst.fntoop().eventref().getText());
             if (fns == null) {
                 throw new Error("Operator " + name + " declared for unknown function " + operatorAst.varn().getText());
             }
@@ -11622,9 +11363,9 @@ class Module {
         // Next, exports, which can be most of the above
         const exports = ast.exports();
         for (const exportAst of exports) {
-            if (exportAst.varn() != null) {
-                const exportVar = module.moduleScope.deepGet(exportAst.varn().getText());
-                const splitName = exportAst.varn().getText().split(".");
+            if (exportAst.eventref() != null) {
+                const exportVar = module.moduleScope.deepGet(exportAst.eventref().getText());
+                const splitName = exportAst.eventref().getText().split(".");
                 module.moduleScope.put(splitName[splitName.length - 1], exportVar);
                 module.exportScope.put(splitName[splitName.length - 1], exportVar);
             }
@@ -11670,9 +11411,9 @@ class Module {
                 const isPrefix = operatorAst.INFIX() == null;
                 const name = operatorAst.fntoop().operators().getText().trim();
                 const precedence = parseInt(operatorAst.opprecedence().NUMBERCONSTANT().getText(), 10);
-                let fns = module.exportScope.deepGet(operatorAst.fntoop().varn().getText());
+                let fns = module.exportScope.deepGet(operatorAst.fntoop().eventref().getText());
                 if (!fns) {
-                    fns = module.moduleScope.deepGet(operatorAst.fntoop().varn().getText());
+                    fns = module.moduleScope.deepGet(operatorAst.fntoop().eventref().getText());
                     if (!!fns) {
                         throw new Error("Exported operator " +
                             name +
@@ -11716,12 +11457,8 @@ class Module {
         const handlers = ast.handlers();
         for (const handlerAst of handlers) {
             let evt = null;
-            if (handlerAst.eventref().varn() != null) {
-                evt = module.moduleScope.deepGet(handlerAst.eventref().varn().getText());
-            }
-            else if (handlerAst.eventref().calls() != null) {
-                throw new Error("Not yet implemented!");
-                // evt = AFunction.callFromAst(handlerAst.eventref().calls(), module.moduleScope)
+            if (handlerAst.eventref() != null) {
+                evt = module.moduleScope.deepGet(handlerAst.eventref().getText());
             }
             if (!evt) {
                 throw new Error("Could not find specified event: " + handlerAst.eventref().getText());
@@ -11730,9 +11467,9 @@ class Module {
                 throw new Error(handlerAst.eventref().getText() + " is not an event");
             }
             let fn = null;
-            if (handlerAst.varn() != null) {
-                const fnName = handlerAst.varn().getText();
-                const fns = module.moduleScope.deepGet(handlerAst.varn().getText());
+            if (handlerAst.typename() != null) {
+                const fnName = handlerAst.typename().getText();
+                const fns = module.moduleScope.deepGet(handlerAst.typename().getText());
                 if (!fns) {
                     throw new Error("Could not find specified function: " + fnName);
                 }
@@ -11950,7 +11687,6 @@ exports.default = Scope;
 },{}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const Operator_1 = require("./Operator");
 // Only implements the pieces necessary for the first stage compiler
 class Statement {
     constructor(statementAst, scope, pure) {
@@ -11964,18 +11700,26 @@ class Statement {
     isReturnStatement() {
         return this.statementAst.exits() !== null;
     }
-    static basicAssignableHasObjectLiteral(basicAssignableAst) {
-        if (basicAssignableAst.objectliterals())
-            return true;
-        return false;
+    static baseAssignableHasObjectLiteral(baseAssignableAst) {
+        return !!baseAssignableAst.objectliterals();
     }
     static assignablesHasObjectLiteral(assignablesAst) {
-        const a = assignablesAst;
-        if (a.basicassignables())
-            return Statement.basicAssignableHasObjectLiteral(a.basicassignables());
-        return a.withoperators().operatororassignable()
-            .filter((oa) => !!oa.basicassignables())
-            .some((oa) => Statement.basicAssignableHasObjectLiteral(oa.basicassignables()));
+        for (const wo of assignablesAst.withoperators()) {
+            if (!!wo.operators())
+                continue;
+            for (const ba of wo.baseassignable()) {
+                if (Statement.baseAssignableHasObjectLiteral(ba))
+                    return true;
+                if (!!ba.fncall() && !!ba.fncall().assignablelist()) {
+                    const innerAssignables = ba.fncall().assignablelist().assignables();
+                    for (const ia of innerAssignables) {
+                        if (Statement.assignablesHasObjectLiteral(ia))
+                            return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
     static assignmentsHasObjectLiteral(assignmentsAst) {
         return Statement.assignablesHasObjectLiteral(assignmentsAst.assignables());
@@ -11988,8 +11732,8 @@ class Statement {
         }
         if (s.assignments())
             return Statement.assignmentsHasObjectLiteral(s.assignments());
-        if (s.calls() && s.calls().assignables() > 0)
-            s.calls().assignables().some((a) => Statement.assignablesHasObjectLiteral(a));
+        if (s.assignables())
+            return Statement.assignablesHasObjectLiteral(s.assignables());
         if (s.exits() && s.exits().assignables())
             return Statement.assignablesHasObjectLiteral(s.exits().assignables());
         if (s.emits() && s.emits().assignables())
@@ -11999,7 +11743,7 @@ class Statement {
     }
     static isCallPure(callAst, scope) {
         // TODO: Add purity checking for chained method-style calls
-        const fn = scope.deepGet(callAst.varn(0).getText());
+        const fn = scope.deepGet(callAst.callbase(0).varn(0).getText());
         if (!fn) {
             // TODO: This function may be defined in the execution scope, we won't know until runtime
             // right now, but it should be determinable at "compile time". Need to fix this to check
@@ -12007,14 +11751,14 @@ class Statement {
             return false;
         }
         if (!(fn instanceof Array && fn[0].microstatementInlining instanceof Function)) {
-            throw new Error(callAst.varn(0).getText() + " is not a function");
+            throw new Error(callAst.callbase(0).varn(0).getText() + " is not a function");
         }
         // TODO: Add all of the logic to determine which function to use in here, too. For now,
         // let's just assume they all have the same purity state, which is a terrible assumption, but
         // easier.
         if (!fn[0].isPure())
             return false;
-        const assignableListAst = callAst.fncall(0).assignablelist();
+        const assignableListAst = callAst.callbase(0).fncall(0).assignablelist();
         if (assignableListAst == null) { // No arguments to this function call
             return true;
         }
@@ -12024,61 +11768,14 @@ class Statement {
         }
         return true;
     }
-    static isWithOperatorsPure(withOperatorsAst, scope) {
-        for (const operatorOrAssignable of withOperatorsAst.operatororassignable()) {
-            if (operatorOrAssignable.operators() != null) {
-                const operator = operatorOrAssignable.operators();
-                const op = scope.deepGet(operator.getText());
-                if (!op || !(op instanceof Array && op[0] instanceof Operator_1.default)) {
-                    throw new Error("Operator " + operator.getText() + " is not defined");
-                }
-                // TODO: Similar to the above, need to figure out logic to determine which particular function
-                // will be the one called. For now, just assume the first one and fix this later.
-                if (!op[0].potentialFunctions[0].isPure())
-                    return false;
-            }
-            if (operatorOrAssignable.basicassignables() != null) {
-                if (!Statement.isBasicAssignablePure(operatorOrAssignable.basicassignables(), scope)) {
-                    return false;
-                }
-            }
-        }
+    static isAssignablePure(assignableAst, scope) {
+        // TODO: Redo this
         return true;
     }
-    static isBasicAssignablePure(basicAssignable, scope) {
-        if (basicAssignable.functions() != null) {
-            // Defining a function in itself is a pure situation
-            return true;
-        }
-        if (basicAssignable.calls() != null) {
-            return Statement.isCallPure(basicAssignable.calls(), scope);
-        }
-        if (basicAssignable.varn() != null) {
-            // This would be a read-only operation to pull a value into local scope
-            return true;
-        }
-        if (basicAssignable.constants() != null) {
-            // This is an explicit constant that cannot impact any outer scope
-            return true;
-        }
-        if (basicAssignable.groups() != null) {
-            // This is a "group" (parens surrounding one or more operators and operands)
-            return Statement.isWithOperatorsPure(basicAssignable.groups().withoperators(), scope);
-        }
-        // Shouldn't be reached
-        return false;
-    }
-    static isAssignablePure(assignableAst, scope) {
-        if (assignableAst.basicassignables() != null) {
-            return Statement.isBasicAssignablePure(assignableAst.basicassignables(), scope);
-        }
-        if (assignableAst.withoperators() != null) {
-            return Statement.isWithOperatorsPure(assignableAst.withoperators(), scope);
-        }
-        // This should never be reached
-        throw new Error("Impossible assignment situation");
-    }
     static create(statementAst, scope) {
+        if (!!statementAst.exception) {
+            throw statementAst.exception;
+        }
         let pure = true;
         if (statementAst.declarations() != null) {
             if (statementAst.declarations().constdeclaration() != null) {
@@ -12101,8 +11798,8 @@ class Statement {
                 pure = Statement.isAssignablePure(statementAst.assignments().assignables(), scope);
             }
         }
-        if (statementAst.calls() != null) {
-            pure = Statement.isCallPure(statementAst.calls(), scope);
+        if (statementAst.assignables() != null) {
+            pure = Statement.isAssignablePure(statementAst.assignables(), scope);
         }
         if (statementAst.exits() != null) {
             if (statementAst.exits().assignables() != null) {
@@ -12122,7 +11819,7 @@ class Statement {
 }
 exports.default = Statement;
 
-},{"./Operator":15}],18:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var StatementType;
@@ -12268,22 +11965,22 @@ class Interface {
         // Construct the basic interface, the wrapper type, and insert it into the scope
         // This is all necessary so the interface can self-reference when constructing the function and
         // operator types.
-        const interfacename = interfaceAst.VARNAME().getText();
+        const interfacename = interfaceAst.VARNAME(0).getText();
         let iface = new Interface(interfacename);
         const ifaceType = new Type(interfacename, false, false, {}, {}, null, iface);
         scope.put(interfacename, ifaceType);
         // Now, insert the actual declarations of the interface, if there are any (if there are none,
         // it will provide only as much as a type generic -- you can set it to a variable and return it
         // but nothing else, unlike Go's ridiculous interpretation of a bare interface).
-        if (!!interfaceAst.interfaceline()) {
-            for (const interfaceline of interfaceAst.interfaceline()) {
+        if (!!interfaceAst.interfacebody() && !!interfaceAst.interfacebody().interfacelist()) {
+            for (const interfaceline of interfaceAst.interfacebody().interfacelist().interfaceline()) {
                 if (!!interfaceline.functiontypeline()) {
                     const functiontypeline = interfaceline.functiontypeline();
                     let functionname = null;
                     if (!!functiontypeline.VARNAME()) {
                         functionname = functiontypeline.VARNAME().getText();
                     }
-                    const typenames = functiontypeline.functiontype().varn();
+                    const typenames = functiontypeline.functiontype().fulltypename();
                     const returnType = scope.deepGet(typenames[typenames.length - 1].getText());
                     if (!returnType || !(returnType instanceof Type)) {
                         throw new Error(typenames.get(typenames.size() - 1).getText() + " is not a type");
@@ -12307,7 +12004,7 @@ class Interface {
                         argTypenames.push(interfaceline.operatortypeline().leftarg().getText());
                     }
                     argTypenames.push(interfaceline.operatortypeline().rightarg().getText());
-                    const returnTypename = interfaceline.operatortypeline().varn().getText();
+                    const returnTypename = interfaceline.operatortypeline().fulltypename().getText();
                     const args = argTypenames.map(n => {
                         const box = scope.deepGet(n);
                         if (!box || !(box instanceof Type)) {
@@ -12331,9 +12028,9 @@ class Interface {
                 }
             }
         }
-        else if (!!interfaceAst.varn()) {
+        else if (!!interfaceAst.VARNAME(1)) {
             // It's an alias, so grab it and give it the new name
-            const otherInterface = scope.deepGet(interfaceAst.varn().getText());
+            const otherInterface = scope.deepGet(interfaceAst.VARNAME(1).getText());
             if (!(otherInterface instanceof Type) || !otherInterface.iface) {
                 throw new Error(`${interfaceAst.varn().getText()} is not an interface`);
             }
@@ -12387,14 +12084,14 @@ let Type = /** @class */ (() => {
                 }
             }
             if (typeAst.typebody() != null) {
-                const lines = typeAst.typebody().typeline();
+                const lines = typeAst.typebody().typelist().typeline();
                 for (const lineAst of lines) {
                     const propertyName = lineAst.VARNAME().getText();
                     const typeName = lineAst.fulltypename().getText().trim();
                     const property = typeScope.deepGet(typeName);
                     if (!property || !(property instanceof Type)) {
                         // Potentially a type that depends on the type generics of this type
-                        const baseTypeName = lineAst.fulltypename().varn().getText();
+                        const baseTypeName = lineAst.fulltypename().typename().getText();
                         const innerGenerics = lineAst.fulltypename().typegenerics().fulltypename();
                         const genericsList = [];
                         const genericsQueue = [];
@@ -12412,7 +12109,7 @@ let Type = /** @class */ (() => {
                             const generic = genericsQueue.pop();
                             const innerType = typeScope.deepGet(generic.getText());
                             if (!innerType) {
-                                const innerBaseTypeName = generic.varn().getText();
+                                const innerBaseTypeName = generic.typename().getText();
                                 const innerBaseType = typeScope.deepGet(innerBaseTypeName);
                                 if (!innerBaseType) {
                                     throw new Error('wut');
@@ -12431,21 +12128,21 @@ let Type = /** @class */ (() => {
                     }
                 }
             }
-            if (typeAst.othertype() != null) {
-                const otherTypebox = scope.deepGet(typeAst.othertype().typename().getText());
+            if (typeAst.fulltypename() != null) {
+                const otherTypebox = scope.deepGet(typeAst.fulltypename().typename().getText());
                 if (!otherTypebox) {
-                    throw new Error("Type " + typeAst.othertype().getText() + " not defined");
+                    throw new Error("Type " + typeAst.fulltypename().getText() + " not defined");
                 }
                 if (!(otherTypebox instanceof Type)) {
-                    throw new Error(typeAst.othertype().getText() + " is not a valid type");
+                    throw new Error(typeAst.fulltypename().getText() + " is not a valid type");
                 }
-                let othertype = otherTypebox;
-                if (Object.keys(othertype.generics).length > 0 && !!typeAst.othertype().typegenerics()) {
+                let fulltypename = otherTypebox;
+                if (Object.keys(fulltypename.generics).length > 0 && !!typeAst.fulltypename().typegenerics()) {
                     let solidTypes = [];
-                    for (const fulltypenameAst of typeAst.othertype().typegenerics().fulltypename()) {
+                    for (const fulltypenameAst of typeAst.fulltypename().typegenerics().fulltypename()) {
                         solidTypes.push(fulltypenameAst.getText());
                     }
-                    othertype = othertype.solidify(solidTypes, scope);
+                    fulltypename = fulltypename.solidify(solidTypes, scope);
                 }
                 // For simplification of the type aliasing functionality, the other type is attached as
                 // an alias. The module construction will, if present, perfer the alias over the actual
@@ -12453,7 +12150,7 @@ let Type = /** @class */ (() => {
                 // `type varA == type varB` will work if `varA` is assigned to an alias and `varB` to the
                 // orignal type. I can see the argument either way on this, but the simplicity of this
                 // approach is why I will go with this for now.
-                type.alias = othertype;
+                type.alias = fulltypename;
             }
             scope.put(type.typename, type);
             return type;
@@ -12466,7 +12163,7 @@ let Type = /** @class */ (() => {
                 if (!typebox || !(typebox instanceof Type)) {
                     const fulltypename = Ast_1.fulltypenameAstFromString(typename);
                     if (fulltypename.typegenerics()) {
-                        const basename = fulltypename.varn().getText();
+                        const basename = fulltypename.typename().getText();
                         const generics = fulltypename.typegenerics().fulltypename().map((t) => t.getText());
                         const baseType = scope.deepGet(basename);
                         if (!baseType || !(baseType instanceof Type)) {
@@ -12523,7 +12220,7 @@ let Type = /** @class */ (() => {
         // There has to be a more elegant way to tackle this
         static fromStringWithMap(typestr, interfaceMap, scope) {
             const typeAst = Ast_1.fulltypenameAstFromString(typestr);
-            const baseName = typeAst.varn().getText();
+            const baseName = typeAst.typename().getText();
             const baseType = scope.deepGet(baseName);
             if (typeAst.typegenerics()) {
                 const genericNames = typeAst.typegenerics().fulltypename().map((t) => t.getText());
@@ -12742,64 +12439,56 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
             const arglen = argsAst.VARNAME().length;
             for (let i = 0; i < arglen; i++) {
                 const argName = argsAst.VARNAME(i).getText();
-                let getArgType = scope.deepGet(argsAst.argtype(i).getText());
+                let getArgType = scope.deepGet(argsAst.fulltypename(i).getText());
                 if (!getArgType) {
-                    if (argsAst.argtype(i).othertype().length === 1) {
-                        if (argsAst.argtype(i).othertype(0).typegenerics() !== null) {
-                            getArgType =
-                                scope.deepGet(argsAst.argtype(i).othertype(0).typename().getText());
-                            if (!getArgType) {
-                                throw new Error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName);
-                            }
-                            if (!(getArgType instanceof Type_1.default)) {
-                                throw new Error("Function argument is not a valid type: " + argsAst.argtype(i).getText());
-                            }
-                            let genericTypes = [];
-                            for (const fulltypename of argsAst.argtype(i).othertype(0).typegenerics().fulltypename()) {
-                                genericTypes.push(fulltypename.getText());
-                            }
-                            getArgType = getArgType.solidify(genericTypes, scope);
+                    if (argsAst.fulltypename(i).typegenerics() !== null) {
+                        getArgType =
+                            scope.deepGet(argsAst.fulltypename(i).typename().getText());
+                        if (!getArgType) {
+                            throw new Error("Could not find type " + argsAst.fulltypename(i).getText() + " for argument " + argName);
                         }
-                        else {
-                            throw new Error("Could not find type " + argsAst.argtype(i).getText() + " for argument " + argName);
+                        if (!(getArgType instanceof Type_1.default)) {
+                            throw new Error("Function argument is not a valid type: " + argsAst.fulltypename(i).getText());
                         }
+                        let genericTypes = [];
+                        for (const fulltypename of argsAst.fulltypename(i).typegenerics().fulltypename()) {
+                            genericTypes.push(fulltypename.getText());
+                        }
+                        getArgType = getArgType.solidify(genericTypes, scope);
+                    }
+                    else {
+                        throw new Error("Could not find type " + argsAst.fulltypename(i).getText() + " for argument " + argName);
                     }
                 }
                 if (!(getArgType instanceof Type_1.default)) {
-                    throw new Error("Function argument is not a valid type: " + argsAst.argtype(i).getText());
+                    throw new Error("Function argument is not a valid type: " + argsAst.fulltypename(i).getText());
                 }
                 args[argName] = getArgType;
             }
         }
         let returnType = null;
-        if (functionAst.argtype() !== null) {
-            if (functionAst.argtype().othertype().length === 1) {
-                let getReturnType = scope.deepGet(functionAst.argtype().getText());
-                if (getReturnType == null || !(getReturnType instanceof Type_1.default)) {
-                    if (functionAst.argtype().othertype(0).typegenerics() != null) {
-                        getReturnType = scope.deepGet(functionAst.argtype().othertype(0).typename().getText());
-                        if (getReturnType == null) {
-                            throw new Error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText());
-                        }
-                        if (!(getReturnType instanceof Type_1.default)) {
-                            throw new Error("Function return is not a valid type: " + functionAst.argtype().getText());
-                        }
-                        let genericTypes = [];
-                        for (const fulltypename of functionAst.argtype().othertype(0).typegenerics().fulltypename()) {
-                            genericTypes.push(fulltypename.getText());
-                        }
-                        getReturnType = getReturnType.solidify(genericTypes, scope);
+        if (functionAst.fulltypename() !== null) {
+            let getReturnType = scope.deepGet(functionAst.fulltypename().getText());
+            if (getReturnType == null || !(getReturnType instanceof Type_1.default)) {
+                if (functionAst.fulltypename().typegenerics() != null) {
+                    getReturnType = scope.deepGet(functionAst.fulltypename().typename().getText());
+                    if (getReturnType == null) {
+                        throw new Error("Could not find type " + functionAst.fulltypename().getText() + " for function " + functionAst.VARNAME().getText());
                     }
-                    else {
-                        throw new Error("Could not find type " + functionAst.argtype().getText() + " for function " + functionAst.VARNAME().getText());
+                    if (!(getReturnType instanceof Type_1.default)) {
+                        throw new Error("Function return is not a valid type: " + functionAst.fulltypename().getText());
                     }
+                    let genericTypes = [];
+                    for (const fulltypename of functionAst.fulltypename().typegenerics().fulltypename()) {
+                        genericTypes.push(fulltypename.getText());
+                    }
+                    getReturnType = getReturnType.solidify(genericTypes, scope);
                 }
-                returnType = getReturnType;
+                else {
+                    throw new Error("Could not find type " + functionAst.fulltypename().getText() + " for function " + functionAst.VARNAME().getText());
+                }
             }
-        }
-        else {
-            // TODO: Infer the return type by finding the return value and tracing backwards
-            returnType = Type_1.default.builtinTypes["void"];
+            returnType = getReturnType;
         }
         let pure = true;
         let statements = [];
@@ -12812,72 +12501,45 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
                     pure = false;
                 statements.push(statement);
             }
+            if (returnType === null)
+                returnType = Type_1.default.builtinTypes['void'];
         }
         else {
             const assignablesAst = functionAst.fullfunctionbody().assignables();
-            const statementAst = Ast.statementAstFromString(`return ${assignablesAst.getText()}\n`);
+            const statementAst = Ast.statementAstFromString(`return ${assignablesAst.getText()};\n`);
             const statement = Statement_1.default.create(statementAst, scope);
             if (!statement.pure)
                 pure = false;
             statements.push(statement);
-            // TODO: Infer the return type for anything other than calls or object literals
-            if (assignablesAst.basicassignables() && assignablesAst.basicassignables().calls()) {
-                const fnCall = scope.deepGet(assignablesAst.basicassignables().calls().varn(0).getText());
-                if (fnCall &&
-                    fnCall instanceof Array &&
-                    fnCall[0].microstatementInlining instanceof Function) {
-                    // TODO: For now, also take the first matching function name, in the future
-                    // figure out the argument types provided recursively to select appropriately
-                    // similar to how the Microstatements piece works
-                    returnType = fnCall[0].getReturnType();
-                }
-            }
-            else if (assignablesAst.basicassignables() &&
-                assignablesAst.basicassignables().objectliterals()) {
-                if (assignablesAst.basicassignables().objectliterals().typeliteral()) {
-                    returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().typeliteral().othertype().getText().trim());
-                    if (!returnType) {
-                        const fulltypeAst = Ast.fulltypenameAstFromString(assignablesAst.basicassignables().objectliterals().typeliteral().othertype().getText());
-                        const baseType = scope.deepGet(fulltypeAst.varn().getText());
-                        if (!baseType) {
-                            throw new Error(`Return type ${baseType} not defined`);
-                        }
-                        returnType = baseType.solidify(fulltypeAst.typegenerics().fulltypename().map((f) => f.getText()), scope);
+            if (!returnType && Object.keys(args).every(arg => args[arg].typename !== 'function')) {
+                // We're going to use the Microstatement logic here
+                const microstatements = [];
+                // First lets add all microstatements from the provided scope into the list
+                // TODO: If this pattern is ever used more than once, add a new method to the Scope type
+                Object.keys(scope.vals).forEach(val => {
+                    if (scope.vals[val] instanceof Microstatement_1.default) {
+                        microstatements.push(scope.vals[val]);
                     }
-                }
-                else if (assignablesAst.basicassignables().objectliterals().mapliteral()) {
-                    returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().mapliteral().othertype().getText().trim());
-                    if (!returnType) {
-                        const fulltypeAst = Ast.fulltypenameAstFromString(assignablesAst.basicassignables().objectliterals().mapliteral().othertype().getText());
-                        const baseType = scope.deepGet(fulltypeAst.varn().getText());
-                        if (!baseType) {
-                            throw new Error(`Return type ${baseType} not defined`);
-                        }
-                        returnType = baseType.solidify(fulltypeAst.typegenerics().fulltypename().map((f) => f.getText()), scope);
-                    }
-                }
-                else if (functionAst.argtype()) {
-                    returnType = scope.deepGet(functionAst.argType().getText().trim());
+                });
+                Object.keys(args).forEach(arg => {
+                    microstatements.push(new Microstatement_1.default(StatementType_1.default.REREF, scope, true, arg, args[arg], [], [], arg));
+                });
+                Microstatement_1.default.fromAssignablesAst(assignablesAst, scope, microstatements);
+                const last = microstatements[microstatements.length - 1];
+                if (last.statementType !== StatementType_1.default.EMIT) {
+                    // TODO: Come up with a better solution than this hackery for void function calls as the
+                    // only value for a one-liner function
+                    returnType = last.outputType;
                 }
                 else {
-                    if (assignablesAst.basicassignables().objectliterals().arrayliteral().othertype()) {
-                        returnType = scope.deepGet(assignablesAst.basicassignables().objectliterals().arrayliteral().othertype().getText().trim());
-                        if (!returnType) {
-                            const fulltypeAst = Ast.fulltypenameAstFromString(assignablesAst.basicassignables().objectliterals().mapliteral().othertype().getText());
-                            const baseType = scope.deepGet(fulltypeAst.varn().getText());
-                            if (!baseType) {
-                                throw new Error(`Return type ${baseType} not defined`);
-                            }
-                            returnType = baseType.solidify(fulltypeAst.typegenerics().fulltypename().map((f) => f.getText()), scope);
-                        }
-                    }
-                    else {
-                        // We're going to use the Microstatement logic here
-                        const microstatements = [];
-                        Microstatement_1.default.fromAssignablesAst(assignablesAst.basicassignables().objectliterals().arrayliteral().assignableslist(0), scope, microstatements);
-                        returnType = microstatements[microstatements.length - 1].outputType;
-                    }
+                    returnType = Type_1.default.builtinTypes.void;
                 }
+            }
+            else if (!returnType) {
+                // TODO: Generalize this hackery for opcodes that take closure functions
+                const opcodeName = assignablesAst.getText().split('(')[0];
+                const opcode = scope.deepGet(opcodeName);
+                returnType = opcode ? opcode[0].getReturnType() : Type_1.default.builtinTypes['void'];
             }
         }
         return new UserFunction(name, args, returnType, scope, statements, pure);
@@ -12896,7 +12558,7 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
     }
     toFnStr() {
         return `
-      fn ${this.name || ''} (${Object.keys(this.args).map(argName => `${argName}: ${this.args[argName].typename}`).join(', ')}): ${this.returnType.typename} {
+      fn ${this.name || ''} (${Object.keys(this.args).map(argName => `${argName}: ${this.args[argName].typename}`).join(', ')}): ${this.getReturnType().typename} {
         ${this.statements.map(s => s.statementAst.getText()).join('\n')}
       }
     `.trim();
@@ -12906,12 +12568,12 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
         let hasConditionalReturn = false; // Flag for potential second pass
         const condName = "_" + uuid_1.v4().replace(/-/g, "_");
         const condStatement = Ast.statementAstFromString(`
-      const ${condName}: bool = ${cond.withoperators().getText()}
-    `.trim() + '\n');
+      const ${condName}: bool = ${cond.assignables().getText()}
+    `.trim() + ';\n');
         const condBlockFn = (cond.blocklikes(0).functionbody() ?
             UserFunction.fromFunctionbodyAst(cond.blocklikes(0).functionbody(), scope) :
-            cond.blocklikes(0).varn() ?
-                scope.deepGet(cond.blocklikes(0).varn().getText())[0] :
+            cond.blocklikes(0).eventref() ?
+                scope.deepGet(cond.blocklikes(0).eventref().getText())[0] :
                 UserFunction.fromFunctionsAst(cond.blocklikes(0).functions(), scope)).maybeTransform(new Map());
         if (condBlockFn.statements[condBlockFn.statements.length - 1].isReturnStatement()) {
             hasConditionalReturn = true;
@@ -12919,22 +12581,22 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
         const condBlock = condBlockFn.toFnStr();
         const condCall = Ast.statementAstFromString(`
       cond(${condName}, ${condBlock})
-    `.trim() + '\n'); // TODO: If the blocklike is a reference, grab it and inline it
+    `.trim() + ';\n'); // TODO: If the blocklike is a reference, grab it and inline it
         newStatements.push(condStatement, condCall);
         if (!!cond.ELSE()) {
             if (!!cond.blocklikes(1)) {
                 const elseBlockFn = (cond.blocklikes(1).functionbody() ?
                     UserFunction.fromFunctionbodyAst(cond.blocklikes(1).functionbody(), scope) :
-                    cond.blocklikes(1).varn() ?
-                        scope.deepGet(cond.blocklikes(1).varn().getText())[0] :
+                    cond.blocklikes(1).eventref() ?
+                        scope.deepGet(cond.blocklikes(1).eventref().getText())[0] :
                         UserFunction.fromFunctionsAst(cond.blocklikes(1).functions(), scope)).maybeTransform(new Map());
                 if (elseBlockFn.statements[elseBlockFn.statements.length - 1].isReturnStatement()) {
                     hasConditionalReturn = true;
                 }
                 const elseBlock = elseBlockFn.toFnStr();
                 const elseStatement = Ast.statementAstFromString(`
-          cond(!${condName}, ${elseBlock})
-        `.trim() + '\n');
+          cond(not(${condName}), ${elseBlock})
+        `.trim() + ';\n');
                 newStatements.push(elseStatement);
             }
             else {
@@ -12946,7 +12608,7 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
           cond(!${condName}, fn {
             ${innerCondStatements.map(s => s.getText()).join('\n')}
           })
-        `.trim() + '\n');
+        `.trim() + ';\n');
                 newStatements.push(elseStatement);
             }
         }
@@ -12957,30 +12619,42 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
         let replacementStatements = [];
         while (statements.length > 0) {
             const s = statements.shift();
-            if (s.calls() && s.calls().varn(0).getText().trim() === 'cond') {
+            // TODO: This doesn't work for actual direct-usage of `cond` in some sort of method chaining
+            // if that's even possible. Probably lots of other weirdness to deal with here.
+            if (s.assignables() &&
+                s.assignables().withoperators(0).baseassignable().length >= 2 &&
+                s.assignables().withoperators(0).baseassignable(0).getText().trim() === 'cond' &&
+                s.assignables().withoperators(0).baseassignable(1).fncall()) {
                 // Potentially need to rewrite
-                const args = s.calls().fncall(0).assignablelist();
+                const args = s.assignables().withoperators(0).baseassignable(1).fncall().assignablelist();
                 if (args && args.assignables().length == 2) {
-                    const block = args.assignables(1).basicassignables().functions();
-                    const blockFn = UserFunction.fromAst(block, scope);
-                    if (blockFn.statements[blockFn.statements.length - 1].isReturnStatement()) {
-                        const innerStatements = blockFn.statements.map(s => s.statementAst);
-                        const newBlockStatements = UserFunction.earlyReturnRewrite(retVal, retNotSet, innerStatements, scope);
-                        const cond = args.assignables(0).getText().trim();
-                        const newBlock = Ast.statementAstFromString(`
-              cond(${cond}, fn {
-                ${newBlockStatements.map(s => s.getText()).join('\n')}
-              })
-            `.trim() + '\n');
-                        replacementStatements.push(newBlock);
-                        if (statements.length > 0) {
-                            const remainingStatements = UserFunction.earlyReturnRewrite(retVal, retNotSet, statements, scope);
-                            const remainingBlock = Ast.statementAstFromString(`
-                cond(${retNotSet}, fn {
-                  ${remainingStatements.map(s => s.getText()).join('\n')}
+                    const block = args.assignables(1).withoperators(0).baseassignable() ?
+                        args.assignables(1).withoperators(0).baseassignable(0).functions() :
+                        null;
+                    if (block) {
+                        const blockFn = UserFunction.fromAst(block, scope);
+                        if (blockFn.statements[blockFn.statements.length - 1].isReturnStatement()) {
+                            const innerStatements = blockFn.statements.map(s => s.statementAst);
+                            const newBlockStatements = UserFunction.earlyReturnRewrite(retVal, retNotSet, innerStatements, scope);
+                            const cond = args.assignables(0).getText().trim();
+                            const newBlock = Ast.statementAstFromString(`
+                cond(${cond}, fn {
+                  ${newBlockStatements.map(s => s.getText()).join('\n')}
                 })
-              `.trim() + '\n');
-                            replacementStatements.push(remainingBlock);
+              `.trim() + ';\n');
+                            replacementStatements.push(newBlock);
+                            if (statements.length > 0) {
+                                const remainingStatements = UserFunction.earlyReturnRewrite(retVal, retNotSet, statements, scope);
+                                const remainingBlock = Ast.statementAstFromString(`
+                  cond(${retNotSet}, fn {
+                    ${remainingStatements.map(s => s.getText()).join('\n')}
+                  })
+                `.trim() + ';\n');
+                                replacementStatements.push(remainingBlock);
+                            }
+                        }
+                        else {
+                            replacementStatements.push(s);
                         }
                     }
                     else {
@@ -13001,12 +12675,12 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
             if (retStatement.exits().assignables()) {
                 const newAssign = Ast.statementAstFromString(`
           ${retVal} = ref(${retStatement.exits().assignables().getText()})
-        `.trim() + '\n');
+        `.trim() + ';\n');
                 replacementStatements.push(newAssign);
             }
             replacementStatements.push(Ast.statementAstFromString(`
         ${retNotSet} = clone(false)
-      `.trim() + '\n'));
+      `.trim() + ';\n'));
         }
         return replacementStatements;
     }
@@ -13027,7 +12701,7 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
                     if (!originalType || !(originalType instanceof Type_1.default)) {
                         // It may be the first time this particular type has shown up, let's build it
                         const typeAst = Ast.fulltypenameAstFromString(originaltypestr);
-                        const baseTypeName = typeAst.varn().getText();
+                        const baseTypeName = typeAst.typename().getText();
                         const generics = typeAst.typegenerics().fulltypename().map((g) => g.getText());
                         const baseType = this.scope.deepGet(baseTypeName);
                         if (!baseType || !(baseType instanceof Type_1.default)) { // Now we panic
@@ -13043,13 +12717,14 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
                     const replacementType = originalType.realize(interfaceMap, newScope);
                     return `new ${replacementType.typename} ${openstr}`;
                 });
-                const secondCorrection = corrected.replace(/: ([^:<]+)<([^{\)]+)>( *[,{\)])/g, (_, basetypestr, genericstr, openstr) => {
+                // TODO: Get rid of these regex-based type corrections
+                const secondCorrection = corrected.replace(/: (?!new )([^:<,]+)<([^{\)]+)>( *[,{\)])/g, (_, basetypestr, genericstr, openstr) => {
                     const originaltypestr = `${basetypestr.trim()}<${genericstr.trim()}>`;
                     let originalType = this.scope.deepGet(originaltypestr);
                     if (!originalType || !(originalType instanceof Type_1.default)) {
                         // It may be the first time this particular type has shown up, let's build it
                         const typeAst = Ast.fulltypenameAstFromString(originaltypestr);
-                        const baseTypeName = typeAst.varn().getText();
+                        const baseTypeName = typeAst.typename().getText();
                         const generics = typeAst.typegenerics().fulltypename().map((g) => g.getText());
                         const baseType = this.scope.deepGet(baseTypeName);
                         if (!baseType || !(baseType instanceof Type_1.default)) { // Now we panic
@@ -13075,17 +12750,17 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
                     const a = s.statementAst;
                     const wrappedAst = Ast.statementAstFromString(`
             ${a.varn().getText()} = ref(${a.assignables().getText()})
-          `.trim() + '\n');
+          `.trim() + ';\n');
                     statementAsts.push(wrappedAst);
                 }
                 else if (s.statementAst instanceof ln_1.LnParser.LetdeclarationContext) {
                     const l = s.statementAst;
                     const name = l.VARNAME().getText();
-                    const type = l.othertype() ? l.othertype().getText() : undefined;
+                    const type = l.fulltypename() ? l.fulltypename().getText() : undefined;
                     const v = l.assignables().getText();
                     const wrappedAst = Ast.statementAstFromString(`
             let ${name}${type ? `: ${type}` : ''} = ref(${v})
-          `.trim() + '\n');
+          `.trim() + ';\n');
                     statementAsts.push(wrappedAst);
                 }
                 else {
@@ -13100,16 +12775,16 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
                 const retVal = "retVal" + retNamePostfix;
                 const retNotSet = "retNotSet" + retNamePostfix;
                 const retValStatement = Ast.statementAstFromString(`
-          let ${retVal}: ${this.returnType.typename} = clone()
-        `.trim() + '\n');
+          let ${retVal}: ${this.getReturnType().typename} = clone()
+        `.trim() + ';\n');
                 const retNotSetStatement = Ast.statementAstFromString(`
           let ${retNotSet}: bool = clone(true)
-        `.trim() + '\n');
+        `.trim() + ';\n');
                 let replacementStatements = [retValStatement, retNotSetStatement];
                 replacementStatements.push(...UserFunction.earlyReturnRewrite(retVal, retNotSet, statementAsts, this.scope));
                 replacementStatements.push(Ast.statementAstFromString(`
           return ${retVal}
-        `.trim() + '\n'));
+        `.trim() + ';\n'));
                 statementAsts = replacementStatements;
             }
             // TODO: Should these be attached to the scope or should callers provide a merged scope?
@@ -13119,8 +12794,8 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
                 newArgs[argName] = interfaceMap.has(a) ? interfaceMap.get(a) : a;
                 this.scope.put(newArgs[argName].typename, newArgs[argName]);
             }
-            const newRet = interfaceMap.has(this.returnType) ?
-                interfaceMap.get(this.returnType) : this.returnType;
+            const newRet = interfaceMap.has(this.getReturnType()) ?
+                interfaceMap.get(this.getReturnType()) : this.getReturnType();
             this.scope.put(newRet.typename, newRet);
             const fnStr = `
         fn ${this.name || ''} (${Object.keys(newArgs).map(argName => `${argName}: ${newArgs[argName].typename}`).join(', ')}): ${newRet.typename} {
@@ -13141,9 +12816,9 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
                     hasNewType = true;
                 }
             }
-            const newRet = interfaceMap.has(this.returnType) ?
-                interfaceMap.get(this.returnType) : this.returnType;
-            if (newRet !== this.returnType) {
+            const newRet = interfaceMap.has(this.getReturnType()) ?
+                interfaceMap.get(this.getReturnType()) : this.getReturnType();
+            if (newRet !== this.getReturnType()) {
                 this.scope.put(newRet.typename, newRet);
                 hasNewType = true;
             }
@@ -13215,20 +12890,20 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
         // all inputs of that particular interface are the same type. TODO: If this is not true, it must
         // be a compile-time error earlier on.
         const last = microstatements[microstatements.length - 1];
-        if (!this.returnType.typeApplies(last.outputType, scope, new Map())) {
-            const returnTypeAst = Ast.fulltypenameAstFromString(this.returnType.typename);
+        if (!this.getReturnType().typeApplies(last.outputType, scope, new Map())) {
+            const returnTypeAst = Ast.fulltypenameAstFromString(this.getReturnType().typename);
             const returnTypeGenerics = returnTypeAst.typegenerics();
             const returnSubtypes = returnTypeGenerics ? returnTypeGenerics.fulltypename().map((t) => scope.deepGet(t.getText())) : [];
-            if (this.returnType.iface) {
+            if (this.getReturnType().iface) {
                 const originalArgTypes = Object.values(this.args);
                 for (let i = 0; i < inputTypes.length; i++) {
-                    if (this.returnType === originalArgTypes[i]) {
+                    if (this.getReturnType() === originalArgTypes[i]) {
                         microstatements[microstatements.length - 1].outputType = inputTypes[i];
                     }
                 }
             }
             else if (returnSubtypes.some((t) => !!t.iface)) {
-                const oldReturnType = this.returnType;
+                const oldReturnType = this.getReturnType();
                 const originalArgTypes = Object.values(this.args);
                 for (let i = 0; i < inputTypes.length; i++) {
                     for (let j = 0; j < returnSubtypes.length; j++) {
@@ -13243,7 +12918,7 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
             else {
                 const lastTypeAst = Ast.fulltypenameAstFromString(last.outputType.typename);
                 const lastTypeGenerics = lastTypeAst.typegenerics();
-                const lastSubtypes = lastTypeGenerics ? lastTypeGenerics.fulltypename().map((t) => scope.deepGet(t.getText()) || scope.deepGet(t.varn().getText()).solidify(t.typegenerics().fulltypename().map((t) => t.getText()), scope)) : [];
+                const lastSubtypes = lastTypeGenerics ? lastTypeGenerics.fulltypename().map((t) => scope.deepGet(t.getText()) || scope.deepGet(t.typename().getText()).solidify(t.typegenerics().fulltypename().map((t) => t.getText()), scope)) : [];
                 if (lastSubtypes.some((t) => !!t.iface)) {
                     const oldLastType = last.outputType;
                     const originalArgTypes = Object.values(this.args);

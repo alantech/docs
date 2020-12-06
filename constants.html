@@ -145,15 +145,15 @@
             <main>
                 <h4><a class="header" href="#constants" id="constants">Constants</a></h4>
 <p>Module-level constants allow the user to define fixed data that is shared across functions (or exported to be shared across modules). The syntax is simply:</p>
-<pre><code class="language-alan">const varname: typename = constvalue
-const othervar = otherconstval
+<pre><code class="language-alan">const varname: typename = constvalue;
+const othervar = otherconstval;
 </code></pre>
 <p>The <code>typename</code> is not required due to type inference, but can be added for clarity.</p>
 <p>For those coming from Javascript/Typescript, <code>const</code> in Alan is much more strict. A constant is truly constant, not just a variable that can't be reassigned with a new struct. This means the following is invalid:</p>
-<pre><code class="language-alan">const pushedVals = new Array&lt;int64&gt; [ ]
+<pre><code class="language-alan">const pushedVals = new Array&lt;int64&gt; [ ];
 
 fn saveForLater(val: int64) {
-  pushedVals.push(val)
+  pushedVals.push(val);
 }
 </code></pre>
 <p>Shared mutable global state inherently prevents parallelization, so it is discouraged.</p>

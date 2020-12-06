@@ -149,26 +149,26 @@ The special built-in types are covered in depth in <a href="./builtins/types.htm
 <h5><a class="header" href="#syntax" id="syntax">Syntax</a></h5>
 <p>User-defined types must be declared by the user and they follow the following syntax:</p>
 <pre><code class="language-alan">type typename {
-  propertyName: propertyType
-  otherProperty: otherType
+  propertyName: propertyType,
+  otherProperty: otherType,
 }
 </code></pre>
 <p>The syntax to construct a new instance of a user type is as follows:</p>
 <pre><code class="language-alan">const myVal: typename = new typename {
-  propertyName = propertyValue
-  otherProperty = otherValue
+  propertyName: propertyValue,
+  otherProperty: otherValue,
 }
 </code></pre>
 <p>Or relying on type inference it is reduced to just:</p>
 <pre><code class="language-alan">const myVal = new typename {
-  propertyName = propertyValue
-  otherProperty = otherValue
+  propertyName: propertyValue,
+  otherProperty: otherValue
 }
 </code></pre>
 <p>User-defined types have another interesting feature: they can be generic. That means one or more of the actual sub-types used by the type is not yet defined, but will be &quot;solidified&quot; later on with the creation of a new type based on it.</p>
 <p>Generic types look like this:</p>
 <pre><code class="language-alan">type typename&lt;A, B&gt; {
-  propertyName: A
+  propertyName: A,
   otherProperty: B
 }
 </code></pre>
@@ -177,8 +177,8 @@ The special built-in types are covered in depth in <a href="./builtins/types.htm
 </code></pre>
 <p>or just declaring a variable that uses a &quot;solidified&quot; type:</p>
 <pre><code class="language-alan">let myVar = new typename&lt;bool, float64&gt; {
-  propertyName = true
-  otherProperty = 0.0
+  propertyName: true,
+  otherProperty: 0.0
 }
 </code></pre>
 <p>Functions cannot operate on Generic types directly, but they can work on Generics that have been &quot;solidified&quot; with interfaces. More on this in the <a href="./interfaces.html">Interfaces</a> section.</p>

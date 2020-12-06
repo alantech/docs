@@ -146,9 +146,9 @@
                 <h3><a class="header" href="#stdcmd" id="stdcmd">@std/cmd</a></h3>
 <p>Also very bare, only a single type <code>ExecRes</code>, and a function: <code>exec</code> with the signature:</p>
 <pre><code class="language-alan">type ExecRes {
-  exitCode: int64
-  stdout: string
-  stderr: string
+  exitCode: int64,
+  stdout: string,
+  stderr: string,
 }
 </code></pre>
 <pre><code class="language-alan">exec(string): ExecRes

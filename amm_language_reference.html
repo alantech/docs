@@ -151,16 +151,16 @@
 <p>There are two categories of constants in Alan--, actual static constants like numbers, booleans, and strings, and constants that are the output of a function call.</p>
 <p>Static constants must <em>all</em> be declared in the root scope at the top of the file. The only allowed static constants are of the following types: <code>int8</code>, <code>int16</code>, <code>int32</code>, <code>int64</code>, <code>float32</code>, <code>float64</code>, <code>bool</code>, <code>string</code>. Every other constant declared in an Alan source file is recomposed at runtime from these core components. (This may be revisited in the future if/when a safe, static representation format is defined for the runtime.) Unlike Alan, constants in Alan-- <em>must</em> have their types declared, like so:</p>
 <!-- using ```alan works, but would be nicer to be able to use a ```amm in these examples -->
-<pre><code class="language-alan">const foo: string = &quot;bar&quot;
+<pre><code class="language-alan">const foo: string = &quot;bar&quot;;
 </code></pre>
 <p>Constants output from function calls may <em>only</em> be housed within event handlers or closures and not declared in the root scope. These also must have the type data included.</p>
 <h3><a class="header" href="#let-variables" id="let-variables">Let variables</a></h3>
 <p>As with Alan, let variables may only be declared within event handlers or closure functions and never the root scope. They function identically with the type definition requirement.</p>
-<pre><code class="language-alan">let a: int64 = 3
+<pre><code class="language-alan">let a: int64 = 3;
 </code></pre>
 <h3><a class="header" href="#let-variable-reassignment" id="let-variable-reassignment">Let variable reassignment</a></h3>
 <p>Let variable reassignment is also identical to Alan, happening with event handlers or closure functions and may cross scope boundaries.</p>
-<pre><code class="language-alan">a = a + 3
+<pre><code class="language-alan">a = a + 3;
 </code></pre>
 <h3><a class="header" href="#events-and-loose-typing" id="events-and-loose-typing">Events (and loose typing)</a></h3>
 <p>Also as with Alan, events are declared in the root scope and never within event handlers or closure functions. Unlike Alan, the event handlers do not need to declare the relevant metadata about their type structure. Any typename may be used indiscriminantly, and any type that is not one of the static constant types (or <code>void</code>) is assumed to be &quot;array-like&quot; and it is up to you as the developer to not mess up here.</p>
@@ -180,7 +180,7 @@
 <h3><a class="header" href="#functions-calls" id="functions-calls">Functions Calls</a></h3>
 <p>You can't actually declare functions not associated with an event in Alan--. All nested defined functions must be closures within an event. The only &quot;functions&quot; independent of the event handlers are the <a href="./alan_opcode_reference.html">opcodes defined by the runtime(s)</a>.</p>
 <pre><code class="language-alan">on _start fn (): void {
-  const val = addi64(a, a)
+  const val = addi64(a, a);
   ...
 </code></pre>
 <h3><a class="header" href="#thats-all-folks" id="thats-all-folks">That's all, folks!</a></h3>
@@ -189,12 +189,12 @@
 <pre><code class="language-alan">import @std/app
 
 on app.start {
-  let exitCode = 0
+  let exitCode = 0;
   if 1 == 0 {
-    exitCode = 1
+    exitCode = 1;
   }
-  app.print(&quot;Exit Code: &quot; + exitCode.toString())
-  emit app.exit exitCode
+  app.print(&quot;Exit Code: &quot; + exitCode.toString());
+  emit app.exit exitCode;
 }
 </code></pre>
 <p>exercises <em>the entire Alan-- grammar</em>:</p>

@@ -150,8 +150,8 @@
 <pre><pre class="playpen"><code class="language-rust editable">import @std/app
 
 on app.start {
-  app.print(&quot;Hello, World!&quot;)
-  emit app.exit 0
+  app.print(&quot;Hello, World!&quot;);
+  emit app.exit 0;
 }
 </code></pre></pre>
 <p>The first line imports the <code>app</code> export scope, which can be used like a user type.</p>
@@ -162,8 +162,8 @@ on app.start {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
 on start {
-  print(&quot;Hello, World!&quot;)
-  emit exit 0
+  print(&quot;Hello, World!&quot;);
+  emit exit 0;
 }
 </code></pre></pre>
 <p>Almost identical to the first, but it pulls the pieces of the <code>app</code> namespace into the module's namespace, so it's a good introduction to the <code>from foo import bar, baz, ...</code> syntax, what it does and why you might want it.</p>
@@ -171,8 +171,8 @@ on start {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print as put, exit
 
 on start {
-  put(&quot;Hello, World!&quot;)
-  emit exit 0
+  put(&quot;Hello, World!&quot;);
+  emit exit 0;
 }
 </code></pre></pre>
 <p>This example demonstrates the renaming syntax on import, so you can choose a name that is clearer to you.</p>
@@ -180,19 +180,19 @@ on start {
 <pre><pre class="playpen"><code class="language-rust editable">import @std/app as program
 
 on program.start {
-  program.print(&quot;Hello, World!&quot;)
-  emit program.exit 0
+  program.print(&quot;Hello, World!&quot;);
+  emit program.exit 0;
 }
 </code></pre></pre>
 <p>Same as the previous, but the renaming is applied to the module name, rather than its contents.</p>
 <h3><a class="header" href="#hello_world_5ln" id="hello_world_5ln"><code>hello_world_5.ln</code></a></h3>
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
-const helloWorld: string = &quot;Hello, World!&quot;
+const helloWorld: string = &quot;Hello, World!&quot;;
 
 on start {
-  print(helloWorld)
-  emit exit 0
+  print(helloWorld);
+  emit exit 0;
 }
 </code></pre></pre>
 <p>This example demonstrates printing a variable instead of an inline constant.</p>
@@ -200,10 +200,10 @@ on start {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, exit, print
 
 on start fn {
-  const hello: string = &quot;Hello&quot;
-  const world: string = &quot;World&quot;
-  print(hello + &quot;, &quot; + world + &quot;!&quot;))
-  emit exit 0
+  const hello: string = &quot;Hello&quot;;
+  const world: string = &quot;World&quot;;
+  print(hello + &quot;, &quot; + world + &quot;!&quot;));
+  emit exit 0;
 }
 </code></pre></pre>
 <p>This example demonstrates how values can be combined together to produce the desired result.</p>
@@ -211,8 +211,8 @@ on start fn {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
 on start {
-  &quot;Hello, World!&quot;.print()
-  emit exit 0
+  &quot;Hello, World!&quot;.print();
+  emit exit 0;
 }
 </code></pre></pre>
 <p>This demonstrates the &quot;method-style&quot; function call syntax, which allows those who prefer OO development to have that style (though it could be misleading that it implies everything is an object, when it's really syntactic sugar, but...)</p>
@@ -220,8 +220,8 @@ on start {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
 fn main() {
-  &quot;Hello, World!&quot;.print()
-  emit exit 0
+  &quot;Hello, World!&quot;.print();
+  emit exit 0;
 }
 
 on start main

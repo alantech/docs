@@ -187,8 +187,8 @@ sudo make install
 <pre><pre class="playpen"><code class="language-rust editable">import @std/app
 
 on app.start {
-  app.print(&quot;Hello, World!&quot;)
-  emit app.exit 0
+  app.print(&quot;Hello, World!&quot;);
+  emit app.exit 0;
 }
 </code></pre></pre>
 <p>Now compile the code to produce an AGC binary and then run it which prints <code>Hello, World!</code>:</p>
@@ -243,15 +243,15 @@ alan run hello_world.agc
 </div>
 <h4><a class="header" href="#constants" id="constants">Constants</a></h4>
 <p>Module-level constants allow the user to define fixed data that is shared across functions (or exported to be shared across modules). The syntax is simply:</p>
-<pre><code class="language-alan">const varname: typename = constvalue
-const othervar = otherconstval
+<pre><code class="language-alan">const varname: typename = constvalue;
+const othervar = otherconstval;
 </code></pre>
 <p>The <code>typename</code> is not required due to type inference, but can be added for clarity.</p>
 <p>For those coming from Javascript/Typescript, <code>const</code> in Alan is much more strict. A constant is truly constant, not just a variable that can't be reassigned with a new struct. This means the following is invalid:</p>
-<pre><code class="language-alan">const pushedVals = new Array&lt;int64&gt; [ ]
+<pre><code class="language-alan">const pushedVals = new Array&lt;int64&gt; [ ];
 
 fn saveForLater(val: int64) {
-  pushedVals.push(val)
+  pushedVals.push(val);
 }
 </code></pre>
 <p>Shared mutable global state inherently prevents parallelization, so it is discouraged.</p>
@@ -292,10 +292,10 @@ fn functionName {
 }
 
 // If the function is a single statement that is returned, it can be written with a shorthand syntax
-fn addOne(i: int64) = i + 1
+fn addOne(i: int64) = i + 1;
 
 // This syntax can be annotated with the return type, but that is unlikely to improve clarity
-fn subtractOne(i: int64): int64 = i - 1
+fn subtractOne(i: int64): int64 = i - 1;
 
 // Anonymous functions can only be used as an assignable value either to a variable
 const anonymousFunction = fn (firstArg: argType, secondArg: anotherType): returnType {
@@ -303,7 +303,7 @@ const anonymousFunction = fn (firstArg: argType, secondArg: anotherType): return
 }
 
 // Or being passed into a higher-order function
-const doubled = someArray.map(fn (val: int64) = val * 2)
+const doubled = someArray.map(fn (val: int64) = val * 2);
 
 // In situations where a function takes no arguments and it is unambiguous, the function can be
 // represented solely with the curly braces
@@ -346,7 +346,7 @@ fn someFn (arg1: int64, arg2: float64): int64 {
 <p>Method form allows you to pull the first argument out of the function and treat the function call like an Object-Oriented Language's method syntax. This allows method chaining, which can be much more legible when the output of one function is the input of the next, without requiring a custom chaining syntax that some functional languages have adopted (eg <code>|&gt;</code> in F#). Eg, <code>3.add(2).mul(5).mod(3)</code> is equivalent to <code>mod(mul(add(3, 2), 5), 3)</code>.</p>
 <h4><a class="header" href="#operators" id="operators">Operators</a></h4>
 <p>In Alan, operators are just a special form of function.</p>
-<p>All operators are made up of only the symbols: <code>+, -, /, *, ^, ., ~, `, !, @, #, $, %, &amp;, |, :, ;, &lt;, &gt;, ?, =</code> (excluding the commas used to separate them from each other, they are reserved for list separators only). See the <a href="./builtins/operators.html">built-in operators here</a>.</p>
+<p>All operators are made up of only the symbols: <code>+, -, /, *, ^, ., ~, `, !, @, #, $, %, &amp;, |, :, &lt;, &gt;, ?, =</code> (excluding the commas used to separate them from each other, they are reserved for list separators only). See the <a href="./builtins/operators.html">built-in operators here</a>.</p>
 <p>Operators have operator precedence to determine how they are implicitly grouped by parenthesis.</p>
 <p>Any exported operator <em>must</em> also export its implementing functions, so users can choose to use the more descriptive function names instead of the terse-but-cryptic operator symbols.</p>
 <p>Operators have only two forms: prefix operators that take only one argument and infix (in-between) operators that take two arguments.</p>
@@ -372,42 +372,35 @@ infix precedence &lt;precedenceNumber&gt; functionName as &lt;operatorSymbol&gt;
 <p>Statements must be on different lines, but statements can span multiple lines. There are six types of statements: variable declarations, variable assignments, function calls, function returns, event emission, and conditionals (if statements).</p>
 <h5><a class="header" href="#variable-declarations" id="variable-declarations">Variable Declarations</a></h5>
 <p>There are two types of variables, constants and mutable variables. Constants are declared with these two syntaxes:</p>
-<pre><code class="language-alan">const varname: typename = constantOrFunctionCallOrExpression
-const varname = constantOrFunctionCallOrExpression
+<pre><code class="language-alan">const varname: typename = constantOrFunctionCallOrExpression;
+const varname = constantOrFunctionCallOrExpression;
 </code></pre>
 <p>The typename is optional as it can be inferred from the value being assigned. Providing the type can be useful to make sure your code is doing what you expected, though, and not using an unexpected type. By default all numeric constants are automatically the highest definition version possible. (<code>int64</code> or <code>float64</code>) Explicitly setting a smaller bit size for the constant <em>will not</em> coerce the constant automatically, you must explicitly declare the down coercion, eg:</p>
-<pre><code class="language-alan">const someI32: int32 = 5.toInt32()
+<pre><code class="language-alan">const someI32: int32 = 5.toInt32();
 </code></pre>
 <p>Any type that exists in the language can be assigned. Simple constants are simply declared, or produced via function calls or operator expressions. User-defined types can be assigned to constants through the use of a constructor function and calling it, through an expression involving operators that produces the user-defined type, or through the user-type literal syntax. Arrays and HashMaps have similar but slightly different syntaxes, as they deal with inherently plural data versus the struct-like user-defined types:</p>
-<pre><code class="language-alan">const simpleConstant: bool = true
-const simpleConstant2 = &quot;simple&quot;
-const expressionResult: int64 = 3 + 5 * 2 + fnCall2(3, 1)
-const fnResult: someType = functioncall(3, 5)
+<pre><code class="language-alan">const simpleConstant: bool = true;
+const simpleConstant2 = &quot;simple&quot;;
+const expressionResult: int64 = 3 + 5 * 2 + fnCall2(3, 1);
+const fnResult: someType = functioncall(3, 5);
 const userTypeLiteral = new UserType {
-  key = &quot;val&quot;
-  foo = true
-  bar = 3
-}
-const arrayTypeLiteral = new Array&lt;int64&gt; [ 1, 1, 2, 3, 5, 8, 13 ]
-const otherArrayTypeLiteral = [ &quot;foo&quot;, &quot;bar&quot;, &quot;baz&quot; ]
-const mapTypeLiteral = new HashMap&lt;bool, string&gt; {
-  true: &quot;It's true!&quot;
-  false: &quot;Nuh uh!&quot;
-}
+  key: &quot;val&quot;,
+  foo: true,
+  bar: 3
+};
+const arrayTypeLiteral = new Array&lt;int64&gt; [ 1, 1, 2, 3, 5, 8, 13 ];
+const otherArrayTypeLiteral = [ &quot;foo&quot;, &quot;bar&quot;, &quot;baz&quot; ];
 </code></pre>
-<p>All three complex type literals begin with the <code>new</code> keyword, followed by the type name, which must be a realized generic if it is a generic type. If the original generic type was an <code>Array</code> or <code>HashMap</code> it gets a special syntax. Arrays are surrounded by brackets (<code>[</code>, <code>]</code>) instead of curly braces (<code>{</code>, <code>}</code>) and are simply a comma-delimited list of values (they could also be generated by functions or operator expressions, or be a user-defined type literal). Arrays are also the only special type that can be unambiguously declared without the <code>new Type</code> prefix, so that is also allowed. HashMaps keep the curly braces, but the <code>key</code> and <code>value</code> pairs are separated by a colon (<code>:</code>) instead of an equal sign (<code>=</code>), which fits more closely to the Map/Object syntax popularized by JSON (but able to have more than just <code>string</code> values for the keys).</p>
-<p>Beyond that, there is also the ability to assign the type name of another variable, but the constant <em>must</em> be a string in that case:</p>
-<pre><code class="language-alan">const typename: string = type otherVariable
-</code></pre>
+<p>All complex type literals begin with the <code>new</code> keyword, followed by the type name, which must be a realized generic if it is a generic type. If the original generic type was an <code>Array</code> it gets a special syntax. Arrays are surrounded by brackets (<code>[</code>, <code>]</code>) instead of curly braces (<code>{</code>, <code>}</code>) and are simply a comma-delimited list of values (they could also be generated by functions or operator expressions, or be a user-defined type literal). Arrays are also the only special type that can be unambiguously declared without the <code>new Type</code> prefix, so that is also allowed.</p>
 <p>For mutable variables, the syntax is nearly identical:</p>
-<pre><code class="language-alan">let varname: typename = constantOrFunctionCallOrExpression 
-let varname = constantOrFunctionCallOrExpression
+<pre><code class="language-alan">let varname: typename = constantOrFunctionCallOrExpression ;
+let varname = constantOrFunctionCallOrExpression;
 </code></pre>
 <p>Where <code>const</code> is replaced with <code>let</code>, making it clear that this variable's value can be changed.</p>
 <h5><a class="header" href="#variable-assignments" id="variable-assignments">Variable Assignments</a></h5>
 <p>This syntax only works with mutable variables:</p>
-<pre><code class="language-alan">varname = constantOrFunctionCallOrExpression
-varname.propertyName = constantOrFunctionCallOrExpression
+<pre><code class="language-alan">varname = constantOrFunctionCallOrExpression;
+varname.propertyName = constantOrFunctionCallOrExpression;
 </code></pre>
 <p>Since the variable type is already known, it is no longer included. Anything that could be assigned at declaration time is assignable in future assignments. When re-assigning to the properties of user-defined types, you use the dot notation.</p>
 <h5><a class="header" href="#function-calls-1" id="function-calls-1">Function Calls</a></h5>
@@ -417,16 +410,16 @@ varname.propertyName = constantOrFunctionCallOrExpression
 <p>where the arguments themselves could be constants, variable names, other function calls, operator statements, and variable type selection.</p>
 <h5><a class="header" href="#function-returns" id="function-returns">Function Returns</a></h5>
 <p>A return statement sets the value of the return type for the function and ends execution:</p>
-<pre><code class="language-alan">return constantOrFunctionCallOrExpression
+<pre><code class="language-alan">return constantOrFunctionCallOrExpression;
 </code></pre>
 <p>If the function has no return value, you can also trigger an exit without assigning a return value by simply stating:</p>
-<pre><code class="language-alan">return
+<pre><code class="language-alan">return;
 </code></pre>
 <p>If you have any statements after the <code>return</code> it will not compile, however (except if the <code>return</code> is within a conditional statement, described below).</p>
 <h5><a class="header" href="#event-emission" id="event-emission">Event Emission</a></h5>
 <p>A function can trigger new events to occur by emitting one:</p>
-<pre><code class="language-alan">emit eventName
-emit eventName constantOrFunctionCallOrExpression
+<pre><code class="language-alan">emit eventName;
+emit eventName constantOrFunctionCallOrExpression;
 </code></pre>
 <p>If the event is a void event (no arguments given to the handler functions) then you use the simple first syntax. If there is a value provided to the handler, then as with the other statements it could be a constant or variable name or function call or operator expression or type name of a variable that is provided.</p>
 <h5><a class="header" href="#conditionals" id="conditionals">Conditionals</a></h5>
@@ -439,33 +432,33 @@ if booleanConstantOrFunctionCallOrExpression thenFunction else if ...
 <p>where the constant, function call, or operational expression <em>must</em> evaluate to a boolean (so no type checking, unless it is within an equality check against an expected type name).</p>
 <p>Conditionals are one of the two places (the other being event handler declarations) where the <code>fn</code> may be omitted from a purely-side-effect function (no arguments, no return value), so the above can look exactly as one would expect:</p>
 <pre><code class="language-alan">if 1 == 2 {
-  print(&quot;Wrong&quot;)
+  print(&quot;Wrong&quot;);
 } else {
-  print(&quot;Right&quot;)
+  print(&quot;Right&quot;);
 }
 </code></pre>
 <p>The conditional has two anonymous functions declared inline. But it could just as easily be something like:</p>
 <pre><code class="language-alan">fn right() {
-  print(&quot;Right&quot;)
+  print(&quot;Right&quot;);
 }
 
 fn wrong() {
-  print(&quot;Wrong&quot;)
+  print(&quot;Wrong&quot;);
 }
 
-const condition: bool = 1 != 2
+const condition: bool = 1 != 2;
 
 if condition right else wrong
 </code></pre>
 <h4><a class="header" href="#interfaces" id="interfaces">Interfaces</a></h4>
 <p>In order to make generic types more useful, there must be a way to declare what operations/functions are possible to apply to the generic type in question so functions working with said generic are able to be checked even if the generic function is not &quot;solidified&quot; (for example, it is an exported library meant to be used by other code). Interfaces are the proposed solution, and they'll look something like this:</p>
 <pre><code class="language-alan">interface interfaceName {
-  functionname (concreteType, interfaceName): concreteType
-  function2 (interfaceName, interfaceName): interfaceName
-  interfaceName &lt;operatorSymbol&gt; interfaceName: interfaceName
-  &lt;operatorSymbol2&gt; interfaceName: concreteType
-  requiredPropertyName: concreteType
-  requiredPropertyName2: concreteType
+  functionname (concreteType, interfaceName): concreteType,
+  function2 (interfaceName, interfaceName): interfaceName,
+  interfaceName &lt;operatorSymbol&gt; interfaceName: interfaceName,
+  &lt;operatorSymbol2&gt; interfaceName: concreteType,
+  requiredPropertyName: concreteType,
+  requiredPropertyName2: concreteType,
 }
 </code></pre>
 <p>They declare which functions and/or operators must exist for the type to pass the interface and provide a guarantee to the function using that interface which functions and/or operators are available for use within the function body. Because function dispatch is based on the input arguments and not the output type, at least one of the input arguments <strong>must</strong> be <code>interfaceName</code>. They can also optionally declare certain properties with certain concrete types as being required to exist. This would only make sense for the user-defined types, but it appears useful for them to prevent requiring useless accessor functions to be written.</p>
@@ -474,8 +467,8 @@ if condition right else wrong
 <p>When interfaces are used in a function, they are matched against the incoming argument types. Once it is &quot;realized&quot; as a concrete type, the compiler assumes any other usage of that same interface will be the same realized type.</p>
 <p>This means writing a constructor function to make a <code>KeyVal</code> object like so:</p>
 <pre><code class="language-alan">fn makeKV(key: any, val: any) = new KeyVal&lt;any, any&gt; {
-  key = key
-  val = val
+  key: key,
+  val: val,
 }
 </code></pre>
 <p>will fail to compile unless both the <code>key</code> and the <code>val</code> are the same type, which may be unexpected. However, an identical interface with a different name will be matched separately, so if you have the following two otherwise identical interfaces:</p>
@@ -484,8 +477,8 @@ interface anythingElse {}
 </code></pre>
 <p>That both would match <em>any</em> type given to them, you can then use them in the <code>KeyVal</code> constructor like this:</p>
 <pre><code class="language-alan">fn makeKv(key: any, val: anythingElse) = new KeyVal&lt;any, anythingElse&gt; {
-  key = key
-  val = val
+  key: key,
+  val: val
 }
 </code></pre>
 <p>There is an interface aliasing feature, so one could simply write:</p>
@@ -537,26 +530,26 @@ The special built-in types are covered in depth in <a href="./builtins/types.htm
 <h5><a class="header" href="#syntax" id="syntax">Syntax</a></h5>
 <p>User-defined types must be declared by the user and they follow the following syntax:</p>
 <pre><code class="language-alan">type typename {
-  propertyName: propertyType
-  otherProperty: otherType
+  propertyName: propertyType,
+  otherProperty: otherType,
 }
 </code></pre>
 <p>The syntax to construct a new instance of a user type is as follows:</p>
 <pre><code class="language-alan">const myVal: typename = new typename {
-  propertyName = propertyValue
-  otherProperty = otherValue
+  propertyName: propertyValue,
+  otherProperty: otherValue,
 }
 </code></pre>
 <p>Or relying on type inference it is reduced to just:</p>
 <pre><code class="language-alan">const myVal = new typename {
-  propertyName = propertyValue
-  otherProperty = otherValue
+  propertyName: propertyValue,
+  otherProperty: otherValue
 }
 </code></pre>
 <p>User-defined types have another interesting feature: they can be generic. That means one or more of the actual sub-types used by the type is not yet defined, but will be &quot;solidified&quot; later on with the creation of a new type based on it.</p>
 <p>Generic types look like this:</p>
 <pre><code class="language-alan">type typename&lt;A, B&gt; {
-  propertyName: A
+  propertyName: A,
   otherProperty: B
 }
 </code></pre>
@@ -565,8 +558,8 @@ The special built-in types are covered in depth in <a href="./builtins/types.htm
 </code></pre>
 <p>or just declaring a variable that uses a &quot;solidified&quot; type:</p>
 <pre><code class="language-alan">let myVar = new typename&lt;bool, float64&gt; {
-  propertyName = true
-  otherProperty = 0.0
+  propertyName: true,
+  otherProperty: 0.0
 }
 </code></pre>
 <p>Functions cannot operate on Generic types directly, but they can work on Generics that have been &quot;solidified&quot; with interfaces. More on this in the <a href="./interfaces.html">Interfaces</a> section.</p>
@@ -579,31 +572,31 @@ The special built-in types are covered in depth in <a href="./builtins/types.htm
 fn reciprocal(val: float64): Result&lt;float64&gt; {
   if val == 0.0 {
     // creates a Result with an Error from a string
-    return err('Divide by zero error!')
+    return err('Divide by zero error!');
   } else {
     // creates a Result with a value
-    return ok(1.0 / val)
+    return ok(1.0 / val);
   }
 }
 
 on start {
-  const oneFifth = reciprocal(5.0)
+  const oneFifth = reciprocal(5.0);
   // checks if the Result has a value
   if oneFifth.isOk() {
     // gets the Result's value or default if it is an Error
-    print(oneFifth.getOr(0.0))
+    print(oneFifth.getOr(0.0));
     // getOr can be expressed with an | operator
-    print(oneFifth | 0.0)
+    print(oneFifth | 0.0);
   }
 
   // checks if the Result has an error
-  const oneZeroth = reciprocal(0.0)
+  const oneZeroth = reciprocal(0.0);
   if oneZeroth.isErr() {
     // gets the Result's Error or default if it is a value
-    print(oneZeroth.getErr(noerr()))
+    print(oneZeroth.getErr(noerr()));
   }
 
-  emit exit 0
+  emit exit 0;
 }
 </code></pre></pre>
 <h4><a class="header" href="#imports" id="imports">Imports</a></h4>
@@ -634,11 +627,11 @@ from @std/app import start, print as println, exit
 <p>The <code>export</code> syntax can only be used at the module level, which means it is impossible to have non-deterministic exports. While this can be annoying with collating files that simply import files to only re-export all of their contents, it eliminates whole classes of ambiguity where certain functions, types, etc are only available depending on the state of the runtime environment.</p>
 <p>Constants, types, functions, operators, events, and interfaces are exportable while event handlers are not. (However, importing a module that registers event handlers will cause a side-effect of including those event handlers in your application.)</p>
 <p>This can either be done in-line with the declaration of the item in question:</p>
-<pre><code class="language-alan">export const foo: bool = true
+<pre><code class="language-alan">export const foo: bool = true;
 </code></pre>
 <p>Or it can be done by referencing the name of the thing to be exported after it has been declared:</p>
 <pre><code class="language-alan">type Foo {
-  bar: string
+  bar: string,
   baz: bool
 }
 
@@ -671,6 +664,7 @@ export Foo
 <p>The following symbols cannot be used when defining <a href="./operators.html">operators</a>:</p>
 <ul>
 <li>,</li>
+<li>;</li>
 <li>{</li>
 <li>}</li>
 <li>(</li>
@@ -1571,19 +1565,19 @@ fn recurse(seq: Seq, recursiveFn: function, arg: any): Result&lt;anythingElse&gt
 <h3><a class="header" href="#seq-type" id="seq-type"><code>Seq</code> type</a></h3>
 <p><code>@std/seq</code> provides functions for accomplishing many different sequential patterns that depend on a special, built-in <code>Seq</code> type with opaque internals to avoid manipulation after construction:</p>
 <pre><code class="language-alan">type Seq {
-  counter: int64
-  limit: int64
+  counter: int64,
+  limit: int64,
 }
 </code></pre>
 <h3><a class="header" href="#next_loopln" id="next_loopln"><code>next_loop.ln</code></a></h3>
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 from @std/seq import seq, next
 on start {
-  let s = seq(2)
-  print(s.next())
-  print(s.next())
-  print(s.next())
-  emit exit 0
+  let s = seq(2);
+  print(s.next());
+  print(s.next());
+  print(s.next());
+  emit exit 0;
 }
 </code></pre></pre>
 <p><code>next</code> is the simplest to explain: each time you call it, it returns the current counter value wrapped in a Result and then increments it. If you call past the limit, it returns an <a href="./error_handling.html">Error Result</a>.</p>
@@ -1591,9 +1585,9 @@ on start {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 from @std/seq import seq, each
 on start {
-  let s = seq(3)
-  s.each(fn (i: int64) = print(i))
-  emit exit 0
+  let s = seq(3);
+  s.each(fn (i: int64) = print(i));
+  emit exit 0;
 }
 </code></pre></pre>
 <p><code>each</code> is almost as simple as <code>next</code>: It simply runs the side-effect function however many times is in the limit of the seq instance. The function provided may or may not take the current iteration counter and must be the following signature:</p>
@@ -1604,15 +1598,13 @@ fn func(i: int64): void
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 from @std/seq import seq, while
 on start {
-  let s = seq(100)
-  let sum = 0
-  // TODO: Still need type inference working for one-liner closures
-  // https://github.com/alantech/alan/issues/193
-  s.while(fn (): bool = sum &lt; 10, fn {
-    sum = sum + 1
-  })
-  print(sum)
-  emit exit 0
+  let s = seq(100);
+  let sum = 0;
+  s.while(fn = sum &lt; 10, fn {
+    sum = sum + 1;
+  });
+  print(sum);
+  emit exit 0;
 }
 </code></pre></pre>
 <p><code>while</code> runs the <code>bodyFn</code> <em>up to</em> the <code>limit</code> number of times, but can abort early if <code>condFn</code> returns <code>false</code>. The signatures of these two functions must match:</p>
@@ -1623,16 +1615,15 @@ fn bodyFn(): void
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 from @std/seq import seq, doWhile
 on start {
-  let s = seq(100)
-  let sum = 0
-  // TODO: Still need type inference working for one-liner closures
-  // https://github.com/alantech/alan/issues/193
+  let s = seq(100);
+  let sum = 0;
+  // TODO: Still need type inference working for multi-line closures
   s.doWhile(fn (): bool {
-    sum = sum + 1
-    return sum &lt; 10
-  })
-  print(sum)
-  emit exit 0
+    sum = sum + 1;
+    return sum &lt; 10;
+  });
+  print(sum);
+  emit exit 0;
 }
 </code></pre></pre>
 <p><code>doWhile</code> always runs at least once (unless the <code>seq</code> has reached its <code>limit</code> or it was constructed with an initial <code>limit</code> of <code>0</code>) and uses the return value of the function to determine if it should continue or not, so its <code>bodyFn</code> has the following signature:</p>
@@ -1644,35 +1635,35 @@ from @std/seq import seq, Self, recurse
 on start {
   print(seq(100).recurse(fn fibonacci(self: Self, i: int64): Result&lt;int64&gt; {
     if i &lt; 2 {
-      return ok(1)
+      return ok(1);
     } else {
-      const prev = self.recurse(i - 1)
-      const prevPrev = self.recurse(i - 2)
+      const prev = self.recurse(i - 1);
+      const prevPrev = self.recurse(i - 2);
       if prev.isErr() {
-        return prev
+        return prev;
       }
       if prevPrev.isErr() {
-        return prevPrev
+        return prevPrev;
       }
-      return ok((prev || 1) + (prevPrev || 1))
+      return ok((prev || 1) + (prevPrev || 1));
     }
-  }, 8))
-  emit exit 0
+  }, 8));
+  emit exit 0;
 }
 </code></pre></pre>
 <p><code>recurse</code> allows recursive functions to be defined in <code>alan</code>. This is impossible in <code>alan</code>'s grammar, so what is done is special trickery to make it possible. The <code>recursiveFn</code> has the following function signature:</p>
 <pre><code class="language-alan">fn recursiveFn(self: Self, arg: any): Result&lt;anythingElse&gt;
 </code></pre>
 <p>The <code>Self</code> type is a special type that the recursive function can use to trigger a controlled recursive call, like so:</p>
-<pre><code class="language-alan">const recursiveResult = self.recurse(someNewArg)
+<pre><code class="language-alan">const recursiveResult = self.recurse(someNewArg);
 </code></pre>
 <p><code>Self</code> is another opaque type that the AVM can use to keep track of the function to be called recursively and how deep the recursion has gone so far. The <code>recursiveFn</code> <em>must</em> wrap its value in a <code>Result</code> type because <code>alan</code> may interject and bubble up an error of the recursion limit is reached.</p>
 <h3><a class="header" href="#stdcmd" id="stdcmd">@std/cmd</a></h3>
 <p>Also very bare, only a single type <code>ExecRes</code>, and a function: <code>exec</code> with the signature:</p>
 <pre><code class="language-alan">type ExecRes {
-  exitCode: int64
-  stdout: string
-  stderr: string
+  exitCode: int64,
+  stdout: string,
+  stderr: string,
 }
 </code></pre>
 <pre><code class="language-alan">exec(string): ExecRes
@@ -1943,8 +1934,8 @@ fn hyperbolicArccotangent(x: float32): float32
 <pre><pre class="playpen"><code class="language-rust editable">import @std/app
 
 on app.start {
-  app.print(&quot;Hello, World!&quot;)
-  emit app.exit 0
+  app.print(&quot;Hello, World!&quot;);
+  emit app.exit 0;
 }
 </code></pre></pre>
 <p>The first line imports the <code>app</code> export scope, which can be used like a user type.</p>
@@ -1955,8 +1946,8 @@ on app.start {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
 on start {
-  print(&quot;Hello, World!&quot;)
-  emit exit 0
+  print(&quot;Hello, World!&quot;);
+  emit exit 0;
 }
 </code></pre></pre>
 <p>Almost identical to the first, but it pulls the pieces of the <code>app</code> namespace into the module's namespace, so it's a good introduction to the <code>from foo import bar, baz, ...</code> syntax, what it does and why you might want it.</p>
@@ -1964,8 +1955,8 @@ on start {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print as put, exit
 
 on start {
-  put(&quot;Hello, World!&quot;)
-  emit exit 0
+  put(&quot;Hello, World!&quot;);
+  emit exit 0;
 }
 </code></pre></pre>
 <p>This example demonstrates the renaming syntax on import, so you can choose a name that is clearer to you.</p>
@@ -1973,19 +1964,19 @@ on start {
 <pre><pre class="playpen"><code class="language-rust editable">import @std/app as program
 
 on program.start {
-  program.print(&quot;Hello, World!&quot;)
-  emit program.exit 0
+  program.print(&quot;Hello, World!&quot;);
+  emit program.exit 0;
 }
 </code></pre></pre>
 <p>Same as the previous, but the renaming is applied to the module name, rather than its contents.</p>
 <h3><a class="header" href="#hello_world_5ln" id="hello_world_5ln"><code>hello_world_5.ln</code></a></h3>
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
-const helloWorld: string = &quot;Hello, World!&quot;
+const helloWorld: string = &quot;Hello, World!&quot;;
 
 on start {
-  print(helloWorld)
-  emit exit 0
+  print(helloWorld);
+  emit exit 0;
 }
 </code></pre></pre>
 <p>This example demonstrates printing a variable instead of an inline constant.</p>
@@ -1993,10 +1984,10 @@ on start {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, exit, print
 
 on start fn {
-  const hello: string = &quot;Hello&quot;
-  const world: string = &quot;World&quot;
-  print(hello + &quot;, &quot; + world + &quot;!&quot;))
-  emit exit 0
+  const hello: string = &quot;Hello&quot;;
+  const world: string = &quot;World&quot;;
+  print(hello + &quot;, &quot; + world + &quot;!&quot;));
+  emit exit 0;
 }
 </code></pre></pre>
 <p>This example demonstrates how values can be combined together to produce the desired result.</p>
@@ -2004,8 +1995,8 @@ on start fn {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
 on start {
-  &quot;Hello, World!&quot;.print()
-  emit exit 0
+  &quot;Hello, World!&quot;.print();
+  emit exit 0;
 }
 </code></pre></pre>
 <p>This demonstrates the &quot;method-style&quot; function call syntax, which allows those who prefer OO development to have that style (though it could be misleading that it implies everything is an object, when it's really syntactic sugar, but...)</p>
@@ -2013,8 +2004,8 @@ on start {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
 fn main() {
-  &quot;Hello, World!&quot;.print()
-  emit exit 0
+  &quot;Hello, World!&quot;.print();
+  emit exit 0;
 }
 
 on start main
@@ -2026,11 +2017,11 @@ on start main
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
 on start {
-  const count = [1, 2, 3, 4, 5]
-  const byTwos = count.map(fn (n: int64): int64 = n * 2)
-  count.map(fn (n: int64) = toString(n)).join(', ').print()
-  byTwos.map(fn (n: int64) = toString(n)).join(', ').print()
-  emit exit 0
+  const count = [1, 2, 3, 4, 5];
+  const byTwos = count.map(fn (n: int64): int64 = n * 2);
+  count.map(toString).join(', ').print();
+  byTwos.map(toString).join(', ').print();
+  emit exit 0;
 }
 </code></pre></pre>
 <p>Alan does not allow arbitrary loops or recursion, but you can still loop over data. This example shows the primary way to do iteration in Alan using the functional <a href="./builtins/array_api.html">array api</a> which can be parallelized by the AVM. However when absolutely necessary, Alan offers a controlled way of <a href="./std_seq.html">expressing algorithms that are inherently sequential</a>.</p>
@@ -2038,22 +2029,22 @@ on start {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
 on start fn {
-  print(concat(&quot;1 + 2 = &quot;, toString(1 + 2)))
-  print(concat(&quot;1 - 2 = &quot;, toString(1 - 2)))
-  print(concat(&quot;1 * 2 = &quot;, toString(1 * 2)))
-  print(concat(&quot;1 / 2 = &quot;, toString(1.0 / 2.0)))
-  print(concat(&quot;1 % 2 = &quot;, toString(1 % 2)))
-  print(concat(&quot;1 ** 2 = &quot;, toString(1 ** 2)))
-  print(concat(&quot;1 &amp; 2 = &quot;, toString(1 &amp; 2)))
-  print(concat(&quot;1 | 2 = &quot;, toString(1 | 2)))
-  print(concat(&quot;1 ^ 2 = &quot;, toString(1 ^ 2)))
-  print(concat(&quot;!1 = &quot;, toString(!1)))
-  print(concat(&quot;1 !&amp; 2 = &quot;, toString(1 !&amp; 2)))
-  print(concat(&quot;1 !| 2 = &quot;, toString(1 !| 2)))
-  print(concat(&quot;1 !^ 2 = &quot;, toString(1 !^ 2)))
-  print(concat(&quot;1 + 2 * 3 ** 4 = &quot;, toString(1 + 2 * 3 ** 4)))
+  print(concat(&quot;1 + 2 = &quot;, toString(1 + 2)));
+  print(concat(&quot;1 - 2 = &quot;, toString(1 - 2)));
+  print(concat(&quot;1 * 2 = &quot;, toString(1 * 2)));
+  print(concat(&quot;1 / 2 = &quot;, toString(1.0 / 2.0)));
+  print(concat(&quot;1 % 2 = &quot;, toString(1 % 2)));
+  print(concat(&quot;1 ** 2 = &quot;, toString(1 ** 2)));
+  print(concat(&quot;1 &amp; 2 = &quot;, toString(1 &amp; 2)));
+  print(concat(&quot;1 | 2 = &quot;, toString(1 | 2)));
+  print(concat(&quot;1 ^ 2 = &quot;, toString(1 ^ 2)));
+  print(concat(&quot;!1 = &quot;, toString(!1)));
+  print(concat(&quot;1 !&amp; 2 = &quot;, toString(1 !&amp; 2)));
+  print(concat(&quot;1 !| 2 = &quot;, toString(1 !| 2)));
+  print(concat(&quot;1 !^ 2 = &quot;, toString(1 !^ 2)));
+  print(concat(&quot;1 + 2 * 3 ** 4 = &quot;, toString(1 + 2 * 3 ** 4)));
 
-  emit exit 0
+  emit exit 0;
 }
 </code></pre></pre>
 <p>This example shows multiple math operations and their results, with the last statement demonstrating the order of operations effectively inverting the computational flow of that statement.</p>
@@ -2061,49 +2052,49 @@ on start fn {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
 type MyType {
-  foo: string
-  bar: bool
+  foo: string,
+  bar: bool,
 }
 
 on start {
-  print(&quot;Custom type assignment&quot;)
+  print(&quot;Custom type assignment&quot;);
   const test = new MyType {
-    foo = &quot;foo!&quot;
-    bar = true
-  }
-  print(test.foo)
-  print(test.bar)
+    foo: &quot;foo!&quot;,
+    bar: true,
+  };
+  print(test.foo);
+  print(test.bar);
 
   let test2 = new MyType {
-    foo = &quot;foo2&quot;
-    bar = true
-  }
-  test2.bar = false
-  print(test2.foo)
-  print(test2.bar)
+    foo: &quot;foo2&quot;,
+    bar: true
+  };
+  test2.bar = false;
+  print(test2.foo);
+  print(test2.bar);
 
-  print(&quot;Array literal assignment&quot;)
-  const test3 = new Array&lt;int64&gt; [ 1, 2, 4, 8, 16, 32, 64 ]
-  print(test3[0])
-  print(test3[1])
-  print(test3[2])
+  print(&quot;Array literal assignment&quot;);
+  const test3 = new Array&lt;int64&gt; [ 1, 2, 4, 8, 16, 32, 64 ];
+  print(test3[0]);
+  print(test3[1]);
+  print(test3[2]);
 
-  let test4 = [ 0, 1, 2, 3 ]
-  test4.set(0, 1)
-  print(test4[0])
+  let test4 = [ 0, 1, 2, 3 ];
+  test4.set(0, 1);
+  print(test4[0]);
 
-  print(&quot;HashMap literal assignment&quot;)
-  const test5 = newHashMap(true, 1)
-  test5.set(false, 0)
+  print(&quot;HashMap literal assignment&quot;);
+  const test5 = newHashMap(true, 1);
+  test5.set(false, 0);
 
-  print(test5.get(true))
-  print(test5.get(false))
+  print(test5.get(true));
+  print(test5.get(false));
 
-  let test6 = newHashMap(&quot;foo&quot;, &quot;bar&quot;)
-  test6.set(&quot;foo&quot;, &quot;baz&quot;)
-  print(test6.get(&quot;foo&quot;))
+  let test6 = newHashMap(&quot;foo&quot;, &quot;bar&quot;);
+  test6.set(&quot;foo&quot;, &quot;baz&quot;);
+  print(test6.get(&quot;foo&quot;));
 
-  emit exit 0
+  emit exit 0;
 }
 </code></pre></pre>
 <p>This example demonstrates the three (so far) object literal syntaxes and sub-value accessor syntaxes.</p>
@@ -2111,64 +2102,64 @@ on start {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
 fn bar() {
-  print(&quot;bar!&quot;)
+  print(&quot;bar!&quot;);
 }
 
 fn baz() {
-  print(&quot;baz!&quot;)
+  print(&quot;baz!&quot;);
 }
 
 fn nearOrFar(distance: float64): string {
   if distance &lt; 5.0 {
-    return &quot;Near!&quot;
+    return &quot;Near!&quot;;
   } else {
-    return &quot;Far!&quot;
+    return &quot;Far!&quot;;
   }
 }
 
 on start {
   if 1 == 0 {
-    print(&quot;What!?&quot;)
+    print(&quot;What!?&quot;);
   } else {
-    print(&quot;The world is sane...&quot;)
+    print(&quot;The world is sane...&quot;);
   }
 
   if 1 == 0 {
-    print(&quot;Not this again...&quot;)
+    print(&quot;Not this again...&quot;);
   } else if 1 == 2 {
-    print(&quot;Still wrong...&quot;)
+    print(&quot;Still wrong...&quot;);
   } else {
-    print(&quot;The world is still sane, for now...&quot;)
+    print(&quot;The world is still sane, for now...&quot;);
   }
 
-  const foo: bool = true
+  const foo: bool = true;
   if foo bar else baz
 
-  print(nearOrFar(3.14))
-  print(nearOrFar(6.28))
+  print(nearOrFar(3.14));
+  print(nearOrFar(6.28));
 
-  const options = pair(2, 4)
-  print(options[0])
-  print(options[1])
+  const options = pair(2, 4);
+  print(options[0]);
+  print(options[1]);
 
-  const options2 = 3 : 5
-  print(options2[0])
-  print(options2[1])
+  const options2 = 3 : 5;
+  print(options2[0]);
+  print(options2[1]);
 
-  const val1 = 1 == 1 ? 1 : 2
-  const val2 = 1 == 0 ? 1 : 2
-  print(val1)
-  print(val2)
+  const val1 = 1 == 1 ? 1 : 2;
+  const val2 = 1 == 0 ? 1 : 2;
+  print(val1);
+  print(val2);
 
-  const val3 = cond(1 == 1, pair(3, 4))
-  const val4 = cond(1 == 0, pair(3, 4))
-  print(val3)
-  print(val4)
+  const val3 = cond(1 == 1, pair(3, 4));
+  const val4 = cond(1 == 0, pair(3, 4));
+  print(val3);
+  print(val4);
 
-  const val5 = 1 == 0 ? options2
-  print(val5)
+  const val5 = 1 == 0 ? options2;
+  print(val5);
 
-  emit exit 0
+  emit exit 0;
 }
 </code></pre></pre>
 <p>This example demonstrates conditionals (if statements) and shows that the conditional &quot;scopes&quot; are actually functions, but due to how nested scope rules work, they can still manipulate the parent function scope as needed for execution to function. It also demonstrates &quot;ternary&quot; operators and how they are composed of <code>pair</code> and <code>cond</code> function calls.</p>
@@ -2183,13 +2174,13 @@ export type Year {
 }
 
 export type YearMonth {
-  year: int32
+  year: int32,
   month: int8
 }
 
 export type Date {
-  year: int32
-  month: int8
+  year: int32,
+  month: int8,
   day: int8
 }
 
@@ -2198,163 +2189,158 @@ export type Hour {
 }
 
 export type HourMinute {
-  hour: int8
+  hour: int8,
   minute: int8
 }
 
 export type Time {
-  hour: int8
-  minute: int8
+  hour: int8,
+  minute: int8,
   second: float64
 }
 
 export type DateTime {
-  date: Date
-  time: Time
+  date: Date,
+  time: Time,
   timezone: HourMinute
 }
 
 export fn makeYear(year: int32): Year {
   return new Year {
-    year = year
+    year: year
   }
 }
 
 export fn makeYear(year: int64): Year {
   return new Year {
-    year = toInt32(year)
+    year: toInt32(year)
   }
 }
 
 export fn makeYearMonth(year: int32, month: int8): YearMonth {
   return new YearMonth {
-    year = year
-    month = month
+    year: year,
+    month: month
   }
 }
 
 export fn makeYearMonth(y: Year, month: int64): YearMonth {
   return new YearMonth {
-    year = y.year
-    month = toInt8(month)
+    year: y.year,
+    month: toInt8(month)
   }
 }
 
 export fn makeDate(year: int32, month: int8, day: int8): Date {
   return new Date {
-    year = year
-    month = month
-    day = day
+    year: year,
+    month: month,
+    day: day
   }
 }
 
 export fn makeDate(ym: YearMonth, day: int64): Date {
   return new Date {
-    year = ym.year
-    month = ym.month
-    day = toInt8(day)
+    year: ym.year,
+    month: ym.month,
+    day: toInt8(day)
   }
 }
 
 export fn makeHour(hour: int8): Hour {
   return new Hour {
-    hour = hour
+    hour: hour
   }
 }
 
 export fn makeHourMinute(hour: int8, minute: int8): HourMinute {
   return new HourMinute {
-    hour = hour
-    minute = minute
+    hour: hour,
+    minute: minute
   }
 }
 
 export fn makeHourMinute(hour: int64, minute: int64): HourMinute {
   return new HourMinute {
-    hour = toInt8(hour)
-    minute = toInt8(minute)
+    hour: toInt8(hour),
+    minute: toInt8(minute)
   }
 }
 
 export fn makeHourMinute(h: Hour, minute: int8): HourMinute {
   return new HourMinute {
-    hour = h.hour
-    minute = minute
+    hour: h.hour,
+    minute: minute
   }
 }
 
 export fn makeTime(hour: int8, minute: int8, second: float64): Time {
   return new Time {
-    hour = hour
-    minute = minute
-    second = second
+    hour: hour,
+    minute: minute,
+    second: second
   }
 }
 
 export fn makeTime(hm: HourMinute, second: float64): Time {
   return new Time {
-    hour = hm.hour
-    minute = hm.minute
-    second = second
+    hour: hm.hour,
+    minute: hm.minute,
+    second: second
   }
 }
 
 export fn makeTime(hm: HourMinute, second: int64): Time {
   return new Time {
-    hour = hm.hour
-    minute = hm.minute
-    second = toFloat64(second)
+    hour: hm.hour,
+    minute: hm.minute,
+    second: toFloat64(second)
   }
 }
 
 export fn makeDateTime(date: Date, time: Time, timezone: HourMinute): DateTime {
   return new DateTime {
-    date = date
-    time = time
-    timezone = timezone
+    date: date,
+    time: time,
+    timezone: timezone
   }
 }
 
 export fn makeDateTime(date: Date, time: Time): DateTime {
   return new DateTime {
-    date = date
-    time = time
+    date: date,
+    time: time
   }
 }
 
 export fn makeDateTimeTimezone(dt: DateTime, timezone: HourMinute): DateTime {
   return new DateTime {
-    date = dt.date
-    time = dt.time
-    timezone = timezone
+    date: dt.date,
+    time: dt.time,
+    timezone: timezone
   }
 }
 
 export fn makeDateTimeTimezoneRev(dt: DateTime, timezone: HourMinute): DateTime {
   return new DateTime {
-    date = dt.date
-    time = dt.time
-    timezone = new HourMinute {
-      hour = -timezone.hour
-      minute = timezone.minute
+    date: dt.date,
+    time: dt.time,
+    timezone: new HourMinute {
+      hour: -timezone.hour,
+      minute: timezone.minute
     }
   }
 }
 
 export fn print(dt: DateTime) {
   // TODO: Work on formatting stuff
-  let timezoneOffsetSymbol: string
-  if (dt.timezone.hour < toInt8(0)) {
-    timezoneOffsetSymbol = "-"
-  } else {
-    timezoneOffsetSymbol = "+"
-  }
-  let str: string = concat(
+  const timezoneOffsetSymbol = dt.timezone.hour < toInt8(0) ? "-" : "+";
+  const str: string = concat(
     toString(dt.date.year), "-", toString(dt.date.month), "-", toString(dt.date.day), "@",
     toString(dt.time.hour), ":", toString(dt.time.minute), ":", toString(dt.time.second),
     timezoneOffsetSymbol, abs(dt.timezone.hour).toString(), ":", dt.timezone.minute.toString()
-  )
-  print(str)
+  );
+  print(str);
 }
 
 export prefix # 2 makeYear
@@ -2384,9 +2370,9 @@ from @std/app import start, exit
 from ./datetime import DateTime, print, #, -, :, @, +
 
 on start fn {
-  const dt: DateTime = #2020-01-15@09:45:00-08:00
-  print(dt)
-  emit exit 0
+  const dt: DateTime = #2020 - 01 - 15@09:45:00 - 08:00;
+  print(dt);
+  emit exit 0;
 }
 ```
 
@@ -2400,19 +2386,19 @@ from @std/app import start, print, exit
 from ./datetime import DateTime, print, #, -, :, @, +
 
 on start fn {
-  true.print()
-  1.print()
-  3.14159.print()
-  "Hello, World!".print()
+  true.print();
+  1.print();
+  3.14159.print();
+  "Hello, World!".print();
 
-  const dt: DateTime = #2020-01-17@16:15:00-08:00
-  dt.print()
+  const dt: DateTime = #2020 - 01 - 17@16:15:00 - 08:00;
+  dt.print();
 
-  print(3.add(2))
-  3.add(2).print()
-  (3 + 2).print()
+  print(3.add(2));
+  3.add(2).print();
+  (3 + 2).print();
 
-  emit exit 0
+  emit exit 0;
 }
 ```
 
@@ -2423,35 +2409,35 @@ This example introduces method syntax, and shows multiple variants of the same s
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 
 on start fn {
-  const helloWorld: string = &quot;Hello, &quot; + &quot;World!&quot;
-  print(helloWorld)
+  const helloWorld: string = &quot;Hello, &quot; + &quot;World!&quot;;
+  print(helloWorld);
 
-  const helloWorldArr: Array&lt;string&gt; = helloWorld / &quot;, &quot;
-  print(helloWorldArr[0])
-  print(helloWorldArr[1])
+  const helloWorldArr: Array&lt;string&gt; = helloWorld / &quot;, &quot;;
+  print(helloWorldArr[0]);
+  print(helloWorldArr[1]);
 
-  const helloWorldArr2: Array&lt;string&gt; = helloWorld.split(&quot;, &quot;)
-  print(helloWorldArr2[0])
-  print(helloWorldArr2[1])
+  const helloWorldArr2: Array&lt;string&gt; = helloWorld.split(&quot;, &quot;);
+  print(helloWorldArr2[0]);
+  print(helloWorldArr2[1]);
 
-  print(&quot;Hi &quot; * 5)
-  print(repeat(&quot;Hi &quot;, 5))
+  print(&quot;Hi &quot; * 5);
+  print(repeat(&quot;Hi &quot;, 5));
 
-  print(helloWorld ~ &quot;or&quot;)
-  print(helloWorld.matches(&quot;or&quot;))
+  print(helloWorld ~ &quot;or&quot;);
+  print(helloWorld.matches(&quot;or&quot;));
 
-  print(helloWorld @ &quot;or&quot;)
-  helloWorld.index(&quot;or&quot;).print()
+  print(helloWorld @ &quot;or&quot;);
+  helloWorld.index(&quot;or&quot;).print();
 
-  print(#helloWorld)
-  print(length(helloWorld))
-  print(helloWorld.length())
-  helloWorld.length().print()
+  print(#helloWorld);
+  print(length(helloWorld));
+  print(helloWorld.length());
+  helloWorld.length().print();
 
-  print(&quot;'&quot; + `(&quot;Hi &quot; * 5) + &quot;'&quot;)
-  print(&quot;'&quot; + trim(repeat(&quot;Hi &quot;, 5)) + &quot;'&quot;)
+  print(&quot;'&quot; + `(&quot;Hi &quot; * 5) + &quot;'&quot;);
+  print(&quot;'&quot; + trim(repeat(&quot;Hi &quot;, 5)) + &quot;'&quot;);
 
-  emit exit 0
+  emit exit 0;
 }
 </code></pre></pre>
 <p>This example exercises many string manipulation mechanisms and alternate syntaxes using operators and method style function calls.</p>
@@ -2460,59 +2446,43 @@ on start fn {
 
 // Generic types don't need to be capitalized, but it tends to look nicer
 type Box&lt;V&gt; {
-  set: bool
+  set: bool,
   val: V
 }
 
 on start fn {
   let int8Box = new Box&lt;int64&gt; {
-    val = 8
-    set = true
-  }
-  print(int8Box.val)
-  print(int8Box.set)
+    val: 8,
+    set: true
+  };
+  print(int8Box.val);
+  print(int8Box.set);
 
   let stringBox = new Box&lt;string&gt; {
-    val = &quot;hello, generics!&quot;
-    set = true
-  }
-  print(stringBox.val)
-  print(stringBox.set)
+    val: &quot;hello, generics!&quot;,
+    set: true
+  };
+  print(stringBox.val);
+  print(stringBox.set);
 
   const stringBoxBox = new Box&lt;Box&lt;string&gt;&gt; {
-    val = new Box&lt;string&gt; {
-      val = &quot;hello, nested generics!&quot;
-      set = true
-    }
-    set = true
-  }
-  print(stringBoxBox.set)
-  print(stringBoxBox.val.set)
-  print(stringBoxBox.val.val)
+    val: new Box&lt;string&gt; {
+      val: &quot;hello, nested generics!&quot;,
+      set: true
+    },
+    set: true
+  };
+  stringBoxBox.set.print();
+  stringBoxBox.val.set.print();
+  print(stringBoxBox.val.val);
 
   // The following is a compile time error, uncomment to see!
   // stringBox.val = 8
 
-  emit exit 0
+  emit exit 0;
 }
 </code></pre></pre>
 <p>This example uses generics to define a Box type and how to work with it at a basic assignment level.</p>
-<!-- TODO: Should we even have an http server example in here? We can't run it. Also this syntax is very wrong
-### `http.ln`
-
-```rust,editable
-import @std/http
-
-on http.port(8080) fn (socket: http.Socket) {
-  socket.response.statusCode = 200
-  socket.response.body = "Hello, World!"
-  http.close(socket)
-}
-```
-
-This example defines a `Hello, World!` http server on port 8080.
-
--->
 <h1><a class="header" href="#transpile-alan-to-javascript" id="transpile-alan-to-javascript">Transpile Alan to Javascript</a></h1>
 <p>Run Alan in the browser or Node.js.</p>
 <h2><a class="header" href="#prerequisites" id="prerequisites">Prerequisites</a></h2>
@@ -2526,8 +2496,8 @@ This example defines a `Hello, World!` http server on port 8080.
 <pre><pre class="playpen"><code class="language-rust editable">import @std/app
 
 on app.start {
-  app.print(&quot;Hello, World!&quot;)
-  emit app.exit 0
+  app.print(&quot;Hello, World!&quot;);
+  emit app.exit 0;
 }
 </code></pre></pre>
 <p>Next run:</p>
@@ -2573,16 +2543,16 @@ on app.start {
 <p>There are two categories of constants in Alan--, actual static constants like numbers, booleans, and strings, and constants that are the output of a function call.</p>
 <p>Static constants must <em>all</em> be declared in the root scope at the top of the file. The only allowed static constants are of the following types: <code>int8</code>, <code>int16</code>, <code>int32</code>, <code>int64</code>, <code>float32</code>, <code>float64</code>, <code>bool</code>, <code>string</code>. Every other constant declared in an Alan source file is recomposed at runtime from these core components. (This may be revisited in the future if/when a safe, static representation format is defined for the runtime.) Unlike Alan, constants in Alan-- <em>must</em> have their types declared, like so:</p>
 <!-- using ```alan works, but would be nicer to be able to use a ```amm in these examples -->
-<pre><code class="language-alan">const foo: string = &quot;bar&quot;
+<pre><code class="language-alan">const foo: string = &quot;bar&quot;;
 </code></pre>
 <p>Constants output from function calls may <em>only</em> be housed within event handlers or closures and not declared in the root scope. These also must have the type data included.</p>
 <h3><a class="header" href="#let-variables" id="let-variables">Let variables</a></h3>
 <p>As with Alan, let variables may only be declared within event handlers or closure functions and never the root scope. They function identically with the type definition requirement.</p>
-<pre><code class="language-alan">let a: int64 = 3
+<pre><code class="language-alan">let a: int64 = 3;
 </code></pre>
 <h3><a class="header" href="#let-variable-reassignment" id="let-variable-reassignment">Let variable reassignment</a></h3>
 <p>Let variable reassignment is also identical to Alan, happening with event handlers or closure functions and may cross scope boundaries.</p>
-<pre><code class="language-alan">a = a + 3
+<pre><code class="language-alan">a = a + 3;
 </code></pre>
 <h3><a class="header" href="#events-and-loose-typing" id="events-and-loose-typing">Events (and loose typing)</a></h3>
 <p>Also as with Alan, events are declared in the root scope and never within event handlers or closure functions. Unlike Alan, the event handlers do not need to declare the relevant metadata about their type structure. Any typename may be used indiscriminantly, and any type that is not one of the static constant types (or <code>void</code>) is assumed to be &quot;array-like&quot; and it is up to you as the developer to not mess up here.</p>
@@ -2602,7 +2572,7 @@ on app.start {
 <h3><a class="header" href="#functions-calls" id="functions-calls">Functions Calls</a></h3>
 <p>You can't actually declare functions not associated with an event in Alan--. All nested defined functions must be closures within an event. The only &quot;functions&quot; independent of the event handlers are the <a href="./alan_opcode_reference.html">opcodes defined by the runtime(s)</a>.</p>
 <pre><code class="language-alan">on _start fn (): void {
-  const val = addi64(a, a)
+  const val = addi64(a, a);
   ...
 </code></pre>
 <h3><a class="header" href="#thats-all-folks" id="thats-all-folks">That's all, folks!</a></h3>
@@ -2611,12 +2581,12 @@ on app.start {
 <pre><code class="language-alan">import @std/app
 
 on app.start {
-  let exitCode = 0
+  let exitCode = 0;
   if 1 == 0 {
-    exitCode = 1
+    exitCode = 1;
   }
-  app.print(&quot;Exit Code: &quot; + exitCode.toString())
-  emit app.exit exitCode
+  app.print(&quot;Exit Code: &quot; + exitCode.toString());
+  emit app.exit exitCode;
 }
 </code></pre>
 <p>exercises <em>the entire Alan-- grammar</em>:</p>

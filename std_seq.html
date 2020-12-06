@@ -155,19 +155,19 @@ fn recurse(seq: Seq, recursiveFn: function, arg: any): Result&lt;anythingElse&gt
 <h3><a class="header" href="#seq-type" id="seq-type"><code>Seq</code> type</a></h3>
 <p><code>@std/seq</code> provides functions for accomplishing many different sequential patterns that depend on a special, built-in <code>Seq</code> type with opaque internals to avoid manipulation after construction:</p>
 <pre><code class="language-alan">type Seq {
-  counter: int64
-  limit: int64
+  counter: int64,
+  limit: int64,
 }
 </code></pre>
 <h3><a class="header" href="#next_loopln" id="next_loopln"><code>next_loop.ln</code></a></h3>
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 from @std/seq import seq, next
 on start {
-  let s = seq(2)
-  print(s.next())
-  print(s.next())
-  print(s.next())
-  emit exit 0
+  let s = seq(2);
+  print(s.next());
+  print(s.next());
+  print(s.next());
+  emit exit 0;
 }
 </code></pre></pre>
 <p><code>next</code> is the simplest to explain: each time you call it, it returns the current counter value wrapped in a Result and then increments it. If you call past the limit, it returns an <a href="./error_handling.html">Error Result</a>.</p>
@@ -175,9 +175,9 @@ on start {
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 from @std/seq import seq, each
 on start {
-  let s = seq(3)
-  s.each(fn (i: int64) = print(i))
-  emit exit 0
+  let s = seq(3);
+  s.each(fn (i: int64) = print(i));
+  emit exit 0;
 }
 </code></pre></pre>
 <p><code>each</code> is almost as simple as <code>next</code>: It simply runs the side-effect function however many times is in the limit of the seq instance. The function provided may or may not take the current iteration counter and must be the following signature:</p>
@@ -188,15 +188,13 @@ fn func(i: int64): void
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 from @std/seq import seq, while
 on start {
-  let s = seq(100)
-  let sum = 0
-  // TODO: Still need type inference working for one-liner closures
-  // https://github.com/alantech/alan/issues/193
-  s.while(fn (): bool = sum &lt; 10, fn {
-    sum = sum + 1
-  })
-  print(sum)
-  emit exit 0
+  let s = seq(100);
+  let sum = 0;
+  s.while(fn = sum &lt; 10, fn {
+    sum = sum + 1;
+  });
+  print(sum);
+  emit exit 0;
 }
 </code></pre></pre>
 <p><code>while</code> runs the <code>bodyFn</code> <em>up to</em> the <code>limit</code> number of times, but can abort early if <code>condFn</code> returns <code>false</code>. The signatures of these two functions must match:</p>
@@ -207,16 +205,15 @@ fn bodyFn(): void
 <pre><pre class="playpen"><code class="language-rust editable">from @std/app import start, print, exit
 from @std/seq import seq, doWhile
 on start {
-  let s = seq(100)
-  let sum = 0
-  // TODO: Still need type inference working for one-liner closures
-  // https://github.com/alantech/alan/issues/193
+  let s = seq(100);
+  let sum = 0;
+  // TODO: Still need type inference working for multi-line closures
   s.doWhile(fn (): bool {
-    sum = sum + 1
-    return sum &lt; 10
-  })
-  print(sum)
-  emit exit 0
+    sum = sum + 1;
+    return sum &lt; 10;
+  });
+  print(sum);
+  emit exit 0;
 }
 </code></pre></pre>
 <p><code>doWhile</code> always runs at least once (unless the <code>seq</code> has reached its <code>limit</code> or it was constructed with an initial <code>limit</code> of <code>0</code>) and uses the return value of the function to determine if it should continue or not, so its <code>bodyFn</code> has the following signature:</p>
@@ -228,27 +225,27 @@ from @std/seq import seq, Self, recurse
 on start {
   print(seq(100).recurse(fn fibonacci(self: Self, i: int64): Result&lt;int64&gt; {
     if i &lt; 2 {
-      return ok(1)
+      return ok(1);
     } else {
-      const prev = self.recurse(i - 1)
-      const prevPrev = self.recurse(i - 2)
+      const prev = self.recurse(i - 1);
+      const prevPrev = self.recurse(i - 2);
       if prev.isErr() {
-        return prev
+        return prev;
       }
       if prevPrev.isErr() {
-        return prevPrev
+        return prevPrev;
       }
-      return ok((prev || 1) + (prevPrev || 1))
+      return ok((prev || 1) + (prevPrev || 1));
     }
-  }, 8))
-  emit exit 0
+  }, 8));
+  emit exit 0;
 }
 </code></pre></pre>
 <p><code>recurse</code> allows recursive functions to be defined in <code>alan</code>. This is impossible in <code>alan</code>'s grammar, so what is done is special trickery to make it possible. The <code>recursiveFn</code> has the following function signature:</p>
 <pre><code class="language-alan">fn recursiveFn(self: Self, arg: any): Result&lt;anythingElse&gt;
 </code></pre>
 <p>The <code>Self</code> type is a special type that the recursive function can use to trigger a controlled recursive call, like so:</p>
-<pre><code class="language-alan">const recursiveResult = self.recurse(someNewArg)
+<pre><code class="language-alan">const recursiveResult = self.recurse(someNewArg);
 </code></pre>
 <p><code>Self</code> is another opaque type that the AVM can use to keep track of the function to be called recursively and how deep the recursion has gone so far. The <code>recursiveFn</code> <em>must</em> wrap its value in a <code>Result</code> type because <code>alan</code> may interject and bubble up an error of the recursion limit is reached.</p>
 

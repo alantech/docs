@@ -187,8 +187,8 @@ sudo make install
 <pre><pre class="playpen"><code class="language-rust editable">import @std/app
 
 on app.start {
-  app.print(&quot;Hello, World!&quot;)
-  emit app.exit 0
+  app.print(&quot;Hello, World!&quot;);
+  emit app.exit 0;
 }
 </code></pre></pre>
 <p>Now compile the code to produce an AGC binary and then run it which prints <code>Hello, World!</code>:</p>

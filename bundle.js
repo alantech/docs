@@ -11260,7 +11260,29 @@ class Module {
                         importName = moduleVar.varop(0).getText();
                     }
                     const thing = importedModule.exportScope.shallowGet(exportName);
-                    module.moduleScope.put(importName, thing);
+                    if (thing instanceof Array && thing[0].microstatementInlining instanceof Function) {
+                        const otherthing = module.moduleScope.deepGet(importName);
+                        if (!!otherthing &&
+                            otherthing instanceof Array &&
+                            otherthing[0].microstatementInlining instanceof Function) {
+                            module.moduleScope.put(importName, [...thing, ...otherthing]);
+                        }
+                        else {
+                            module.moduleScope.put(importName, thing);
+                        }
+                    }
+                    else if (thing instanceof Array && thing[0] instanceof Operator_1.default) {
+                        const otherthing = module.moduleScope.deepGet(importName);
+                        if (!!otherthing && otherthing instanceof Array && otherthing instanceof Operator_1.default) {
+                            module.moduleScope.put(importName, [...thing, ...otherthing]);
+                        }
+                        else {
+                            module.moduleScope.put(importName, thing);
+                        }
+                    }
+                    else {
+                        module.moduleScope.put(importName, thing);
+                    }
                     // Special behavior for interfaces. If there are any functions or operators that match
                     // the interface, pull them in. Similarly any types that match the entire interface. This
                     // allows concise importing of a related suite of tools without having to explicitly call
@@ -12968,7 +12990,19 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
             for (let i = 0; i < argumentTypeList.length; i++) {
                 argTypes.push("<" + argumentTypeList[i].typename + ">");
             }
-            errMsg += '\n' + fns[0].getName() + "(" + argTypes.join(", ") + ")";
+            errMsg += '\n' + fns[0].getName() + "(" + argTypes.join(", ") + ")\n";
+            errMsg += 'Candidate functions considered:\n';
+            for (let i = 0; i < fns.length; i++) {
+                const fn = fns[i];
+                if (fn instanceof UserFunction) {
+                    const fnStr = fn.toFnStr().split('{')[0];
+                    errMsg += `${fnStr}\n`;
+                }
+                else {
+                    // TODO: Add this to the opcode definition, too?
+                    errMsg += `fn ${fn.getName()}(${Object.entries(fn.getArguments()).map(kv => `${kv[0]}: ${kv[1].typename}`)}): ${fn.getReturnType().typename}\n`;
+                }
+            }
             throw new Error(errMsg);
         }
         return fn;

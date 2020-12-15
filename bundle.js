@@ -9632,7 +9632,7 @@ module.exports = {
 },{"./LnLexer":6,"./LnParser":8}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fulltypenameAstFromString = exports.statementAstFromString = exports.functionAstFromString = exports.resolveImports = exports.resolveDependency = exports.fromFile = exports.fromString = void 0;
+exports.assignablesAstFromString = exports.fulltypenameAstFromString = exports.statementAstFromString = exports.functionAstFromString = exports.resolveImports = exports.resolveDependency = exports.fromFile = exports.fromString = void 0;
 const fs = require("fs");
 const path = require("path");
 const antlr4_1 = require("antlr4");
@@ -9844,6 +9844,13 @@ exports.fulltypenameAstFromString = (s) => {
     const commonTokenStream = new antlr4_1.CommonTokenStream(langLexer);
     const langParser = new ln_1.LnParser(commonTokenStream);
     return langParser.fulltypename();
+};
+exports.assignablesAstFromString = (s) => {
+    const inputStream = new antlr4_1.InputStream(s);
+    const langLexer = new ln_1.LnLexer(inputStream);
+    const commonTokenStream = new antlr4_1.CommonTokenStream(langLexer);
+    const langParser = new ln_1.LnParser(commonTokenStream);
+    return langParser.assignables();
 };
 
 },{"../ln":9,"antlr4":66,"fs":74,"path":85}],11:[function(require,module,exports){
@@ -10516,6 +10523,21 @@ ${letName} on line ${assignmentsAst.line}:${assignmentsAst.start.column}`);
                     if (m.outputName === last.outputName && m.statementType !== StatementType_1.default.REREF) {
                         last = m;
                         break;
+                    }
+                }
+            }
+            if (last.statementType === StatementType_1.default.LETDEC) {
+                // Insert a ref call for this instead of mutating the original assignment
+                Microstatement.fromAssignablesAst(Ast.assignablesAstFromString(`ref(${last.outputName})`), scope, microstatements);
+                last = microstatements[microstatements.length - 1];
+                if (last.statementType === StatementType_1.default.REREF) {
+                    // Find what it's rereferencing and adjust that, instead
+                    for (let i = microstatements.length - 2; i >= 0; i--) {
+                        let m = microstatements[i];
+                        if (m.outputName === last.outputName && m.statementType !== StatementType_1.default.REREF) {
+                            last = m;
+                            break;
+                        }
                     }
                 }
             }

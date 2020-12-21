@@ -247,7 +247,7 @@ on start {
 <p>The <code>Self</code> type is a special type that the recursive function can use to trigger a controlled recursive call, like so:</p>
 <pre><code class="language-alan">const recursiveResult = self.recurse(someNewArg);
 </code></pre>
-<p><code>Self</code> is another opaque type that the AVM can use to keep track of the function to be called recursively and how deep the recursion has gone so far. The <code>recursiveFn</code> <em>must</em> wrap its value in a <code>Result</code> type because <code>alan</code> may interject and bubble up an error of the recursion limit is reached.</p>
+<p><code>Self</code> is another opaque type that the AVM can use to keep track of the function to be called recursively and how deep the recursion has gone so far. The <code>recursiveFn</code> <em>must</em> wrap its value in a <code>Result</code> type because <code>alan</code> may interject and bubble up an error if the recursion limit is reached.</p>
 
             </main>
 

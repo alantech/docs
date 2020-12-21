@@ -273,12 +273,12 @@ fn functionName(firstArgument: argumentType, secondArgument: anotherType) {
   ...statements...
 }
 
-// This s a named function that does not return a value, so it has a return type of void
+// This is a named function that does not return a value, so it has a return type of void
 fn functionName (firstArgument: argumentType, secondArgument: anotherType): void {
   ...statements...
 }
 
-// If you have a named function with no return arguments but want to annotate the return type
+// If you have a named function with no arguments but want to annotate the return type
 // you must include empty parens when defining it
 fn functionName (): returnType {
   ... statements...
@@ -365,9 +365,9 @@ prefix precedence &lt;precedenceNumber&gt; functionName as &lt;operatorSymbol&gt
 infix precedence &lt;precedenceNumber&gt; functionName as &lt;operatorSymbol&gt;
 </code></pre>
 <p>where <code>&lt;operatorSymbol&gt;</code> is the symbol for the operator, <code>&lt;precedenceNumber&gt;</code> is an <code>int8</code> number, and <code>functionName</code> is the function being mapped to the operator. Only functions with two arguments will be considered.</p>
-<p>The example earlier of the function calls <code>3.add(2).mul(5).mod(3)</code> or <code>mod(mul(add(3, 2), 5), 3)</code> can be written with operators as <code>(3 + 2) * 5 % 3</code> or <code>5 * (3 + 2) % 5</code>, where the parenthesis break the operator precedence to allow addition to come first. See the <a href="./builtins/operators.html">built-in operators</a> section for the complete list of operators and their precedence.</p>
+<p>The example earlier of the function calls <code>3.add(2).mul(5).mod(3)</code> or <code>mod(mul(add(3, 2), 5), 3)</code> can be written with operators as <code>(3 + 2) * 5 % 3</code> or <code>5 * (3 + 2) % 3</code>, where the parenthesis break the operator precedence to allow addition to come first. See the <a href="./builtins/operators.html">built-in operators</a> section for the complete list of operators and their precedence.</p>
 <h4><a class="header" href="#statements" id="statements">Statements</a></h4>
-<p>Within a function are multiple statements. The order of the statements defines their dependence on one another based on what they manipulate in their scope hierarchy. The compiler uses this ordering and what variables are required of each statement to determine a dependency graph of operations. This information is provided to the runtime which may reorder statements to improve performance. Currently this is only used for batching independent IO operations together to execute in parallel and combining the CPU-bound operations into fewer segments to reduce iteration through the event loop, but could eventually be used to identify CPU-bound operations that are parallelizable due to independence from one another <em>and</em> are long enough such that the synchronization costs are do not outweigh the performance gain from parallelization.</p>
+<p>Within a function are multiple statements. The order of the statements defines their dependence on one another based on what they manipulate in their scope hierarchy. The compiler uses this ordering and what variables are required of each statement to determine a dependency graph of operations. This information is provided to the runtime which may reorder statements to improve performance. Currently this is only used for batching independent IO operations together to execute in parallel and combining the CPU-bound operations into fewer segments to reduce iteration through the event loop, but could eventually be used to identify CPU-bound operations that are parallelizable due to independence from one another <em>and</em> are long enough such that the synchronization costs do not outweigh the performance gain from parallelization.</p>
 <p>Statements must be on different lines, but statements can span multiple lines. There are six types of statements: variable declarations, variable assignments, function calls, function returns, event emission, and conditionals (if statements).</p>
 <h5><a class="header" href="#variable-declarations" id="variable-declarations">Variable Declarations</a></h5>
 <p>There are two types of variables, constants and mutable variables. Constants are declared with these two syntaxes:</p>
@@ -618,7 +618,7 @@ from @std/app import start, print as println, exit
 <p>Simply stating <code>import ./some/module</code> will automatically create a new variable named &quot;module&quot; (the text after the last slash, or after the <code>@</code> if no slashes at all).</p>
 <p>The exported items are accessible with the conventional dot notation, like <code>module.someFunction()</code>.</p>
 <p>Sometimes the automatically-generated import name is going to collide with another module, or sometimes you just don't think it's a descriptive name, so you have the option to rename it within your module using the <code>as newName</code> syntax.</p>
-<p>If you write <code>from ./some/module import var1, var2, ...</code> you will pull the exported variable directly out of the export scope and place it within your module scope with that name, and you also have the option to ue the <code>as newName</code> syntax on any of these imports, as well.</p>
+<p>If you write <code>from ./some/module import var1, var2, ...</code> you will pull the exported variable directly out of the export scope and place it within your module scope with that name, and you also have the option to use the <code>as newName</code> syntax on any of these imports, as well.</p>
 <p>That's it.</p>
 <p>Those with experience in other module-based languages may be wondering where the <code>*</code> syntax is. That has been intentionally left out. It makes reading your own module more difficult as it can be unclear, especially when there are multiple <code>*</code> imports, where a specified name came from.</p>
 <p>The exception is when a data structure and a collection of functions and operators that work on that data are bundled together. Needing to explicitly import each of those separately would be painful, so when importing an <code>interface</code>, if that module defines a type and all functions and operators needed for that type and also exports them, Alan will automatically pull those along as well in a quasi-Class-like fashion.</p>
@@ -916,21 +916,21 @@ sub(float64, float64): float64
 </code></pre>
 <h5><a class="header" href="#negate" id="negate">negate</a></h5>
 <pre><code class="language-alan">// Negates the number
-negate(int8, int8): int8
-negate(int16, int16): int16
-negate(int32, int32): int32
-negate(int64, int64): int64
-negate(float32, float32): float32
-negate(float64, float64): float64
+negate(int8): int8
+negate(int16): int16
+negate(int32): int32
+negate(int64): int64
+negate(float32): float32
+negate(float64): float64
 </code></pre>
 <h5><a class="header" href="#abs" id="abs">abs</a></h5>
 <pre><code class="language-alan">// Returns the absolute value of the number
-abs(int8, int8): int8
-abs(int16, int16): int16
-abs(int32, int32): int32
-abs(int64, int64): int64
-abs(float32, float32): float32
-abs(float64, float64): float64
+abs(int8): int8
+abs(int16): int16
+abs(int32): int32
+abs(int64): int64
+abs(float32): float32
+abs(float64): float64
 </code></pre>
 <h5><a class="header" href="#mul" id="mul">mul</a></h5>
 <pre><code class="language-alan">// Multiplies two numbers
@@ -1656,7 +1656,7 @@ on start {
 <p>The <code>Self</code> type is a special type that the recursive function can use to trigger a controlled recursive call, like so:</p>
 <pre><code class="language-alan">const recursiveResult = self.recurse(someNewArg);
 </code></pre>
-<p><code>Self</code> is another opaque type that the AVM can use to keep track of the function to be called recursively and how deep the recursion has gone so far. The <code>recursiveFn</code> <em>must</em> wrap its value in a <code>Result</code> type because <code>alan</code> may interject and bubble up an error of the recursion limit is reached.</p>
+<p><code>Self</code> is another opaque type that the AVM can use to keep track of the function to be called recursively and how deep the recursion has gone so far. The <code>recursiveFn</code> <em>must</em> wrap its value in a <code>Result</code> type because <code>alan</code> may interject and bubble up an error if the recursion limit is reached.</p>
 <h3><a class="header" href="#stdcmd" id="stdcmd">@std/cmd</a></h3>
 <p>Also very bare, only a single type <code>ExecRes</code>, and a function: <code>exec</code> with the signature:</p>
 <pre><code class="language-alan">type ExecRes {
@@ -1924,7 +1924,7 @@ fn hyperbolicArccotangent(x: float32): float32
 </code></pre>
 <h1><a class="header" href="#examples-with-explanations" id="examples-with-explanations">Examples with Explanations</a></h1>
 <p>In this section, several examples will be demonstrated with the Alan language. Some of them will be repetitious, showing multiple ways to accomplish the same thing.</p>
-<p>Attempting to force a single way to do things, as Python pushes for, can make things easy things easier, but breaking those patterns to be more concise in a particular problem domain can raise the actual clarity of what is happening and why for those working on it, and is why all fields of endeavour develop their own terminology and notation over time.</p>
+<p>Attempting to force a single way to do things, as Python pushes for, can make things easier, but breaking those patterns to be more concise in a particular problem domain can raise the actual clarity of what is happening and why for those working on it, and is why all fields of endeavour develop their own terminology and notation over time.</p>
 <p>Alan attempts to make these situations clearer by requiring the explicit declaration of the notation in use so people new to the notation can read that mapping and understand what's going on better.</p>
 <h2><a class="header" href="#the-many-forms-of-hello-world" id="the-many-forms-of-hello-world">The Many Forms of 'Hello, World!'</a></h2>
 <p>The classic &quot;Hello, World!&quot; examples are a simple way to understand the minimum of structure you need to have in any code you write in a given language, with Java being famously heavyweight and Python famously featherweight.</p>
@@ -1985,7 +1985,7 @@ on start {
 on start fn {
   const hello: string = &quot;Hello&quot;;
   const world: string = &quot;World&quot;;
-  print(hello + &quot;, &quot; + world + &quot;!&quot;));
+  print(hello + &quot;, &quot; + world + &quot;!&quot;);
   emit exit 0;
 }
 </code></pre></pre>
@@ -2476,7 +2476,7 @@ on start fn {
   print(stringBoxBox.val.val);
 
   // The following is a compile time error, uncomment to see!
-  // stringBox.val = 8
+  // stringBox.val = 8;
 
   emit exit 0;
 }

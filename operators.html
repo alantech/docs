@@ -165,7 +165,7 @@ prefix precedence &lt;precedenceNumber&gt; functionName as &lt;operatorSymbol&gt
 infix precedence &lt;precedenceNumber&gt; functionName as &lt;operatorSymbol&gt;
 </code></pre>
 <p>where <code>&lt;operatorSymbol&gt;</code> is the symbol for the operator, <code>&lt;precedenceNumber&gt;</code> is an <code>int8</code> number, and <code>functionName</code> is the function being mapped to the operator. Only functions with two arguments will be considered.</p>
-<p>The example earlier of the function calls <code>3.add(2).mul(5).mod(3)</code> or <code>mod(mul(add(3, 2), 5), 3)</code> can be written with operators as <code>(3 + 2) * 5 % 3</code> or <code>5 * (3 + 2) % 5</code>, where the parenthesis break the operator precedence to allow addition to come first. See the <a href="./builtins/operators.html">built-in operators</a> section for the complete list of operators and their precedence.</p>
+<p>The example earlier of the function calls <code>3.add(2).mul(5).mod(3)</code> or <code>mod(mul(add(3, 2), 5), 3)</code> can be written with operators as <code>(3 + 2) * 5 % 3</code> or <code>5 * (3 + 2) % 3</code>, where the parenthesis break the operator precedence to allow addition to come first. See the <a href="./builtins/operators.html">built-in operators</a> section for the complete list of operators and their precedence.</p>
 
             </main>
 

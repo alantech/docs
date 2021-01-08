@@ -37,7 +37,7 @@ module.exports = {
 }
 
 },{"../dist/lntoamm/Ast":10,"../dist/lntoamm/Module":14,"../dist/lntoamm/Scope":16,"../dist/lntoamm/opcodes":22,"./stdlibs.json":2}],2:[function(require,module,exports){
-module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out);\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\";\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status);\n\n// The `stderr` event\nexport event stderr: string\n\n// `@std/app` has access to a special `stderrp` opcode to trigger stderr writing\non stderr fn (err: string) = stderrp(err);\n\n// The `eprint` function converts its input to a string, appends a newline, and sends it to `stderr`\nexport fn eprint(err: Stringifiable) {\n  emit stderr err.toString() + \"\\n\";\n}\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n);","datastore.ln":"/**\n * @std/datastore - Shared mutable state with controlled access\n */\n\n// Just syntactic sugar to seem less stringly-typed than it is\nexport fn namespace(ns: string) = ns\n\n// The set function to store shared data\nexport fn set(ns: string, key: string, val: any) = dssetv(ns, key, val);\nexport fn set(ns: string, key: string, val: int8) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: int16) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: int32) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: int64) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: float32) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: float64) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: bool) = dssetf(ns, key, val);\n\n// The has function to test if a shared key exists\nexport fn has(ns: string, key: string): bool = dshas(ns, key);\n\n// The del function to remove a shared key\nexport fn del(ns: string, key: string): bool = dsdel(ns, key);\n\n// The getOr function to get a value or the return the provided default\nexport fn getOr(ns: string, key: string, default: any) {\n  return dsgetv(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int8) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int16) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int32) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int64) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: float32) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: float64) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: bool) {\n  return dsgetf(ns, key).getOr(default);\n}\n","deps.ln":"from @std/app import start, print, exit\nfrom @std/cmd import exec\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\nexport fn add(remote: string) {\n  // TODO implement proper error handling\n  const parts = remote.split('/');\n  const repo = parts[length(parts) - 1] || '';\n  const group = parts[parts.length() - 2] || '';\n  const dest = '/dependencies/' + group + '/' + repo;\n  const rm = exec('rm -rf .' + dest);\n  const git = exec('git clone ' + remote + ' .' + dest);\n  print(git.stderr);\n  const rm2 = exec('rm -rf .' + dest + '/.git');\n}\n\n// The `commit` function takes no arguments. Currently just causes the application to quit, but\n// eventually would be the point where the dependencies defined by the calls to `add` could be\n// compared against the currently-installed dependencies, and a faster install would be possible\nexport fn commit() {\n  emit exit 0;\n}\n\n// Emit the `install` event on app `start`\non start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  exec('rm -rf dependencies');\n  exec('mkdir dependencies');\n  emit install;\n}\n","http.ln":"/**\n * @std/http - Built-in client and server for http\n */\n\n/**\n * HTTP Client\n */\n\nexport fn get(url: string) = httpget(url);\nexport fn post(url: string, payload: string) = httppost(url, payload);\n\n/**\n * HTTP Server\n */\n\n// The InternalRequest type for inbound http requests\ntype InternalRequest {\n  url: string,\n  headers: Array<KeyVal<string, string>>,\n  body: string,\n  connId: int64,\n}\n\n// The InternalResponse type for inbount http requests\ntype InternalResponse {\n  status: int64,\n  headers: Array<KeyVal<string, string>>,\n  body: string,\n  connId: int64,\n}\n\n// The exposed Request type\nexport type Request {\n  url: string,\n  headers: HashMap<string, string>,\n  body: string,\n}\n\n// The exposed Response type\nexport type Response {\n  status: int64,\n  headers: HashMap<string, string>,\n  body: string,\n  connId: int64,\n}\n\n// The roll-up Connection type with both\nexport type Connection {\n  req: Request,\n  res: Response,\n}\n\n// The connection event\nexport event connection: Connection\n\n// The special connection event with a signature like `event __conn: InternalConnection`\n// This wrapper function takes the internal connection object, converts it to the user-friendly\n// connection object, and then emits it on a new event for user code to pick up\non __conn fn (conn: InternalRequest) {\n  emit connection new Connection {\n    req: new Request {\n      url: conn.url,\n      headers: toHashMap(conn.headers),\n      body: conn.body,\n    },\n    res: new Response {\n      status: 200, // If not set by the user, assume they meant it to be good\n      headers: newHashMap('Content-Length', '0'), // If not set by the user, assume no data\n      body: '', // If not set by the user, assume no data\n      connId: conn.connId,\n    },\n  };\n}\n\n// The listen function tells the http server to start up and listen on the given port\n// For now only one http server per application, a macro system is necessary to improve this\n// Returns a Result with either an 'ok' string or an error\nexport fn listen(port: int64) = httplsn(port);\n\n// The body function sets the body for a Response, sets the Content-Length header, and retuns the\n// Response for chaining needs\nexport fn body(res: Response, body: string) {\n  res.body = body;\n  const len = body.length();\n  set(res.headers, 'Content-Length', len.toString());\n  return res;\n}\n\n// The status function sets the status of the response\nexport fn status(res: Response, status: int64) {\n  res.status = status;\n  return res;\n}\n\n// The send function converts the response object into an internal response object and passed that\n// back to the HTTP server. A Result type with either an 'ok' string or an error is returned\nexport fn send(res: Response): Result<string> {\n  const ires = new InternalResponse {\n    status: res.status,\n    headers: res.headers.keyVal,\n    body: res.body,\n    connId: res.connId,\n  };\n  return httpsend(ires);\n}","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Export all of the built-in types\nexport void\nexport int8\nexport int16\nexport int32\nexport int64\nexport float32\nexport float64\nexport bool\nexport string\nexport function // TODO: Make the function type more explicit than this\nexport Array\nexport Error\nexport Maybe\nexport Result\nexport Either\n\n// Type aliasing of int64 and float64 to just int and float, as these are the default types\nexport type int = int64\nexport type float = float64\n\n// Default Interfaces\nexport interface any {}\nexport interface anythingElse = any // Same as `any` but doesn't match with it\nexport interface Stringifiable {\n  toString(Stringifiable): string,\n}\nexport interface Orderable {\n  lt(Orderable, Orderable): bool,\n  lte(Orderable, Orderable): bool,\n  gt(Orderable, Orderable): bool,\n  gte(Orderable, Orderable): bool,\n}\nexport interface canFloat64 {\n  toFloat64(canFloat64): float64\n}\nexport interface canInt64 {\n  toInt64(canInt64): int64\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n);\nexport fn toFloat64(n: int16) = i16f64(n);\nexport fn toFloat64(n: int32) = i32f64(n);\nexport fn toFloat64(n: int64) = i64f64(n);\nexport fn toFloat64(n: float32) = f32f64(n);\nexport fn toFloat64(n: float64) = n;\nexport fn toFloat64(n: string) = strf64(n);\nexport fn toFloat64(n: bool) = boolf64(n);\n\nexport fn toFloat32(n: int8) = i8f32(n);\nexport fn toFloat32(n: int16) = i16f32(n);\nexport fn toFloat32(n: int32) = i32f32(n);\nexport fn toFloat32(n: int64) = i64f32(n);\nexport fn toFloat32(n: float32) = n;\nexport fn toFloat32(n: float64) = f64f32(n);\nexport fn toFloat32(n: string) = strf32(n);\nexport fn toFloat32(n: bool) = boolf32(n);\n\nexport fn toInt64(n: int8) = i8i64(n);\nexport fn toInt64(n: int16) = i16i64(n);\nexport fn toInt64(n: int32) = i32i64(n);\nexport fn toInt64(n: int64) = n;\nexport fn toInt64(n: float32) = f32i64(n);\nexport fn toInt64(n: float64) = f64i64(n);\nexport fn toInt64(n: string) = stri64(n);\nexport fn toInt64(n: bool) = booli64(n);\n\nexport fn toInt32(n: int8) = i8i32(n);\nexport fn toInt32(n: int16) = i16i32(n);\nexport fn toInt32(n: int32) = n;\nexport fn toInt32(n: int64) = i64i32(n);\nexport fn toInt32(n: float32) = f32i32(n);\nexport fn toInt32(n: float64) = f64i32(n);\nexport fn toInt32(n: string) = stri32(n);\nexport fn toInt32(n: bool) = booli32(n);\n\nexport fn toInt16(n: int8) = i8i16(n);\nexport fn toInt16(n: int16) = n;\nexport fn toInt16(n: int32) = i32i16(n);\nexport fn toInt16(n: int64) = i64i16(n);\nexport fn toInt16(n: float32) = f32i16(n);\nexport fn toInt16(n: float64) = f64i16(n);\nexport fn toInt16(n: string) = stri16(n);\nexport fn toInt16(n: bool) = booli16(n);\n\nexport fn toInt8(n: int8) = n;\nexport fn toInt8(n: int16) = i16i8(n);\nexport fn toInt8(n: int32) = i32i8(n);\nexport fn toInt8(n: int64) = i64i8(n);\nexport fn toInt8(n: float32) = f32i8(n);\nexport fn toInt8(n: float64) = f64i8(n);\nexport fn toInt8(n: string) = stri8(n);\nexport fn toInt8(n: bool) = booli8(n);\n\nexport fn toBool(n: int8) = i8bool(n);\nexport fn toBool(n: int16) = i16bool(n);\nexport fn toBool(n: int32) = i32bool(n);\nexport fn toBool(n: int64) = i64bool(n);\nexport fn toBool(n: float32) = f32bool(n);\nexport fn toBool(n: float64) = f64bool(n);\nexport fn toBool(n: string) = strbool(n);\nexport fn toBool(n: bool) = n;\n\nexport fn toString(n: int8) = i8str(n);\nexport fn toString(n: int16) = i16str(n);\nexport fn toString(n: int32) = i32str(n);\nexport fn toString(n: int64) = i64str(n);\nexport fn toString(n: float32) = f32str(n);\nexport fn toString(n: float64) = f64str(n);\nexport fn toString(n: string) = n;\nexport fn toString(n: bool) = boolstr(n);\n\n// Type alias conversion functions\nexport fn toFloat(n: canFloat64): float = toFloat64(n)\nexport fn toInt(n: canInt64): int = toInt64(n) \n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(a, b);\nexport fn add(a: int16, b: int16) = addi16(a, b);\nexport fn add(a: int32, b: int32) = addi32(a, b);\nexport fn add(a: int64, b: int64) = addi64(a, b);\nexport fn add(a: float32, b: float32) = addf32(a, b);\nexport fn add(a: float64, b: float64) = addf64(a, b);\n\nexport fn sub(a: int8, b: int8) = subi8(a, b);\nexport fn sub(a: int16, b: int16) = subi16(a, b);\nexport fn sub(a: int32, b: int32) = subi32(a, b);\nexport fn sub(a: int64, b: int64) = subi64(a, b);\nexport fn sub(a: float32, b: float32) = subf32(a, b);\nexport fn sub(a: float64, b: float64) = subf64(a, b);\n\nexport fn negate(n: int8) = negi8(n);\nexport fn negate(n: int16) = negi16(n);\nexport fn negate(n: int32) = negi32(n);\nexport fn negate(n: int64) = negi64(n);\nexport fn negate(n: float32) = negf32(n);\nexport fn negate(n: float64) = negf64(n);\n\nexport fn abs(n: int8) = absi8(n);\nexport fn abs(n: int16) = absi16(n);\nexport fn abs(n: int32) = absi32(n);\nexport fn abs(n: int64) = absi64(n);\nexport fn abs(n: float32) = absf32(n);\nexport fn abs(n: float64) = absf64(n);\n\nexport fn mul(a: int8, b: int8) = muli8(a, b);\nexport fn mul(a: int16, b: int16) = muli16(a, b);\nexport fn mul(a: int32, b: int32) = muli32(a, b);\nexport fn mul(a: int64, b: int64) = muli64(a, b);\nexport fn mul(a: float32, b: float32) = mulf32(a, b);\nexport fn mul(a: float64, b: float64) = mulf64(a, b);\n\nexport fn div(a: int8, b: int8) = divi8(a, b);\nexport fn div(a: int16, b: int16) = divi16(a, b);\nexport fn div(a: int32, b: int32) = divi32(a, b);\nexport fn div(a: int64, b: int64) = divi64(a, b);\nexport fn div(a: float32, b: float32) = divf32(a, b);\nexport fn div(a: float64, b: float64) = divf64(a, b);\n\nexport fn mod(a: int8, b: int8) = modi8(a, b);\nexport fn mod(a: int16, b: int16) = modi16(a, b);\nexport fn mod(a: int32, b: int32) = modi32(a, b);\nexport fn mod(a: int64, b: int64) = modi64(a, b);\n\nexport fn pow(a: int8, b: int8) = powi8(a, b);\nexport fn pow(a: int16, b: int16) = powi16(a, b);\nexport fn pow(a: int32, b: int32) = powi32(a, b);\nexport fn pow(a: int64, b: int64) = powi64(a, b);\nexport fn pow(a: float32, b: float32) = powf32(a, b);\nexport fn pow(a: float64, b: float64) = powf64(a, b);\n\nexport fn sqrt(n: float32) = sqrtf32(n);\nexport fn sqrt(n: float64) = sqrtf64(n);\n\nexport fn min(x: Orderable, y: Orderable): Orderable {\n  return cond(lte(x, y), [x, y]);\n}\nexport fn max(x: Orderable, y: Orderable): Orderable {\n  return cond(gte(x, y), [x, y]);\n}\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b);\nexport fn and(a: int16, b: int16) = andi16(a, b);\nexport fn and(a: int32, b: int32) = andi32(a, b);\nexport fn and(a: int64, b: int64) = andi64(a, b);\nexport fn and(a: bool, b: bool) = andbool(a, b);\n\nexport fn or(a: int8, b: int8) = ori8(a, b);\nexport fn or(a: int16, b: int16) = ori16(a, b);\nexport fn or(a: int32, b: int32) = ori32(a, b);\nexport fn or(a: int64, b: int64) = ori64(a, b);\nexport fn or(a: bool, b: bool) = orbool(a, b);\n\nexport fn xor(a: int8, b: int8) = xori8(a, b);\nexport fn xor(a: int16, b: int16) = xori16(a, b);\nexport fn xor(a: int32, b: int32) = xori32(a, b);\nexport fn xor(a: int64, b: int64) = xori64(a, b);\nexport fn xor(a: bool, b: bool) = xorbool(a, b);\n\nexport fn not(n: int8) = noti8(n);\nexport fn not(n: int16) = noti16(n);\nexport fn not(n: int32) = noti32(n);\nexport fn not(n: int64) = noti64(n);\nexport fn not(n: bool) = notbool(n);\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b);\nexport fn nand(a: int16, b: int16) = nandi16(a, b);\nexport fn nand(a: int32, b: int32) = nandi32(a, b);\nexport fn nand(a: int64, b: int64) = nandi64(a, b);\nexport fn nand(a: bool, b: bool) = nandboo(a, b);\n\nexport fn nor(a: int8, b: int8) = nori8(a, b);\nexport fn nor(a: int16, b: int16) = nori16(a, b);\nexport fn nor(a: int32, b: int32) = nori32(a, b);\nexport fn nor(a: int64, b: int64) = nori64(a, b);\nexport fn nor(a: bool, b: bool) = norbool(a, b);\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b);\nexport fn xnor(a: int16, b: int16) = xnori16(a, b);\nexport fn xnor(a: int32, b: int32) = xnori32(a, b);\nexport fn xnor(a: int64, b: int64) = xnori64(a, b);\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b);\n\n// Equality and order functions\nexport fn eq(a: int8, b: int8) = eqi8(a, b);\nexport fn eq(a: int16, b: int16) = eqi16(a, b);\nexport fn eq(a: int32, b: int32) = eqi32(a, b);\nexport fn eq(a: int64, b: int64) = eqi64(a, b);\nexport fn eq(a: float32, b: float32) = eqf32(a, b);\nexport fn eq(a: float64, b: float64) = eqf64(a, b);\nexport fn eq(a: string, b: string) = eqstr(a, b);\nexport fn eq(a: bool, b: bool) = eqbool(a, b);\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b);\nexport fn neq(a: int16, b: int16) = neqi16(a, b);\nexport fn neq(a: int32, b: int32) = neqi32(a, b);\nexport fn neq(a: int64, b: int64) = neqi64(a, b);\nexport fn neq(a: float32, b: float32) = neqf32(a, b);\nexport fn neq(a: float64, b: float64) = neqf64(a, b);\nexport fn neq(a: string, b: string) = neqstr(a, b);\nexport fn neq(a: bool, b: bool) = neqbool(a, b);\n\nexport fn lt(a: int8, b: int8) = lti8(a, b);\nexport fn lt(a: int16, b: int16) = lti16(a, b);\nexport fn lt(a: int32, b: int32) = lti32(a, b);\nexport fn lt(a: int64, b: int64) = lti64(a, b);\nexport fn lt(a: float32, b: float32) = ltf32(a, b);\nexport fn lt(a: float64, b: float64) = ltf64(a, b);\nexport fn lt(a: string, b: string) = ltstr(a, b);\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b);\nexport fn lte(a: int16, b: int16) = ltei16(a, b);\nexport fn lte(a: int32, b: int32) = ltei32(a, b);\nexport fn lte(a: int64, b: int64) = ltei64(a, b);\nexport fn lte(a: float32, b: float32) = ltef32(a, b);\nexport fn lte(a: float64, b: float64) = ltef64(a, b);\nexport fn lte(a: string, b: string) = ltestr(a, b);\n\nexport fn gt(a: int8, b: int8) = gti8(a, b);\nexport fn gt(a: int16, b: int16) = gti16(a, b);\nexport fn gt(a: int32, b: int32) = gti32(a, b);\nexport fn gt(a: int64, b: int64) = gti64(a, b);\nexport fn gt(a: float32, b: float32) = gtf32(a, b);\nexport fn gt(a: float64, b: float64) = gtf64(a, b);\nexport fn gt(a: string, b: string) = gtstr(a, b);\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b);\nexport fn gte(a: int16, b: int16) = gtei16(a, b);\nexport fn gte(a: int32, b: int32) = gtei32(a, b);\nexport fn gte(a: int64, b: int64) = gtei64(a, b);\nexport fn gte(a: float32, b: float32) = gtef32(a, b);\nexport fn gte(a: float64, b: float64) = gtef64(a, b);\nexport fn gte(a: string, b: string) = gtestr(a, b);\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n));\nexport fn wait(n: int16) = waitop(i16i64(n));\nexport fn wait(n: int32) = waitop(i32i64(n));\nexport fn wait(n: int64) = waitop(n);\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b);\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n);\n// export fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t);\nexport fn length(s: string) = lenstr(s);\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b);\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n);\nexport fn index(arr: Array<any>, val: any) = indarrv(arr, val);\nexport fn index(arr: Array<int8>, val: int8) = indarrf(arr, val);\nexport fn index(arr: Array<int16>, val: int16) = indarrf(arr, val);\nexport fn index(arr: Array<int32>, val: int32) = indarrf(arr, val);\nexport fn index(arr: Array<int64>, val: int64) = indarrf(arr, val);\nexport fn index(arr: Array<float32>, val: float32) = indarrf(arr, val);\nexport fn index(arr: Array<float64>, val: float64) = indarrf(arr, val);\nexport fn index(arr: Array<bool>, val: bool) = indarrf(arr, val);\nexport fn has(arr: Array<any>, val: any) = indarrv(arr, val).isOk();\nexport fn has(arr: Array<int8>, val: int8) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<int16>, val: int16) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<int32>, val: int32) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<int64>, val: int64) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<float32>, val: float32) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<float64>, val: float64) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<bool>, val: bool) = indarrf(arr, val).isOk();\nexport fn length(arr: Array<any>) = lenarr(arr);\nexport fn push(arr: Array<any>, val: any) {\n  pusharr(arr, val, 0);\n  return arr;\n}\nexport fn push(arr: Array<int8>, val: int8) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<int16>, val: int16) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<int32>, val: int32) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<int64>, val: int64) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<float32>, val: float32) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<float64>, val: float64) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<bool>, val: bool) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn pop(arr: Array<any>) = poparr(arr);\nexport each // parallel opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport fn eachLin(arr: Array<any>, cb: function): void = eachl(arr, cb);\nexport map // parallel opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport fn mapLin(arr: Array<any>, cb: function): Array<anythingElse> = mapl(arr, cb);\n/**\n * Unlike the other array functions, reduce is sequential by default and parallelism must be opted\n * in. This is due to the fact that parallelism requires the reducer function to be commutative or\n * associative, otherwise it will return different values on each run, and the compiler has no way\n * to guarantee that your reducer function is commutative or associative.\n *\n * There are four reduce functions instead of two as expected, because a reducer that reduces into\n * the same datatype requires less work than one that reduces into a new datatype. To reduce into a\n * new datatype you need an initial value in that new datatype that the reducer can provide to the\n * first reduction call to \"get the ball rolling.\" And there are extra constraints if you want the\n * reducer to run in parallel: that initial value will be used multiple times for each of the\n * parallel threads of computation, so that initial value has to be idempotent for it to work. Then\n * you're left with multiple reduced results that cannot be combined with each other with the main\n * reducer, so you need to provide a second reducer function that takes the resulting datatype and\n * can combine them with each other successfully, and that one *also* needs to be a commutative or\n * associative function.\n *\n * The complexities involved in writing a parallel reducer are why we decided to make the sequential\n * version the default, as the extra overhead is not something most developers are used to, whether\n * they hail from the functional programming world or the imperative world.\n *\n * On that note, you'll notice that the opcodes are named after `reduce` and `fold`. This is the\n * naming scheme that functional language programmers would be used to, but Java and Javascript\n * combined them both as `reduce`, so we have maintained that convention as we expect fewer people\n * needing to adapt to that change, it being a change they're likely already familiar with, and\n * noting that an extra argument that makes it equivalent to `fold` is easier than trying to find\n * the 3 or 4 arg variant under a different name.\n */\nexport fn reduce(arr: Array<any>, cb: function): any = reducel(arr, cb);\nexport fn reducePar(arr: Array<any>, cb: function): any = reducep(arr, cb);\n/**\n * This type is used to reduce the number of arguments passed to the opcodes, which can only take 2\n * arguments if they return a value, or 3 arguments if they are a side-effect-only opcode, and is an\n * implementation detail of the 3 and 4 arg reduce functions.\n */\ntype InitialReduce<T, U> {\n  arr: Array<T>,\n  initial: U,\n}\nexport fn reduce(arr: Array<any>, cb: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr: arr,\n    initial: initial,\n  };\n  return foldl(args, cb);\n}\nexport fn reducePar(arr: Array<any>, transformer: function, merger: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr: arr,\n    initial: initial,\n  };\n  const intermediate = foldp(args, transformer);\n  return reducep(intermediate, merger);\n}\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): Result<any>`\nexport fn findLin(arr: Array<any>, cb: function): Result<any> = findl(arr, cb);\nexport every // parallel opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport fn everyLin(arr: Array<any>, cb: function): bool = everyl(arr, cb);\nexport some // parallel opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport fn someLin(arr: Array<any>, cb: function): bool = somel(arr, cb);\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\nexport fn delete(arr: Array<any>, idx: int64): Result<any> = delindx(arr, idx);\nexport fn set(arr: Array<any>, idx: int64, val: any) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytov(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int8>, idx: int64, val: int8) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int16>, idx: int64, val: int16) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int32>, idx: int64, val: int32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int64>, idx: int64, val: int64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<float32>, idx: int64, val: float32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<float64>, idx: int64, val: float64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<bool>, idx: int64, val: bool) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\n\n// Ternary functions\nexport fn pair(trueval: any, falseval: any) = new Array<any> [ trueval, falseval ];\nexport fn cond(c: bool, options: Array<any>) = getR(options[1.sub(c.toInt64())]);\nexport fn cond(c: bool, optional: function): void = condfn(c, optional);\n\n// \"clone\" function useful for hoisting assignments and making duplicates\nexport fn clone(a: any) = copyarr(a);\nexport fn clone(a: Array<any>) = copyarr(a);\nexport fn clone(a: void) = copyvoid(a); // TODO: Eliminate this, covering up a weird error\nexport fn clone() = zeroed(); // TODO: Used for conditionals, eliminate with more clever compiler\nexport fn clone(a: int8) = copyi8(a);\nexport fn clone(a: int16) = copyi16(a);\nexport fn clone(a: int32) = copyi32(a);\nexport fn clone(a: int64) = copyi64(a);\nexport fn clone(a: float32) = copyf32(a);\nexport fn clone(a: float64) = copyf64(a);\nexport fn clone(a: bool) = copybool(a);\nexport fn clone(a: string) = copystr(a);\n\n// Error, Maybe, Result, and Either types and functions\nexport error // opcode with signature `fn error(string): Error`\nexport fn ref(a: any) = refv(a);\nexport fn ref(a: void) = reff(a);\nexport fn ref(a: int8) = reff(a);\nexport fn ref(a: int16) = reff(a);\nexport fn ref(a: int32) = reff(a);\nexport fn ref(a: int64) = reff(a);\nexport fn ref(a: float32) = reff(a);\nexport fn ref(a: float64) = reff(a);\nexport fn ref(a: bool) = reff(a);\nexport noerr // opcode with signature `fn noerr(): Error`\nexport fn toString(err: Error) = errorstr(err);\n\nexport fn some(val: any) = someM(val, 0);\nexport fn some(val: int8) = someM(val, 8);\nexport fn some(val: int16) = someM(val, 8);\nexport fn some(val: int32) = someM(val, 8);\nexport fn some(val: int64) = someM(val, 8);\nexport fn some(val: float32) = someM(val, 8);\nexport fn some(val: float64) = someM(val, 8);\nexport fn some(val: bool) = someM(val, 8);\nexport fn none() = noneM();\nexport isSome // opcode with signature `fn isSome(Maybe<any>): bool`\nexport isNone // opcode with signature `fn isNone(Maybe<any>): bool`\nexport fn getOr(maybe: Maybe<any>, default: any) = getOrM(maybe, default);\n\nexport fn ok(val: any) = okR(val, 0);\nexport fn ok(val: int8) = okR(val, 8);\nexport fn ok(val: int16) = okR(val, 8);\nexport fn ok(val: int32) = okR(val, 8);\nexport fn ok(val: int64) = okR(val, 8);\nexport fn ok(val: float32) = okR(val, 8);\nexport fn ok(val: float64) = okR(val, 8);\nexport fn ok(val: bool) = okR(val, 8);\nexport err // opcode with signature `fn err(string): Result<any>`\nexport isOk // opcode with signature `fn isOk(Result<any>): bool`\nexport isErr // opcode with signature `fn isErr(Result<any>: bool`\nexport fn getOr(result: Result<any>, default: any) = getOrR(result, default);\nexport fn getOr(result: Result<any>, default: string) = getOrRS(result, default);\nexport getErr // opcode with signature `fn getErr(Result<any>, Error): Error`\nexport fn toString(n: Result<Stringifiable>): string {\n  if n.isOk() {\n    return n.getR().toString();\n  } else {\n    return n.getErr(noerr()).toString();\n  }\n}\nexport fn getOrExit(result: Result<any>): any {\n  if result.isErr() {\n    stderrp(result.toString());\n    exitop(1.toInt8());\n  } else {\n    return result.getR();\n  }\n}\n\nexport fn main(val: any) = mainE(val, 0);\nexport fn main(val: int8) = mainE(val, 8);\nexport fn main(val: int16) = mainE(val, 8);\nexport fn main(val: int32) = mainE(val, 8);\nexport fn main(val: int64) = mainE(val, 8);\nexport fn main(val: float32) = mainE(val, 8);\nexport fn main(val: float64) = mainE(val, 8);\nexport fn main(val: bool) = mainE(val, 8);\nexport fn alt(val: any) = altE(val, 0);\nexport fn alt(val: int8) = altE(val, 8);\nexport fn alt(val: int16) = altE(val, 8);\nexport fn alt(val: int32) = altE(val, 8);\nexport fn alt(val: int64) = altE(val, 8);\nexport fn alt(val: float32) = altE(val, 8);\nexport fn alt(val: float64) = altE(val, 8);\nexport fn alt(val: bool) = altE(val, 8);\nexport isMain // opcode with signature `fn isMain(Either<any, anythingElse>): bool`\nexport isAlt // opcode with signature `fn isAlt(Either<any, anythingElse): bool`\nexport fn getMainOr(either: Either<any, anythingElse>, default: any) = mainOr(either, default);\nexport fn getAltOr(either: Either<any, anythingElse>, default: anythingElse) = altOr(either, default);\n\n// toHash functions for all data types\nexport fn toHash(val: any) = hashv(val);\nexport fn toHash(val: int8) = hashf(val);\nexport fn toHash(val: int16) = hashf(val);\nexport fn toHash(val: int32) = hashf(val);\nexport fn toHash(val: int64) = hashf(val);\nexport fn toHash(val: float32) = hashf(val);\nexport fn toHash(val: float64) = hashf(val);\nexport fn toHash(val: bool) = hashf(val);\n\n// HashMap implementation\nexport type KeyVal<K, V> {\n  key: K,\n  val: V,\n}\n\nexport interface Hashable {\n  toHash(Hashable): int64,\n  eq(Hashable, Hashable): bool,\n}\n\nexport type HashMap<K, V> {\n  keyVal: Array<KeyVal<K, V>>,\n  lookup: Array<Array<int64>>,\n}\n\nexport fn keyVal(hm: HashMap<Hashable, any>) = hm.keyVal;\nexport fn keys(hm: HashMap<Hashable, any>): Array<Hashable> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): Hashable = kv.key);\nexport fn vals(hm: HashMap<Hashable, any>): Array<any> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): any = kv.val);\nexport fn length(hm: HashMap<Hashable, any>): int64 = length(hm.keyVal);\n\nexport fn get(hm: HashMap<Hashable, any>, key: Hashable): any {\n  const hash = key.toHash().abs() % length(hm.lookup);\n  const list = getR(hm.lookup[hash]);\n  const index = list.find(fn (i: int64): Array<int64> {\n    const kv = getR(hm.keyVal[i]);\n    return eq(kv.key, key);\n  });\n  if index.isOk() {\n    const i = index.getOr(0);\n    const kv = getR(hm.keyVal[i]);\n    return ok(kv.val);\n  } else {\n    return err('key not found');\n  }\n}\n\nexport fn set(hm: HashMap<Hashable, any>, key: Hashable, val: any): HashMap<Hashable, any> {\n  const kv = new KeyVal<Hashable, any> {\n    key: key,\n    val: val,\n  };\n  const index = length(hm.keyVal);\n  push(hm.keyVal, kv);\n  const hash = key.toHash().abs() % length(hm.lookup);\n  const list = getR(hm.lookup[hash]);\n  if list.length() == 8 {\n    // Rebucket everything\n    const lookupLen = length(hm.lookup) * 2;\n    hm.lookup = new Array<Array<int64>> [ new Array<int64> [], ] * lookupLen;\n    eachl(hm.keyVal, fn (kv: KeyVal<Hashable, any>, i: int64) {\n      const hash = toHash(kv.key).abs() % lookupLen;\n      const list = getR(hm.lookup[hash]);\n      list.push(i);\n    });\n  } else if list.find(fn (idx: int64): bool {\n    const rec = hm.keyVal[idx].getR();\n    return eq(rec.key, key);\n  }).isOk() {\n    list.eachLin(fn (idx: int64, i: int64) {\n      const rec = hm.keyVal[idx].getR();\n      if eq(rec.key, key) {\n        list[i] = index;\n      }\n    });\n  } else {\n    list.push(index);\n  }\n  return hm;\n}\n\nexport fn newHashMap(firstKey: Hashable, firstVal: any): HashMap<Hashable, any> { // TODO: Rust-like fn::<typeA, typeB> syntax?\n  let hm = new HashMap<Hashable, any> {\n    keyVal: new Array<KeyVal<Hashable, any>> [],\n    lookup: new Array<Array<int64>> [ new Array<int64> [] ] * 128, // 1KB of space\n  };\n  return hm.set(firstKey, firstVal);\n}\n\nexport fn toHashMap(kva: Array<KeyVal<Hashable, any>>) {\n  let hm = new HashMap<Hashable, any> {\n    keyVal: kva,\n    lookup: new Array<Array<int64>> [ new Array<int64> [] ] * 128,\n  };\n  kva.eachl(fn (kv: KeyVal<Hashable, any>, i: int64) {\n    const hash = toHash(kv.key).abs() % length(hm.lookup);\n    const list = getR(hm.lookup[hash]);\n    list.push(i);\n  });\n  return hm;\n}\n\n// Tree implementation\n\n// The Tree type houses all of the values attached to a tree in an array and two secondary arrays to\n// hold the metadata on which value is the parent and which are children, if any. The parent value\n// is `-1` if it has no parent and a positive integer otherwise.\nexport type Tree<T> {\n  vals: Array<T>,\n  parents: Array<int64>,\n  children: Array<Array<int64>>,\n}\n\n// The Node type simply holds the index to look into the tree for a particular value-parent-children\n// triplet, where that index is referred to as a node ID. This allows node-based code to be written\n// while not actually having a recursive data structure that a traditional Node type would define.\nexport type Node<T> {\n  id: int64,\n  tree: Tree<T>,\n}\n\nexport fn newTree(rootVal: any): Tree<any> = new Tree<any> {\n  vals: new Array<any> [ rootVal ],\n  parents: new Array<int64> [ -1 ], // The root node has no parent, so its parent ID is -1.\n  children: new Array<Array<int64>> [ new Array<int64> [ ] ],\n};\n\nexport fn getRootNode(t: Tree<any>): Node<any> {\n  if has(t.parents, -1) {\n    return new Node<any> {\n      id: index(t.parents, -1).getOr(0),\n      tree: t,\n    };\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    };\n  }\n}\n\nexport fn getTree(n: Node<any>): Tree<any> = n.tree;\n\nexport fn length(t: Tree<any>): int64 = length(t.vals);\n\nexport fn getNodeById(t: Tree<any>, i: int64): Node<any> {\n  if length(t.vals).gt(i) {\n    return new Node<any> {\n      id: i,\n      tree: t,\n    };\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    };\n  }\n}\n\nexport fn getParent(n: Node<any>): Node<any> {\n  const parentId = getOr(n.tree.parents[n.id], -1);\n  if parentId > -1 {\n    return new Node<any> {\n      id: parentId,\n      tree: n.tree,\n    };\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    };\n  }\n}\n\nexport fn getChildren(n: Node<any>): Array<Node<any>> {\n  if length(n.tree.vals).gt(n.id) {\n    const childIds = getOr(n.tree.children[n.id], new Array<int64> []);\n    return childIds.filter(fn (id: int64): bool {\n      const parentId = getOr(n.tree.parents[id], -1);\n      return parentId.eq(n.id);\n    }).map(fn (id: int64): Node<any> {\n      return new Node<any> {\n        id: id,\n        tree: n.tree,\n      };\n    });\n  } else {\n    return new Array<Node<any>> [ ];\n  }\n}\n\n// Returns the pruned Tree\nexport fn prune(n: Node<any>): Tree<any> {\n  // adjust parent's children\n  const parentRes = n.tree.parents[n.id];\n  if parentRes.isOk() {\n    const parentId = parentRes.getR();\n    const children = getOr(n.tree.children[parentId], new Array<int64> []);\n    const idxRes = index(children, n.id);\n    if idxRes.isOk() {\n      delete(children, idxRes.getR());\n    }\n  }\n  // This is, unfortunately for now, a sequential algorithm. Hope to figure out a parallel version\n  let nodeStack = new Array<int64> [ n.id ];\n  let rmdIds = new Array<int64> [ ];\n  seqdo(newseq(pow(2, 62)), fn (): bool {\n    // Get the nodeId, exit if none left\n    const nodeRes = nodeStack.pop();\n    if nodeRes.isErr() {\n      return false;\n    }\n    const nodeId = nodeRes.getR();\n    // Push the children onto the stack to process if the node has them\n    const childrenRes = n.tree.children[nodeId];\n    if childrenRes.isOk() {\n      const childrenIds = childrenRes.getR();\n      nodeStack = nodeStack.concat(childrenIds);\n    }\n    const delIdx = nodeId - length(rmdIds);\n    delete(n.tree.vals, delIdx);\n    delete(n.tree.parents, delIdx);\n    delete(n.tree.children, delIdx);\n    push(rmdIds, nodeId);\n    return true;\n  });\n\n  // adjust indices for remaining elements\n  const iters = length(n.tree.parents);\n  seqeach(newseq(iters), fn (i: int64) {\n    const parentId = getOr(n.tree.parents[i], -1);\n    const parentDelta = rmdIds.filter(fn (rmId: int64): bool = parentId > rmId).length();\n    if parentDelta > 0 {\n      set(n.tree.parents, i, parentId - parentDelta);\n    }\n    const children = getOr(n.tree.children[i], new Array<int64> []);\n    const newChildren = children.map(fn (cId: int64): int64 {\n      const delta = rmdIds.filter(fn (rmdId: int64): bool = cId > rmdId).length();\n      if delta > 0 {\n        return cId - delta;\n      }\n      return cId;\n    });\n    set(n.tree.children, i, newChildren);\n  });\n  return n.tree;\n}\n\nexport fn getChildren(t: Tree<any>): Array<Node<any>> = t.getRootNode().getChildren();\n\n// returns the new child node added\nexport fn addChild(n: Node<any>, val: any): Node<any> {\n  const childId = length(n.tree.vals);\n  push(n.tree.vals, val);\n  push(n.tree.parents, n.id);\n  push(n.tree.children, new Array<int64> [ ]);\n  push(getOr(n.tree.children[n.id], new Array<int64> []), childId);\n  return new Node<any> {\n    id: childId,\n    tree: n.tree,\n  };\n}\n\nexport fn addChild(t: Tree<any>, val: any): Node<any> = t.getRootNode().addChild(val);\n\nexport fn addChild(t: Tree<any>, val: Node<any>): Node<any> = t.getRootNode().addChild(val);\n\nexport fn addChild(n: Node<any>, val: Tree<any>): Node<any> = n.addChild(val.getRootNode());\n\nexport fn getOr(n: Node<any>, default: any): any = getOr(n.tree.vals[n.id], default);\n\nexport fn toNodeArray(t: Tree<any>): Array<Node<any>> = map(\n  t.vals,\n  fn (val: any, i: int64): Node<any> = t.getNodeById(i)\n);\n\nexport fn map(t: Tree<any>, mapper: function): Tree<anythingElse> {\n  return new Tree<anythingElse> {\n    vals: t.toNodeArray().map(mapper),\n    parents: clone(t.parents),\n    children: clone(t.children),\n  };\n}\n\nexport fn some(t: Tree<any>, mapper: function): bool = t.toNodeArray().some(mapper);\n\nexport fn every(t: Tree<any>, mapper: function): bool = t.toNodeArray().every(mapper);\n\nexport fn reduce(t: Tree<any>, cb: function, initial: anythingElse): bool = t\n  .toNodeArray()\n  .reduce(cb, initial);\n\nexport fn find(t: Tree<any>, mapper: function): Node<any> {\n  // Return an invalid node, will behave like an error result\n  return t.toNodeArray().find(mapper).getOr(\n    new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    }\n  );\n}\n\n// Operator declarations\nexport infix add as + precedence 2\nexport infix concat as + precedence 2\nexport infix sub as - precedence 2\nexport prefix negate as - precedence 1\nexport infix mul as * precedence 3\nexport infix repeat as * precedence 3\nexport infix div as / precedence 3\nexport infix split as / precedence 3\nexport infix mod as % precedence 3\n// export infix template as % precedence 3\nexport infix pow as ** precedence 4\nexport infix and as & precedence 3\nexport infix and as && precedence 3\nexport infix or as | precedence 2\nexport infix or as || precedence 2\nexport infix xor as ^ precedence 2\nexport prefix not as ! precedence 4\nexport infix nand as !& precedence 3\nexport infix nor as !| precedence 2\nexport infix xnor as !^ precedence 2\nexport infix eq as == precedence 1\nexport infix neq as != precedence 1\nexport infix lt as < precedence 1\nexport infix lte as <= precedence 1\nexport infix gt as > precedence 1\nexport infix gte as >= precedence 1\nexport infix matches as ~ precedence 1\nexport infix index as @ precedence 1\nexport prefix length as # precedence 4\nexport prefix trim as ` precedence 4\nexport infix pair as : precedence 5\nexport infix push as : precedence 6\nexport infix cond as ? precedence 0\nexport infix getOr as | precedence 2\nexport infix getOr as || precedence 2\n","seq.ln":"/**\n * @std/seq - Tools for sequential algorithms. Use if you must.\n */\n\n// The `Seq` opaque type used by these algorithms to guarantee halting\nexport Seq\n\n// The `seq` constructor function\nexport fn seq(limit: int64): Seq = newseq(limit);\n\n// A basic iterator function, unlikely to be useful outside of these functions\nexport fn next(seq: Seq): Result<int64> = seqnext(seq);\n\n// An automatic iterator that executes the provided function in sequence until the limit is reached\nexport fn each(seq: Seq, func: function): void = seqeach(seq, func);\n\n// A while loop with an initial conditional check\nexport fn while(seq: Seq, condFn: function, bodyFn: function): void = seqwhile(seq, condFn, bodyFn);\n\n// A do-while loop that returns the conditional check\nexport fn doWhile(seq: Seq, bodyFn: function): void = seqdo(seq, bodyFn);\n\n// Recursive functions in Alan require a \"trampoline\" outside of the grammar of the language to work\n// so a special \"Self\" type exists that internally references the Seq type and the relevant function\n// and provides the mechanism to re-schedule the recursive function to call with a new argument.\nexport Self\n\n// There are two `recurse` functions. The first is on the `self` object that has an internal\n// reference to the relevant seq and recursive function to be called and is meant to be used within\n// the recursive function. The second sets it all off with a sequence operator, the recursive\n// function in question, and the query argument, and is using the first function under the hood.\nexport fn recurse(self: Self, arg: any): Result<anythingElse> = selfrec(self, arg);\nexport fn recurse(seq: Seq, recurseFn: function, arg: any): Result<anythingElse> {\n  let self = seqrec(seq, recurseFn);\n  return selfrec(self, arg);\n}\n\n// TODO: Add the generator piece of the seq rfc\n","trig.ln":"export const e = 2.718281828459045;\nexport const pi = 3.141592653589793;\nexport const tau = 6.283185307179586;\n\nexport fn exp(x: float64) = e ** x;\nexport fn exp(x: float32) = toFloat32(e) ** x;\n\nexport fn ln(x: float64) = lnf64(x);\nexport fn ln(x: float32) = toFloat32(lnf64(toFloat64(x)));\n\nexport fn log(x: float64) = logf64(x);\nexport fn log(x: float32) = toFloat32(logf64(toFloat64(x)));\n\nexport fn sin(x: float64) = sinf64(x);\nexport fn sin(x: float32) = toFloat32(sinf64(toFloat64(x)));\nexport fn sine(x: float64) = sinf64(x);\nexport fn sine(x: float32) = toFloat32(sinf64(toFloat64(x)));\n\nexport fn cos(x: float64) = cosf64(x);\nexport fn cos(x: float32) = toFloat32(cosf64(toFloat64(x)));\nexport fn cosine(x: float64) = cosf64(x);\nexport fn cosine(x: float32) = toFloat32(cosf64(toFloat64(x)));\n\nexport fn tan(x: float64) = tanf64(x);\nexport fn tan(x: float32) = toFloat32(tanf64(toFloat64(x)));\nexport fn tangent(x: float64) = tanf64(x);\nexport fn tangent(x: float32) = toFloat32(tanf64(toFloat64(x)));\n\nexport fn sec(x: float64) = 1.0 / cosf64(x);\nexport fn sec(x: float32) = toFloat32(sec(toFloat64(x)));\nexport fn secant(x: float64) = 1.0 / cosf64(x);\nexport fn secant(x: float32) = toFloat32(secant(toFloat64(x)));\n\nexport fn csc(x: float64) = 1.0 / sinf64(x);\nexport fn csc(x: float32) = toFloat32(csc(toFloat64(x)));\nexport fn cosecant(x: float64) = 1.0 / sinf64(x);\nexport fn cosecant(x: float32) = toFloat32(cosecant(toFloat64(x)));\n\nexport fn cot(x: float64) = 1.0 / tanf64(x);\nexport fn cot(x: float32) = toFloat32(cot(toFloat64(x)));\nexport fn cotangent(x: float64) = 1.0 / tanf64(x);\nexport fn cotangent(x: float32) = toFloat32(cotangent(toFloat64(x)));\n\nexport fn asin(x: float64) = asinf64(x);\nexport fn asin(x: float32) = toFloat32(asinf64(toFloat64(x)));\nexport fn arcsine(x: float64) = asinf64(x);\nexport fn arcsine(x: float32) = toFloat32(asinf64(toFloat64(x)));\n\nexport fn acos(x: float64) = acosf64(x);\nexport fn acos(x: float32) = toFloat32(acosf64(toFloat64(x)));\nexport fn arccosine(x: float64) = acosf64(x);\nexport fn arccosine(x: float32) = toFloat32(acosf64(toFloat64(x)));\n\nexport fn atan(x: float64) = atanf64(x);\nexport fn atan(x: float32) = toFloat32(atanf64(toFloat64(x)));\nexport fn arctangent(x: float64) = atanf64(x);\nexport fn arctangent(x: float32) = toFloat32(atanf64(toFloat64(x)));\n\nexport fn asec(x: float64) = acosf64(1.0 / x);\nexport fn asec(x: float32) = toFloat32(asec(toFloat64(x)));\nexport fn arcsecant(x: float64) = acosf64(1.0 / x);\nexport fn arcsecant(x: float32) = toFloat32(arcsecant(toFloat64(x)));\n\nexport fn acsc(x: float64) = asinf64(1.0 / x);\nexport fn acsc(x: float32) = toFloat32(acsc(toFloat64(x)));\nexport fn arccosecant(x: float64) = asinf64(1.0 / x);\nexport fn arccosecant(x: float32) = toFloat32(arccosecant(toFloat64(x)));\n\nexport fn acot(x: float64) = pi / 2.0 - atanf64(x);\nexport fn acot(x: float32) = toFloat32(acot(toFloat64(x)));\nexport fn arccotangent(x: float64) = pi / 2.0 - atanf64(x);\nexport fn arccotangent(x: float32) = toFloat32(arccotangent(toFloat64(x)));\n\nexport fn ver(x: float64) = 1.0 - cosf64(x);\nexport fn ver(x: float32) = toFloat32(ver(toFloat64(x)));\nexport fn versine(x: float64) = 1.0 - cosf64(x);\nexport fn versine(x: float32) = toFloat32(versine(toFloat64(x)));\n\nexport fn vcs(x: float64) = 1.0 + cosf64(x);\nexport fn vcs(x: float32) = toFloat32(vcs(toFloat64(x)));\nexport fn vercosine(x: float64) = 1.0 + cosf64(x);\nexport fn vercosine(x: float32) = toFloat32(vercosine(toFloat64(x)));\n\nexport fn cvs(x: float64) = 1.0 - sinf64(x);\nexport fn cvs(x: float32) = toFloat32(cvs(toFloat64(x)));\nexport fn coversine(x: float64) = 1.0 - sinf64(x);\nexport fn coversine(x: float32) = toFloat32(coversine(toFloat64(x)));\n\nexport fn cvc(x: float64) = 1.0 + sinf64(x);\nexport fn cvc(x: float32) = toFloat32(cvc(toFloat64(x)));\nexport fn covercosine(x: float64) = 1.0 + sinf64(x);\nexport fn covercosine(x: float32) = toFloat32(covercosine(toFloat64(x)));\n\nexport fn hav(x: float64) = versine(x) / 2.0;\nexport fn hav(x: float32) = toFloat32(hav(toFloat64(x)));\nexport fn haversine(x: float64) = versine(x) / 2.0;\nexport fn haversine(x: float32) = toFloat32(haversine(toFloat64(x)));\n\nexport fn hvc(x: float64) = vercosine(x) / 2.0;\nexport fn hvc(x: float32) = toFloat32(hvc(toFloat64(x)));\nexport fn havercosine(x: float64) = vercosine(x) / 2.0;\nexport fn havercosine(x: float32) = toFloat32(havercosine(toFloat64(x)));\n\nexport fn hcv(x: float64) = coversine(x) / 2.0;\nexport fn hcv(x: float32) = toFloat32(hcv(toFloat64(x)));\nexport fn hacoversine(x: float64) = coversine(x) / 2.0;\nexport fn hacoversine(x: float32) = toFloat32(hacoversine(toFloat64(x)));\n\nexport fn hcc(x: float64) = covercosine(x) / 2.0;\nexport fn hcc(x: float32) = toFloat32(hcc(toFloat64(x)));\nexport fn hacovercosine(x: float64) = covercosine(x) / 2.0;\nexport fn hacovercosine(x: float32) = toFloat32(hacovercosine(toFloat64(x)));\n\nexport fn exs(x: float64) = secant(x) - 1.0;\nexport fn exs(x: float32) = toFloat32(exs(toFloat64(x)));\nexport fn exsecant(x: float64) = secant(x) - 1.0;\nexport fn exsecant(x: float32) = toFloat32(exsecant(toFloat64(x)));\n\nexport fn exc(x: float64) = cosecant(x) - 1.0;\nexport fn exc(x: float32) = toFloat32(exc(toFloat64(x)));\nexport fn excosecant(x: float64) = cosecant(x) - 1.0;\nexport fn excosecant(x: float32) = toFloat32(excosecant(toFloat64(x)));\n\nexport fn crd(x: float64) = 2.0 * sine(x / 2.0);\nexport fn crd(x: float32) = toFloat32(crd(toFloat64(x)));\nexport fn chord(x: float64) = 2.0 * sine(x / 2.0);\nexport fn chord(x: float32) = toFloat32(chord(toFloat64(x)));\n\nexport fn aver(x: float64) = arccosine(1.0 - x);\nexport fn aver(x: float32) = toFloat32(aver(toFloat64(x)));\nexport fn arcversine(x: float64) = arccosine(1.0 - x);\nexport fn arcversine(x: float32) = toFloat32(arcversine(toFloat64(x)));\n\nexport fn avcs(x: float64) = arccosine(x - 1.0);\nexport fn avcs(x: float32) = toFloat32(avcs(toFloat64(x)));\nexport fn arcvercosine(x: float64) = arccosine(x - 1.0);\nexport fn arcvercosine(x: float32) = toFloat32(arcvercosine(toFloat64(x)));\n\nexport fn acvs(x: float64) = arcsine(1.0 - x);\nexport fn acvs(x: float32) = toFloat32(acvs(toFloat64(x)));\nexport fn arccoversine(x: float64) = arcsine(1.0 - x);\nexport fn arccoversine(x: float32) = toFloat32(arccoversine(toFloat64(x)));\n\nexport fn acvc(x: float64) = arcsine(x - 1.0);\nexport fn acvc(x: float32) = toFloat32(acvc(toFloat64(x)));\nexport fn arccovercosine(x: float64) = arcsine(x - 1.0);\nexport fn arccovercosine(x: float32) = toFloat32(arccovercosine(toFloat64(x)));\n\nexport fn ahav(x: float64) = arccosine(1.0 - 2.0 * x);\nexport fn ahav(x: float32) = toFloat32(ahav(toFloat64(x)));\nexport fn archaversine(x: float64) = arccosine(1.0 - 2.0 * x);\nexport fn archaversine(x: float32) = toFloat32(archaversine(toFloat64(x)));\n\nexport fn ahvc(x: float64) = arccosine(2.0 * x - 1.0);\nexport fn ahvc(x: float32) = toFloat32(ahvc(toFloat64(x)));\nexport fn archavercosine(x: float64) = arccosine(2.0 * x - 1.0);\nexport fn archavercosine(x: float32) = toFloat32(archavercosine(toFloat64(x)));\n\nexport fn ahcv(x: float64) = arcsine(1.0 - 2.0 * x);\nexport fn ahcv(x: float32) = toFloat32(ahcv(toFloat64(x)));\nexport fn archacoversine(x: float64) = arcsine(1.0 - 2.0 * x);\nexport fn archacoversine(x: float32) = toFloat32(archacoversine(toFloat64(x)));\n\nexport fn ahcc(x: float64) = arcsine(2.0 * x - 1.0);\nexport fn ahcc(x: float32) = toFloat32(ahcc(toFloat64(x)));\nexport fn archacovercosine(x: float64) = arcsine(2.0 * x - 1.0);\nexport fn archacovercosine(x: float32) = toFloat32(archacovercosine(toFloat64(x)));\n\nexport fn aexs(x: float64) = arccosine(1.0 / (x + 1.0));\nexport fn aexs(x: float32) = toFloat32(aexs(toFloat64(x)));\nexport fn arcexsecant(x: float64) = arccosine(1.0 / (x + 1.0));\nexport fn arcexsecant(x: float32) = toFloat32(arcexsecant(toFloat64(x)));\n\nexport fn aexc(x: float64) = arcsine(1.0 / (x + 1.0));\nexport fn aexc(x: float32) = toFloat32(aexc(toFloat64(x)));\nexport fn arcexcosecant(x: float64) = arcsine(1.0 / (x + 1.0));\nexport fn arcexcosecant(x: float32) = toFloat32(arcexcosecant(toFloat64(x)));\n\nexport fn acrd(x: float64) = 2.0 * arcsine(x / 2.0);\nexport fn acrd(x: float32) = toFloat32(acrd(toFloat64(x)));\nexport fn arcchord(x: float64) = 2.0 * arcsine(x / 2.0);\nexport fn arcchord(x: float32) = toFloat32(arcchord(toFloat64(x)));\n\nexport fn sinh(x: float64) = sinhf64(x);\nexport fn sinh(x: float32) = toFloat32(sinhf64(toFloat64(x)));\nexport fn hyperbolicSine(x: float64) = sinhf64(x);\nexport fn hyperbolicSine(x: float32) = toFloat32(sinhf64(toFloat64(x)));\n\nexport fn cosh(x: float64) = coshf64(x);\nexport fn cosh(x: float32) = toFloat32(coshf64(toFloat64(x)));\nexport fn hyperbolicCosine(x: float64) = coshf64(x);\nexport fn hyperbolicCosine(x: float32) = toFloat32(coshf64(toFloat64(x)));\n\nexport fn tanh(x: float64) = tanhf64(x);\nexport fn tanh(x: float32) = toFloat32(tanhf64(toFloat64(x)));\nexport fn hyperbolicTangent(x: float64) = tanhf64(x);\nexport fn hyperbolicTangent(x: float32) = toFloat32(tanhf64(toFloat64(x)));\n\nexport fn sech(x: float64) = 1.0 / cosh(x);\nexport fn sech(x: float32) = toFloat32(sech(toFloat64(x)));\nexport fn hyperbolicSecant(x: float64) = 1.0 / cosh(x);\nexport fn hyperbolicSecant(x: float32) = toFloat32(hyperbolicSecant(toFloat64(x)));\n\nexport fn csch(x: float64) = 1.0 / sinh(x);\nexport fn csch(x: float32) = toFloat32(cosh(toFloat64(x)));\nexport fn hyperbolicCosecant(x: float64) = 1.0 / sinh(x);\nexport fn hyperbolicCosecant(x: float32) = toFloat32(hyperbolicCosecant(toFloat64(x)));\n\nexport fn coth(x: float64) = 1.0 / tanh(x);\nexport fn coth(x: float32) = toFloat32(coth(toFloat64(x)));\nexport fn hyperbolicCotangent(x: float64) = 1.0 / tanh(x);\nexport fn hyperbolicCotangent(x: float32) = toFloat32(hyperbolicCotangent(toFloat64(x)));\n\nexport fn asinh(x: float64) = ln(x + sqrt(x ** 2.0 + 1.0));\nexport fn asinh(x: float32) = toFloat32(asinh(toFloat64(x)));\nexport fn hyperbolicArcsine(x: float64) = ln(x + sqrt(x ** 2.0 + 1.0));\nexport fn hyperbolicArcsine(x: float32) = toFloat32(hyperbolicArcsine(toFloat64(x)));\n\nexport fn acosh(x: float64) = ln(x + sqrt(x ** 2.0 - 1.0));\nexport fn acosh(x: float32) = toFloat32(acosh(toFloat64(x)));\nexport fn hyperbolicArccosine(x: float64) = ln(x + sqrt(x ** 2.0 - 1.0));\nexport fn hyperbolicArccosine(x: float32) = toFloat32(hyperbolicArccosine(toFloat64(x)));\n\nexport fn atanh(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0;\nexport fn atanh(x: float32) = toFloat32(atanh(toFloat64(x)));\nexport fn hyperbolicArctangent(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0;\nexport fn hyperbolicArctangent(x: float32) = toFloat32(hyperbolicArctangent(toFloat64(x)));\n\nexport fn asech(x: float64) = ln((1.0 + sqrt(1.0 - x ** 2.0)) / x);\nexport fn asech(x: float32) = toFloat32(asech(toFloat64(x)));\nexport fn hyperbolicArcsecant(x: float64) = ln((1.0 + sqrt(1.0 - x ** 2.0)) / x);\nexport fn hyperbolicArcsecant(x: float32) = toFloat32(hyperbolicArcsecant(toFloat64(x)));\n\nexport fn acsch(x: float64) = ln((1.0 / x) + sqrt(1.0 / x ** 2.0 + 1.0));\nexport fn acsch(x: float32) = toFloat32(acsch(toFloat64(x)));\nexport fn hyperbolicArccosecant(x: float64) = ln((1.0 / x) + sqrt(1.0 / x ** 2.0 + 1.0));\nexport fn hyperbolicArccosecant(x: float32) = toFloat32(hyperbolicArccosecant(toFloat64(x)));\n\nexport fn acoth(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0;\nexport fn acoth(x: float32) = toFloat32(acoth(toFloat64(x)));\nexport fn hyperbolicArccotangent(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0;\nexport fn hyperbolicArccotangent(x: float32) = toFloat32(hyperbolicArccotangent(toFloat64(x)));\n"}
+module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out);\n\n// The `print` function converts its input to a string, appends a newline, and sends it to `stdout`\nexport fn print(out: Stringifiable) {\n  emit stdout out.toString() + \"\\n\";\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status);\n\n// The `stderr` event\nexport event stderr: string\n\n// `@std/app` has access to a special `stderrp` opcode to trigger stderr writing\non stderr fn (err: string) = stderrp(err);\n\n// The `eprint` function converts its input to a string, appends a newline, and sends it to `stderr`\nexport fn eprint(err: Stringifiable) {\n  emit stderr err.toString() + \"\\n\";\n}\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n);","datastore.ln":"/**\n * @std/datastore - Shared mutable state with controlled access\n */\n\n// Just syntactic sugar to seem less stringly-typed than it is\nexport fn namespace(ns: string) = ns\n\n// The set function to store shared data\nexport fn set(ns: string, key: string, val: any) = dssetv(ns, key, val);\nexport fn set(ns: string, key: string, val: int8) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: int16) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: int32) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: int64) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: float32) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: float64) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: bool) = dssetf(ns, key, val);\n\n// The has function to test if a shared key exists\nexport fn has(ns: string, key: string): bool = dshas(ns, key);\n\n// The del function to remove a shared key\nexport fn del(ns: string, key: string): bool = dsdel(ns, key);\n\n// The getOr function to get a value or the return the provided default\nexport fn getOr(ns: string, key: string, default: any) {\n  return dsgetv(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int8) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int16) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int32) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int64) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: float32) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: float64) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: bool) {\n  return dsgetf(ns, key).getOr(default);\n}\n","deps.ln":"from @std/app import start, print, exit\nfrom @std/cmd import exec\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\nexport fn add(remote: string) {\n  // TODO implement proper error handling\n  const parts = remote.split('/');\n  const repo = parts[length(parts) - 1] || '';\n  const group = parts[parts.length() - 2] || '';\n  const dest = '/dependencies/' + group + '/' + repo;\n  const rm = exec('rm -rf .' + dest);\n  const git = exec('git clone ' + remote + ' .' + dest);\n  print(git.stderr);\n  const rm2 = exec('rm -rf .' + dest + '/.git');\n}\n\n// The `commit` function takes no arguments. Currently just causes the application to quit, but\n// eventually would be the point where the dependencies defined by the calls to `add` could be\n// compared against the currently-installed dependencies, and a faster install would be possible\nexport fn commit() {\n  emit exit 0;\n}\n\n// Emit the `install` event on app `start`\non start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  exec('rm -rf dependencies');\n  exec('mkdir dependencies');\n  emit install;\n}\n","http.ln":"/**\n * @std/http - Built-in client and server for http\n */\n\n/**\n * HTTP Client\n */\n\nexport fn get(url: string) = httpget(url);\nexport fn post(url: string, payload: string) = httppost(url, payload);\n\n/**\n * HTTP Server\n */\n\n// The InternalRequest type for inbound http requests\ntype InternalRequest {\n  url: string,\n  headers: Array<KeyVal<string, string>>,\n  body: string,\n  connId: int64,\n}\n\n// The InternalResponse type for inbount http requests\ntype InternalResponse {\n  status: int64,\n  headers: Array<KeyVal<string, string>>,\n  body: string,\n  connId: int64,\n}\n\n// The exposed Request type\nexport type Request {\n  url: string,\n  headers: HashMap<string, string>,\n  body: string,\n}\n\n// The exposed Response type\nexport type Response {\n  status: int64,\n  headers: HashMap<string, string>,\n  body: string,\n  connId: int64,\n}\n\n// The roll-up Connection type with both\nexport type Connection {\n  req: Request,\n  res: Response,\n}\n\n// The connection event\nexport event connection: Connection\n\n// The special connection event with a signature like `event __conn: InternalConnection`\n// This wrapper function takes the internal connection object, converts it to the user-friendly\n// connection object, and then emits it on a new event for user code to pick up\non __conn fn (conn: InternalRequest) {\n  emit connection new Connection {\n    req: new Request {\n      url: conn.url,\n      headers: toHashMap(conn.headers),\n      body: conn.body,\n    },\n    res: new Response {\n      status: 200, // If not set by the user, assume they meant it to be good\n      headers: newHashMap('Content-Length', '0'), // If not set by the user, assume no data\n      body: '', // If not set by the user, assume no data\n      connId: conn.connId,\n    },\n  };\n}\n\n// The listen function tells the http server to start up and listen on the given port\n// For now only one http server per application, a macro system is necessary to improve this\n// Returns a Result with either an 'ok' string or an error\nexport fn listen(port: int64) = httplsn(port);\n\n// The body function sets the body for a Response, sets the Content-Length header, and retuns the\n// Response for chaining needs\nexport fn body(res: Response, body: string) {\n  res.body = body;\n  const len = body.length();\n  set(res.headers, 'Content-Length', len.toString());\n  return res;\n}\n\n// The status function sets the status of the response\nexport fn status(res: Response, status: int64) {\n  res.status = status;\n  return res;\n}\n\n// The send function converts the response object into an internal response object and passed that\n// back to the HTTP server. A Result type with either an 'ok' string or an error is returned\nexport fn send(res: Response): Result<string> {\n  const ires = new InternalResponse {\n    status: res.status,\n    headers: res.headers.keyVal,\n    body: res.body,\n    connId: res.connId,\n  };\n  return httpsend(ires);\n}","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Export all of the built-in types\nexport void\nexport int8\nexport int16\nexport int32\nexport int64\nexport float32\nexport float64\nexport bool\nexport string\nexport function // TODO: Make the function type more explicit than this\nexport Array\nexport Error\nexport Maybe\nexport Result\nexport Either\n\n// Type aliasing of int64 and float64 to just int and float, as these are the default types\nexport type int = int64\nexport type float = float64\n\n// Default Interfaces\nexport interface any {}\nexport interface anythingElse = any // Same as `any` but doesn't match with it\nexport interface Stringifiable {\n  toString(Stringifiable): string,\n}\nexport interface Orderable {\n  lt(Orderable, Orderable): bool,\n  lte(Orderable, Orderable): bool,\n  gt(Orderable, Orderable): bool,\n  gte(Orderable, Orderable): bool,\n}\nexport interface canFloat64 {\n  toFloat64(canFloat64): float64\n}\nexport interface canInt64 {\n  toInt64(canInt64): int64\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n);\nexport fn toFloat64(n: int16) = i16f64(n);\nexport fn toFloat64(n: int32) = i32f64(n);\nexport fn toFloat64(n: int64) = i64f64(n);\nexport fn toFloat64(n: float32) = f32f64(n);\nexport fn toFloat64(n: float64) = n;\nexport fn toFloat64(n: string) = strf64(n);\nexport fn toFloat64(n: bool) = boolf64(n);\n\nexport fn toFloat32(n: int8) = i8f32(n);\nexport fn toFloat32(n: int16) = i16f32(n);\nexport fn toFloat32(n: int32) = i32f32(n);\nexport fn toFloat32(n: int64) = i64f32(n);\nexport fn toFloat32(n: float32) = n;\nexport fn toFloat32(n: float64) = f64f32(n);\nexport fn toFloat32(n: string) = strf32(n);\nexport fn toFloat32(n: bool) = boolf32(n);\n\nexport fn toInt64(n: int8) = i8i64(n);\nexport fn toInt64(n: int16) = i16i64(n);\nexport fn toInt64(n: int32) = i32i64(n);\nexport fn toInt64(n: int64) = n;\nexport fn toInt64(n: float32) = f32i64(n);\nexport fn toInt64(n: float64) = f64i64(n);\nexport fn toInt64(n: string) = stri64(n);\nexport fn toInt64(n: bool) = booli64(n);\n\nexport fn toInt32(n: int8) = i8i32(n);\nexport fn toInt32(n: int16) = i16i32(n);\nexport fn toInt32(n: int32) = n;\nexport fn toInt32(n: int64) = i64i32(n);\nexport fn toInt32(n: float32) = f32i32(n);\nexport fn toInt32(n: float64) = f64i32(n);\nexport fn toInt32(n: string) = stri32(n);\nexport fn toInt32(n: bool) = booli32(n);\n\nexport fn toInt16(n: int8) = i8i16(n);\nexport fn toInt16(n: int16) = n;\nexport fn toInt16(n: int32) = i32i16(n);\nexport fn toInt16(n: int64) = i64i16(n);\nexport fn toInt16(n: float32) = f32i16(n);\nexport fn toInt16(n: float64) = f64i16(n);\nexport fn toInt16(n: string) = stri16(n);\nexport fn toInt16(n: bool) = booli16(n);\n\nexport fn toInt8(n: int8) = n;\nexport fn toInt8(n: int16) = i16i8(n);\nexport fn toInt8(n: int32) = i32i8(n);\nexport fn toInt8(n: int64) = i64i8(n);\nexport fn toInt8(n: float32) = f32i8(n);\nexport fn toInt8(n: float64) = f64i8(n);\nexport fn toInt8(n: string) = stri8(n);\nexport fn toInt8(n: bool) = booli8(n);\n\nexport fn toBool(n: int8) = i8bool(n);\nexport fn toBool(n: int16) = i16bool(n);\nexport fn toBool(n: int32) = i32bool(n);\nexport fn toBool(n: int64) = i64bool(n);\nexport fn toBool(n: float32) = f32bool(n);\nexport fn toBool(n: float64) = f64bool(n);\nexport fn toBool(n: string) = strbool(n);\nexport fn toBool(n: bool) = n;\n\nexport fn toString(n: int8) = i8str(n);\nexport fn toString(n: int16) = i16str(n);\nexport fn toString(n: int32) = i32str(n);\nexport fn toString(n: int64) = i64str(n);\nexport fn toString(n: float32) = f32str(n);\nexport fn toString(n: float64) = f64str(n);\nexport fn toString(n: string) = n;\nexport fn toString(n: bool) = boolstr(n);\n\n// Type alias conversion functions\nexport fn toFloat(n: canFloat64): float = toFloat64(n)\nexport fn toInt(n: canInt64): int = toInt64(n) \n\n// Error, Maybe, Result, and Either types and functions\nexport error // opcode with signature `fn error(string): Error`\nexport fn ref(a: any) = refv(a);\nexport fn ref(a: void) = reff(a);\nexport fn ref(a: int8) = reff(a);\nexport fn ref(a: int16) = reff(a);\nexport fn ref(a: int32) = reff(a);\nexport fn ref(a: int64) = reff(a);\nexport fn ref(a: float32) = reff(a);\nexport fn ref(a: float64) = reff(a);\nexport fn ref(a: bool) = reff(a);\nexport noerr // opcode with signature `fn noerr(): Error`\nexport fn toString(err: Error) = errorstr(err);\n\nexport fn some(val: any) = someM(val, 0);\nexport fn some(val: int8) = someM(val, 8);\nexport fn some(val: int16) = someM(val, 8);\nexport fn some(val: int32) = someM(val, 8);\nexport fn some(val: int64) = someM(val, 8);\nexport fn some(val: float32) = someM(val, 8);\nexport fn some(val: float64) = someM(val, 8);\nexport fn some(val: bool) = someM(val, 8);\nexport fn none() = noneM();\nexport isSome // opcode with signature `fn isSome(Maybe<any>): bool`\nexport isNone // opcode with signature `fn isNone(Maybe<any>): bool`\nexport fn getOr(maybe: Maybe<any>, default: any) = getOrM(maybe, default);\n\nexport fn ok(val: any) = okR(val, 0);\nexport fn ok(val: int8) = okR(val, 8);\nexport fn ok(val: int16) = okR(val, 8);\nexport fn ok(val: int32) = okR(val, 8);\nexport fn ok(val: int64) = okR(val, 8);\nexport fn ok(val: float32) = okR(val, 8);\nexport fn ok(val: float64) = okR(val, 8);\nexport fn ok(val: bool) = okR(val, 8);\nexport err // opcode with signature `fn err(string): Result<any>`\nexport isOk // opcode with signature `fn isOk(Result<any>): bool`\nexport isErr // opcode with signature `fn isErr(Result<any>: bool`\nexport fn getOr(result: Result<any>, default: any) = getOrR(result, default);\nexport fn getOr(result: Result<any>, default: string) = getOrRS(result, default);\nexport getErr // opcode with signature `fn getErr(Result<any>, Error): Error`\nexport fn toString(n: Result<Stringifiable>): string {\n  if n.isOk() {\n    return n.getR().toString();\n  } else {\n    return n.getErr(noerr()).toString();\n  }\n}\nexport fn getOrExit(result: Result<any>): any {\n  if result.isErr() {\n    stderrp(result.toString());\n    exitop(1.toInt8());\n  } else {\n    return result.getR();\n  }\n}\n\nexport fn main(val: any) = mainE(val, 0);\nexport fn main(val: int8) = mainE(val, 8);\nexport fn main(val: int16) = mainE(val, 8);\nexport fn main(val: int32) = mainE(val, 8);\nexport fn main(val: int64) = mainE(val, 8);\nexport fn main(val: float32) = mainE(val, 8);\nexport fn main(val: float64) = mainE(val, 8);\nexport fn main(val: bool) = mainE(val, 8);\nexport fn alt(val: any) = altE(val, 0);\nexport fn alt(val: int8) = altE(val, 8);\nexport fn alt(val: int16) = altE(val, 8);\nexport fn alt(val: int32) = altE(val, 8);\nexport fn alt(val: int64) = altE(val, 8);\nexport fn alt(val: float32) = altE(val, 8);\nexport fn alt(val: float64) = altE(val, 8);\nexport fn alt(val: bool) = altE(val, 8);\nexport isMain // opcode with signature `fn isMain(Either<any, anythingElse>): bool`\nexport isAlt // opcode with signature `fn isAlt(Either<any, anythingElse): bool`\nexport fn getMainOr(either: Either<any, anythingElse>, default: any) = mainOr(either, default);\nexport fn getAltOr(either: Either<any, anythingElse>, default: anythingElse) = altOr(either, default);\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(ok(a), ok(b));\nexport fn add(a: Result<int8>, b: int8) = addi8(a, ok(b));\nexport fn add(a: int8, b: Result<int8>) = addi8(ok(a), b);\nexport fn add(a: Result<int8>, b: Result<int8>) = addi8(a, b);\nexport fn add(a: int16, b: int16) = addi16(ok(a), ok(b));\nexport fn add(a: Result<int16>, b: int16) = addi16(a, ok(b));\nexport fn add(a: int16, b: Result<int16>) = addi16(ok(a), b);\nexport fn add(a: Result<int16>, b: Result<int16>) = addi16(a, b);\nexport fn add(a: int32, b: int32) = addi32(ok(a), ok(b));\nexport fn add(a: Result<int32>, b: int32) = addi32(a, ok(b));\nexport fn add(a: int32, b: Result<int32>) = addi32(ok(a), b);\nexport fn add(a: Result<int32>, b: Result<int32>) = addi32(a, b);\nexport fn add(a: int64, b: int64) = addi64(ok(a), ok(b));\nexport fn add(a: Result<int64>, b: int64) = addi64(a, ok(b));\nexport fn add(a: int64, b: Result<int64>) = addi64(ok(a), b);\nexport fn add(a: Result<int64>, b: Result<int64>) = addi64(a, b);\nexport fn add(a: float32, b: float32) = addf32(ok(a), ok(b));\nexport fn add(a: Result<float32>, b: float32) = addf32(a, ok(b));\nexport fn add(a: float32, b: Result<float32>) = addf32(ok(a), b);\nexport fn add(a: Result<float32>, b: Result<float32>) = addf32(a, b);\nexport fn add(a: float64, b: float64) = addf64(ok(a), ok(b));\nexport fn add(a: Result<float64>, b: float64) = addf64(a, ok(b));\nexport fn add(a: float64, b: Result<float64>) = addf64(ok(a), b);\nexport fn add(a: Result<float64>, b: Result<float64>) = addf64(a, b);\n\nexport fn sub(a: int8, b: int8) = subi8(ok(a), ok(b));\nexport fn sub(a: Result<int8>, b: int8) = subi8(a, ok(b));\nexport fn sub(a: int8, b: Result<int8>) = subi8(ok(a), b);\nexport fn sub(a: Result<int8>, b: Result<int8>) = subi8(a, b);\nexport fn sub(a: int16, b: int16) = subi16(ok(a), ok(b));\nexport fn sub(a: Result<int16>, b: int16) = subi16(a, ok(b));\nexport fn sub(a: int16, b: Result<int16>) = subi16(ok(a), b);\nexport fn sub(a: Result<int16>, b: Result<int16>) = subi16(a, b);\nexport fn sub(a: int32, b: int32) = subi32(ok(a), ok(b));\nexport fn sub(a: Result<int32>, b: int32) = subi32(a, ok(b));\nexport fn sub(a: int32, b: Result<int32>) = subi32(ok(a), b);\nexport fn sub(a: Result<int32>, b: Result<int32>) = subi32(a, b);\nexport fn sub(a: int64, b: int64) = subi64(ok(a), ok(b));\nexport fn sub(a: Result<int64>, b: int64) = subi64(a, ok(b));\nexport fn sub(a: int64, b: Result<int64>) = subi64(ok(a), b);\nexport fn sub(a: Result<int64>, b: Result<int64>) = subi64(a, b);\nexport fn sub(a: float32, b: float32) = subf32(ok(a), ok(b));\nexport fn sub(a: Result<float32>, b: float32) = subf32(a, ok(b));\nexport fn sub(a: float32, b: Result<float32>) = subf32(ok(a), b);\nexport fn sub(a: Result<float32>, b: Result<float32>) = subf32(a, b);\nexport fn sub(a: float64, b: float64) = subf64(ok(a), ok(b));\nexport fn sub(a: Result<float64>, b: float64) = subf64(a, ok(b));\nexport fn sub(a: float64, b: Result<float64>) = subf64(ok(a), b);\nexport fn sub(a: Result<float64>, b: Result<float64>) = subf64(a, b);\n\nexport fn negate(n: int8) = negi8(n);\nexport fn negate(n: Result<int8>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(negi8(n.getR()));\n}\nexport fn negate(n: int16) = negi16(n);\nexport fn negate(n: Result<int16>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(negi16(n.getR()));\n}\nexport fn negate(n: int32) = negi32(n);\nexport fn negate(n: Result<int32>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(negi32(n.getR()));\n}\nexport fn negate(n: int64) = negi64(n);\nexport fn negate(n: Result<int64>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(negi64(n.getR()));\n}\nexport fn negate(n: float32) = negf32(n);\nexport fn negate(n: Result<float32>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(negf32(n.getR()));\n}\nexport fn negate(n: float64) = negf64(n);\nexport fn negate(n: Result<float64>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(negf64(n.getR()));\n}\n\nexport fn abs(n: int8) = absi8(n);\nexport fn abs(n: Result<int8>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(absi8(n.getR()));\n}\nexport fn abs(n: int16) = absi16(n);\nexport fn abs(n: Result<int16>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(absi16(n.getR()));\n}\nexport fn abs(n: int32) = absi32(n);\nexport fn abs(n: Result<int32>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(absi32(n.getR()));\n}\nexport fn abs(n: int64) = absi64(n);\nexport fn abs(n: Result<int64>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(absi64(n.getR()));\n}\nexport fn abs(n: float32) = absf32(n);\nexport fn abs(n: Result<float32>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(absf32(n.getR()));\n}\nexport fn abs(n: float64) = absf64(n);\nexport fn abs(n: Result<float64>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(absf64(n.getR()));\n}\n\nexport fn mul(a: int8, b: int8) = muli8(ok(a), ok(b));\nexport fn mul(a: Result<int8>, b: int8) = muli8(a, ok(b));\nexport fn mul(a: int8, b: Result<int8>) = muli8(ok(a), b);\nexport fn mul(a: Result<int8>, b: Result<int8>) = muli8(a, b);\nexport fn mul(a: int16, b: int16) = muli16(ok(a), ok(b));\nexport fn mul(a: Result<int16>, b: int16) = muli16(a, ok(b));\nexport fn mul(a: int16, b: Result<int16>) = muli16(ok(a), b);\nexport fn mul(a: Result<int16>, b: Result<int16>) = muli16(a, b);\nexport fn mul(a: int32, b: int32) = muli32(ok(a), ok(b));\nexport fn mul(a: Result<int32>, b: int32) = muli32(a, ok(b));\nexport fn mul(a: int32, b: Result<int32>) = muli32(ok(a), b);\nexport fn mul(a: Result<int32>, b: Result<int32>) = muli32(a, b);\nexport fn mul(a: int64, b: int64) = muli64(ok(a), ok(b));\nexport fn mul(a: Result<int64>, b: int64) = muli64(a, ok(b));\nexport fn mul(a: int64, b: Result<int64>) = muli64(ok(a), b);\nexport fn mul(a: Result<int64>, b: Result<int64>) = muli64(a, b);\nexport fn mul(a: float32, b: float32) = mulf32(ok(a), ok(b));\nexport fn mul(a: Result<float32>, b: float32) = mulf32(a, ok(b));\nexport fn mul(a: float32, b: Result<float32>) = mulf32(ok(a), b);\nexport fn mul(a: Result<float32>, b: Result<float32>) = mulf32(a, b);\nexport fn mul(a: float64, b: float64) = mulf64(ok(a), ok(b));\nexport fn mul(a: Result<float64>, b: float64) = mulf64(a, ok(b));\nexport fn mul(a: float64, b: Result<float64>) = mulf64(ok(a), b);\nexport fn mul(a: Result<float64>, b: Result<float64>) = mulf64(a, b);\n\nexport fn div(a: int8, b: int8) = divi8(ok(a), ok(b));\nexport fn div(a: Result<int8>, b: int8) = divi8(a, ok(b));\nexport fn div(a: int8, b: Result<int8>) = divi8(ok(a), b);\nexport fn div(a: Result<int8>, b: Result<int8>) = divi8(a, b);\nexport fn div(a: int16, b: int16) = divi16(ok(a), ok(b));\nexport fn div(a: Result<int16>, b: int16) = divi16(a, ok(b));\nexport fn div(a: int16, b: Result<int16>) = divi16(ok(a), b);\nexport fn div(a: Result<int16>, b: Result<int16>) = divi16(a, b);\nexport fn div(a: int32, b: int32) = divi32(ok(a), ok(b));\nexport fn div(a: Result<int32>, b: int32) = divi32(a, ok(b));\nexport fn div(a: int32, b: Result<int32>) = divi32(ok(a), b);\nexport fn div(a: Result<int32>, b: Result<int32>) = divi32(a, b);\nexport fn div(a: int64, b: int64) = divi64(ok(a), ok(b));\nexport fn div(a: Result<int64>, b: int64) = divi64(a, ok(b));\nexport fn div(a: int64, b: Result<int64>) = divi64(ok(a), b);\nexport fn div(a: Result<int64>, b: Result<int64>) = divi64(a, b);\nexport fn div(a: float32, b: float32) = divf32(ok(a), ok(b));\nexport fn div(a: Result<float32>, b: float32) = divf32(a, ok(b));\nexport fn div(a: float32, b: Result<float32>) = divf32(ok(a), b);\nexport fn div(a: Result<float32>, b: Result<float32>) = divf32(a, b);\nexport fn div(a: float64, b: float64) = divf64(ok(a), ok(b));\nexport fn div(a: Result<float64>, b: float64) = divf64(a, ok(b));\nexport fn div(a: float64, b: Result<float64>) = divf64(ok(a), b);\nexport fn div(a: Result<float64>, b: Result<float64>) = divf64(a, b);\n\nexport fn mod(a: int8, b: int8) = modi8(a, b);\nexport fn mod(a: Result<int8>, b: int8) {\n  if a.isErr() {\n    return a;\n  }\n  return ok(modi8(a.getR(), b));\n}\nexport fn mod(a: int8, b: Result<int8>) {\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi8(a, b.getR()));\n}\nexport fn mod(a: Result<int8>, b: Result<int8>) {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi8(a.getR(), b.getR()));\n}\nexport fn mod(a: int16, b: int16) = modi16(a, b);\nexport fn mod(a: Result<int16>, b: int16) {\n  if a.isErr() {\n    return a;\n  }\n  return ok(modi16(a.getR(), b));\n}\nexport fn mod(a: int16, b: Result<int16>) {\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi16(a, b.getR()));\n}\nexport fn mod(a: Result<int16>, b: Result<int16>) {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi16(a.getR(), b.getR()));\n}\nexport fn mod(a: int32, b: int32) = modi32(a, b);\nexport fn mod(a: Result<int32>, b: int32) {\n  if a.isErr() {\n    return a;\n  }\n  return ok(modi32(a.getR(), b));\n}\nexport fn mod(a: int32, b: Result<int32>) {\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi32(a, b.getR()));\n}\nexport fn mod(a: Result<int32>, b: Result<int32>) {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi32(a.getR(), b.getR()));\n}\nexport fn mod(a: int64, b: int64) = modi64(a, b);\nexport fn mod(a: Result<int64>, b: int64) {\n  if a.isErr() {\n    return a;\n  }\n  return ok(modi64(a.getR(), b));\n}\nexport fn mod(a: int64, b: Result<int64>) {\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi64(a, b.getR()));\n}\nexport fn mod(a: Result<int64>, b: Result<int64>) {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi64(a.getR(), b.getR()));\n}\n\nexport fn pow(a: int8, b: int8) = powi8(ok(a), ok(b));\nexport fn pow(a: Result<int8>, b: int8) = powi8(a, ok(b));\nexport fn pow(a: int8, b: Result<int8>) = powi8(ok(a), b);\nexport fn pow(a: Result<int8>, b: Result<int8>) = powi8(a, b);\nexport fn pow(a: int16, b: int16) = powi16(ok(a), ok(b));\nexport fn pow(a: Result<int16>, b: int16) = powi16(a, ok(b));\nexport fn pow(a: int16, b: Result<int16>) = powi16(ok(a), b);\nexport fn pow(a: Result<int16>, b: Result<int16>) = powi16(a, b);\nexport fn pow(a: int32, b: int32) = powi32(ok(a), ok(b));\nexport fn pow(a: Result<int32>, b: int32) = powi32(a, ok(b));\nexport fn pow(a: int32, b: Result<int32>) = powi32(ok(a), b);\nexport fn pow(a: Result<int32>, b: Result<int32>) = powi32(a, b);\nexport fn pow(a: int64, b: int64) = powi64(ok(a), ok(b));\nexport fn pow(a: Result<int64>, b: int64) = powi64(a, ok(b));\nexport fn pow(a: int64, b: Result<int64>) = powi64(ok(a), b);\nexport fn pow(a: Result<int64>, b: Result<int64>) = powi64(a, b);\nexport fn pow(a: float32, b: float32) = powf32(ok(a), ok(b));\nexport fn pow(a: Result<float32>, b: float32) = powf32(a, ok(b));\nexport fn pow(a: float32, b: Result<float32>) = powf32(ok(a), b);\nexport fn pow(a: Result<float32>, b: Result<float32>) = powf32(a, b);\nexport fn pow(a: float64, b: float64) = powf64(ok(a), ok(b));\nexport fn pow(a: Result<float64>, b: float64) = powf64(a, ok(b));\nexport fn pow(a: float64, b: Result<float64>) = powf64(ok(a), b);\nexport fn pow(a: Result<float64>, b: Result<float64>) = powf64(a, b);\n\nexport fn sqrt(n: float32) = sqrtf32(n);\nexport fn sqrt(n: Result<float32>) {\n  if n.isErr() {\n    return n;\n  }\n  return sqrtf32(n.getR());\n}\nexport fn sqrt(n: float64) = sqrtf64(n);\nexport fn sqrt(n: Result<float64>) {\n  if n.isErr() {\n    return n;\n  }\n  return sqrtf64(n.getR());\n}\n\nexport fn min(x: Orderable, y: Orderable): Orderable {\n  return cond(lte(x, y), [x, y]);\n}\nexport fn max(x: Orderable, y: Orderable): Orderable {\n  return cond(gte(x, y), [x, y]);\n}\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b);\nexport fn and(a: Result<int8>, b: int8): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(and(a.getR(), b));\n}\nexport fn and(a: int8, b: Result<int8>): Result<int8> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a, b.getR()));\n}\nexport fn and(a: Result<int8>, b: Result<int8>): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a.getR(), b.getR()));\n}\nexport fn and(a: int16, b: int16) = andi16(a, b);\nexport fn and(a: Result<int16>, b: int16): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(and(a.getR(), b));\n}\nexport fn and(a: int16, b: Result<int16>): Result<int16> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a, b.getR()));\n}\nexport fn and(a: Result<int16>, b: Result<int16>): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a.getR(), b.getR()));\n}\nexport fn and(a: int32, b: int32) = andi32(a, b);\nexport fn and(a: Result<int32>, b: int32): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(and(a.getR(), b));\n}\nexport fn and(a: int32, b: Result<int32>): Result<int32> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a, b.getR()));\n}\nexport fn and(a: Result<int32>, b: Result<int32>): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a.getR(), b.getR()));\n}\nexport fn and(a: int64, b: int64) = andi64(a, b);\nexport fn and(a: Result<int64>, b: int64): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(and(a.getR(), b));\n}\nexport fn and(a: int64, b: Result<int64>): Result<int64> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a, b.getR()));\n}\nexport fn and(a: Result<int64>, b: Result<int64>): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a.getR(), b.getR()));\n}\nexport fn and(a: bool, b: bool) = andbool(a, b);\nexport fn and(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(and(a.getR(), b));\n}\nexport fn and(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a, b.getR()));\n}\nexport fn and(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a.getR(), b.getR()));\n}\n\nexport fn or(a: int8, b: int8) = ori8(a, b);\nexport fn or(a: Result<int8>, b: int8): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(or(a.getR(), b));\n}\nexport fn or(a: int8, b: Result<int8>): Result<int8> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a, b.getR()));\n}\nexport fn or(a: Result<int8>, b: Result<int8>): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a.getR(), b.getR()));\n}\nexport fn or(a: int16, b: int16) = ori16(a, b);\nexport fn or(a: Result<int16>, b: int16): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(or(a.getR(), b));\n}\nexport fn or(a: int16, b: Result<int16>): Result<int16> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a, b.getR()));\n}\nexport fn or(a: Result<int16>, b: Result<int16>): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a.getR(), b.getR()));\n}\nexport fn or(a: int32, b: int32) = ori32(a, b);\nexport fn or(a: Result<int32>, b: int32): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(or(a.getR(), b));\n}\nexport fn or(a: int32, b: Result<int32>): Result<int32> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a, b.getR()));\n}\nexport fn or(a: Result<int32>, b: Result<int32>): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a.getR(), b.getR()));\n}\nexport fn or(a: int64, b: int64) = ori64(a, b);\nexport fn or(a: Result<int64>, b: int64): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(or(a.getR(), b));\n}\nexport fn or(a: int64, b: Result<int64>): Result<int64> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a, b.getR()));\n}\nexport fn or(a: Result<int64>, b: Result<int64>): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a.getR(), b.getR()));\n}\nexport fn or(a: bool, b: bool) = orbool(a, b);\nexport fn or(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(or(a.getR(), b));\n}\nexport fn or(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a, b.getR()));\n}\nexport fn or(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a.getR(), b.getR()));\n}\n// This aliasing is for operator definition purposes only\nexport fn boolor(a: bool, b: bool) = orbool(a, b);\nexport fn boolor(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(boolor(a.getR(), b));\n}\nexport fn boolor(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(boolor(a, b.getR()));\n}\nexport fn boolor(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(boolor(a.getR(), b.getR()));\n}\n\nexport fn xor(a: int8, b: int8) = xori8(a, b);\nexport fn xor(a: Result<int8>, b: int8): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xor(a.getR(), b));\n}\nexport fn xor(a: int8, b: Result<int8>): Result<int8> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a, b.getR()));\n}\nexport fn xor(a: Result<int8>, b: Result<int8>): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a.getR(), b.getR()));\n}\nexport fn xor(a: int16, b: int16) = xori16(a, b);\nexport fn xor(a: Result<int16>, b: int16): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xor(a.getR(), b));\n}\nexport fn xor(a: int16, b: Result<int16>): Result<int16> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a, b.getR()));\n}\nexport fn xor(a: Result<int16>, b: Result<int16>): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a.getR(), b.getR()));\n}\nexport fn xor(a: int32, b: int32) = xori32(a, b);\nexport fn xor(a: Result<int32>, b: int32): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xor(a.getR(), b));\n}\nexport fn xor(a: int32, b: Result<int32>): Result<int32> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a, b.getR()));\n}\nexport fn xor(a: Result<int32>, b: Result<int32>): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a.getR(), b.getR()));\n}\nexport fn xor(a: int64, b: int64) = xori64(a, b);\nexport fn xor(a: Result<int64>, b: int64): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xor(a.getR(), b));\n}\nexport fn xor(a: int64, b: Result<int64>): Result<int64> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a, b.getR()));\n}\nexport fn xor(a: Result<int64>, b: Result<int64>): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a.getR(), b.getR()));\n}\nexport fn xor(a: bool, b: bool) = xorbool(a, b);\nexport fn xor(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xor(a.getR(), b));\n}\nexport fn xor(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a, b.getR()));\n}\nexport fn xor(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a.getR(), b.getR()));\n}\n\nexport fn not(n: int8) = noti8(n);\nexport fn not(n: Result<int8>): Result<int8> {\n  if n.isErr() {\n    return n;\n  }\n  return ok(not(n.getR()));\n}\nexport fn not(n: int16) = noti16(n);\nexport fn not(n: Result<int16>): Result<int16> {\n  if n.isErr() {\n    return n;\n  }\n  return ok(not(n.getR()));\n}\nexport fn not(n: int32) = noti32(n);\nexport fn not(n: Result<int32>): Result<int32> {\n  if n.isErr() {\n    return n;\n  }\n  return ok(not(n.getR()));\n}\nexport fn not(n: int64) = noti64(n);\nexport fn not(n: Result<int64>): Result<int64> {\n  if n.isErr() {\n    return n;\n  }\n  return ok(not(n.getR()));\n}\nexport fn not(n: bool) = notbool(n);\nexport fn not(n: Result<bool>): Result<bool> {\n  if n.isErr() {\n    return n;\n  }\n  return ok(not(n.getR()));\n}\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b);\nexport fn nand(a: Result<int8>, b: int8): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nand(a.getR(), b));\n}\nexport fn nand(a: int8, b: Result<int8>): Result<int8> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a, b.getR()));\n}\nexport fn nand(a: Result<int8>, b: Result<int8>): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a.getR(), b.getR()));\n}\nexport fn nand(a: int16, b: int16) = nandi16(a, b);\nexport fn nand(a: Result<int16>, b: int16): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nand(a.getR(), b));\n}\nexport fn nand(a: int16, b: Result<int16>): Result<int16> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a, b.getR()));\n}\nexport fn nand(a: Result<int16>, b: Result<int16>): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a.getR(), b.getR()));\n}\nexport fn nand(a: int32, b: int32) = nandi32(a, b);\nexport fn nand(a: Result<int32>, b: int32): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nand(a.getR(), b));\n}\nexport fn nand(a: int32, b: Result<int32>): Result<int32> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a, b.getR()));\n}\nexport fn nand(a: Result<int32>, b: Result<int32>): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a.getR(), b.getR()));\n}\nexport fn nand(a: int64, b: int64) = nandi64(a, b);\nexport fn nand(a: Result<int64>, b: int64): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nand(a.getR(), b));\n}\nexport fn nand(a: int64, b: Result<int64>): Result<int64> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a, b.getR()));\n}\nexport fn nand(a: Result<int64>, b: Result<int64>): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a.getR(), b.getR()));\n}\nexport fn nand(a: bool, b: bool) = nandboo(a, b);\nexport fn nand(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nand(a.getR(), b));\n}\nexport fn nand(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a, b.getR()));\n}\nexport fn nand(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a.getR(), b.getR()));\n}\n\nexport fn nor(a: int8, b: int8) = nori8(a, b);\nexport fn nor(a: Result<int8>, b: int8): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nor(a.getR(), b));\n}\nexport fn nor(a: int8, b: Result<int8>): Result<int8> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a, b.getR()));\n}\nexport fn nor(a: Result<int8>, b: Result<int8>): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a.getR(), b.getR()));\n}\nexport fn nor(a: int16, b: int16) = nori16(a, b);\nexport fn nor(a: Result<int16>, b: int16): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nor(a.getR(), b));\n}\nexport fn nor(a: int16, b: Result<int16>): Result<int16> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a, b.getR()));\n}\nexport fn nor(a: Result<int16>, b: Result<int16>): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a.getR(), b.getR()));\n}\nexport fn nor(a: int32, b: int32) = nori32(a, b);\nexport fn nor(a: Result<int32>, b: int32): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nor(a.getR(), b));\n}\nexport fn nor(a: int32, b: Result<int32>): Result<int32> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a, b.getR()));\n}\nexport fn nor(a: Result<int32>, b: Result<int32>): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a.getR(), b.getR()));\n}\nexport fn nor(a: int64, b: int64) = nori64(a, b);\nexport fn nor(a: Result<int64>, b: int64): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nor(a.getR(), b));\n}\nexport fn nor(a: int64, b: Result<int64>): Result<int64> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a, b.getR()));\n}\nexport fn nor(a: Result<int64>, b: Result<int64>): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a.getR(), b.getR()));\n}\nexport fn nor(a: bool, b: bool) = norbool(a, b);\nexport fn nor(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nor(a.getR(), b));\n}\nexport fn nor(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a, b.getR()));\n}\nexport fn nor(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a.getR(), b.getR()));\n}\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b);\nexport fn xnor(a: Result<int8>, b: int8): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xnor(a.getR(), b));\n}\nexport fn xnor(a: int8, b: Result<int8>): Result<int8> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a, b.getR()));\n}\nexport fn xnor(a: Result<int8>, b: Result<int8>): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a.getR(), b.getR()));\n}\nexport fn xnor(a: int16, b: int16) = xnori16(a, b);\nexport fn xnor(a: Result<int16>, b: int16): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xnor(a.getR(), b));\n}\nexport fn xnor(a: int16, b: Result<int16>): Result<int16> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a, b.getR()));\n}\nexport fn xnor(a: Result<int16>, b: Result<int16>): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a.getR(), b.getR()));\n}\nexport fn xnor(a: int32, b: int32) = xnori32(a, b);\nexport fn xnor(a: Result<int32>, b: int32): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xnor(a.getR(), b));\n}\nexport fn xnor(a: int32, b: Result<int32>): Result<int32> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a, b.getR()));\n}\nexport fn xnor(a: Result<int32>, b: Result<int32>): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a.getR(), b.getR()));\n}\nexport fn xnor(a: int64, b: int64) = xnori64(a, b);\nexport fn xnor(a: Result<int64>, b: int64): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xnor(a.getR(), b));\n}\nexport fn xnor(a: int64, b: Result<int64>): Result<int64> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a, b.getR()));\n}\nexport fn xnor(a: Result<int64>, b: Result<int64>): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a.getR(), b.getR()));\n}\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b);\nexport fn xnor(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xnor(a.getR(), b));\n}\nexport fn xnor(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a, b.getR()));\n}\nexport fn xnor(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a.getR(), b.getR()));\n}\n\n// Equality and order functions\n// TODO: Similarly, should equality/orderability functions accept Result-wrapped values?\nexport fn eq(a: int8, b: int8) = eqi8(a, b);\nexport fn eq(a: Result<int8>, b: int8): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: int8, b: Result<int8>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<int8>, b: Result<int8>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: int16, b: int16) = eqi16(a, b);\nexport fn eq(a: Result<int16>, b: int16): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: int16, b: Result<int16>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<int16>, b: Result<int16>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: int32, b: int32) = eqi32(a, b);\nexport fn eq(a: Result<int32>, b: int32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: int32, b: Result<int32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<int32>, b: Result<int32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: int64, b: int64) = eqi64(a, b);\nexport fn eq(a: Result<int64>, b: int64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: int64, b: Result<int64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<int64>, b: Result<int64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: float32, b: float32) = eqf32(a, b);\nexport fn eq(a: Result<float32>, b: float32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: float32, b: Result<float32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<float32>, b: Result<float32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: float64, b: float64) = eqf64(a, b);\nexport fn eq(a: Result<float64>, b: float64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: float64, b: Result<float64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<float64>, b: Result<float64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: string, b: string) = eqstr(a, b);\nexport fn eq(a: Result<string>, b: string): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: string, b: Result<string>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<string>, b: Result<string>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: bool, b: bool) = eqbool(a, b);\nexport fn eq(a: Result<bool>, b: bool): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: bool, b: Result<bool>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<bool>, b: Result<bool>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b);\nexport fn neq(a: Result<int8>, b: int8): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: int8, b: Result<int8>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<int8>, b: Result<int8>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: int16, b: int16) = neqi16(a, b);\nexport fn neq(a: Result<int16>, b: int16): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: int16, b: Result<int16>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<int16>, b: Result<int16>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: int32, b: int32) = neqi32(a, b);\nexport fn neq(a: Result<int32>, b: int32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: int32, b: Result<int32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<int32>, b: Result<int32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: int64, b: int64) = neqi64(a, b);\nexport fn neq(a: Result<int64>, b: int64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: int64, b: Result<int64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<int64>, b: Result<int64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: float32, b: float32) = neqf32(a, b);\nexport fn neq(a: Result<float32>, b: float32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: float32, b: Result<float32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<float32>, b: Result<float32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: float64, b: float64) = neqf64(a, b);\nexport fn neq(a: Result<float64>, b: float64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: float64, b: Result<float64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<float64>, b: Result<float64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: string, b: string) = neqstr(a, b);\nexport fn neq(a: Result<string>, b: string): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: string, b: Result<string>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<string>, b: Result<string>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: bool, b: bool) = neqbool(a, b);\nexport fn neq(a: Result<bool>, b: bool): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: bool, b: Result<bool>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<bool>, b: Result<bool>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\n\nexport fn lt(a: int8, b: int8) = lti8(a, b);\nexport fn lt(a: Result<int8>, b: int8): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: int8, b: Result<int8>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<int8>, b: Result<int8>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\nexport fn lt(a: int16, b: int16) = lti16(a, b);\nexport fn lt(a: Result<int16>, b: int16): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: int16, b: Result<int16>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<int16>, b: Result<int16>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\nexport fn lt(a: int32, b: int32) = lti32(a, b);\nexport fn lt(a: Result<int32>, b: int32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: int32, b: Result<int32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<int32>, b: Result<int32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\nexport fn lt(a: int64, b: int64) = lti64(a, b);\nexport fn lt(a: Result<int64>, b: int64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: int64, b: Result<int64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<int64>, b: Result<int64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\nexport fn lt(a: float32, b: float32) = ltf32(a, b);\nexport fn lt(a: Result<float32>, b: float32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: float32, b: Result<float32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<float32>, b: Result<float32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\nexport fn lt(a: float64, b: float64) = ltf64(a, b);\nexport fn lt(a: Result<float64>, b: float64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: float64, b: Result<float64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<float64>, b: Result<float64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\nexport fn lt(a: string, b: string) = ltstr(a, b);\nexport fn lt(a: Result<string>, b: string): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: string, b: Result<string>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<string>, b: Result<string>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b);\nexport fn lte(a: Result<int8>, b: int8): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: int8, b: Result<int8>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<int8>, b: Result<int8>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\nexport fn lte(a: int16, b: int16) = ltei16(a, b);\nexport fn lte(a: Result<int16>, b: int16): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: int16, b: Result<int16>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<int16>, b: Result<int16>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\nexport fn lte(a: int32, b: int32) = ltei32(a, b);\nexport fn lte(a: Result<int32>, b: int32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: int32, b: Result<int32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<int32>, b: Result<int32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\nexport fn lte(a: int64, b: int64) = ltei64(a, b);\nexport fn lte(a: Result<int64>, b: int64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: int64, b: Result<int64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<int64>, b: Result<int64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\nexport fn lte(a: float32, b: float32) = ltef32(a, b);\nexport fn lte(a: Result<float32>, b: float32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: float32, b: Result<float32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<float32>, b: Result<float32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\nexport fn lte(a: float64, b: float64) = ltef64(a, b);\nexport fn lte(a: Result<float64>, b: float64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: float64, b: Result<float64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<float64>, b: Result<float64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\nexport fn lte(a: string, b: string) = ltestr(a, b);\nexport fn lte(a: Result<string>, b: string): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: string, b: Result<string>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<string>, b: Result<string>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\n\nexport fn gt(a: int8, b: int8) = gti8(a, b);\nexport fn gt(a: Result<int8>, b: int8): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: int8, b: Result<int8>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<int8>, b: Result<int8>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\nexport fn gt(a: int16, b: int16) = gti16(a, b);\nexport fn gt(a: Result<int16>, b: int16): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: int16, b: Result<int16>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<int16>, b: Result<int16>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\nexport fn gt(a: int32, b: int32) = gti32(a, b);\nexport fn gt(a: Result<int32>, b: int32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: int32, b: Result<int32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<int32>, b: Result<int32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\nexport fn gt(a: int64, b: int64) = gti64(a, b);\nexport fn gt(a: Result<int64>, b: int64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: int64, b: Result<int64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<int64>, b: Result<int64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\nexport fn gt(a: float32, b: float32) = gtf32(a, b);\nexport fn gt(a: Result<float32>, b: float32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: float32, b: Result<float32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<float32>, b: Result<float32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\nexport fn gt(a: float64, b: float64) = gtf64(a, b);\nexport fn gt(a: Result<float64>, b: float64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: float64, b: Result<float64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<float64>, b: Result<float64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\nexport fn gt(a: string, b: string) = gtstr(a, b);\nexport fn gt(a: Result<string>, b: string): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: string, b: Result<string>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<string>, b: Result<string>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b);\nexport fn gte(a: Result<int8>, b: int8): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: int8, b: Result<int8>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<int8>, b: Result<int8>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\nexport fn gte(a: int16, b: int16) = gtei16(a, b);\nexport fn gte(a: Result<int16>, b: int16): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: int16, b: Result<int16>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<int16>, b: Result<int16>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\nexport fn gte(a: int32, b: int32) = gtei32(a, b);\nexport fn gte(a: Result<int32>, b: int32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: int32, b: Result<int32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<int32>, b: Result<int32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\nexport fn gte(a: int64, b: int64) = gtei64(a, b);\nexport fn gte(a: Result<int64>, b: int64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: int64, b: Result<int64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<int64>, b: Result<int64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\nexport fn gte(a: float32, b: float32) = gtef32(a, b);\nexport fn gte(a: Result<float32>, b: float32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: float32, b: Result<float32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<float32>, b: Result<float32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\nexport fn gte(a: float64, b: float64) = gtef64(a, b);\nexport fn gte(a: Result<float64>, b: float64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: float64, b: Result<float64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<float64>, b: Result<float64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\nexport fn gte(a: string, b: string) = gtestr(a, b);\nexport fn gte(a: Result<string>, b: string): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: string, b: Result<string>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<string>, b: Result<string>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n));\nexport fn wait(n: int16) = waitop(i16i64(n));\nexport fn wait(n: int32) = waitop(i32i64(n));\nexport fn wait(n: int64) = waitop(n);\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b);\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n);\n// export fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t);\nexport fn length(s: string) = lenstr(s);\nexport trim // opcode with signature `fn trim(s: string): string`\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b);\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n);\nexport fn index(arr: Array<any>, val: any) = indarrv(arr, val);\nexport fn index(arr: Array<int8>, val: int8) = indarrf(arr, val);\nexport fn index(arr: Array<int16>, val: int16) = indarrf(arr, val);\nexport fn index(arr: Array<int32>, val: int32) = indarrf(arr, val);\nexport fn index(arr: Array<int64>, val: int64) = indarrf(arr, val);\nexport fn index(arr: Array<float32>, val: float32) = indarrf(arr, val);\nexport fn index(arr: Array<float64>, val: float64) = indarrf(arr, val);\nexport fn index(arr: Array<bool>, val: bool) = indarrf(arr, val);\nexport fn has(arr: Array<any>, val: any) = indarrv(arr, val).isOk();\nexport fn has(arr: Array<int8>, val: int8) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<int16>, val: int16) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<int32>, val: int32) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<int64>, val: int64) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<float32>, val: float32) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<float64>, val: float64) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<bool>, val: bool) = indarrf(arr, val).isOk();\nexport fn length(arr: Array<any>) = lenarr(arr);\nexport fn push(arr: Array<any>, val: any) {\n  pusharr(arr, val, 0);\n  return arr;\n}\nexport fn push(arr: Array<int8>, val: int8) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<int16>, val: int16) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<int32>, val: int32) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<int64>, val: int64) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<float32>, val: float32) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<float64>, val: float64) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<bool>, val: bool) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn pop(arr: Array<any>) = poparr(arr);\nexport each // parallel opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport fn eachLin(arr: Array<any>, cb: function): void = eachl(arr, cb);\nexport map // parallel opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport fn mapLin(arr: Array<any>, cb: function): Array<anythingElse> = mapl(arr, cb);\n/**\n * Unlike the other array functions, reduce is sequential by default and parallelism must be opted\n * in. This is due to the fact that parallelism requires the reducer function to be commutative or\n * associative, otherwise it will return different values on each run, and the compiler has no way\n * to guarantee that your reducer function is commutative or associative.\n *\n * There are four reduce functions instead of two as expected, because a reducer that reduces into\n * the same datatype requires less work than one that reduces into a new datatype. To reduce into a\n * new datatype you need an initial value in that new datatype that the reducer can provide to the\n * first reduction call to \"get the ball rolling.\" And there are extra constraints if you want the\n * reducer to run in parallel: that initial value will be used multiple times for each of the\n * parallel threads of computation, so that initial value has to be idempotent for it to work. Then\n * you're left with multiple reduced results that cannot be combined with each other with the main\n * reducer, so you need to provide a second reducer function that takes the resulting datatype and\n * can combine them with each other successfully, and that one *also* needs to be a commutative or\n * associative function.\n *\n * The complexities involved in writing a parallel reducer are why we decided to make the sequential\n * version the default, as the extra overhead is not something most developers are used to, whether\n * they hail from the functional programming world or the imperative world.\n *\n * On that note, you'll notice that the opcodes are named after `reduce` and `fold`. This is the\n * naming scheme that functional language programmers would be used to, but Java and Javascript\n * combined them both as `reduce`, so we have maintained that convention as we expect fewer people\n * needing to adapt to that change, it being a change they're likely already familiar with, and\n * noting that an extra argument that makes it equivalent to `fold` is easier than trying to find\n * the 3 or 4 arg variant under a different name.\n */\nexport fn reduce(arr: Array<any>, cb: function): any = reducel(arr, cb);\nexport fn reducePar(arr: Array<any>, cb: function): any = reducep(arr, cb);\n/**\n * This type is used to reduce the number of arguments passed to the opcodes, which can only take 2\n * arguments if they return a value, or 3 arguments if they are a side-effect-only opcode, and is an\n * implementation detail of the 3 and 4 arg reduce functions.\n */\ntype InitialReduce<T, U> {\n  arr: Array<T>,\n  initial: U,\n}\nexport fn reduce(arr: Array<any>, cb: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr: arr,\n    initial: initial,\n  };\n  return foldl(args, cb);\n}\nexport fn reducePar(arr: Array<any>, transformer: function, merger: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr: arr,\n    initial: initial,\n  };\n  const intermediate = foldp(args, transformer);\n  return reducep(intermediate, merger);\n}\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): Result<any>`\nexport fn findLin(arr: Array<any>, cb: function): Result<any> = findl(arr, cb);\nexport every // parallel opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport fn everyLin(arr: Array<any>, cb: function): bool = everyl(arr, cb);\nexport some // parallel opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport fn someLin(arr: Array<any>, cb: function): bool = somel(arr, cb);\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\nexport fn delete(arr: Array<any>, idx: int64): Result<any> = delindx(arr, idx);\nexport fn delete(arr: Array<any>, idx: Result<int64>): Result<any> {\n  if idx.isErr() {\n    return idx;\n  }\n  return delindx(arr, idx.getR());\n}\nexport fn set(arr: Array<any>, idx: int64, val: any) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytov(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int8>, idx: int64, val: int8) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int16>, idx: int64, val: int16) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int32>, idx: int64, val: int32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int64>, idx: int64, val: int64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<float32>, idx: int64, val: float32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<float64>, idx: int64, val: float64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<bool>, idx: int64, val: bool) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\n\n// Ternary functions\nexport fn pair(trueval: any, falseval: any) = new Array<any> [ trueval, falseval ];\nexport fn cond(c: bool, options: Array<any>) = getR(options[1.sub(c.toInt64())]);\nexport fn cond(c: bool, optional: function): void = condfn(c, optional);\n\n// \"clone\" function useful for hoisting assignments and making duplicates\nexport fn clone(a: any) = copyarr(a);\nexport fn clone(a: Array<any>) = copyarr(a);\nexport fn clone(a: void) = copyvoid(a); // TODO: Eliminate this, covering up a weird error\nexport fn clone() = zeroed(); // TODO: Used for conditionals, eliminate with more clever compiler\nexport fn clone(a: int8) = copyi8(a);\nexport fn clone(a: int16) = copyi16(a);\nexport fn clone(a: int32) = copyi32(a);\nexport fn clone(a: int64) = copyi64(a);\nexport fn clone(a: float32) = copyf32(a);\nexport fn clone(a: float64) = copyf64(a);\nexport fn clone(a: bool) = copybool(a);\nexport fn clone(a: string) = copystr(a);\n\n// toHash functions for all data types\nexport fn toHash(val: any) = hashv(val);\nexport fn toHash(val: int8) = hashf(val);\nexport fn toHash(val: int16) = hashf(val);\nexport fn toHash(val: int32) = hashf(val);\nexport fn toHash(val: int64) = hashf(val);\nexport fn toHash(val: float32) = hashf(val);\nexport fn toHash(val: float64) = hashf(val);\nexport fn toHash(val: bool) = hashf(val);\n\n// HashMap implementation\nexport type KeyVal<K, V> {\n  key: K,\n  val: V,\n}\n\nexport interface Hashable {\n  toHash(Hashable): int64,\n  eq(Hashable, Hashable): bool,\n}\n\nexport type HashMap<K, V> {\n  keyVal: Array<KeyVal<K, V>>,\n  lookup: Array<Array<int64>>,\n}\n\nexport fn keyVal(hm: HashMap<Hashable, any>) = hm.keyVal;\nexport fn keys(hm: HashMap<Hashable, any>): Array<Hashable> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): Hashable = kv.key);\nexport fn vals(hm: HashMap<Hashable, any>): Array<any> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): any = kv.val);\nexport fn length(hm: HashMap<Hashable, any>): int64 = length(hm.keyVal);\n\nexport fn get(hm: HashMap<Hashable, any>, key: Hashable): any {\n  const hash = key.toHash().abs() % length(hm.lookup);\n  const list = getR(hm.lookup[hash]);\n  const index = list.find(fn (i: int64): Array<int64> {\n    const kv = getR(hm.keyVal[i]);\n    return eq(kv.key, key);\n  });\n  if index.isOk() {\n    const i = index.getOr(0);\n    const kv = getR(hm.keyVal[i]);\n    return ok(kv.val);\n  } else {\n    return err('key not found');\n  }\n}\n\nexport fn set(hm: HashMap<Hashable, any>, key: Hashable, val: any): HashMap<Hashable, any> {\n  const kv = new KeyVal<Hashable, any> {\n    key: key,\n    val: val,\n  };\n  const index = length(hm.keyVal);\n  push(hm.keyVal, kv);\n  const hash = key.toHash().abs() % length(hm.lookup);\n  const list = getR(hm.lookup[hash]);\n  if list.length() == 8 {\n    // Rebucket everything\n    const lookupLen = length(hm.lookup) * 2 || 0;\n    hm.lookup = new Array<Array<int64>> [ new Array<int64> [], ] * lookupLen;\n    eachl(hm.keyVal, fn (kv: KeyVal<Hashable, any>, i: int64) {\n      const hash = toHash(kv.key).abs() % lookupLen;\n      const list = getR(hm.lookup[hash]);\n      list.push(i);\n    });\n  } else if list.find(fn (idx: int64): bool {\n    const rec = hm.keyVal[idx].getR();\n    return eq(rec.key, key);\n  }).isOk() {\n    list.eachLin(fn (idx: int64, i: int64) {\n      const rec = hm.keyVal[idx].getR();\n      if eq(rec.key, key) {\n        list[i] = index;\n      }\n    });\n  } else {\n    list.push(index);\n  }\n  return hm;\n}\n\nexport fn newHashMap(firstKey: Hashable, firstVal: any): HashMap<Hashable, any> { // TODO: Rust-like fn::<typeA, typeB> syntax?\n  let hm = new HashMap<Hashable, any> {\n    keyVal: new Array<KeyVal<Hashable, any>> [],\n    lookup: new Array<Array<int64>> [ new Array<int64> [] ] * 128, // 1KB of space\n  };\n  return hm.set(firstKey, firstVal);\n}\n\nexport fn toHashMap(kva: Array<KeyVal<Hashable, any>>) {\n  let hm = new HashMap<Hashable, any> {\n    keyVal: kva,\n    lookup: new Array<Array<int64>> [ new Array<int64> [] ] * 128,\n  };\n  kva.eachl(fn (kv: KeyVal<Hashable, any>, i: int64) {\n    const hash = toHash(kv.key).abs() % length(hm.lookup);\n    const list = getR(hm.lookup[hash]);\n    list.push(i);\n  });\n  return hm;\n}\n\n// Tree implementation\n\n// The Tree type houses all of the values attached to a tree in an array and two secondary arrays to\n// hold the metadata on which value is the parent and which are children, if any. The parent value\n// is `-1` if it has no parent and a positive integer otherwise.\nexport type Tree<T> {\n  vals: Array<T>,\n  parents: Array<int64>,\n  children: Array<Array<int64>>,\n}\n\n// The Node type simply holds the index to look into the tree for a particular value-parent-children\n// triplet, where that index is referred to as a node ID. This allows node-based code to be written\n// while not actually having a recursive data structure that a traditional Node type would define.\nexport type Node<T> {\n  id: int64,\n  tree: Tree<T>,\n}\n\nexport fn newTree(rootVal: any): Tree<any> = new Tree<any> {\n  vals: new Array<any> [ rootVal ],\n  parents: new Array<int64> [ -1 ], // The root node has no parent, so its parent ID is -1.\n  children: new Array<Array<int64>> [ new Array<int64> [ ] ],\n};\n\nexport fn getRootNode(t: Tree<any>): Node<any> {\n  if has(t.parents, -1) {\n    return new Node<any> {\n      id: index(t.parents, -1).getOr(0),\n      tree: t,\n    };\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    };\n  }\n}\n\nexport fn getTree(n: Node<any>): Tree<any> = n.tree;\n\nexport fn length(t: Tree<any>): int64 = length(t.vals);\n\nexport fn getNodeById(t: Tree<any>, i: int64): Node<any> {\n  if length(t.vals).gt(i) {\n    return new Node<any> {\n      id: i,\n      tree: t,\n    };\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    };\n  }\n}\n\nexport fn getParent(n: Node<any>): Node<any> {\n  const parentId = getOr(n.tree.parents[n.id], -1);\n  if parentId > -1 {\n    return new Node<any> {\n      id: parentId,\n      tree: n.tree,\n    };\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    };\n  }\n}\n\nexport fn getChildren(n: Node<any>): Array<Node<any>> {\n  if length(n.tree.vals).gt(n.id) {\n    const childIds = getOr(n.tree.children[n.id], new Array<int64> []);\n    return childIds.filter(fn (id: int64): bool {\n      const parentId = getOr(n.tree.parents[id], -1);\n      return parentId.eq(n.id);\n    }).map(fn (id: int64): Node<any> {\n      return new Node<any> {\n        id: id,\n        tree: n.tree,\n      };\n    });\n  } else {\n    return new Array<Node<any>> [ ];\n  }\n}\n\n// Returns the pruned Tree\nexport fn prune(n: Node<any>): Tree<any> {\n  // adjust parent's children\n  const parentRes = n.tree.parents[n.id];\n  if parentRes.isOk() {\n    const parentId = parentRes.getR();\n    const children = getOr(n.tree.children[parentId], new Array<int64> []);\n    const idxRes = index(children, n.id);\n    if idxRes.isOk() {\n      delete(children, idxRes);\n    }\n  }\n  // This is, unfortunately for now, a sequential algorithm. Hope to figure out a parallel version\n  let nodeStack = new Array<int64> [ n.id ];\n  let rmdIds = new Array<int64> [ ];\n  seqdo(newseq(pow(2, 62).getOr(0)), fn (): bool {\n    // Get the nodeId, exit if none left\n    const nodeRes = nodeStack.pop();\n    if nodeRes.isErr() {\n      return false;\n    }\n    const nodeId = nodeRes.getR();\n    // Push the children onto the stack to process if the node has them\n    const childrenRes = n.tree.children[nodeId];\n    if childrenRes.isOk() {\n      const childrenIds = childrenRes.getR();\n      nodeStack = nodeStack.concat(childrenIds);\n    }\n    const delIdx = nodeId - length(rmdIds);\n    delete(n.tree.vals, delIdx);\n    delete(n.tree.parents, delIdx);\n    delete(n.tree.children, delIdx);\n    push(rmdIds, nodeId);\n    return true;\n  });\n\n  // adjust indices for remaining elements\n  const iters = length(n.tree.parents);\n  seqeach(newseq(iters), fn (i: int64) {\n    const parentId = getOr(n.tree.parents[i], -1);\n    const parentDelta = rmdIds.filter(fn (rmId: int64): bool = parentId > rmId).length();\n    if parentDelta > 0 {\n      set(n.tree.parents, i, parentId - parentDelta || 0);\n    }\n    const children = getOr(n.tree.children[i], new Array<int64> []);\n    const newChildren = children.map(fn (cId: int64): int64 {\n      const delta = rmdIds.filter(fn (rmdId: int64): bool = cId > rmdId).length();\n      if delta > 0 {\n        return cId - delta || 0;\n      }\n      return cId;\n    });\n    set(n.tree.children, i, newChildren);\n  });\n  return n.tree;\n}\n\nexport fn getChildren(t: Tree<any>): Array<Node<any>> = t.getRootNode().getChildren();\n\n// returns the new child node added\nexport fn addChild(n: Node<any>, val: any): Node<any> {\n  const childId = length(n.tree.vals);\n  push(n.tree.vals, val);\n  push(n.tree.parents, n.id);\n  push(n.tree.children, new Array<int64> [ ]);\n  push(getOr(n.tree.children[n.id], new Array<int64> []), childId);\n  return new Node<any> {\n    id: childId,\n    tree: n.tree,\n  };\n}\n\nexport fn addChild(t: Tree<any>, val: any): Node<any> = t.getRootNode().addChild(val);\n\nexport fn addChild(t: Tree<any>, val: Node<any>): Node<any> = t.getRootNode().addChild(val);\n\nexport fn addChild(n: Node<any>, val: Tree<any>): Node<any> = n.addChild(val.getRootNode());\n\nexport fn getOr(n: Node<any>, default: any): any = getOr(n.tree.vals[n.id], default);\n\nexport fn toNodeArray(t: Tree<any>): Array<Node<any>> = map(\n  t.vals,\n  fn (val: any, i: int64): Node<any> = t.getNodeById(i)\n);\n\nexport fn map(t: Tree<any>, mapper: function): Tree<anythingElse> {\n  return new Tree<anythingElse> {\n    vals: t.toNodeArray().map(mapper),\n    parents: clone(t.parents),\n    children: clone(t.children),\n  };\n}\n\nexport fn some(t: Tree<any>, mapper: function): bool = t.toNodeArray().some(mapper);\n\nexport fn every(t: Tree<any>, mapper: function): bool = t.toNodeArray().every(mapper);\n\nexport fn reduce(t: Tree<any>, cb: function, initial: anythingElse): bool = t\n  .toNodeArray()\n  .reduce(cb, initial);\n\nexport fn find(t: Tree<any>, mapper: function): Node<any> {\n  // Return an invalid node, will behave like an error result\n  return t.toNodeArray().find(mapper).getOr(\n    new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    }\n  );\n}\n\n// Operator declarations\nexport infix add as + precedence 2\nexport infix concat as + precedence 2\nexport infix sub as - precedence 2\nexport prefix negate as - precedence 1\nexport infix mul as * precedence 3\nexport infix repeat as * precedence 3\nexport infix div as / precedence 3\nexport infix split as / precedence 3\nexport infix mod as % precedence 3\n// export infix template as % precedence 3\nexport infix pow as ** precedence 4\nexport infix and as & precedence 3\nexport infix and as && precedence 3\nexport infix or as | precedence 2\nexport infix boolor as || precedence 2\nexport infix xor as ^ precedence 2\nexport prefix not as ! precedence 4\nexport infix nand as !& precedence 3\nexport infix nor as !| precedence 2\nexport infix xnor as !^ precedence 2\nexport infix eq as == precedence 1\nexport infix neq as != precedence 1\nexport infix lt as < precedence 1\nexport infix lte as <= precedence 1\nexport infix gt as > precedence 1\nexport infix gte as >= precedence 1\nexport infix matches as ~ precedence 1\nexport infix index as @ precedence 1\nexport prefix length as # precedence 4\nexport prefix trim as ` precedence 4\nexport infix pair as : precedence 5\nexport infix push as : precedence 6\nexport infix cond as ? precedence 0\nexport infix getOr as || precedence 2\n","seq.ln":"/**\n * @std/seq - Tools for sequential algorithms. Use if you must.\n */\n\n// The `Seq` opaque type used by these algorithms to guarantee halting\nexport Seq\n\n// The `seq` constructor function\nexport fn seq(limit: int64): Seq = newseq(limit);\n\n// A basic iterator function, unlikely to be useful outside of these functions\nexport fn next(seq: Seq): Result<int64> = seqnext(seq);\n\n// An automatic iterator that executes the provided function in sequence until the limit is reached\nexport fn each(seq: Seq, func: function): void = seqeach(seq, func);\n\n// A while loop with an initial conditional check\nexport fn while(seq: Seq, condFn: function, bodyFn: function): void = seqwhile(seq, condFn, bodyFn);\n\n// A do-while loop that returns the conditional check\nexport fn doWhile(seq: Seq, bodyFn: function): void = seqdo(seq, bodyFn);\n\n// Recursive functions in Alan require a \"trampoline\" outside of the grammar of the language to work\n// so a special \"Self\" type exists that internally references the Seq type and the relevant function\n// and provides the mechanism to re-schedule the recursive function to call with a new argument.\nexport Self\n\n// There are two `recurse` functions. The first is on the `self` object that has an internal\n// reference to the relevant seq and recursive function to be called and is meant to be used within\n// the recursive function. The second sets it all off with a sequence operator, the recursive\n// function in question, and the query argument, and is using the first function under the hood.\nexport fn recurse(self: Self, arg: any): Result<anythingElse> = selfrec(self, arg);\nexport fn recurse(seq: Seq, recurseFn: function, arg: any): Result<anythingElse> {\n  let self = seqrec(seq, recurseFn);\n  return selfrec(self, arg);\n}\n\n// TODO: Add the generator piece of the seq rfc\n","trig.ln":"export const e = 2.718281828459045;\nexport const pi = 3.141592653589793;\nexport const tau = 6.283185307179586;\n\nexport fn exp(x: float64) = e ** x;\nexport fn exp(x: Result<float64>) = e ** x;\nexport fn exp(x: float32) = toFloat32(e) ** x;\nexport fn exp(x: Result<float32>) = toFloat32(e) ** x;\n\nexport fn ln(x: float64) = lnf64(x);\nexport fn ln(x: float32) = toFloat32(lnf64(toFloat64(x)));\n// TODO: Figure out what's wrong with interfaces where the input and output type are the interface\nexport fn ln(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(ln(x.getR()));\n}\nexport fn ln(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(ln(x.getR()));\n}\n\nexport fn log(x: float64) = logf64(x);\nexport fn log(x: float32) = toFloat32(logf64(toFloat64(x)));\nexport fn log(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(log(x.getR()));\n}\nexport fn log(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(log(x.getR()));\n}\n\nexport fn sin(x: float64) = sinf64(x);\nexport fn sin(x: float32) = toFloat32(sinf64(toFloat64(x)));\nexport fn sin(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(sin(x.getR()));\n}\nexport fn sin(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(sin(x.getR()));\n}\nexport fn sine(x: float64) = sin(x);\nexport fn sine(x: float32) = sin(x);\nexport fn sine(x: Result<float64>) = sin(x);\nexport fn sine(x: Result<float32>) = sin(x);\n\nexport fn cos(x: float64) = cosf64(x);\nexport fn cos(x: float32) = toFloat32(cosf64(toFloat64(x)));\nexport fn cos(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(cos(x.getR()));\n}\nexport fn cos(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(cos(x.getR()));\n}\nexport fn cosine(x: float64) = cos(x);\nexport fn cosine(x: float32) = cos(x);\nexport fn cosine(x: Result<float64>) = cos(x);\nexport fn cosine(x: Result<float32>) = cos(x);\n\nexport fn tan(x: float64) = tanf64(x);\nexport fn tan(x: float32) = toFloat32(tanf64(toFloat64(x)));\nexport fn tan(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(tan(x.getR()));\n}\nexport fn tan(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(tan(x.getR()));\n}\nexport fn tangent(x: float64) = tan(x);\nexport fn tangent(x: float32) = tan(x);\nexport fn tangent(x: Result<float64>) = tan(x);\nexport fn tangent(x: Result<float32>) = tan(x);\n\nexport fn sec(x: float64) = 1.0 / cosf64(x);\nexport fn sec(x: float32): Result<float32> {\n  const s64 = sec(x.toFloat64());\n  if s64.isErr() {\n    return s64;\n  }\n  return ok(s64.getR().toFloat32());\n}\nexport fn sec(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return sec(x.getR());\n}\nexport fn sec(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return sec(x.getR());\n}\nexport fn secant(x: float64) = sec(x);\nexport fn secant(x: float32) = sec(x);\nexport fn secant(x: Result<float64>) = sec(x);\nexport fn secant(x: Result<float32>) = sec(x);\n\nexport fn csc(x: float64) = 1.0 / sinf64(x);\nexport fn csc(x: float32): Result<float32> {\n  const c64 = csc(x.toFloat64());\n  if c64.isErr() {\n    return c64;\n  }\n  return ok(c64.getR().toFloat32());\n}\nexport fn csc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return csc(x.getR());\n}\nexport fn csc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return csc(x.getR());\n}\nexport fn cosecant(x: float64) = csc(x);\nexport fn cosecant(x: float32) = csc(x);\nexport fn cosecant(x: Result<float64>) = csc(x);\nexport fn cosecant(x: Result<float32>) = csc(x);\n\nexport fn cot(x: float64) = 1.0 / tanf64(x);\nexport fn cot(x: float32): Result<float32> {\n  const t64 = cot(x.toFloat64());\n  if t64.isErr() {\n    return t64;\n  }\n  return ok(t64.getR().toFloat32());\n}\nexport fn cot(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return cot(x.getR());\n}\nexport fn cot(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return cot(x.getR());\n}\nexport fn cotangent(x: float64) = cot(x);\nexport fn cotangent(x: float32) = cot(x);\nexport fn cotangent(x: Result<float64>) = cot(x);\nexport fn cotangent(x: Result<float32>) = cot(x);\n\nexport fn asin(x: float64) = asinf64(x);\nexport fn asin(x: float32) = toFloat32(asinf64(toFloat64(x)));\nexport fn asin(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(asin(x.getR()));\n}\nexport fn asin(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(asin(x.getR()));\n}\nexport fn arcsine(x: float64) = asin(x);\nexport fn arcsine(x: float32) = asin(x);\nexport fn arcsine(x: Result<float64>) = asin(x);\nexport fn arcsine(x: Result<float32>) = asin(x);\n\nexport fn acos(x: float64) = acosf64(x);\nexport fn acos(x: float32) = toFloat32(acosf64(toFloat64(x)));\nexport fn acos(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(acos(x.getR()));\n}\nexport fn acos(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(acos(x.getR()));\n}\nexport fn arccosine(x: float64) = acos(x);\nexport fn arccosine(x: float32) = acos(x);\nexport fn arccosine(x: Result<float64>) = acos(x);\nexport fn arccosine(x: Result<float32>) = acos(x);\n\nexport fn atan(x: float64) = atanf64(x);\nexport fn atan(x: float32) = toFloat32(atanf64(toFloat64(x)));\nexport fn atan(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(atan(x.getR()));\n}\nexport fn atan(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(atan(x.getR()));\n}\nexport fn arctangent(x: float64) = atan(x);\nexport fn arctangent(x: float32) = atan(x);\nexport fn arctangent(x: Result<float64>) = atan(x);\nexport fn arctangent(x: Result<float32>) = atan(x);\n\nexport fn asec(x: float64): Result<float64> {\n  const inv = 1.0 / x;\n  if inv.isErr() {\n    return inv;\n  }\n  return ok(acosf64(inv.getR()));\n}\nexport fn asec(x: float32): Result<float32> {\n  const val = asec(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn asec(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return asec(x.getR());\n}\nexport fn asec(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return asec(x.getR());\n}\nexport fn arcsecant(x: float64) = asec(x);\nexport fn arcsecant(x: float32) = asec(x);\nexport fn arcsecant(x: Result<float64>) = asec(x);\nexport fn arcsecant(x: Result<float32>) = asec(x);\n\nexport fn acsc(x: float64): Result<float64> {\n  const inv = 1.0 / x;\n  if inv.isErr() {\n    return inv;\n  }\n  return ok(asinf64(inv.getR()));\n}\nexport fn acsc(x: float32): Result<float32> {\n  const val = acsc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acsc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acsc(x.getR());\n}\nexport fn acsc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acsc(x.getR());\n}\nexport fn arccosecant(x: float64) = acsc(x);\nexport fn arccosecant(x: float32) = acsc(x);\nexport fn arccosecant(x: Result<float64>) = acsc(x);\nexport fn arccosecant(x: Result<float32>) = acsc(x);\n\nexport fn acot(x: float64) = pi / 2.0 - atanf64(x);\nexport fn acot(x: float32): Result<float32> {\n  const val = acot(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acot(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acot(x.getR());\n}\nexport fn acot(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acot(x.getR());\n}\nexport fn arccotangent(x: float64) = acot(x);\nexport fn arccotangent(x: float32) = acot(x);\nexport fn arccotangent(x: Result<float64>) = acot(x);\nexport fn arccotangent(x: Result<float32>) = acot(x);\n\nexport fn ver(x: float64) = 1.0 - cosf64(x);\nexport fn ver(x: float32): Result<float32> {\n  const val = ver(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn ver(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ver(x.getR());\n}\nexport fn ver(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ver(x.getR());\n}\nexport fn versine(x: float64) = ver(x);\nexport fn versine(x: float32) = ver(x);\nexport fn versine(x: Result<float64>) = ver(x);\nexport fn versine(x: Result<float32>) = ver(x);\n\nexport fn vcs(x: float64) = 1.0 + cosf64(x);\nexport fn vcs(x: float32): Result<float32> {\n  const val = vcs(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn vcs(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return vcs(x.getR());\n}\nexport fn vcs(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return vcs(x.getR());\n}\nexport fn vercosine(x: float64) = vcs(x);\nexport fn vercosine(x: float32) = vcs(x);\nexport fn vercosine(x: Result<float64>) = vcs(x);\nexport fn vercosine(x: Result<float32>) = vcs(x);\n\nexport fn cvs(x: float64) = 1.0 - sinf64(x);\nexport fn cvs(x: float32): Result<float32> {\n  const val = cvs(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn cvs(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return cvs(x.getR());\n}\nexport fn cvs(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return cvs(x.getR());\n}\nexport fn coversine(x: float64) = cvs(x);\nexport fn coversine(x: float32) = cvs(x);\nexport fn coversine(x: Result<float64>) = cvs(x);\nexport fn coversine(x: Result<float32>) = cvs(x);\n\nexport fn cvc(x: float64) = 1.0 + sinf64(x);\nexport fn cvc(x: float32): Result<float32> {\n  const val = cvc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn cvc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return cvc(x.getR());\n}\nexport fn cvc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return cvc(x.getR());\n}\nexport fn covercosine(x: float64) = cvc(x);\nexport fn covercosine(x: float32) = cvc(x);\nexport fn covercosine(x: Result<float64>) = cvc(x);\nexport fn covercosine(x: Result<float32>) = cvc(x);\n\nexport fn hav(x: float64) = versine(x) / 2.0;\nexport fn hav(x: float32): Result<float32> {\n  const val = hav(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn hav(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return hav(x.getR());\n}\nexport fn hav(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return hav(x.getR());\n}\nexport fn haversine(x: float64) = hav(x);\nexport fn haversine(x: float32) = hav(x);\nexport fn haversine(x: Result<float64>) = hav(x);\nexport fn haversine(x: Result<float32>) = hav(x);\n\nexport fn hvc(x: float64) = vercosine(x) / 2.0;\nexport fn hvc(x: float32): Result<float32> {\n  const val = hvc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn hvc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return hvc(x.getR());\n}\nexport fn hvc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return hvc(x.getR());\n}\nexport fn havercosine(x: float64) = hvc(x);\nexport fn havercosine(x: float32) = hvc(x);\nexport fn havercosine(x: Result<float64>) = hvc(x);\nexport fn havercosine(x: Result<float32>) = hvc(x);\n\nexport fn hcv(x: float64) = coversine(x) / 2.0;\nexport fn hcv(x: float32): Result<float32> {\n  const val = hcv(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn hcv(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return hcv(x.getR());\n}\nexport fn hcv(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return hcv(x.getR());\n}\nexport fn hacoversine(x: float64) = hcv(x);\nexport fn hacoversine(x: float32) = hcv(x);\nexport fn hacoversine(x: Result<float64>) = hcv(x);\nexport fn hacoversine(x: Result<float32>) = hcv(x);\n\nexport fn hcc(x: float64) = covercosine(x) / 2.0;\nexport fn hcc(x: float32): Result<float32> {\n  const val = hcc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn hcc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return hcc(x.getR());\n}\nexport fn hcc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return hcc(x.getR());\n}\nexport fn hacovercosine(x: float64) = hcc(x);\nexport fn hacovercosine(x: float32) = hcc(x);\nexport fn hacovercosine(x: Result<float64>) = hcc(x);\nexport fn hacovercosine(x: Result<float32>) = hcc(x);\n\nexport fn exs(x: float64) = secant(x) - 1.0;\nexport fn exs(x: float32): Result<float32> {\n  const val = exs(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn exs(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return exs(x.getR());\n}\nexport fn exs(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return exs(x.getR());\n}\nexport fn exsecant(x: float64) = exs(x);\nexport fn exsecant(x: float32) = exs(x);\nexport fn exsecant(x: Result<float64>) = exs(x);\nexport fn exsecant(x: Result<float32>) = exs(x);\n\nexport fn exc(x: float64) = cosecant(x) - 1.0;\nexport fn exc(x: float32): Result<float32> {\n  const val = exc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn exc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return exc(x.getR());\n}\nexport fn exc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return exc(x.getR());\n}\nexport fn excosecant(x: float64) = exc(x);\nexport fn excosecant(x: float32) = exc(x);\nexport fn excosecant(x: Result<float64>) = exc(x);\nexport fn excosecant(x: Result<float32>) = exc(x);\n\nexport fn crd(x: float64) = 2.0 * sine(x / 2.0);\nexport fn crd(x: float32): Result<float32> {\n  const val = crd(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn crd(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return crd(x.getR());\n}\nexport fn crd(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return crd(x.getR());\n}\nexport fn chord(x: float64) = crd(x);\nexport fn chord(x: float32) = crd(x);\nexport fn chord(x: Result<float64>) = crd(x);\nexport fn chord(x: Result<float32>) = crd(x);\n\nexport fn aver(x: float64) = arccosine(1.0 - x);\nexport fn aver(x: float32): Result<float32> {\n  const val = aver(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn aver(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return aver(x.getR());\n}\nexport fn aver(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return aver(x.getR());\n}\nexport fn arcversine(x: float64) = aver(x);\nexport fn arcversine(x: float32) = aver(x);\nexport fn arcversine(x: Result<float64>) = aver(x);\nexport fn arcversine(x: Result<float32>) = aver(x);\n\nexport fn avcs(x: float64) = arccosine(x - 1.0);\nexport fn avcs(x: float32): Result<float32> {\n  const val = avcs(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn avcs(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return avcs(x.getR());\n}\nexport fn avcs(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return avcs(x.getR());\n}\nexport fn arcvercosine(x: float64) = avcs(x);\nexport fn arcvercosine(x: float32) = avcs(x);\nexport fn arcvercosine(x: Result<float64>) = avcs(x);\nexport fn arcvercosine(x: Result<float32>) = avcs(x);\n\nexport fn acvs(x: float64) = arcsine(1.0 - x);\nexport fn acvs(x: float32): Result<float32> {\n  const val = acvs(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acvs(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acvs(x.getR());\n}\nexport fn acvs(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acvs(x.getR());\n}\nexport fn arccoversine(x: float64) = acvs(x);\nexport fn arccoversine(x: float32) = acvs(x);\nexport fn arccoversine(x: Result<float64>) = acvs(x);\nexport fn arccoversine(x: Result<float32>) = acvs(x);\n\nexport fn acvc(x: float64) = arcsine(x - 1.0);\nexport fn acvc(x: float32): Result<float32> {\n  const val = acvc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acvc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acvc(x.getR());\n}\nexport fn acvc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acvc(x.getR());\n}\nexport fn arccovercosine(x: float64) = acvc(x);\nexport fn arccovercosine(x: float32) = acvc(x);\nexport fn arccovercosine(x: Result<float64>) = acvc(x);\nexport fn arccovercosine(x: Result<float32>) = acvc(x);\n\nexport fn ahav(x: float64) = arccosine(1.0 - 2.0 * x);\nexport fn ahav(x: float32): Result<float32> {\n  const val = ahav(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn ahav(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ahav(x.getR());\n}\nexport fn ahav(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ahav(x.getR());\n}\nexport fn archaversine(x: float64) = ahav(x);\nexport fn archaversine(x: float32) = ahav(x);\nexport fn archaversine(x: Result<float64>) = ahav(x);\nexport fn archaversine(x: Result<float32>) = ahav(x);\n\nexport fn ahvc(x: float64) = arccosine(2.0 * x - 1.0);\nexport fn ahvc(x: float32): Result<float32> {\n  const val = ahvc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn ahvc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ahvc(x.getR());\n}\nexport fn ahvc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ahvc(x.getR());\n}\nexport fn archavercosine(x: float64) = ahvc(x);\nexport fn archavercosine(x: float32) = ahvc(x);\nexport fn archavercosine(x: Result<float64>) = ahvc(x);\nexport fn archavercosine(x: Result<float32>) = ahvc(x);\n\nexport fn ahcv(x: float64) = arcsine(1.0 - 2.0 * x);\nexport fn ahcv(x: float32): Result<float32> {\n  const val = ahcv(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn ahcv(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ahcv(x.getR());\n}\nexport fn ahcv(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ahcv(x.getR());\n}\nexport fn archacoversine(x: float64) = ahcv(x);\nexport fn archacoversine(x: float32) = ahcv(x);\nexport fn archacoversine(x: Result<float64>) = ahcv(x);\nexport fn archacoversine(x: Result<float32>) = ahcv(x);\n\nexport fn ahcc(x: float64) = arcsine(2.0 * x - 1.0);\nexport fn ahcc(x: float32): Result<float32> {\n  const val = ahcc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn ahcc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ahcc(x.getR());\n}\nexport fn ahcc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ahcc(x.getR());\n}\nexport fn archacovercosine(x: float64) = ahcc(x);\nexport fn archacovercosine(x: float32) = ahcc(x);\nexport fn archacovercosine(x: Result<float64>) = ahcc(x);\nexport fn archacovercosine(x: Result<float32>) = ahcc(x);\n\nexport fn aexs(x: float64) = arccosine(1.0 / (x + 1.0));\nexport fn aexs(x: float32): Result<float32> {\n  const val = aexs(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn aexs(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return aexs(x.getR());\n}\nexport fn aexs(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return aexs(x.getR());\n}\nexport fn arcexsecant(x: float64) = aexs(x);\nexport fn arcexsecant(x: float32) = aexs(x);\nexport fn arcexsecant(x: Result<float64>) = aexs(x);\nexport fn arcexsecant(x: Result<float32>) = aexs(x);\n\nexport fn aexc(x: float64) = arcsine(1.0 / (x + 1.0));\nexport fn aexc(x: float32): Result<float32> {\n  const val = aexc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn aexc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return aexc(x.getR());\n}\nexport fn aexc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return aexc(x.getR());\n}\nexport fn arcexcosecant(x: float64) = aexc(x);\nexport fn arcexcosecant(x: float32) = aexc(x);\nexport fn arcexcosecant(x: Result<float64>) = aexc(x);\nexport fn arcexcosecant(x: Result<float32>) = aexc(x);\n\nexport fn acrd(x: float64) = 2.0 * arcsine(x / 2.0);\nexport fn acrd(x: float32): Result<float32> {\n  const val = acrd(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acrd(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acrd(x.getR());\n}\nexport fn acrd(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acrd(x.getR());\n}\nexport fn arcchord(x: float64) = acrd(x);\nexport fn arcchord(x: float32) = acrd(x);\nexport fn arcchord(x: Result<float64>) = acrd(x);\nexport fn arcchord(x: Result<float32>) = acrd(x);\n\nexport fn sinh(x: float64) = sinhf64(x);\nexport fn sinh(x: float32) = toFloat32(sinhf64(toFloat64(x)));\nexport fn sinh(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(sinh(x.getR()));\n}\nexport fn sinh(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(sinh(x.getR()));\n}\nexport fn hyperbolicSine(x: float64) = sinh(x);\nexport fn hyperbolicSine(x: float32) = sinh(x);\nexport fn hyperbolicSine(x: Result<float64>) = sinh(x);\nexport fn hyperbolicSine(x: Result<float32>) = sinh(x);\n\nexport fn cosh(x: float64) = coshf64(x);\nexport fn cosh(x: float32) = toFloat32(coshf64(toFloat64(x)));\nexport fn cosh(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(cosh(x.getR()));\n}\nexport fn cosh(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(cosh(x.getR()));\n}\nexport fn hyperbolicCosine(x: float64) = cosh(x);\nexport fn hyperbolicCosine(x: float32) = cosh(x);\nexport fn hyperbolicCosine(x: Result<float64>) = cosh(x);\nexport fn hyperbolicCosine(x: Result<float32>) = cosh(x);\n\nexport fn tanh(x: float64) = tanhf64(x);\nexport fn tanh(x: float32) = toFloat32(tanhf64(toFloat64(x)));\nexport fn tanh(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(tanh(x.getR()));\n}\nexport fn tanh(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(tanh(x.getR()));\n}\nexport fn hyperbolicTangent(x: float64) = tanh(x);\nexport fn hyperbolicTangent(x: float32) = tanh(x);\nexport fn hyperbolicTangent(x: Result<float64>) = tanh(x);\nexport fn hyperbolicTangent(x: Result<float32>) = tanh(x);\n\nexport fn sech(x: float64) = 1.0 / cosh(x);\nexport fn sech(x: float32): Result<float32> {\n  const val = sech(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn sech(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return sech(x.getR());\n}\nexport fn sech(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return sech(x.getR());\n}\nexport fn hyperbolicSecant(x: float64) = sech(x);\nexport fn hyperbolicSecant(x: float32) = sech(x);\nexport fn hyperbolicSecant(x: Result<float64>) = sech(x);\nexport fn hyperbolicSecant(x: Result<float32>) = sech(x);\n\nexport fn csch(x: float64) = 1.0 / sinh(x);\nexport fn csch(x: float32): Result<float32> {\n  const val = csch(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn csch(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return csch(x.getR());\n}\nexport fn csch(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return csch(x.getR());\n}\nexport fn hyperbolicCosecant(x: float64) = csch(x);\nexport fn hyperbolicCosecant(x: float32) = csch(x);\nexport fn hyperbolicCosecant(x: Result<float64>) = csch(x);\nexport fn hyperbolicCosecant(x: Result<float32>) = csch(x);\n\nexport fn coth(x: float64) = 1.0 / tanh(x);\nexport fn coth(x: float32): Result<float32> {\n  const val = coth(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn coth(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return coth(x.getR());\n}\nexport fn coth(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return coth(x.getR());\n}\nexport fn hyperbolicCotangent(x: float64) = coth(x);\nexport fn hyperbolicCotangent(x: float32) = coth(x);\nexport fn hyperbolicCotangent(x: Result<float64>) = coth(x);\nexport fn hyperbolicCotangent(x: Result<float32>) = coth(x);\n\nexport fn asinh(x: float64) = ln(x + sqrt(x ** 2.0 + 1.0));\nexport fn asinh(x: float32): Result<float32> {\n  const val = asinh(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn asinh(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return asinh(x.getR());\n}\nexport fn asinh(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return asinh(x.getR());\n}\nexport fn hyperbolicArcsine(x: float64) = asinh(x);\nexport fn hyperbolicArcsine(x: float32) = asinh(x);\nexport fn hyperbolicArcsine(x: Result<float64>) = asinh(x);\nexport fn hyperbolicArcsine(x: Result<float32>) = asinh(x);\n\nexport fn acosh(x: float64) = ln(x + sqrt(x ** 2.0 - 1.0));\nexport fn acosh(x: float32): Result<float32> {\n  const val = acosh(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acosh(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acosh(x.getR());\n}\nexport fn acosh(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acosh(x.getR());\n}\nexport fn hyperbolicArccosine(x: float64) = acosh(x);\nexport fn hyperbolicArccosine(x: float32) = acosh(x);\nexport fn hyperbolicArccosine(x: Result<float64>) = acosh(x);\nexport fn hyperbolicArccosine(x: Result<float32>) = acosh(x);\n\nexport fn atanh(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0;\nexport fn atanh(x: float32): Result<float32> {\n  const val = atanh(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn atanh(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return atanh(x.getR());\n}\nexport fn atanh(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return atanh(x.getR());\n}\nexport fn hyperbolicArctangent(x: float64) = atanh(x);\nexport fn hyperbolicArctangent(x: float32) = atanh(x);\nexport fn hyperbolicArctangent(x: Result<float64>) = atanh(x);\nexport fn hyperbolicArctangent(x: Result<float32>) = atanh(x);\n\nexport fn asech(x: float64) = ln((1.0 + sqrt(1.0 - x ** 2.0)) / x);\nexport fn asech(x: float32): Result<float32> {\n  const val = asech(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn asech(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return asech(x.getR());\n}\nexport fn asech(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return asech(x.getR());\n}\nexport fn hyperbolicArcsecant(x: float64) = asech(x);\nexport fn hyperbolicArcsecant(x: float32) = asech(x);\nexport fn hyperbolicArcsecant(x: Result<float64>) = asech(x);\nexport fn hyperbolicArcsecant(x: Result<float32>) = asech(x);\n\nexport fn acsch(x: float64) = ln((1.0 / x) + sqrt(1.0 / x ** 2.0 + 1.0));\nexport fn acsch(x: float32): Result<float32> {\n  const val = acsch(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acsch(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acsch(x.getR());\n}\nexport fn acsch(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acsch(x.getR());\n}\nexport fn hyperbolicArccosecant(x: float64) = acsch(x);\nexport fn hyperbolicArccosecant(x: float32) = acsch(x);\nexport fn hyperbolicArccosecant(x: Result<float64>) = acsch(x);\nexport fn hyperbolicArccosecant(x: Result<float32>) = acsch(x);\n\nexport fn acoth(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0;\nexport fn acoth(x: float32): Result<float32> {\n  const val = acoth(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acoth(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acoth(x.getR());\n}\nexport fn acoth(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acoth(x.getR());\n}\nexport fn hyperbolicArccotangent(x: float64) = acoth(x);\nexport fn hyperbolicArccotangent(x: float32) = acoth(x);\nexport fn hyperbolicArccotangent(x: Result<float64>) = acoth(x);\nexport fn hyperbolicArccotangent(x: Result<float32>) = acoth(x);\n\n"}
 
 },{}],3:[function(require,module,exports){
 "use strict";
@@ -868,6 +868,14 @@ const assignableToJsText = (assignable, indent) => {
     }
     else if (assignable.has('value')) {
         outText += assignable.get('value').t;
+        try {
+            const t = assignable.get('value').t;
+            if (!/"/.test(t) && t !== 'true' && t !== 'false' && !/\./.test(t)) {
+                parseInt(assignable.get('value').t);
+                outText += 'n';
+            }
+        }
+        catch (e) { }
     }
     return outText;
 };
@@ -1658,7 +1666,7 @@ var antlr4 = require('antlr4/index');
 var LnListener = require('./LnListener').LnListener;
 var grammarFileName = "Ln.g4";
 var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
-    "\u0003/\u04cc\u0004\u0002\t\u0002\u0004\u0003\t\u0003\u0004\u0004\t",
+    "\u0003/\u04c8\u0004\u0002\t\u0002\u0004\u0003\t\u0003\u0004\u0004\t",
     "\u0004\u0004\u0005\t\u0005\u0004\u0006\t\u0006\u0004\u0007\t\u0007\u0004",
     "\b\t\b\u0004\t\t\t\u0004\n\t\n\u0004\u000b\t\u000b\u0004\f\t\f\u0004",
     "\r\t\r\u0004\u000e\t\u000e\u0004\u000f\t\u000f\u0004\u0010\t\u0010\u0004",
@@ -1674,848 +1682,846 @@ var serializedATN = ["\u0003\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964",
     "A\tA\u0004B\tB\u0003\u0002\u0007\u0002\u0086\n\u0002\f\u0002\u000e\u0002",
     "\u0089\u000b\u0002\u0003\u0002\u0007\u0002\u008c\n\u0002\f\u0002\u000e",
     "\u0002\u008f\u000b\u0002\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0002",
-    "\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0002",
-    "\u0003\u0002\u0006\u0002\u009c\n\u0002\r\u0002\u000e\u0002\u009d\u0006",
-    "\u0002\u00a0\n\u0002\r\u0002\u000e\u0002\u00a1\u0003\u0002\u0005\u0002",
-    "\u00a5\n\u0002\u0003\u0003\u0003\u0003\u0003\u0004\u0003\u0004\u0005",
-    "\u0004\u00ab\n\u0004\u0003\u0005\u0003\u0005\u0003\u0005\u0003\u0005",
-    "\u0003\u0005\u0003\u0005\u0003\u0005\u0005\u0005\u00b4\n\u0005\u0003",
-    "\u0005\u0003\u0005\u0007\u0005\u00b8\n\u0005\f\u0005\u000e\u0005\u00bb",
-    "\u000b\u0005\u0003\u0006\u0003\u0006\u0003\u0006\u0003\u0006\u0003\u0006",
-    "\u0003\u0006\u0003\u0006\u0003\u0006\u0003\u0006\u0007\u0006\u00c6\n",
-    "\u0006\f\u0006\u000e\u0006\u00c9\u000b\u0006\u0003\u0007\u0003\u0007",
-    "\u0005\u0007\u00cd\n\u0007\u0003\b\u0003\b\u0006\b\u00d1\n\b\r\b\u000e",
-    "\b\u00d2\u0003\b\u0003\b\u0006\b\u00d7\n\b\r\b\u000e\b\u00d8\u0005\b",
-    "\u00db\n\b\u0003\t\u0003\t\u0006\t\u00df\n\t\r\t\u000e\t\u00e0\u0003",
-    "\n\u0003\n\u0006\n\u00e5\n\n\r\n\u000e\n\u00e6\u0003\n\u0003\n\u0007",
-    "\n\u00eb\n\n\f\n\u000e\n\u00ee\u000b\n\u0003\n\u0005\n\u00f1\n\n\u0003",
-    "\n\u0006\n\u00f4\n\n\r\n\u000e\n\u00f5\u0003\n\u0003\n\u0003\n\u0007",
-    "\n\u00fb\n\n\f\n\u000e\n\u00fe\u000b\n\u0003\n\u0005\n\u0101\n\n\u0003",
-    "\u000b\u0003\u000b\u0003\u000b\u0005\u000b\u0106\n\u000b\u0003\f\u0003",
-    "\f\u0007\f\u010a\n\f\f\f\u000e\f\u010d\u000b\f\u0003\f\u0003\f\u0007",
-    "\f\u0111\n\f\f\f\u000e\f\u0114\u000b\f\u0003\f\u0003\f\u0007\f\u0118",
-    "\n\f\f\f\u000e\f\u011b\u000b\f\u0003\f\u0003\f\u0007\f\u011f\n\f\f\f",
-    "\u000e\f\u0122\u000b\f\u0007\f\u0124\n\f\f\f\u000e\f\u0127\u000b\f\u0003",
-    "\f\u0003\f\u0003\r\u0003\r\u0007\r\u012d\n\r\f\r\u000e\r\u0130\u000b",
-    "\r\u0003\r\u0005\r\u0133\n\r\u0003\u000e\u0003\u000e\u0007\u000e\u0137",
-    "\n\u000e\f\u000e\u000e\u000e\u013a\u000b\u000e\u0003\u000e\u0003\u000e",
-    "\u0007\u000e\u013e\n\u000e\f\u000e\u000e\u000e\u0141\u000b\u000e\u0003",
-    "\u000e\u0003\u000e\u0003\u000f\u0003\u000f\u0007\u000f\u0147\n\u000f",
-    "\f\u000f\u000e\u000f\u014a\u000b\u000f\u0003\u000f\u0003\u000f\u0007",
-    "\u000f\u014e\n\u000f\f\u000f\u000e\u000f\u0151\u000b\u000f\u0003\u000f",
-    "\u0003\u000f\u0003\u0010\u0003\u0010\u0007\u0010\u0157\n\u0010\f\u0010",
-    "\u000e\u0010\u015a\u000b\u0010\u0003\u0010\u0003\u0010\u0007\u0010\u015e",
-    "\n\u0010\f\u0010\u000e\u0010\u0161\u000b\u0010\u0003\u0010\u0003\u0010",
-    "\u0007\u0010\u0165\n\u0010\f\u0010\u000e\u0010\u0168\u000b\u0010\u0007",
-    "\u0010\u016a\n\u0010\f\u0010\u000e\u0010\u016d\u000b\u0010\u0003\u0010",
-    "\u0005\u0010\u0170\n\u0010\u0003\u0011\u0003\u0011\u0007\u0011\u0174",
-    "\n\u0011\f\u0011\u000e\u0011\u0177\u000b\u0011\u0003\u0011\u0003\u0011",
-    "\u0007\u0011\u017b\n\u0011\f\u0011\u000e\u0011\u017e\u000b\u0011\u0003",
-    "\u0011\u0003\u0011\u0003\u0011\u0003\u0011\u0007\u0011\u0184\n\u0011",
-    "\f\u0011\u000e\u0011\u0187\u000b\u0011\u0003\u0011\u0003\u0011\u0007",
-    "\u0011\u018b\n\u0011\f\u0011\u000e\u0011\u018e\u000b\u0011\u0003\u0011",
-    "\u0007\u0011\u0191\n\u0011\f\u0011\u000e\u0011\u0194\u000b\u0011\u0003",
-    "\u0012\u0003\u0012\u0006\u0012\u0198\n\u0012\r\u0012\u000e\u0012\u0199",
-    "\u0003\u0012\u0003\u0012\u0007\u0012\u019e\n\u0012\f\u0012\u000e\u0012",
-    "\u01a1\u000b\u0012\u0005\u0012\u01a3\n\u0012\u0003\u0012\u0003\u0012",
-    "\u0005\u0012\u01a7\n\u0012\u0003\u0012\u0003\u0012\u0007\u0012\u01ab",
-    "\n\u0012\f\u0012\u000e\u0012\u01ae\u000b\u0012\u0003\u0012\u0005\u0012",
-    "\u01b1\n\u0012\u0003\u0012\u0003\u0012\u0005\u0012\u01b5\n\u0012\u0003",
-    "\u0012\u0003\u0012\u0007\u0012\u01b9\n\u0012\f\u0012\u000e\u0012\u01bc",
-    "\u000b\u0012\u0005\u0012\u01be\n\u0012\u0005\u0012\u01c0\n\u0012\u0003",
-    "\u0012\u0003\u0012\u0005\u0012\u01c4\n\u0012\u0003\u0013\u0003\u0013",
-    "\u0003\u0013\u0007\u0013\u01c9\n\u0013\f\u0013\u000e\u0013\u01cc\u000b",
-    "\u0013\u0003\u0013\u0005\u0013\u01cf\n\u0013\u0003\u0014\u0003\u0014",
-    "\u0006\u0014\u01d3\n\u0014\r\u0014\u000e\u0014\u01d4\u0003\u0014\u0007",
-    "\u0014\u01d8\n\u0014\f\u0014\u000e\u0014\u01db\u000b\u0014\u0003\u0014",
-    "\u0003\u0014\u0003\u0015\u0007\u0015\u01e0\n\u0015\f\u0015\u000e\u0015",
-    "\u01e3\u000b\u0015\u0003\u0015\u0003\u0015\u0003\u0015\u0003\u0015\u0003",
-    "\u0015\u0003\u0015\u0003\u0015\u0003\u0015\u0005\u0015\u01ed\n\u0015",
-    "\u0003\u0016\u0003\u0016\u0005\u0016\u01f1\n\u0016\u0003\u0016\u0003",
-    "\u0016\u0003\u0017\u0003\u0017\u0007\u0017\u01f7\n\u0017\f\u0017\u000e",
-    "\u0017\u01fa\u000b\u0017\u0003\u0017\u0003\u0017\u0007\u0017\u01fe\n",
-    "\u0017\f\u0017\u000e\u0017\u0201\u000b\u0017\u0003\u0017\u0003\u0017",
-    "\u0005\u0017\u0205\n\u0017\u0003\u0017\u0005\u0017\u0208\n\u0017\u0003",
-    "\u0017\u0007\u0017\u020b\n\u0017\f\u0017\u000e\u0017\u020e\u000b\u0017",
-    "\u0003\u0017\u0003\u0017\u0007\u0017\u0212\n\u0017\f\u0017\u000e\u0017",
-    "\u0215\u000b\u0017\u0003\u0017\u0003\u0017\u0003\u0018\u0003\u0018\u0007",
-    "\u0018\u021b\n\u0018\f\u0018\u000e\u0018\u021e\u000b\u0018\u0003\u0018",
-    "\u0003\u0018\u0007\u0018\u0222\n\u0018\f\u0018\u000e\u0018\u0225\u000b",
-    "\u0018\u0003\u0018\u0003\u0018\u0005\u0018\u0229\n\u0018\u0003\u0018",
-    "\u0005\u0018\u022c\n\u0018\u0003\u0018\u0007\u0018\u022f\n\u0018\f\u0018",
-    "\u000e\u0018\u0232\u000b\u0018\u0003\u0018\u0003\u0018\u0007\u0018\u0236",
-    "\n\u0018\f\u0018\u000e\u0018\u0239\u000b\u0018\u0003\u0018\u0003\u0018",
-    "\u0003\u0019\u0003\u0019\u0007\u0019\u023f\n\u0019\f\u0019\u000e\u0019",
-    "\u0242\u000b\u0019\u0003\u0019\u0003\u0019\u0007\u0019\u0246\n\u0019",
-    "\f\u0019\u000e\u0019\u0249\u000b\u0019\u0003\u0019\u0003\u0019\u0003",
-    "\u0019\u0003\u001a\u0003\u001a\u0003\u001a\u0003\u001a\u0003\u001a\u0003",
-    "\u001a\u0005\u001a\u0254\n\u001a\u0003\u001b\u0003\u001b\u0007\u001b",
-    "\u0258\n\u001b\f\u001b\u000e\u001b\u025b\u000b\u001b\u0006\u001b\u025d",
-    "\n\u001b\r\u001b\u000e\u001b\u025e\u0003\u001b\u0005\u001b\u0262\n\u001b",
-    "\u0003\u001c\u0003\u001c\u0007\u001c\u0266\n\u001c\f\u001c\u000e\u001c",
-    "\u0269\u000b\u001c\u0003\u001c\u0007\u001c\u026c\n\u001c\f\u001c\u000e",
-    "\u001c\u026f\u000b\u001c\u0003\u001d\u0003\u001d\u0005\u001d\u0273\n",
-    "\u001d\u0003\u001e\u0003\u001e\u0007\u001e\u0277\n\u001e\f\u001e\u000e",
-    "\u001e\u027a\u000b\u001e\u0003\u001e\u0003\u001e\u0007\u001e\u027e\n",
-    "\u001e\f\u001e\u000e\u001e\u0281\u000b\u001e\u0003\u001e\u0003\u001e",
-    "\u0007\u001e\u0285\n\u001e\f\u001e\u000e\u001e\u0288\u000b\u001e\u0007",
-    "\u001e\u028a\n\u001e\f\u001e\u000e\u001e\u028d\u000b\u001e\u0003\u001e",
-    "\u0005\u001e\u0290\n\u001e\u0003\u001f\u0003\u001f\u0007\u001f\u0294",
-    "\n\u001f\f\u001f\u000e\u001f\u0297\u000b\u001f\u0003\u001f\u0003\u001f",
-    "\u0007\u001f\u029b\n\u001f\f\u001f\u000e\u001f\u029e\u000b\u001f\u0003",
-    "\u001f\u0003\u001f\u0007\u001f\u02a2\n\u001f\f\u001f\u000e\u001f\u02a5",
-    "\u000b\u001f\u0003\u001f\u0003\u001f\u0007\u001f\u02a9\n\u001f\f\u001f",
-    "\u000e\u001f\u02ac\u000b\u001f\u0003\u001f\u0003\u001f\u0007\u001f\u02b0",
-    "\n\u001f\f\u001f\u000e\u001f\u02b3\u000b\u001f\u0003\u001f\u0003\u001f",
-    "\u0007\u001f\u02b7\n\u001f\f\u001f\u000e\u001f\u02ba\u000b\u001f\u0003",
-    "\u001f\u0003\u001f\u0007\u001f\u02be\n\u001f\f\u001f\u000e\u001f\u02c1",
-    "\u000b\u001f\u0007\u001f\u02c3\n\u001f\f\u001f\u000e\u001f\u02c6\u000b",
-    "\u001f\u0003\u001f\u0005\u001f\u02c9\n\u001f\u0003 \u0003 \u0007 \u02cd",
-    "\n \f \u000e \u02d0\u000b \u0003 \u0003 \u0007 \u02d4\n \f \u000e \u02d7",
-    "\u000b \u0003!\u0003!\u0007!\u02db\n!\f!\u000e!\u02de\u000b!\u0003!",
-    "\u0005!\u02e1\n!\u0003!\u0007!\u02e4\n!\f!\u000e!\u02e7\u000b!\u0003",
-    "!\u0003!\u0003\"\u0003\"\u0003\"\u0003\"\u0005\"\u02ef\n\"\u0003#\u0003",
-    "#\u0007#\u02f3\n#\f#\u000e#\u02f6\u000b#\u0003#\u0003#\u0007#\u02fa",
-    "\n#\f#\u000e#\u02fd\u000b#\u0003#\u0003#\u0003$\u0003$\u0003$\u0003",
-    "%\u0003%\u0007%\u0306\n%\f%\u000e%\u0309\u000b%\u0003%\u0005%\u030c",
-    "\n%\u0003%\u0007%\u030f\n%\f%\u000e%\u0312\u000b%\u0003%\u0003%\u0003",
-    "&\u0003&\u0007&\u0318\n&\f&\u000e&\u031b\u000b&\u0003&\u0003&\u0007",
-    "&\u031f\n&\f&\u000e&\u0322\u000b&\u0005&\u0324\n&\u0003&\u0003&\u0003",
-    "\'\u0003\'\u0007\'\u032a\n\'\f\'\u000e\'\u032d\u000b\'\u0003\'\u0003",
-    "\'\u0007\'\u0331\n\'\f\'\u000e\'\u0334\u000b\'\u0003\'\u0003\'\u0007",
-    "\'\u0338\n\'\f\'\u000e\'\u033b\u000b\'\u0005\'\u033d\n\'\u0003\'\u0003",
-    "\'\u0003(\u0003(\u0007(\u0343\n(\f(\u000e(\u0346\u000b(\u0003(\u0003",
-    "(\u0007(\u034a\n(\f(\u000e(\u034d\u000b(\u0003(\u0003(\u0007(\u0351",
-    "\n(\f(\u000e(\u0354\u000b(\u0003(\u0003(\u0007(\u0358\n(\f(\u000e(\u035b",
-    "\u000b(\u0003(\u0003(\u0005(\u035f\n(\u0005(\u0361\n(\u0003)\u0003)",
-    "\u0003)\u0005)\u0366\n)\u0003*\u0003*\u0003+\u0003+\u0003+\u0003+\u0006",
-    "+\u036e\n+\r+\u000e+\u036f\u0003+\u0006+\u0373\n+\r+\u000e+\u0374\u0003",
-    "+\u0007+\u0378\n+\f+\u000e+\u037b\u000b+\u0003+\u0006+\u037e\n+\r+\u000e",
-    "+\u037f\u0005+\u0382\n+\u0003+\u0003+\u0005+\u0386\n+\u0003,\u0003,",
-    "\u0003,\u0003,\u0003,\u0003,\u0003,\u0003,\u0003,\u0003,\u0005,\u0392",
-    "\n,\u0003-\u0003-\u0003-\u0003-\u0003-\u0003-\u0003.\u0003.\u0003.\u0003",
-    ".\u0003/\u0003/\u0007/\u03a0\n/\f/\u000e/\u03a3\u000b/\u0003/\u0003",
-    "/\u0007/\u03a7\n/\f/\u000e/\u03aa\u000b/\u0003/\u0003/\u0007/\u03ae",
-    "\n/\f/\u000e/\u03b1\u000b/\u0003/\u0003/\u00030\u00030\u00031\u0003",
-    "1\u00061\u03b9\n1\r1\u000e1\u03ba\u00031\u00031\u00061\u03bf\n1\r1\u000e",
-    "1\u03c0\u00031\u00031\u00031\u00051\u03c6\n1\u00032\u00032\u00072\u03ca",
-    "\n2\f2\u000e2\u03cd\u000b2\u00032\u00032\u00072\u03d1\n2\f2\u000e2\u03d4",
-    "\u000b2\u00032\u00032\u00032\u00072\u03d9\n2\f2\u000e2\u03dc\u000b2",
-    "\u00032\u00052\u03df\n2\u00033\u00033\u00053\u03e3\n3\u00033\u00073",
-    "\u03e6\n3\f3\u000e3\u03e9\u000b3\u00033\u00033\u00034\u00074\u03ee\n",
-    "4\f4\u000e4\u03f1\u000b4\u00034\u00034\u00074\u03f5\n4\f4\u000e4\u03f8",
-    "\u000b4\u00034\u00034\u00074\u03fc\n4\f4\u000e4\u03ff\u000b4\u00034",
-    "\u00034\u00074\u0403\n4\f4\u000e4\u0406\u000b4\u00074\u0408\n4\f4\u000e",
-    "4\u040b\u000b4\u00034\u00054\u040e\n4\u00035\u00035\u00035\u00055\u0413",
-    "\n5\u00036\u00036\u00076\u0417\n6\f6\u000e6\u041a\u000b6\u00036\u0003",
-    "6\u00037\u00037\u00077\u0420\n7\f7\u000e7\u0423\u000b7\u00037\u0003",
-    "7\u00077\u0427\n7\f7\u000e7\u042a\u000b7\u00037\u00037\u00077\u042e",
-    "\n7\f7\u000e7\u0431\u000b7\u00037\u00037\u00077\u0435\n7\f7\u000e7\u0438",
-    "\u000b7\u00077\u043a\n7\f7\u000e7\u043d\u000b7\u00037\u00037\u00057",
-    "\u0441\n7\u00037\u00037\u00077\u0445\n7\f7\u000e7\u0448\u000b7\u0003",
-    "7\u00037\u00038\u00038\u00078\u044e\n8\f8\u000e8\u0451\u000b8\u0005",
-    "8\u0453\n8\u00038\u00038\u00078\u0457\n8\f8\u000e8\u045a\u000b8\u0003",
-    "8\u00038\u00078\u045e\n8\f8\u000e8\u0461\u000b8\u00038\u00038\u0007",
-    "8\u0465\n8\f8\u000e8\u0468\u000b8\u00038\u00038\u00039\u00039\u0003",
-    ":\u0003:\u0003;\u0003;\u0007;\u0472\n;\f;\u000e;\u0475\u000b;\u0003",
-    ";\u0003;\u0007;\u0479\n;\f;\u000e;\u047c\u000b;\u0003;\u0003;\u0003",
-    "<\u0003<\u0006<\u0482\n<\r<\u000e<\u0483\u0003<\u0003<\u0003<\u0003",
-    "<\u0003<\u0003<\u0003<\u0003<\u0003<\u0005<\u048f\n<\u0003=\u0003=\u0003",
-    "=\u0007=\u0494\n=\f=\u000e=\u0497\u000b=\u0003>\u0003>\u0006>\u049b",
-    "\n>\r>\u000e>\u049c\u0003>\u0003>\u0006>\u04a1\n>\r>\u000e>\u04a2\u0003",
-    ">\u0005>\u04a6\n>\u0003?\u0003?\u0005?\u04aa\n?\u0003@\u0006@\u04ad",
-    "\n@\r@\u000e@\u04ae\u0003A\u0003A\u0007A\u04b3\nA\fA\u000eA\u04b6\u000b",
-    "A\u0003A\u0003A\u0005A\u04ba\nA\u0003B\u0003B\u0007B\u04be\nB\fB\u000e",
-    "B\u04c1\u000bB\u0003B\u0003B\u0007B\u04c5\nB\fB\u000eB\u04c8\u000bB",
-    "\u0003B\u0003B\u0003B\u0002\u0002C\u0002\u0004\u0006\b\n\f\u000e\u0010",
-    "\u0012\u0014\u0016\u0018\u001a\u001c\u001e \"$&(*,.02468:<>@BDFHJLN",
-    "PRTVXZ\\^`bdfhjlnprtvxz|~\u0080\u0082\u0002\u0007\u0003\u0002()\u0004",
-    "\u0002%%//\u0004\u0002\u000f\u000f,-\u0003\u0002\u0010\u0011\u0004\u0002",
-    "\u0006\u0006//\u0002\u0555\u0002\u00a4\u0003\u0002\u0002\u0002\u0004",
-    "\u00a6\u0003\u0002\u0002\u0002\u0006\u00aa\u0003\u0002\u0002\u0002\b",
-    "\u00ac\u0003\u0002\u0002\u0002\n\u00bc\u0003\u0002\u0002\u0002\f\u00cc",
-    "\u0003\u0002\u0002\u0002\u000e\u00da\u0003\u0002\u0002\u0002\u0010\u00dc",
-    "\u0003\u0002\u0002\u0002\u0012\u00e2\u0003\u0002\u0002\u0002\u0014\u0102",
-    "\u0003\u0002\u0002\u0002\u0016\u0107\u0003\u0002\u0002\u0002\u0018\u012a",
-    "\u0003\u0002\u0002\u0002\u001a\u0134\u0003\u0002\u0002\u0002\u001c\u0144",
-    "\u0003\u0002\u0002\u0002\u001e\u0154\u0003\u0002\u0002\u0002 \u0171",
-    "\u0003\u0002\u0002\u0002\"\u0195\u0003\u0002\u0002\u0002$\u01ce\u0003",
-    "\u0002\u0002\u0002&\u01d0\u0003\u0002\u0002\u0002(\u01e1\u0003\u0002",
-    "\u0002\u0002*\u01f0\u0003\u0002\u0002\u0002,\u01f4\u0003\u0002\u0002",
-    "\u0002.\u0218\u0003\u0002\u0002\u00020\u023c\u0003\u0002\u0002\u0002",
-    "2\u0253\u0003\u0002\u0002\u00024\u0261\u0003\u0002\u0002\u00026\u0263",
-    "\u0003\u0002\u0002\u00028\u0272\u0003\u0002\u0002\u0002:\u0274\u0003",
-    "\u0002\u0002\u0002<\u0291\u0003\u0002\u0002\u0002>\u02ca\u0003\u0002",
-    "\u0002\u0002@\u02d8\u0003\u0002\u0002\u0002B\u02ee\u0003\u0002\u0002",
-    "\u0002D\u02f0\u0003\u0002\u0002\u0002F\u0300\u0003\u0002\u0002\u0002",
-    "H\u0303\u0003\u0002\u0002\u0002J\u0315\u0003\u0002\u0002\u0002L\u0327",
-    "\u0003\u0002\u0002\u0002N\u0340\u0003\u0002\u0002\u0002P\u0365\u0003",
-    "\u0002\u0002\u0002R\u0367\u0003\u0002\u0002\u0002T\u0385\u0003\u0002",
-    "\u0002\u0002V\u0387\u0003\u0002\u0002\u0002X\u0393\u0003\u0002\u0002",
-    "\u0002Z\u0399\u0003\u0002\u0002\u0002\\\u039d\u0003\u0002\u0002\u0002",
-    "^\u03b4\u0003\u0002\u0002\u0002`\u03b6\u0003\u0002\u0002\u0002b\u03c7",
-    "\u0003\u0002\u0002\u0002d\u03e0\u0003\u0002\u0002\u0002f\u03ef\u0003",
-    "\u0002\u0002\u0002h\u0412\u0003\u0002\u0002\u0002j\u0414\u0003\u0002",
-    "\u0002\u0002l\u041d\u0003\u0002\u0002\u0002n\u0452\u0003\u0002\u0002",
-    "\u0002p\u046b\u0003\u0002\u0002\u0002r\u046d\u0003\u0002\u0002\u0002",
-    "t\u046f\u0003\u0002\u0002\u0002v\u047f\u0003\u0002\u0002\u0002x\u0490",
-    "\u0003\u0002\u0002\u0002z\u0498\u0003\u0002\u0002\u0002|\u04a9\u0003",
-    "\u0002\u0002\u0002~\u04ac\u0003\u0002\u0002\u0002\u0080\u04b9\u0003",
-    "\u0002\u0002\u0002\u0082\u04bb\u0003\u0002\u0002\u0002\u0084\u0086\u0005",
-    "\u0004\u0003\u0002\u0085\u0084\u0003\u0002\u0002\u0002\u0086\u0089\u0003",
-    "\u0002\u0002\u0002\u0087\u0085\u0003\u0002\u0002\u0002\u0087\u0088\u0003",
-    "\u0002\u0002\u0002\u0088\u008d\u0003\u0002\u0002\u0002\u0089\u0087\u0003",
-    "\u0002\u0002\u0002\u008a\u008c\u0005\u0006\u0004\u0002\u008b\u008a\u0003",
-    "\u0002\u0002\u0002\u008c\u008f\u0003\u0002\u0002\u0002\u008d\u008b\u0003",
-    "\u0002\u0002\u0002\u008d\u008e\u0003\u0002\u0002\u0002\u008e\u009f\u0003",
-    "\u0002\u0002\u0002\u008f\u008d\u0003\u0002\u0002\u0002\u0090\u00a0\u0005",
-    "\u0012\n\u0002\u0091\u0092\u0005,\u0017\u0002\u0092\u0093\u0007\'\u0002",
-    "\u0002\u0093\u00a0\u0003\u0002\u0002\u0002\u0094\u00a0\u0005\"\u0012",
-    "\u0002\u0095\u00a0\u0005V,\u0002\u0096\u00a0\u0005\\/\u0002\u0097\u00a0",
-    "\u0005`1\u0002\u0098\u00a0\u0005b2\u0002\u0099\u00a0\u0005v<\u0002\u009a",
-    "\u009c\u0005\u0004\u0003\u0002\u009b\u009a\u0003\u0002\u0002\u0002\u009c",
-    "\u009d\u0003\u0002\u0002\u0002\u009d\u009b\u0003\u0002\u0002\u0002\u009d",
-    "\u009e\u0003\u0002\u0002\u0002\u009e\u00a0\u0003\u0002\u0002\u0002\u009f",
-    "\u0090\u0003\u0002\u0002\u0002\u009f\u0091\u0003\u0002\u0002\u0002\u009f",
-    "\u0094\u0003\u0002\u0002\u0002\u009f\u0095\u0003\u0002\u0002\u0002\u009f",
-    "\u0096\u0003\u0002\u0002\u0002\u009f\u0097\u0003\u0002\u0002\u0002\u009f",
-    "\u0098\u0003\u0002\u0002\u0002\u009f\u0099\u0003\u0002\u0002\u0002\u009f",
-    "\u009b\u0003\u0002\u0002\u0002\u00a0\u00a1\u0003\u0002\u0002\u0002\u00a1",
-    "\u009f\u0003\u0002\u0002\u0002\u00a1\u00a2\u0003\u0002\u0002\u0002\u00a2",
-    "\u00a5\u0003\u0002\u0002\u0002\u00a3\u00a5\u0007\u0002\u0002\u0003\u00a4",
-    "\u0087\u0003\u0002\u0002\u0002\u00a4\u00a3\u0003\u0002\u0002\u0002\u00a5",
-    "\u0003\u0003\u0002\u0002\u0002\u00a6\u00a7\t\u0002\u0002\u0002\u00a7",
-    "\u0005\u0003\u0002\u0002\u0002\u00a8\u00ab\u0005\b\u0005\u0002\u00a9",
-    "\u00ab\u0005\n\u0006\u0002\u00aa\u00a8\u0003\u0002\u0002\u0002\u00aa",
-    "\u00a9\u0003\u0002\u0002\u0002\u00ab\u0007\u0003\u0002\u0002\u0002\u00ac",
-    "\u00ad\u0007\u0003\u0002\u0002\u00ad\u00ae\u0007)\u0002\u0002\u00ae",
-    "\u00b3\u0005\f\u0007\u0002\u00af\u00b0\u0007)\u0002\u0002\u00b0\u00b1",
-    "\u0007\u000e\u0002\u0002\u00b1\u00b2\u0007)\u0002\u0002\u00b2\u00b4",
-    "\u0007/\u0002\u0002\u00b3\u00af\u0003\u0002\u0002\u0002\u00b3\u00b4",
-    "\u0003\u0002\u0002\u0002\u00b4\u00b5\u0003\u0002\u0002\u0002\u00b5\u00b9",
-    "\u0007(\u0002\u0002\u00b6\u00b8\u0005\u0004\u0003\u0002\u00b7\u00b6",
-    "\u0003\u0002\u0002\u0002\u00b8\u00bb\u0003\u0002\u0002\u0002\u00b9\u00b7",
-    "\u0003\u0002\u0002\u0002\u00b9\u00ba\u0003\u0002\u0002\u0002\u00ba\t",
-    "\u0003\u0002\u0002\u0002\u00bb\u00b9\u0003\u0002\u0002\u0002\u00bc\u00bd",
-    "\u0007\u0004\u0002\u0002\u00bd\u00be\u0007)\u0002\u0002\u00be\u00bf",
-    "\u0005\f\u0007\u0002\u00bf\u00c0\u0007)\u0002\u0002\u00c0\u00c1\u0007",
-    "\u0003\u0002\u0002\u00c1\u00c2\u0007)\u0002\u0002\u00c2\u00c3\u0005",
-    "x=\u0002\u00c3\u00c7\u0007(\u0002\u0002\u00c4\u00c6\u0005\u0004\u0003",
-    "\u0002\u00c5\u00c4\u0003\u0002\u0002\u0002\u00c6\u00c9\u0003\u0002\u0002",
-    "\u0002\u00c7\u00c5\u0003\u0002\u0002\u0002\u00c7\u00c8\u0003\u0002\u0002",
-    "\u0002\u00c8\u000b\u0003\u0002\u0002\u0002\u00c9\u00c7\u0003\u0002\u0002",
-    "\u0002\u00ca\u00cd\u0005\u000e\b\u0002\u00cb\u00cd\u0005\u0010\t\u0002",
-    "\u00cc\u00ca\u0003\u0002\u0002\u0002\u00cc\u00cb\u0003\u0002\u0002\u0002",
-    "\u00cd\r\u0003\u0002\u0002\u0002\u00ce\u00d0\u0007#\u0002\u0002\u00cf",
-    "\u00d1\t\u0003\u0002\u0002\u00d0\u00cf\u0003\u0002\u0002\u0002\u00d1",
-    "\u00d2\u0003\u0002\u0002\u0002\u00d2\u00d0\u0003\u0002\u0002\u0002\u00d2",
-    "\u00d3\u0003\u0002\u0002\u0002\u00d3\u00db\u0003\u0002\u0002\u0002\u00d4",
-    "\u00d6\u0007$\u0002\u0002\u00d5\u00d7\t\u0003\u0002\u0002\u00d6\u00d5",
-    "\u0003\u0002\u0002\u0002\u00d7\u00d8\u0003\u0002\u0002\u0002\u00d8\u00d6",
-    "\u0003\u0002\u0002\u0002\u00d8\u00d9\u0003\u0002\u0002\u0002\u00d9\u00db",
-    "\u0003\u0002\u0002\u0002\u00da\u00ce\u0003\u0002\u0002\u0002\u00da\u00d4",
-    "\u0003\u0002\u0002\u0002\u00db\u000f\u0003\u0002\u0002\u0002\u00dc\u00de",
-    "\u0007\"\u0002\u0002\u00dd\u00df\t\u0003\u0002\u0002\u00de\u00dd\u0003",
-    "\u0002\u0002\u0002\u00df\u00e0\u0003\u0002\u0002\u0002\u00e0\u00de\u0003",
-    "\u0002\u0002\u0002\u00e0\u00e1\u0003\u0002\u0002\u0002\u00e1\u0011\u0003",
-    "\u0002\u0002\u0002\u00e2\u00e4\u0007\u0005\u0002\u0002\u00e3\u00e5\u0005",
-    "\u0004\u0003\u0002\u00e4\u00e3\u0003\u0002\u0002\u0002\u00e5\u00e6\u0003",
-    "\u0002\u0002\u0002\u00e6\u00e4\u0003\u0002\u0002\u0002\u00e6\u00e7\u0003",
-    "\u0002\u0002\u0002\u00e7\u00e8\u0003\u0002\u0002\u0002\u00e8\u00f0\u0005",
-    "\u0014\u000b\u0002\u00e9\u00eb\u0005\u0004\u0003\u0002\u00ea\u00e9\u0003",
-    "\u0002\u0002\u0002\u00eb\u00ee\u0003\u0002\u0002\u0002\u00ec\u00ea\u0003",
-    "\u0002\u0002\u0002\u00ec\u00ed\u0003\u0002\u0002\u0002\u00ed\u00ef\u0003",
-    "\u0002\u0002\u0002\u00ee\u00ec\u0003\u0002\u0002\u0002\u00ef\u00f1\u0005",
-    "\u0016\f\u0002\u00f0\u00ec\u0003\u0002\u0002\u0002\u00f0\u00f1\u0003",
-    "\u0002\u0002\u0002\u00f1\u00f3\u0003\u0002\u0002\u0002\u00f2\u00f4\u0005",
-    "\u0004\u0003\u0002\u00f3\u00f2\u0003\u0002\u0002\u0002\u00f4\u00f5\u0003",
-    "\u0002\u0002\u0002\u00f5\u00f3\u0003\u0002\u0002\u0002\u00f5\u00f6\u0003",
-    "\u0002\u0002\u0002\u00f6\u0100\u0003\u0002\u0002\u0002\u00f7\u0101\u0005",
-    "\u001a\u000e\u0002\u00f8\u00fc\u0007!\u0002\u0002\u00f9\u00fb\u0005",
-    "\u0004\u0003\u0002\u00fa\u00f9\u0003\u0002\u0002\u0002\u00fb\u00fe\u0003",
-    "\u0002\u0002\u0002\u00fc\u00fa\u0003\u0002\u0002\u0002\u00fc\u00fd\u0003",
-    "\u0002\u0002\u0002\u00fd\u00ff\u0003\u0002\u0002\u0002\u00fe\u00fc\u0003",
-    "\u0002\u0002\u0002\u00ff\u0101\u0005\u0018\r\u0002\u0100\u00f7\u0003",
-    "\u0002\u0002\u0002\u0100\u00f8\u0003\u0002\u0002\u0002\u0101\u0013\u0003",
-    "\u0002\u0002\u0002\u0102\u0105\u0007/\u0002\u0002\u0103\u0104\u0007",
-    " \u0002\u0002\u0104\u0106\u0007/\u0002\u0002\u0105\u0103\u0003\u0002",
-    "\u0002\u0002\u0105\u0106\u0003\u0002\u0002\u0002\u0106\u0015\u0003\u0002",
-    "\u0002\u0002\u0107\u010b\u0007\u001c\u0002\u0002\u0108\u010a\u0005\u0004",
-    "\u0003\u0002\u0109\u0108\u0003\u0002\u0002\u0002\u010a\u010d\u0003\u0002",
-    "\u0002\u0002\u010b\u0109\u0003\u0002\u0002\u0002\u010b\u010c\u0003\u0002",
-    "\u0002\u0002\u010c\u010e\u0003\u0002\u0002\u0002\u010d\u010b\u0003\u0002",
-    "\u0002\u0002\u010e\u0112\u0005\u0018\r\u0002\u010f\u0111\u0005\u0004",
-    "\u0003\u0002\u0110\u010f\u0003\u0002\u0002\u0002\u0111\u0114\u0003\u0002",
-    "\u0002\u0002\u0112\u0110\u0003\u0002\u0002\u0002\u0112\u0113\u0003\u0002",
-    "\u0002\u0002\u0113\u0125\u0003\u0002\u0002\u0002\u0114\u0112\u0003\u0002",
-    "\u0002\u0002\u0115\u0119\u0007\u0017\u0002\u0002\u0116\u0118\u0005\u0004",
-    "\u0003\u0002\u0117\u0116\u0003\u0002\u0002\u0002\u0118\u011b\u0003\u0002",
-    "\u0002\u0002\u0119\u0117\u0003\u0002\u0002\u0002\u0119\u011a\u0003\u0002",
-    "\u0002\u0002\u011a\u011c\u0003\u0002\u0002\u0002\u011b\u0119\u0003\u0002",
-    "\u0002\u0002\u011c\u0120\u0005\u0018\r\u0002\u011d\u011f\u0005\u0004",
-    "\u0003\u0002\u011e\u011d\u0003\u0002\u0002\u0002\u011f\u0122\u0003\u0002",
-    "\u0002\u0002\u0120\u011e\u0003\u0002\u0002\u0002\u0120\u0121\u0003\u0002",
-    "\u0002\u0002\u0121\u0124\u0003\u0002\u0002\u0002\u0122\u0120\u0003\u0002",
-    "\u0002\u0002\u0123\u0115\u0003\u0002\u0002\u0002\u0124\u0127\u0003\u0002",
-    "\u0002\u0002\u0125\u0123\u0003\u0002\u0002\u0002\u0125\u0126\u0003\u0002",
-    "\u0002\u0002\u0126\u0128\u0003\u0002\u0002\u0002\u0127\u0125\u0003\u0002",
-    "\u0002\u0002\u0128\u0129\u0007\u001d\u0002\u0002\u0129\u0017\u0003\u0002",
-    "\u0002\u0002\u012a\u0132\u0005\u0014\u000b\u0002\u012b\u012d\u0005\u0004",
-    "\u0003\u0002\u012c\u012b\u0003\u0002\u0002\u0002\u012d\u0130\u0003\u0002",
-    "\u0002\u0002\u012e\u012c\u0003\u0002\u0002\u0002\u012e\u012f\u0003\u0002",
-    "\u0002\u0002\u012f\u0131\u0003\u0002\u0002\u0002\u0130\u012e\u0003\u0002",
-    "\u0002\u0002\u0131\u0133\u0005\u0016\f\u0002\u0132\u012e\u0003\u0002",
-    "\u0002\u0002\u0132\u0133\u0003\u0002\u0002\u0002\u0133\u0019\u0003\u0002",
-    "\u0002\u0002\u0134\u0138\u0007\u0018\u0002\u0002\u0135\u0137\u0005\u0004",
-    "\u0003\u0002\u0136\u0135\u0003\u0002\u0002\u0002\u0137\u013a\u0003\u0002",
-    "\u0002\u0002\u0138\u0136\u0003\u0002\u0002\u0002\u0138\u0139\u0003\u0002",
-    "\u0002\u0002\u0139\u013b\u0003\u0002\u0002\u0002\u013a\u0138\u0003\u0002",
-    "\u0002\u0002\u013b\u013f\u0005\u001e\u0010\u0002\u013c\u013e\u0005\u0004",
-    "\u0003\u0002\u013d\u013c\u0003\u0002\u0002\u0002\u013e\u0141\u0003\u0002",
-    "\u0002\u0002\u013f\u013d\u0003\u0002\u0002\u0002\u013f\u0140\u0003\u0002",
-    "\u0002\u0002\u0140\u0142\u0003\u0002\u0002\u0002\u0141\u013f\u0003\u0002",
-    "\u0002\u0002\u0142\u0143\u0007\u0019\u0002\u0002\u0143\u001b\u0003\u0002",
-    "\u0002\u0002\u0144\u0148\u0007/\u0002\u0002\u0145\u0147\u0005\u0004",
-    "\u0003\u0002\u0146\u0145\u0003\u0002\u0002\u0002\u0147\u014a\u0003\u0002",
-    "\u0002\u0002\u0148\u0146\u0003\u0002\u0002\u0002\u0148\u0149\u0003\u0002",
-    "\u0002\u0002\u0149\u014b\u0003\u0002\u0002\u0002\u014a\u0148\u0003\u0002",
-    "\u0002\u0002\u014b\u014f\u0007&\u0002\u0002\u014c\u014e\u0005\u0004",
-    "\u0003\u0002\u014d\u014c\u0003\u0002\u0002\u0002\u014e\u0151\u0003\u0002",
-    "\u0002\u0002\u014f\u014d\u0003\u0002\u0002\u0002\u014f\u0150\u0003\u0002",
-    "\u0002\u0002\u0150\u0152\u0003\u0002\u0002\u0002\u0151\u014f\u0003\u0002",
-    "\u0002\u0002\u0152\u0153\u0005\u0018\r\u0002\u0153\u001d\u0003\u0002",
-    "\u0002\u0002\u0154\u0158\u0005\u001c\u000f\u0002\u0155\u0157\u0005\u0004",
-    "\u0003\u0002\u0156\u0155\u0003\u0002\u0002\u0002\u0157\u015a\u0003\u0002",
-    "\u0002\u0002\u0158\u0156\u0003\u0002\u0002\u0002\u0158\u0159\u0003\u0002",
-    "\u0002\u0002\u0159\u016b\u0003\u0002\u0002\u0002\u015a\u0158\u0003\u0002",
-    "\u0002\u0002\u015b\u015f\u0007\u0017\u0002\u0002\u015c\u015e\u0005\u0004",
-    "\u0003\u0002\u015d\u015c\u0003\u0002\u0002\u0002\u015e\u0161\u0003\u0002",
-    "\u0002\u0002\u015f\u015d\u0003\u0002\u0002\u0002\u015f\u0160\u0003\u0002",
-    "\u0002\u0002\u0160\u0162\u0003\u0002\u0002\u0002\u0161\u015f\u0003\u0002",
-    "\u0002\u0002\u0162\u0166\u0005\u001c\u000f\u0002\u0163\u0165\u0005\u0004",
-    "\u0003\u0002\u0164\u0163\u0003\u0002\u0002\u0002\u0165\u0168\u0003\u0002",
-    "\u0002\u0002\u0166\u0164\u0003\u0002\u0002\u0002\u0166\u0167\u0003\u0002",
-    "\u0002\u0002\u0167\u016a\u0003\u0002\u0002\u0002\u0168\u0166\u0003\u0002",
-    "\u0002\u0002\u0169\u015b\u0003\u0002\u0002\u0002\u016a\u016d\u0003\u0002",
-    "\u0002\u0002\u016b\u0169\u0003\u0002\u0002\u0002\u016b\u016c\u0003\u0002",
-    "\u0002\u0002\u016c\u016f\u0003\u0002\u0002\u0002\u016d\u016b\u0003\u0002",
-    "\u0002\u0002\u016e\u0170\u0007\u0017\u0002\u0002\u016f\u016e\u0003\u0002",
-    "\u0002\u0002\u016f\u0170\u0003\u0002\u0002\u0002\u0170\u001f\u0003\u0002",
-    "\u0002\u0002\u0171\u0175\u0007/\u0002\u0002\u0172\u0174\u0005\u0004",
-    "\u0003\u0002\u0173\u0172\u0003\u0002\u0002\u0002\u0174\u0177\u0003\u0002",
-    "\u0002\u0002\u0175\u0173\u0003\u0002\u0002\u0002\u0175\u0176\u0003\u0002",
-    "\u0002\u0002\u0176\u0178\u0003\u0002\u0002\u0002\u0177\u0175\u0003\u0002",
-    "\u0002\u0002\u0178\u017c\u0007&\u0002\u0002\u0179\u017b\u0005\u0004",
-    "\u0003\u0002\u017a\u0179\u0003\u0002\u0002\u0002\u017b\u017e\u0003\u0002",
-    "\u0002\u0002\u017c\u017a\u0003\u0002\u0002\u0002\u017c\u017d\u0003\u0002",
-    "\u0002\u0002\u017d\u017f\u0003\u0002\u0002\u0002\u017e\u017c\u0003\u0002",
-    "\u0002\u0002\u017f\u0192\u0005\u0018\r\u0002\u0180\u0181\u0007\u0017",
-    "\u0002\u0002\u0181\u0185\u0007/\u0002\u0002\u0182\u0184\u0005\u0004",
-    "\u0003\u0002\u0183\u0182\u0003\u0002\u0002\u0002\u0184\u0187\u0003\u0002",
-    "\u0002\u0002\u0185\u0183\u0003\u0002\u0002\u0002\u0185\u0186\u0003\u0002",
-    "\u0002\u0002\u0186\u0188\u0003\u0002\u0002\u0002\u0187\u0185\u0003\u0002",
-    "\u0002\u0002\u0188\u018c\u0007&\u0002\u0002\u0189\u018b\u0005\u0004",
-    "\u0003\u0002\u018a\u0189\u0003\u0002\u0002\u0002\u018b\u018e\u0003\u0002",
-    "\u0002\u0002\u018c\u018a\u0003\u0002\u0002\u0002\u018c\u018d\u0003\u0002",
-    "\u0002\u0002\u018d\u018f\u0003\u0002\u0002\u0002\u018e\u018c\u0003\u0002",
-    "\u0002\u0002\u018f\u0191\u0005\u0018\r\u0002\u0190\u0180\u0003\u0002",
-    "\u0002\u0002\u0191\u0194\u0003\u0002\u0002\u0002\u0192\u0190\u0003\u0002",
-    "\u0002\u0002\u0192\u0193\u0003\u0002\u0002\u0002\u0193!\u0003\u0002",
-    "\u0002\u0002\u0194\u0192\u0003\u0002\u0002\u0002\u0195\u0197\u0007\u0006",
-    "\u0002\u0002\u0196\u0198\u0005\u0004\u0003\u0002\u0197\u0196\u0003\u0002",
-    "\u0002\u0002\u0198\u0199\u0003\u0002\u0002\u0002\u0199\u0197\u0003\u0002",
-    "\u0002\u0002\u0199\u019a\u0003\u0002\u0002\u0002\u019a\u01bf\u0003\u0002",
-    "\u0002\u0002\u019b\u019f\u0007/\u0002\u0002\u019c\u019e\u0005\u0004",
-    "\u0003\u0002\u019d\u019c\u0003\u0002\u0002\u0002\u019e\u01a1\u0003\u0002",
-    "\u0002\u0002\u019f\u019d\u0003\u0002\u0002\u0002\u019f\u01a0\u0003\u0002",
-    "\u0002\u0002\u01a0\u01a3\u0003\u0002\u0002\u0002\u01a1\u019f\u0003\u0002",
-    "\u0002\u0002\u01a2\u019b\u0003\u0002\u0002\u0002\u01a2\u01a3\u0003\u0002",
-    "\u0002\u0002\u01a3\u01a4\u0003\u0002\u0002\u0002\u01a4\u01a6\u0007\u001a",
-    "\u0002\u0002\u01a5\u01a7\u0005 \u0011\u0002\u01a6\u01a5\u0003\u0002",
-    "\u0002\u0002\u01a6\u01a7\u0003\u0002\u0002\u0002\u01a7\u01a8\u0003\u0002",
-    "\u0002\u0002\u01a8\u01ac\u0007\u001b\u0002\u0002\u01a9\u01ab\u0005\u0004",
-    "\u0003\u0002\u01aa\u01a9\u0003\u0002\u0002\u0002\u01ab\u01ae\u0003\u0002",
-    "\u0002\u0002\u01ac\u01aa\u0003\u0002\u0002\u0002\u01ac\u01ad\u0003\u0002",
-    "\u0002\u0002\u01ad\u01bd\u0003\u0002\u0002\u0002\u01ae\u01ac\u0003\u0002",
-    "\u0002\u0002\u01af\u01b1\u0005\u0004\u0003\u0002\u01b0\u01af\u0003\u0002",
-    "\u0002\u0002\u01b0\u01b1\u0003\u0002\u0002\u0002\u01b1\u01b2\u0003\u0002",
-    "\u0002\u0002\u01b2\u01b4\u0007&\u0002\u0002\u01b3\u01b5\u0005\u0004",
-    "\u0003\u0002\u01b4\u01b3\u0003\u0002\u0002\u0002\u01b4\u01b5\u0003\u0002",
-    "\u0002\u0002\u01b5\u01b6\u0003\u0002\u0002\u0002\u01b6\u01ba\u0005\u0018",
-    "\r\u0002\u01b7\u01b9\u0005\u0004\u0003\u0002\u01b8\u01b7\u0003\u0002",
-    "\u0002\u0002\u01b9\u01bc\u0003\u0002\u0002\u0002\u01ba\u01b8\u0003\u0002",
-    "\u0002\u0002\u01ba\u01bb\u0003\u0002\u0002\u0002\u01bb\u01be\u0003\u0002",
-    "\u0002\u0002\u01bc\u01ba\u0003\u0002\u0002\u0002\u01bd\u01b0\u0003\u0002",
-    "\u0002\u0002\u01bd\u01be\u0003\u0002\u0002\u0002\u01be\u01c0\u0003\u0002",
-    "\u0002\u0002\u01bf\u01a2\u0003\u0002\u0002\u0002\u01bf\u01c0\u0003\u0002",
-    "\u0002\u0002\u01c0\u01c1\u0003\u0002\u0002\u0002\u01c1\u01c3\u0005$",
-    "\u0013\u0002\u01c2\u01c4\u0007\'\u0002\u0002\u01c3\u01c2\u0003\u0002",
-    "\u0002\u0002\u01c3\u01c4\u0003\u0002\u0002\u0002\u01c4#\u0003\u0002",
-    "\u0002\u0002\u01c5\u01cf\u0005&\u0014\u0002\u01c6\u01ca\u0007!\u0002",
-    "\u0002\u01c7\u01c9\u0005\u0004\u0003\u0002\u01c8\u01c7\u0003\u0002\u0002",
-    "\u0002\u01c9\u01cc\u0003\u0002\u0002\u0002\u01ca\u01c8\u0003\u0002\u0002",
-    "\u0002\u01ca\u01cb\u0003\u0002\u0002\u0002\u01cb\u01cd\u0003\u0002\u0002",
-    "\u0002\u01cc\u01ca\u0003\u0002\u0002\u0002\u01cd\u01cf\u00056\u001c",
-    "\u0002\u01ce\u01c5\u0003\u0002\u0002\u0002\u01ce\u01c6\u0003\u0002\u0002",
-    "\u0002\u01cf%\u0003\u0002\u0002\u0002\u01d0\u01d2\u0007\u0018\u0002",
-    "\u0002\u01d1\u01d3\u0005(\u0015\u0002\u01d2\u01d1\u0003\u0002\u0002",
-    "\u0002\u01d3\u01d4\u0003\u0002\u0002\u0002\u01d4\u01d2\u0003\u0002\u0002",
-    "\u0002\u01d4\u01d5\u0003\u0002\u0002\u0002\u01d5\u01d9\u0003\u0002\u0002",
-    "\u0002\u01d6\u01d8\u0005\u0004\u0003\u0002\u01d7\u01d6\u0003\u0002\u0002",
-    "\u0002\u01d8\u01db\u0003\u0002\u0002\u0002\u01d9\u01d7\u0003\u0002\u0002",
-    "\u0002\u01d9\u01da\u0003\u0002\u0002\u0002\u01da\u01dc\u0003\u0002\u0002",
-    "\u0002\u01db\u01d9\u0003\u0002\u0002\u0002\u01dc\u01dd\u0007\u0019\u0002",
-    "\u0002\u01dd\'\u0003\u0002\u0002\u0002\u01de\u01e0\u0005\u0004\u0003",
-    "\u0002\u01df\u01de\u0003\u0002\u0002\u0002\u01e0\u01e3\u0003\u0002\u0002",
-    "\u0002\u01e1\u01df\u0003\u0002\u0002\u0002\u01e1\u01e2\u0003\u0002\u0002",
-    "\u0002\u01e2\u01ec\u0003\u0002\u0002\u0002\u01e3\u01e1\u0003\u0002\u0002",
-    "\u0002\u01e4\u01ed\u0005*\u0016\u0002\u01e5\u01ed\u0005J&\u0002\u01e6",
-    "\u01ed\u0005L\'\u0002\u01e7\u01ed\u0005N(\u0002\u01e8\u01ed\u00050\u0019",
-    "\u0002\u01e9\u01ea\u00056\u001c\u0002\u01ea\u01eb\u0007\'\u0002\u0002",
-    "\u01eb\u01ed\u0003\u0002\u0002\u0002\u01ec\u01e4\u0003\u0002\u0002\u0002",
-    "\u01ec\u01e5\u0003\u0002\u0002\u0002\u01ec\u01e6\u0003\u0002\u0002\u0002",
-    "\u01ec\u01e7\u0003\u0002\u0002\u0002\u01ec\u01e8\u0003\u0002\u0002\u0002",
-    "\u01ec\u01e9\u0003\u0002\u0002\u0002\u01ed)\u0003\u0002\u0002\u0002",
-    "\u01ee\u01f1\u0005,\u0017\u0002\u01ef\u01f1\u0005.\u0018\u0002\u01f0",
-    "\u01ee\u0003\u0002\u0002\u0002\u01f0\u01ef\u0003\u0002\u0002\u0002\u01f1",
-    "\u01f2\u0003\u0002\u0002\u0002\u01f2\u01f3\u0007\'\u0002\u0002\u01f3",
-    "+\u0003\u0002\u0002\u0002\u01f4\u01f8\u0007\n\u0002\u0002\u01f5\u01f7",
-    "\u0005\u0004\u0003\u0002\u01f6\u01f5\u0003\u0002\u0002\u0002\u01f7\u01fa",
-    "\u0003\u0002\u0002\u0002\u01f8\u01f6\u0003\u0002\u0002\u0002\u01f8\u01f9",
-    "\u0003\u0002\u0002\u0002\u01f9\u01fb\u0003\u0002\u0002\u0002\u01fa\u01f8",
-    "\u0003\u0002\u0002\u0002\u01fb\u01ff\u0007/\u0002\u0002\u01fc\u01fe",
-    "\u0005\u0004\u0003\u0002\u01fd\u01fc\u0003\u0002\u0002\u0002\u01fe\u0201",
-    "\u0003\u0002\u0002\u0002\u01ff\u01fd\u0003\u0002\u0002\u0002\u01ff\u0200",
-    "\u0003\u0002\u0002\u0002\u0200\u0207\u0003\u0002\u0002\u0002\u0201\u01ff",
-    "\u0003\u0002\u0002\u0002\u0202\u0204\u0007&\u0002\u0002\u0203\u0205",
-    "\u0005\u0004\u0003\u0002\u0204\u0203\u0003\u0002\u0002\u0002\u0204\u0205",
-    "\u0003\u0002\u0002\u0002\u0205\u0206\u0003\u0002\u0002\u0002\u0206\u0208",
-    "\u0005\u0018\r\u0002\u0207\u0202\u0003\u0002\u0002\u0002\u0207\u0208",
-    "\u0003\u0002\u0002\u0002\u0208\u020c\u0003\u0002\u0002\u0002\u0209\u020b",
-    "\u0005\u0004\u0003\u0002\u020a\u0209\u0003\u0002\u0002\u0002\u020b\u020e",
-    "\u0003\u0002\u0002\u0002\u020c\u020a\u0003\u0002\u0002\u0002\u020c\u020d",
-    "\u0003\u0002\u0002\u0002\u020d\u020f\u0003\u0002\u0002\u0002\u020e\u020c",
-    "\u0003\u0002\u0002\u0002\u020f\u0213\u0007!\u0002\u0002\u0210\u0212",
-    "\u0005\u0004\u0003\u0002\u0211\u0210\u0003\u0002\u0002\u0002\u0212\u0215",
-    "\u0003\u0002\u0002\u0002\u0213\u0211\u0003\u0002\u0002\u0002\u0213\u0214",
-    "\u0003\u0002\u0002\u0002\u0214\u0216\u0003\u0002\u0002\u0002\u0215\u0213",
-    "\u0003\u0002\u0002\u0002\u0216\u0217\u00056\u001c\u0002\u0217-\u0003",
-    "\u0002\u0002\u0002\u0218\u021c\u0007\u000b\u0002\u0002\u0219\u021b\u0005",
-    "\u0004\u0003\u0002\u021a\u0219\u0003\u0002\u0002\u0002\u021b\u021e\u0003",
-    "\u0002\u0002\u0002\u021c\u021a\u0003\u0002\u0002\u0002\u021c\u021d\u0003",
-    "\u0002\u0002\u0002\u021d\u021f\u0003\u0002\u0002\u0002\u021e\u021c\u0003",
-    "\u0002\u0002\u0002\u021f\u0223\u0007/\u0002\u0002\u0220\u0222\u0005",
-    "\u0004\u0003\u0002\u0221\u0220\u0003\u0002\u0002\u0002\u0222\u0225\u0003",
-    "\u0002\u0002\u0002\u0223\u0221\u0003\u0002\u0002\u0002\u0223\u0224\u0003",
-    "\u0002\u0002\u0002\u0224\u022b\u0003\u0002\u0002\u0002\u0225\u0223\u0003",
-    "\u0002\u0002\u0002\u0226\u0228\u0007&\u0002\u0002\u0227\u0229\u0005",
-    "\u0004\u0003\u0002\u0228\u0227\u0003\u0002\u0002\u0002\u0228\u0229\u0003",
-    "\u0002\u0002\u0002\u0229\u022a\u0003\u0002\u0002\u0002\u022a\u022c\u0005",
-    "\u0018\r\u0002\u022b\u0226\u0003\u0002\u0002\u0002\u022b\u022c\u0003",
-    "\u0002\u0002\u0002\u022c\u0230\u0003\u0002\u0002\u0002\u022d\u022f\u0005",
-    "\u0004\u0003\u0002\u022e\u022d\u0003\u0002\u0002\u0002\u022f\u0232\u0003",
-    "\u0002\u0002\u0002\u0230\u022e\u0003\u0002\u0002\u0002\u0230\u0231\u0003",
-    "\u0002\u0002\u0002\u0231\u0233\u0003\u0002\u0002\u0002\u0232\u0230\u0003",
-    "\u0002\u0002\u0002\u0233\u0237\u0007!\u0002\u0002\u0234\u0236\u0005",
-    "\u0004\u0003\u0002\u0235\u0234\u0003\u0002\u0002\u0002\u0236\u0239\u0003",
-    "\u0002\u0002\u0002\u0237\u0235\u0003\u0002\u0002\u0002\u0237\u0238\u0003",
-    "\u0002\u0002\u0002\u0238\u023a\u0003\u0002\u0002\u0002\u0239\u0237\u0003",
-    "\u0002\u0002\u0002\u023a\u023b\u00056\u001c\u0002\u023b/\u0003\u0002",
-    "\u0002\u0002\u023c\u0240\u0005~@\u0002\u023d\u023f\u0005\u0004\u0003",
-    "\u0002\u023e\u023d\u0003\u0002\u0002\u0002\u023f\u0242\u0003\u0002\u0002",
-    "\u0002\u0240\u023e\u0003\u0002\u0002\u0002\u0240\u0241\u0003\u0002\u0002",
-    "\u0002\u0241\u0243\u0003\u0002\u0002\u0002\u0242\u0240\u0003\u0002\u0002",
-    "\u0002\u0243\u0247\u0007!\u0002\u0002\u0244\u0246\u0005\u0004\u0003",
-    "\u0002\u0245\u0244\u0003\u0002\u0002\u0002\u0246\u0249\u0003\u0002\u0002",
-    "\u0002\u0247\u0245\u0003\u0002\u0002\u0002\u0247\u0248\u0003\u0002\u0002",
-    "\u0002\u0248\u024a\u0003\u0002\u0002\u0002\u0249\u0247\u0003\u0002\u0002",
-    "\u0002\u024a\u024b\u00056\u001c\u0002\u024b\u024c\u0007\'\u0002\u0002",
-    "\u024c1\u0003\u0002\u0002\u0002\u024d\u0254\u0007 \u0002\u0002\u024e",
-    "\u0254\u0007/\u0002\u0002\u024f\u0254\u0005R*\u0002\u0250\u0254\u0005",
-    "\"\u0012\u0002\u0251\u0254\u0005H%\u0002\u0252\u0254\u00058\u001d\u0002",
-    "\u0253\u024d\u0003\u0002\u0002\u0002\u0253\u024e\u0003\u0002\u0002\u0002",
-    "\u0253\u024f\u0003\u0002\u0002\u0002\u0253\u0250\u0003\u0002\u0002\u0002",
-    "\u0253\u0251\u0003\u0002\u0002\u0002\u0253\u0252\u0003\u0002\u0002\u0002",
-    "\u02543\u0003\u0002\u0002\u0002\u0255\u0259\u00052\u001a\u0002\u0256",
-    "\u0258\u0005\u0004\u0003\u0002\u0257\u0256\u0003\u0002\u0002\u0002\u0258",
-    "\u025b\u0003\u0002\u0002\u0002\u0259\u0257\u0003\u0002\u0002\u0002\u0259",
-    "\u025a\u0003\u0002\u0002\u0002\u025a\u025d\u0003\u0002\u0002\u0002\u025b",
-    "\u0259\u0003\u0002\u0002\u0002\u025c\u0255\u0003\u0002\u0002\u0002\u025d",
-    "\u025e\u0003\u0002\u0002\u0002\u025e\u025c\u0003\u0002\u0002\u0002\u025e",
-    "\u025f\u0003\u0002\u0002\u0002\u025f\u0262\u0003\u0002\u0002\u0002\u0260",
-    "\u0262\u0005T+\u0002\u0261\u025c\u0003\u0002\u0002\u0002\u0261\u0260",
-    "\u0003\u0002\u0002\u0002\u02625\u0003\u0002\u0002\u0002\u0263\u026d",
-    "\u00054\u001b\u0002\u0264\u0266\u0005\u0004\u0003\u0002\u0265\u0264",
-    "\u0003\u0002\u0002\u0002\u0266\u0269\u0003\u0002\u0002\u0002\u0267\u0265",
-    "\u0003\u0002\u0002\u0002\u0267\u0268\u0003\u0002\u0002\u0002\u0268\u026a",
-    "\u0003\u0002\u0002\u0002\u0269\u0267\u0003\u0002\u0002\u0002\u026a\u026c",
-    "\u00054\u001b\u0002\u026b\u0267\u0003\u0002\u0002\u0002\u026c\u026f",
-    "\u0003\u0002\u0002\u0002\u026d\u026b\u0003\u0002\u0002\u0002\u026d\u026e",
-    "\u0003\u0002\u0002\u0002\u026e7\u0003\u0002\u0002\u0002\u026f\u026d",
-    "\u0003\u0002\u0002\u0002\u0270\u0273\u0005B\"\u0002\u0271\u0273\u0005",
-    "F$\u0002\u0272\u0270\u0003\u0002\u0002\u0002\u0272\u0271\u0003\u0002",
-    "\u0002\u0002\u02739\u0003\u0002\u0002\u0002\u0274\u0278\u00056\u001c",
-    "\u0002\u0275\u0277\u0005\u0004\u0003\u0002\u0276\u0275\u0003\u0002\u0002",
-    "\u0002\u0277\u027a\u0003\u0002\u0002\u0002\u0278\u0276\u0003\u0002\u0002",
-    "\u0002\u0278\u0279\u0003\u0002\u0002\u0002\u0279\u028b\u0003\u0002\u0002",
-    "\u0002\u027a\u0278\u0003\u0002\u0002\u0002\u027b\u027f\u0007\u0017\u0002",
-    "\u0002\u027c\u027e\u0005\u0004\u0003\u0002\u027d\u027c\u0003\u0002\u0002",
-    "\u0002\u027e\u0281\u0003\u0002\u0002\u0002\u027f\u027d\u0003\u0002\u0002",
-    "\u0002\u027f\u0280\u0003\u0002\u0002\u0002\u0280\u0282\u0003\u0002\u0002",
-    "\u0002\u0281\u027f\u0003\u0002\u0002\u0002\u0282\u0286\u00056\u001c",
-    "\u0002\u0283\u0285\u0005\u0004\u0003\u0002\u0284\u0283\u0003\u0002\u0002",
-    "\u0002\u0285\u0288\u0003\u0002\u0002\u0002\u0286\u0284\u0003\u0002\u0002",
-    "\u0002\u0286\u0287\u0003\u0002\u0002\u0002\u0287\u028a\u0003\u0002\u0002",
-    "\u0002\u0288\u0286\u0003\u0002\u0002\u0002\u0289\u027b\u0003\u0002\u0002",
-    "\u0002\u028a\u028d\u0003\u0002\u0002\u0002\u028b\u0289\u0003\u0002\u0002",
-    "\u0002\u028b\u028c\u0003\u0002\u0002\u0002\u028c\u028f\u0003\u0002\u0002",
-    "\u0002\u028d\u028b\u0003\u0002\u0002\u0002\u028e\u0290\u0007\u0017\u0002",
-    "\u0002\u028f\u028e\u0003\u0002\u0002\u0002\u028f\u0290\u0003\u0002\u0002",
-    "\u0002\u0290;\u0003\u0002\u0002\u0002\u0291\u0295\u0007/\u0002\u0002",
-    "\u0292\u0294\u0005\u0004\u0003\u0002\u0293\u0292\u0003\u0002\u0002\u0002",
-    "\u0294\u0297\u0003\u0002\u0002\u0002\u0295\u0293\u0003\u0002\u0002\u0002",
-    "\u0295\u0296\u0003\u0002\u0002\u0002\u0296\u0298\u0003\u0002\u0002\u0002",
-    "\u0297\u0295\u0003\u0002\u0002\u0002\u0298\u029c\u0007&\u0002\u0002",
-    "\u0299\u029b\u0005\u0004\u0003\u0002\u029a\u0299\u0003\u0002\u0002\u0002",
-    "\u029b\u029e\u0003\u0002\u0002\u0002\u029c\u029a\u0003\u0002\u0002\u0002",
-    "\u029c\u029d\u0003\u0002\u0002\u0002\u029d\u029f\u0003\u0002\u0002\u0002",
-    "\u029e\u029c\u0003\u0002\u0002\u0002\u029f\u02a3\u00056\u001c\u0002",
-    "\u02a0\u02a2\u0005\u0004\u0003\u0002\u02a1\u02a0\u0003\u0002\u0002\u0002",
-    "\u02a2\u02a5\u0003\u0002\u0002\u0002\u02a3\u02a1\u0003\u0002\u0002\u0002",
-    "\u02a3\u02a4\u0003\u0002\u0002\u0002\u02a4\u02c4\u0003\u0002\u0002\u0002",
-    "\u02a5\u02a3\u0003\u0002\u0002\u0002\u02a6\u02aa\u0007\u0017\u0002\u0002",
-    "\u02a7\u02a9\u0005\u0004\u0003\u0002\u02a8\u02a7\u0003\u0002\u0002\u0002",
-    "\u02a9\u02ac\u0003\u0002\u0002\u0002\u02aa\u02a8\u0003\u0002\u0002\u0002",
-    "\u02aa\u02ab\u0003\u0002\u0002\u0002\u02ab\u02ad\u0003\u0002\u0002\u0002",
-    "\u02ac\u02aa\u0003\u0002\u0002\u0002\u02ad\u02b1\u0007/\u0002\u0002",
-    "\u02ae\u02b0\u0005\u0004\u0003\u0002\u02af\u02ae\u0003\u0002\u0002\u0002",
-    "\u02b0\u02b3\u0003\u0002\u0002\u0002\u02b1\u02af\u0003\u0002\u0002\u0002",
-    "\u02b1\u02b2\u0003\u0002\u0002\u0002\u02b2\u02b4\u0003\u0002\u0002\u0002",
-    "\u02b3\u02b1\u0003\u0002\u0002\u0002\u02b4\u02b8\u0007&\u0002\u0002",
-    "\u02b5\u02b7\u0005\u0004\u0003\u0002\u02b6\u02b5\u0003\u0002\u0002\u0002",
-    "\u02b7\u02ba\u0003\u0002\u0002\u0002\u02b8\u02b6\u0003\u0002\u0002\u0002",
-    "\u02b8\u02b9\u0003\u0002\u0002\u0002\u02b9\u02bb\u0003\u0002\u0002\u0002",
-    "\u02ba\u02b8\u0003\u0002\u0002\u0002\u02bb\u02bf\u00056\u001c\u0002",
-    "\u02bc\u02be\u0005\u0004\u0003\u0002\u02bd\u02bc\u0003\u0002\u0002\u0002",
-    "\u02be\u02c1\u0003\u0002\u0002\u0002\u02bf\u02bd\u0003\u0002\u0002\u0002",
-    "\u02bf\u02c0\u0003\u0002\u0002\u0002\u02c0\u02c3\u0003\u0002\u0002\u0002",
-    "\u02c1\u02bf\u0003\u0002\u0002\u0002\u02c2\u02a6\u0003\u0002\u0002\u0002",
-    "\u02c3\u02c6\u0003\u0002\u0002\u0002\u02c4\u02c2\u0003\u0002\u0002\u0002",
-    "\u02c4\u02c5\u0003\u0002\u0002\u0002\u02c5\u02c8\u0003\u0002\u0002\u0002",
-    "\u02c6\u02c4\u0003\u0002\u0002\u0002\u02c7\u02c9\u0007\u0017\u0002\u0002",
-    "\u02c8\u02c7\u0003\u0002\u0002\u0002\u02c8\u02c9\u0003\u0002\u0002\u0002",
-    "\u02c9=\u0003\u0002\u0002\u0002\u02ca\u02ce\u0007\u0015\u0002\u0002",
-    "\u02cb\u02cd\u0007)\u0002\u0002\u02cc\u02cb\u0003\u0002\u0002\u0002",
-    "\u02cd\u02d0\u0003\u0002\u0002\u0002\u02ce\u02cc\u0003\u0002\u0002\u0002",
-    "\u02ce\u02cf\u0003\u0002\u0002\u0002\u02cf\u02d1\u0003\u0002\u0002\u0002",
-    "\u02d0\u02ce\u0003\u0002\u0002\u0002\u02d1\u02d5\u0005\u0018\r\u0002",
-    "\u02d2\u02d4\u0007)\u0002\u0002\u02d3\u02d2\u0003\u0002\u0002\u0002",
-    "\u02d4\u02d7\u0003\u0002\u0002\u0002\u02d5\u02d3\u0003\u0002\u0002\u0002",
-    "\u02d5\u02d6\u0003\u0002\u0002\u0002\u02d6?\u0003\u0002\u0002\u0002",
-    "\u02d7\u02d5\u0003\u0002\u0002\u0002\u02d8\u02dc\u0007\u001e\u0002\u0002",
-    "\u02d9\u02db\u0005\u0004\u0003\u0002\u02da\u02d9\u0003\u0002\u0002\u0002",
-    "\u02db\u02de\u0003\u0002\u0002\u0002\u02dc\u02da\u0003\u0002\u0002\u0002",
-    "\u02dc\u02dd\u0003\u0002\u0002\u0002\u02dd\u02e0\u0003\u0002\u0002\u0002",
-    "\u02de\u02dc\u0003\u0002\u0002\u0002\u02df\u02e1\u0005:\u001e\u0002",
-    "\u02e0\u02df\u0003\u0002\u0002\u0002\u02e0\u02e1\u0003\u0002\u0002\u0002",
-    "\u02e1\u02e5\u0003\u0002\u0002\u0002\u02e2\u02e4\u0005\u0004\u0003\u0002",
-    "\u02e3\u02e2\u0003\u0002\u0002\u0002\u02e4\u02e7\u0003\u0002\u0002\u0002",
-    "\u02e5\u02e3\u0003\u0002\u0002\u0002\u02e5\u02e6\u0003\u0002\u0002\u0002",
-    "\u02e6\u02e8\u0003\u0002\u0002\u0002\u02e7\u02e5\u0003\u0002\u0002\u0002",
-    "\u02e8\u02e9\u0007\u001f\u0002\u0002\u02e9A\u0003\u0002\u0002\u0002",
-    "\u02ea\u02ef\u0005@!\u0002\u02eb\u02ec\u0005> \u0002\u02ec\u02ed\u0005",
-    "@!\u0002\u02ed\u02ef\u0003\u0002\u0002\u0002\u02ee\u02ea\u0003\u0002",
-    "\u0002\u0002\u02ee\u02eb\u0003\u0002\u0002\u0002\u02efC\u0003\u0002",
-    "\u0002\u0002\u02f0\u02f4\u0007\u0018\u0002\u0002\u02f1\u02f3\u0005\u0004",
-    "\u0003\u0002\u02f2\u02f1\u0003\u0002\u0002\u0002\u02f3\u02f6\u0003\u0002",
-    "\u0002\u0002\u02f4\u02f2\u0003\u0002\u0002\u0002\u02f4\u02f5\u0003\u0002",
-    "\u0002\u0002\u02f5\u02f7\u0003\u0002\u0002\u0002\u02f6\u02f4\u0003\u0002",
-    "\u0002\u0002\u02f7\u02fb\u0005<\u001f\u0002\u02f8\u02fa\u0005\u0004",
-    "\u0003\u0002\u02f9\u02f8\u0003\u0002\u0002\u0002\u02fa\u02fd\u0003\u0002",
-    "\u0002\u0002\u02fb\u02f9\u0003\u0002\u0002\u0002\u02fb\u02fc\u0003\u0002",
-    "\u0002\u0002\u02fc\u02fe\u0003\u0002\u0002\u0002\u02fd\u02fb\u0003\u0002",
-    "\u0002\u0002\u02fe\u02ff\u0007\u0019\u0002\u0002\u02ffE\u0003\u0002",
-    "\u0002\u0002\u0300\u0301\u0005> \u0002\u0301\u0302\u0005D#\u0002\u0302",
-    "G\u0003\u0002\u0002\u0002\u0303\u0307\u0007\u001a\u0002\u0002\u0304",
-    "\u0306\u0005\u0004\u0003\u0002\u0305\u0304\u0003\u0002\u0002\u0002\u0306",
-    "\u0309\u0003\u0002\u0002\u0002\u0307\u0305\u0003\u0002\u0002\u0002\u0307",
-    "\u0308\u0003\u0002\u0002\u0002\u0308\u030b\u0003\u0002\u0002\u0002\u0309",
-    "\u0307\u0003\u0002\u0002\u0002\u030a\u030c\u0005:\u001e\u0002\u030b",
-    "\u030a\u0003\u0002\u0002\u0002\u030b\u030c\u0003\u0002\u0002\u0002\u030c",
-    "\u0310\u0003\u0002\u0002\u0002\u030d\u030f\u0005\u0004\u0003\u0002\u030e",
-    "\u030d\u0003\u0002\u0002\u0002\u030f\u0312\u0003\u0002\u0002\u0002\u0310",
-    "\u030e\u0003\u0002\u0002\u0002\u0310\u0311\u0003\u0002\u0002\u0002\u0311",
-    "\u0313\u0003\u0002\u0002\u0002\u0312\u0310\u0003\u0002\u0002\u0002\u0313",
-    "\u0314\u0007\u001b\u0002\u0002\u0314I\u0003\u0002\u0002\u0002\u0315",
-    "\u0323\u0007\f\u0002\u0002\u0316\u0318\u0005\u0004\u0003\u0002\u0317",
-    "\u0316\u0003\u0002\u0002\u0002\u0318\u031b\u0003\u0002\u0002\u0002\u0319",
-    "\u0317\u0003\u0002\u0002\u0002\u0319\u031a\u0003\u0002\u0002\u0002\u031a",
-    "\u031c\u0003\u0002\u0002\u0002\u031b\u0319\u0003\u0002\u0002\u0002\u031c",
-    "\u0320\u00056\u001c\u0002\u031d\u031f\u0005\u0004\u0003\u0002\u031e",
-    "\u031d\u0003\u0002\u0002\u0002\u031f\u0322\u0003\u0002\u0002\u0002\u0320",
-    "\u031e\u0003\u0002\u0002\u0002\u0320\u0321\u0003\u0002\u0002\u0002\u0321",
-    "\u0324\u0003\u0002\u0002\u0002\u0322\u0320\u0003\u0002\u0002\u0002\u0323",
-    "\u0319\u0003\u0002\u0002\u0002\u0323\u0324\u0003\u0002\u0002\u0002\u0324",
-    "\u0325\u0003\u0002\u0002\u0002\u0325\u0326\u0007\'\u0002\u0002\u0326",
-    "K\u0003\u0002\u0002\u0002\u0327\u032b\u0007\r\u0002\u0002\u0328\u032a",
-    "\u0005\u0004\u0003\u0002\u0329\u0328\u0003\u0002\u0002\u0002\u032a\u032d",
-    "\u0003\u0002\u0002\u0002\u032b\u0329\u0003\u0002\u0002\u0002\u032b\u032c",
-    "\u0003\u0002\u0002\u0002\u032c\u032e\u0003\u0002\u0002\u0002\u032d\u032b",
-    "\u0003\u0002\u0002\u0002\u032e\u033c\u0005^0\u0002\u032f\u0331\u0005",
-    "\u0004\u0003\u0002\u0330\u032f\u0003\u0002\u0002\u0002\u0331\u0334\u0003",
-    "\u0002\u0002\u0002\u0332\u0330\u0003\u0002\u0002\u0002\u0332\u0333\u0003",
-    "\u0002\u0002\u0002\u0333\u0335\u0003\u0002\u0002\u0002\u0334\u0332\u0003",
-    "\u0002\u0002\u0002\u0335\u0339\u00056\u001c\u0002\u0336\u0338\u0005",
-    "\u0004\u0003\u0002\u0337\u0336\u0003\u0002\u0002\u0002\u0338\u033b\u0003",
-    "\u0002\u0002\u0002\u0339\u0337\u0003\u0002\u0002\u0002\u0339\u033a\u0003",
-    "\u0002\u0002\u0002\u033a\u033d\u0003\u0002\u0002\u0002\u033b\u0339\u0003",
-    "\u0002\u0002\u0002\u033c\u0332\u0003\u0002\u0002\u0002\u033c\u033d\u0003",
-    "\u0002\u0002\u0002\u033d\u033e\u0003\u0002\u0002\u0002\u033e\u033f\u0007",
-    "\'\u0002\u0002\u033fM\u0003\u0002\u0002\u0002\u0340\u0344\u0007\u0013",
-    "\u0002\u0002\u0341\u0343\u0005\u0004\u0003\u0002\u0342\u0341\u0003\u0002",
-    "\u0002\u0002\u0343\u0346\u0003\u0002\u0002\u0002\u0344\u0342\u0003\u0002",
-    "\u0002\u0002\u0344\u0345\u0003\u0002\u0002\u0002\u0345\u0347\u0003\u0002",
-    "\u0002\u0002\u0346\u0344\u0003\u0002\u0002\u0002\u0347\u034b\u00056",
-    "\u001c\u0002\u0348\u034a\u0005\u0004\u0003\u0002\u0349\u0348\u0003\u0002",
-    "\u0002\u0002\u034a\u034d\u0003\u0002\u0002\u0002\u034b\u0349\u0003\u0002",
-    "\u0002\u0002\u034b\u034c\u0003\u0002\u0002\u0002\u034c\u034e\u0003\u0002",
-    "\u0002\u0002\u034d\u034b\u0003\u0002\u0002\u0002\u034e\u0360\u0005P",
-    ")\u0002\u034f\u0351\u0005\u0004\u0003\u0002\u0350\u034f\u0003\u0002",
-    "\u0002\u0002\u0351\u0354\u0003\u0002\u0002\u0002\u0352\u0350\u0003\u0002",
-    "\u0002\u0002\u0352\u0353\u0003\u0002\u0002\u0002\u0353\u0355\u0003\u0002",
-    "\u0002\u0002\u0354\u0352\u0003\u0002\u0002\u0002\u0355\u0359\u0007\u0014",
-    "\u0002\u0002\u0356\u0358\u0005\u0004\u0003\u0002\u0357\u0356\u0003\u0002",
-    "\u0002\u0002\u0358\u035b\u0003\u0002\u0002\u0002\u0359\u0357\u0003\u0002",
-    "\u0002\u0002\u0359\u035a\u0003\u0002\u0002\u0002\u035a\u035e\u0003\u0002",
-    "\u0002\u0002\u035b\u0359\u0003\u0002\u0002\u0002\u035c\u035f\u0005N",
-    "(\u0002\u035d\u035f\u0005P)\u0002\u035e\u035c\u0003\u0002\u0002\u0002",
-    "\u035e\u035d\u0003\u0002\u0002\u0002\u035f\u0361\u0003\u0002\u0002\u0002",
-    "\u0360\u0352\u0003\u0002\u0002\u0002\u0360\u0361\u0003\u0002\u0002\u0002",
-    "\u0361O\u0003\u0002\u0002\u0002\u0362\u0366\u0005\"\u0012\u0002\u0363",
-    "\u0366\u0005&\u0014\u0002\u0364\u0366\u0005^0\u0002\u0365\u0362\u0003",
-    "\u0002\u0002\u0002\u0365\u0363\u0003\u0002\u0002\u0002\u0365\u0364\u0003",
-    "\u0002\u0002\u0002\u0366Q\u0003\u0002\u0002\u0002\u0367\u0368\t\u0004",
-    "\u0002\u0002\u0368S\u0003\u0002\u0002\u0002\u0369\u0386\u0007.\u0002",
-    "\u0002\u036a\u0386\u0007&\u0002\u0002\u036b\u0386\u0007\u001c\u0002",
-    "\u0002\u036c\u036e\u0007\u001d\u0002\u0002\u036d\u036c\u0003\u0002\u0002",
-    "\u0002\u036e\u036f\u0003\u0002\u0002\u0002\u036f\u036d\u0003\u0002\u0002",
-    "\u0002\u036f\u0370\u0003\u0002\u0002\u0002\u0370\u0381\u0003\u0002\u0002",
-    "\u0002\u0371\u0373\u0007!\u0002\u0002\u0372\u0371\u0003\u0002\u0002",
-    "\u0002\u0373\u0374\u0003\u0002\u0002\u0002\u0374\u0372\u0003\u0002\u0002",
-    "\u0002\u0374\u0375\u0003\u0002\u0002\u0002\u0375\u0379\u0003\u0002\u0002",
-    "\u0002\u0376\u0378\u0007.\u0002\u0002\u0377\u0376\u0003\u0002\u0002",
-    "\u0002\u0378\u037b\u0003\u0002\u0002\u0002\u0379\u0377\u0003\u0002\u0002",
-    "\u0002\u0379\u037a\u0003\u0002\u0002\u0002\u037a\u0382\u0003\u0002\u0002",
-    "\u0002\u037b\u0379\u0003\u0002\u0002\u0002\u037c\u037e\u0007.\u0002",
-    "\u0002\u037d\u037c\u0003\u0002\u0002\u0002\u037e\u037f\u0003\u0002\u0002",
-    "\u0002\u037f\u037d\u0003\u0002\u0002\u0002\u037f\u0380\u0003\u0002\u0002",
-    "\u0002\u0380\u0382\u0003\u0002\u0002\u0002\u0381\u0372\u0003\u0002\u0002",
-    "\u0002\u0381\u037d\u0003\u0002\u0002\u0002\u0381\u0382\u0003\u0002\u0002",
-    "\u0002\u0382\u0386\u0003\u0002\u0002\u0002\u0383\u0386\u0007\"\u0002",
-    "\u0002\u0384\u0386\u0007%\u0002\u0002\u0385\u0369\u0003\u0002\u0002",
-    "\u0002\u0385\u036a\u0003\u0002\u0002\u0002\u0385\u036b\u0003\u0002\u0002",
-    "\u0002\u0385\u036d\u0003\u0002\u0002\u0002\u0385\u0383\u0003\u0002\u0002",
-    "\u0002\u0385\u0384\u0003\u0002\u0002\u0002\u0386U\u0003\u0002\u0002",
-    "\u0002\u0387\u0388\t\u0005\u0002\u0002\u0388\u0391\u0007)\u0002\u0002",
-    "\u0389\u038a\u0005X-\u0002\u038a\u038b\u0007)\u0002\u0002\u038b\u038c",
-    "\u0005Z.\u0002\u038c\u0392\u0003\u0002\u0002\u0002\u038d\u038e\u0005",
-    "Z.\u0002\u038e\u038f\u0007)\u0002\u0002\u038f\u0390\u0005X-\u0002\u0390",
-    "\u0392\u0003\u0002\u0002\u0002\u0391\u0389\u0003\u0002\u0002\u0002\u0391",
-    "\u038d\u0003\u0002\u0002\u0002\u0392W\u0003\u0002\u0002\u0002\u0393",
-    "\u0394\u0005^0\u0002\u0394\u0395\u0007)\u0002\u0002\u0395\u0396\u0007",
-    "\u000e\u0002\u0002\u0396\u0397\u0007)\u0002\u0002\u0397\u0398\u0005",
-    "T+\u0002\u0398Y\u0003\u0002\u0002\u0002\u0399\u039a\u0007\u0012\u0002",
-    "\u0002\u039a\u039b\u0007)\u0002\u0002\u039b\u039c\u0007-\u0002\u0002",
-    "\u039c[\u0003\u0002\u0002\u0002\u039d\u03a1\u0007\u0007\u0002\u0002",
-    "\u039e\u03a0\u0005\u0004\u0003\u0002\u039f\u039e\u0003\u0002\u0002\u0002",
-    "\u03a0\u03a3\u0003\u0002\u0002\u0002\u03a1\u039f\u0003\u0002\u0002\u0002",
-    "\u03a1\u03a2\u0003\u0002\u0002\u0002\u03a2\u03a4\u0003\u0002\u0002\u0002",
-    "\u03a3\u03a1\u0003\u0002\u0002\u0002\u03a4\u03a8\u0007/\u0002\u0002",
-    "\u03a5\u03a7\u0005\u0004\u0003\u0002\u03a6\u03a5\u0003\u0002\u0002\u0002",
-    "\u03a7\u03aa\u0003\u0002\u0002\u0002\u03a8\u03a6\u0003\u0002\u0002\u0002",
-    "\u03a8\u03a9\u0003\u0002\u0002\u0002\u03a9\u03ab\u0003\u0002\u0002\u0002",
-    "\u03aa\u03a8\u0003\u0002\u0002\u0002\u03ab\u03af\u0007&\u0002\u0002",
-    "\u03ac\u03ae\u0005\u0004\u0003\u0002\u03ad\u03ac\u0003\u0002\u0002\u0002",
-    "\u03ae\u03b1\u0003\u0002\u0002\u0002\u03af\u03ad\u0003\u0002\u0002\u0002",
-    "\u03af\u03b0\u0003\u0002\u0002\u0002\u03b0\u03b2\u0003\u0002\u0002\u0002",
-    "\u03b1\u03af\u0003\u0002\u0002\u0002\u03b2\u03b3\u0005\u0018\r\u0002",
-    "\u03b3]\u0003\u0002\u0002\u0002\u03b4\u03b5\u0005\u0014\u000b\u0002",
-    "\u03b5_\u0003\u0002\u0002\u0002\u03b6\u03b8\u0007\b\u0002\u0002\u03b7",
-    "\u03b9\u0005\u0004\u0003\u0002\u03b8\u03b7\u0003\u0002\u0002\u0002\u03b9",
-    "\u03ba\u0003\u0002\u0002\u0002\u03ba\u03b8\u0003\u0002\u0002\u0002\u03ba",
-    "\u03bb\u0003\u0002\u0002\u0002\u03bb\u03bc\u0003\u0002\u0002\u0002\u03bc",
-    "\u03be\u0005^0\u0002\u03bd\u03bf\u0005\u0004\u0003\u0002\u03be\u03bd",
-    "\u0003\u0002\u0002\u0002\u03bf\u03c0\u0003\u0002\u0002\u0002\u03c0\u03be",
-    "\u0003\u0002\u0002\u0002\u03c0\u03c1\u0003\u0002\u0002\u0002\u03c1\u03c5",
-    "\u0003\u0002\u0002\u0002\u03c2\u03c6\u0005\"\u0012\u0002\u03c3\u03c6",
-    "\u0005\u0014\u000b\u0002\u03c4\u03c6\u0005&\u0014\u0002\u03c5\u03c2",
-    "\u0003\u0002\u0002\u0002\u03c5\u03c3\u0003\u0002\u0002\u0002\u03c5\u03c4",
-    "\u0003\u0002\u0002\u0002\u03c6a\u0003\u0002\u0002\u0002\u03c7\u03cb",
-    "\u0007\u0016\u0002\u0002\u03c8\u03ca\u0007)\u0002\u0002\u03c9\u03c8",
-    "\u0003\u0002\u0002\u0002\u03ca\u03cd\u0003\u0002\u0002\u0002\u03cb\u03c9",
-    "\u0003\u0002\u0002\u0002\u03cb\u03cc\u0003\u0002\u0002\u0002\u03cc\u03ce",
-    "\u0003\u0002\u0002\u0002\u03cd\u03cb\u0003\u0002\u0002\u0002\u03ce\u03d2",
-    "\u0007/\u0002\u0002\u03cf\u03d1\u0007)\u0002\u0002\u03d0\u03cf\u0003",
-    "\u0002\u0002\u0002\u03d1\u03d4\u0003\u0002\u0002\u0002\u03d2\u03d0\u0003",
-    "\u0002\u0002\u0002\u03d2\u03d3\u0003\u0002\u0002\u0002\u03d3\u03de\u0003",
-    "\u0002\u0002\u0002\u03d4\u03d2\u0003\u0002\u0002\u0002\u03d5\u03df\u0005",
-    "d3\u0002\u03d6\u03da\u0007!\u0002\u0002\u03d7\u03d9\u0005\u0004\u0003",
-    "\u0002\u03d8\u03d7\u0003\u0002\u0002\u0002\u03d9\u03dc\u0003\u0002\u0002",
-    "\u0002\u03da\u03d8\u0003\u0002\u0002\u0002\u03da\u03db\u0003\u0002\u0002",
-    "\u0002\u03db\u03dd\u0003\u0002\u0002\u0002\u03dc\u03da\u0003\u0002\u0002",
-    "\u0002\u03dd\u03df\u0007/\u0002\u0002\u03de\u03d5\u0003\u0002\u0002",
-    "\u0002\u03de\u03d6\u0003\u0002\u0002\u0002\u03dfc\u0003\u0002\u0002",
-    "\u0002\u03e0\u03e2\u0007\u0018\u0002\u0002\u03e1\u03e3\u0005f4\u0002",
-    "\u03e2\u03e1\u0003\u0002\u0002\u0002\u03e2\u03e3\u0003\u0002\u0002\u0002",
-    "\u03e3\u03e7\u0003\u0002\u0002\u0002\u03e4\u03e6\u0005\u0004\u0003\u0002",
-    "\u03e5\u03e4\u0003\u0002\u0002\u0002\u03e6\u03e9\u0003\u0002\u0002\u0002",
-    "\u03e7\u03e5\u0003\u0002\u0002\u0002\u03e7\u03e8\u0003\u0002\u0002\u0002",
-    "\u03e8\u03ea\u0003\u0002\u0002\u0002\u03e9\u03e7\u0003\u0002\u0002\u0002",
-    "\u03ea\u03eb\u0007\u0019\u0002\u0002\u03ebe\u0003\u0002\u0002\u0002",
-    "\u03ec\u03ee\u0005\u0004\u0003\u0002\u03ed\u03ec\u0003\u0002\u0002\u0002",
-    "\u03ee\u03f1\u0003\u0002\u0002\u0002\u03ef\u03ed\u0003\u0002\u0002\u0002",
-    "\u03ef\u03f0\u0003\u0002\u0002\u0002\u03f0\u03f2\u0003\u0002\u0002\u0002",
-    "\u03f1\u03ef\u0003\u0002\u0002\u0002\u03f2\u03f6\u0005h5\u0002\u03f3",
-    "\u03f5\u0005\u0004\u0003\u0002\u03f4\u03f3\u0003\u0002\u0002\u0002\u03f5",
-    "\u03f8\u0003\u0002\u0002\u0002\u03f6\u03f4\u0003\u0002\u0002\u0002\u03f6",
-    "\u03f7\u0003\u0002\u0002\u0002\u03f7\u0409\u0003\u0002\u0002\u0002\u03f8",
-    "\u03f6\u0003\u0002\u0002\u0002\u03f9\u03fd\u0007\u0017\u0002\u0002\u03fa",
-    "\u03fc\u0005\u0004\u0003\u0002\u03fb\u03fa\u0003\u0002\u0002\u0002\u03fc",
-    "\u03ff\u0003\u0002\u0002\u0002\u03fd\u03fb\u0003\u0002\u0002\u0002\u03fd",
-    "\u03fe\u0003\u0002\u0002\u0002\u03fe\u0400\u0003\u0002\u0002\u0002\u03ff",
-    "\u03fd\u0003\u0002\u0002\u0002\u0400\u0404\u0005h5\u0002\u0401\u0403",
-    "\u0005\u0004\u0003\u0002\u0402\u0401\u0003\u0002\u0002\u0002\u0403\u0406",
-    "\u0003\u0002\u0002\u0002\u0404\u0402\u0003\u0002\u0002\u0002\u0404\u0405",
-    "\u0003\u0002\u0002\u0002\u0405\u0408\u0003\u0002\u0002\u0002\u0406\u0404",
-    "\u0003\u0002\u0002\u0002\u0407\u03f9\u0003\u0002\u0002\u0002\u0408\u040b",
-    "\u0003\u0002\u0002\u0002\u0409\u0407\u0003\u0002\u0002\u0002\u0409\u040a",
-    "\u0003\u0002\u0002\u0002\u040a\u040d\u0003\u0002\u0002\u0002\u040b\u0409",
-    "\u0003\u0002\u0002\u0002\u040c\u040e\u0007\u0017\u0002\u0002\u040d\u040c",
-    "\u0003\u0002\u0002\u0002\u040d\u040e\u0003\u0002\u0002\u0002\u040eg",
-    "\u0003\u0002\u0002\u0002\u040f\u0413\u0005j6\u0002\u0410\u0413\u0005",
-    "n8\u0002\u0411\u0413\u0005t;\u0002\u0412\u040f\u0003\u0002\u0002\u0002",
-    "\u0412\u0410\u0003\u0002\u0002\u0002\u0412\u0411\u0003\u0002\u0002\u0002",
-    "\u0413i\u0003\u0002\u0002\u0002\u0414\u0418\t\u0006\u0002\u0002\u0415",
-    "\u0417\u0007)\u0002\u0002\u0416\u0415\u0003\u0002\u0002\u0002\u0417",
-    "\u041a\u0003\u0002\u0002\u0002\u0418\u0416\u0003\u0002\u0002\u0002\u0418",
-    "\u0419\u0003\u0002\u0002\u0002\u0419\u041b\u0003\u0002\u0002\u0002\u041a",
-    "\u0418\u0003\u0002\u0002\u0002\u041b\u041c\u0005l7\u0002\u041ck\u0003",
-    "\u0002\u0002\u0002\u041d\u0421\u0007\u001a\u0002\u0002\u041e\u0420\u0005",
-    "\u0004\u0003\u0002\u041f\u041e\u0003\u0002\u0002\u0002\u0420\u0423\u0003",
-    "\u0002\u0002\u0002\u0421\u041f\u0003\u0002\u0002\u0002\u0421\u0422\u0003",
-    "\u0002\u0002\u0002\u0422\u0424\u0003\u0002\u0002\u0002\u0423\u0421\u0003",
-    "\u0002\u0002\u0002\u0424\u0428\u0005\u0018\r\u0002\u0425\u0427\u0005",
-    "\u0004\u0003\u0002\u0426\u0425\u0003\u0002\u0002\u0002\u0427\u042a\u0003",
-    "\u0002\u0002\u0002\u0428\u0426\u0003\u0002\u0002\u0002\u0428\u0429\u0003",
-    "\u0002\u0002\u0002\u0429\u043b\u0003\u0002\u0002\u0002\u042a\u0428\u0003",
-    "\u0002\u0002\u0002\u042b\u042f\u0007\u0017\u0002\u0002\u042c\u042e\u0005",
-    "\u0004\u0003\u0002\u042d\u042c\u0003\u0002\u0002\u0002\u042e\u0431\u0003",
-    "\u0002\u0002\u0002\u042f\u042d\u0003\u0002\u0002\u0002\u042f\u0430\u0003",
-    "\u0002\u0002\u0002\u0430\u0432\u0003\u0002\u0002\u0002\u0431\u042f\u0003",
-    "\u0002\u0002\u0002\u0432\u0436\u0005\u0018\r\u0002\u0433\u0435\u0005",
-    "\u0004\u0003\u0002\u0434\u0433\u0003\u0002\u0002\u0002\u0435\u0438\u0003",
-    "\u0002\u0002\u0002\u0436\u0434\u0003\u0002\u0002\u0002\u0436\u0437\u0003",
-    "\u0002\u0002\u0002\u0437\u043a\u0003\u0002\u0002\u0002\u0438\u0436\u0003",
-    "\u0002\u0002\u0002\u0439\u042b\u0003\u0002\u0002\u0002\u043a\u043d\u0003",
-    "\u0002\u0002\u0002\u043b\u0439\u0003\u0002\u0002\u0002\u043b\u043c\u0003",
-    "\u0002\u0002\u0002\u043c\u043e\u0003\u0002\u0002\u0002\u043d\u043b\u0003",
-    "\u0002\u0002\u0002\u043e\u0440\u0007\u001b\u0002\u0002\u043f\u0441\u0005",
-    "\u0004\u0003\u0002\u0440\u043f\u0003\u0002\u0002\u0002\u0440\u0441\u0003",
-    "\u0002\u0002\u0002\u0441\u0442\u0003\u0002\u0002\u0002\u0442\u0446\u0007",
-    "&\u0002\u0002\u0443\u0445\u0005\u0004\u0003\u0002\u0444\u0443\u0003",
-    "\u0002\u0002\u0002\u0445\u0448\u0003\u0002\u0002\u0002\u0446\u0444\u0003",
-    "\u0002\u0002\u0002\u0446\u0447\u0003\u0002\u0002\u0002\u0447\u0449\u0003",
-    "\u0002\u0002\u0002\u0448\u0446\u0003\u0002\u0002\u0002\u0449\u044a\u0005",
-    "\u0018\r\u0002\u044am\u0003\u0002\u0002\u0002\u044b\u044f\u0005p9\u0002",
-    "\u044c\u044e\u0005\u0004\u0003\u0002\u044d\u044c\u0003\u0002\u0002\u0002",
+    "\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0002\u0003\u0002\u0006\u0002",
+    "\u009a\n\u0002\r\u0002\u000e\u0002\u009b\u0006\u0002\u009e\n\u0002\r",
+    "\u0002\u000e\u0002\u009f\u0003\u0002\u0005\u0002\u00a3\n\u0002\u0003",
+    "\u0003\u0003\u0003\u0003\u0004\u0003\u0004\u0005\u0004\u00a9\n\u0004",
+    "\u0003\u0005\u0003\u0005\u0003\u0005\u0003\u0005\u0003\u0005\u0003\u0005",
+    "\u0003\u0005\u0005\u0005\u00b2\n\u0005\u0003\u0005\u0003\u0005\u0007",
+    "\u0005\u00b6\n\u0005\f\u0005\u000e\u0005\u00b9\u000b\u0005\u0003\u0006",
+    "\u0003\u0006\u0003\u0006\u0003\u0006\u0003\u0006\u0003\u0006\u0003\u0006",
+    "\u0003\u0006\u0003\u0006\u0007\u0006\u00c4\n\u0006\f\u0006\u000e\u0006",
+    "\u00c7\u000b\u0006\u0003\u0007\u0003\u0007\u0005\u0007\u00cb\n\u0007",
+    "\u0003\b\u0003\b\u0006\b\u00cf\n\b\r\b\u000e\b\u00d0\u0003\b\u0003\b",
+    "\u0006\b\u00d5\n\b\r\b\u000e\b\u00d6\u0005\b\u00d9\n\b\u0003\t\u0003",
+    "\t\u0006\t\u00dd\n\t\r\t\u000e\t\u00de\u0003\n\u0003\n\u0006\n\u00e3",
+    "\n\n\r\n\u000e\n\u00e4\u0003\n\u0003\n\u0007\n\u00e9\n\n\f\n\u000e\n",
+    "\u00ec\u000b\n\u0003\n\u0005\n\u00ef\n\n\u0003\n\u0006\n\u00f2\n\n\r",
+    "\n\u000e\n\u00f3\u0003\n\u0003\n\u0003\n\u0007\n\u00f9\n\n\f\n\u000e",
+    "\n\u00fc\u000b\n\u0003\n\u0005\n\u00ff\n\n\u0003\u000b\u0003\u000b\u0003",
+    "\u000b\u0005\u000b\u0104\n\u000b\u0003\f\u0003\f\u0007\f\u0108\n\f\f",
+    "\f\u000e\f\u010b\u000b\f\u0003\f\u0003\f\u0007\f\u010f\n\f\f\f\u000e",
+    "\f\u0112\u000b\f\u0003\f\u0003\f\u0007\f\u0116\n\f\f\f\u000e\f\u0119",
+    "\u000b\f\u0003\f\u0003\f\u0007\f\u011d\n\f\f\f\u000e\f\u0120\u000b\f",
+    "\u0007\f\u0122\n\f\f\f\u000e\f\u0125\u000b\f\u0003\f\u0003\f\u0003\r",
+    "\u0003\r\u0007\r\u012b\n\r\f\r\u000e\r\u012e\u000b\r\u0003\r\u0005\r",
+    "\u0131\n\r\u0003\u000e\u0003\u000e\u0007\u000e\u0135\n\u000e\f\u000e",
+    "\u000e\u000e\u0138\u000b\u000e\u0003\u000e\u0003\u000e\u0007\u000e\u013c",
+    "\n\u000e\f\u000e\u000e\u000e\u013f\u000b\u000e\u0003\u000e\u0003\u000e",
+    "\u0003\u000f\u0003\u000f\u0007\u000f\u0145\n\u000f\f\u000f\u000e\u000f",
+    "\u0148\u000b\u000f\u0003\u000f\u0003\u000f\u0007\u000f\u014c\n\u000f",
+    "\f\u000f\u000e\u000f\u014f\u000b\u000f\u0003\u000f\u0003\u000f\u0003",
+    "\u0010\u0003\u0010\u0007\u0010\u0155\n\u0010\f\u0010\u000e\u0010\u0158",
+    "\u000b\u0010\u0003\u0010\u0003\u0010\u0007\u0010\u015c\n\u0010\f\u0010",
+    "\u000e\u0010\u015f\u000b\u0010\u0003\u0010\u0003\u0010\u0007\u0010\u0163",
+    "\n\u0010\f\u0010\u000e\u0010\u0166\u000b\u0010\u0007\u0010\u0168\n\u0010",
+    "\f\u0010\u000e\u0010\u016b\u000b\u0010\u0003\u0010\u0005\u0010\u016e",
+    "\n\u0010\u0003\u0011\u0003\u0011\u0007\u0011\u0172\n\u0011\f\u0011\u000e",
+    "\u0011\u0175\u000b\u0011\u0003\u0011\u0003\u0011\u0007\u0011\u0179\n",
+    "\u0011\f\u0011\u000e\u0011\u017c\u000b\u0011\u0003\u0011\u0003\u0011",
+    "\u0003\u0011\u0003\u0011\u0007\u0011\u0182\n\u0011\f\u0011\u000e\u0011",
+    "\u0185\u000b\u0011\u0003\u0011\u0003\u0011\u0007\u0011\u0189\n\u0011",
+    "\f\u0011\u000e\u0011\u018c\u000b\u0011\u0003\u0011\u0007\u0011\u018f",
+    "\n\u0011\f\u0011\u000e\u0011\u0192\u000b\u0011\u0003\u0012\u0003\u0012",
+    "\u0006\u0012\u0196\n\u0012\r\u0012\u000e\u0012\u0197\u0003\u0012\u0003",
+    "\u0012\u0007\u0012\u019c\n\u0012\f\u0012\u000e\u0012\u019f\u000b\u0012",
+    "\u0005\u0012\u01a1\n\u0012\u0003\u0012\u0003\u0012\u0005\u0012\u01a5",
+    "\n\u0012\u0003\u0012\u0003\u0012\u0007\u0012\u01a9\n\u0012\f\u0012\u000e",
+    "\u0012\u01ac\u000b\u0012\u0003\u0012\u0005\u0012\u01af\n\u0012\u0003",
+    "\u0012\u0003\u0012\u0005\u0012\u01b3\n\u0012\u0003\u0012\u0003\u0012",
+    "\u0007\u0012\u01b7\n\u0012\f\u0012\u000e\u0012\u01ba\u000b\u0012\u0005",
+    "\u0012\u01bc\n\u0012\u0005\u0012\u01be\n\u0012\u0003\u0012\u0003\u0012",
+    "\u0005\u0012\u01c2\n\u0012\u0003\u0013\u0003\u0013\u0003\u0013\u0007",
+    "\u0013\u01c7\n\u0013\f\u0013\u000e\u0013\u01ca\u000b\u0013\u0003\u0013",
+    "\u0005\u0013\u01cd\n\u0013\u0003\u0014\u0003\u0014\u0006\u0014\u01d1",
+    "\n\u0014\r\u0014\u000e\u0014\u01d2\u0003\u0014\u0007\u0014\u01d6\n\u0014",
+    "\f\u0014\u000e\u0014\u01d9\u000b\u0014\u0003\u0014\u0003\u0014\u0003",
+    "\u0015\u0007\u0015\u01de\n\u0015\f\u0015\u000e\u0015\u01e1\u000b\u0015",
+    "\u0003\u0015\u0003\u0015\u0003\u0015\u0003\u0015\u0003\u0015\u0003\u0015",
+    "\u0003\u0015\u0003\u0015\u0005\u0015\u01eb\n\u0015\u0003\u0016\u0003",
+    "\u0016\u0005\u0016\u01ef\n\u0016\u0003\u0017\u0003\u0017\u0007\u0017",
+    "\u01f3\n\u0017\f\u0017\u000e\u0017\u01f6\u000b\u0017\u0003\u0017\u0003",
+    "\u0017\u0007\u0017\u01fa\n\u0017\f\u0017\u000e\u0017\u01fd\u000b\u0017",
+    "\u0003\u0017\u0003\u0017\u0005\u0017\u0201\n\u0017\u0003\u0017\u0005",
+    "\u0017\u0204\n\u0017\u0003\u0017\u0007\u0017\u0207\n\u0017\f\u0017\u000e",
+    "\u0017\u020a\u000b\u0017\u0003\u0017\u0003\u0017\u0007\u0017\u020e\n",
+    "\u0017\f\u0017\u000e\u0017\u0211\u000b\u0017\u0003\u0017\u0003\u0017",
+    "\u0003\u0017\u0003\u0018\u0003\u0018\u0007\u0018\u0218\n\u0018\f\u0018",
+    "\u000e\u0018\u021b\u000b\u0018\u0003\u0018\u0003\u0018\u0007\u0018\u021f",
+    "\n\u0018\f\u0018\u000e\u0018\u0222\u000b\u0018\u0003\u0018\u0003\u0018",
+    "\u0005\u0018\u0226\n\u0018\u0003\u0018\u0005\u0018\u0229\n\u0018\u0003",
+    "\u0018\u0007\u0018\u022c\n\u0018\f\u0018\u000e\u0018\u022f\u000b\u0018",
+    "\u0003\u0018\u0003\u0018\u0007\u0018\u0233\n\u0018\f\u0018\u000e\u0018",
+    "\u0236\u000b\u0018\u0003\u0018\u0003\u0018\u0003\u0018\u0003\u0019\u0003",
+    "\u0019\u0007\u0019\u023d\n\u0019\f\u0019\u000e\u0019\u0240\u000b\u0019",
+    "\u0003\u0019\u0003\u0019\u0007\u0019\u0244\n\u0019\f\u0019\u000e\u0019",
+    "\u0247\u000b\u0019\u0003\u0019\u0003\u0019\u0003\u0019\u0003\u001a\u0003",
+    "\u001a\u0003\u001a\u0003\u001a\u0003\u001a\u0003\u001a\u0005\u001a\u0252",
+    "\n\u001a\u0003\u001b\u0003\u001b\u0007\u001b\u0256\n\u001b\f\u001b\u000e",
+    "\u001b\u0259\u000b\u001b\u0006\u001b\u025b\n\u001b\r\u001b\u000e\u001b",
+    "\u025c\u0003\u001b\u0005\u001b\u0260\n\u001b\u0003\u001c\u0003\u001c",
+    "\u0007\u001c\u0264\n\u001c\f\u001c\u000e\u001c\u0267\u000b\u001c\u0003",
+    "\u001c\u0007\u001c\u026a\n\u001c\f\u001c\u000e\u001c\u026d\u000b\u001c",
+    "\u0003\u001d\u0003\u001d\u0005\u001d\u0271\n\u001d\u0003\u001e\u0003",
+    "\u001e\u0007\u001e\u0275\n\u001e\f\u001e\u000e\u001e\u0278\u000b\u001e",
+    "\u0003\u001e\u0003\u001e\u0007\u001e\u027c\n\u001e\f\u001e\u000e\u001e",
+    "\u027f\u000b\u001e\u0003\u001e\u0003\u001e\u0007\u001e\u0283\n\u001e",
+    "\f\u001e\u000e\u001e\u0286\u000b\u001e\u0007\u001e\u0288\n\u001e\f\u001e",
+    "\u000e\u001e\u028b\u000b\u001e\u0003\u001e\u0005\u001e\u028e\n\u001e",
+    "\u0003\u001f\u0003\u001f\u0007\u001f\u0292\n\u001f\f\u001f\u000e\u001f",
+    "\u0295\u000b\u001f\u0003\u001f\u0003\u001f\u0007\u001f\u0299\n\u001f",
+    "\f\u001f\u000e\u001f\u029c\u000b\u001f\u0003\u001f\u0003\u001f\u0007",
+    "\u001f\u02a0\n\u001f\f\u001f\u000e\u001f\u02a3\u000b\u001f\u0003\u001f",
+    "\u0003\u001f\u0007\u001f\u02a7\n\u001f\f\u001f\u000e\u001f\u02aa\u000b",
+    "\u001f\u0003\u001f\u0003\u001f\u0007\u001f\u02ae\n\u001f\f\u001f\u000e",
+    "\u001f\u02b1\u000b\u001f\u0003\u001f\u0003\u001f\u0007\u001f\u02b5\n",
+    "\u001f\f\u001f\u000e\u001f\u02b8\u000b\u001f\u0003\u001f\u0003\u001f",
+    "\u0007\u001f\u02bc\n\u001f\f\u001f\u000e\u001f\u02bf\u000b\u001f\u0007",
+    "\u001f\u02c1\n\u001f\f\u001f\u000e\u001f\u02c4\u000b\u001f\u0003\u001f",
+    "\u0005\u001f\u02c7\n\u001f\u0003 \u0003 \u0007 \u02cb\n \f \u000e \u02ce",
+    "\u000b \u0003 \u0003 \u0007 \u02d2\n \f \u000e \u02d5\u000b \u0003!",
+    "\u0003!\u0007!\u02d9\n!\f!\u000e!\u02dc\u000b!\u0003!\u0005!\u02df\n",
+    "!\u0003!\u0007!\u02e2\n!\f!\u000e!\u02e5\u000b!\u0003!\u0003!\u0003",
+    "\"\u0003\"\u0003\"\u0003\"\u0005\"\u02ed\n\"\u0003#\u0003#\u0007#\u02f1",
+    "\n#\f#\u000e#\u02f4\u000b#\u0003#\u0003#\u0007#\u02f8\n#\f#\u000e#\u02fb",
+    "\u000b#\u0003#\u0003#\u0003$\u0003$\u0003$\u0003%\u0003%\u0007%\u0304",
+    "\n%\f%\u000e%\u0307\u000b%\u0003%\u0005%\u030a\n%\u0003%\u0007%\u030d",
+    "\n%\f%\u000e%\u0310\u000b%\u0003%\u0003%\u0003&\u0003&\u0007&\u0316",
+    "\n&\f&\u000e&\u0319\u000b&\u0003&\u0003&\u0007&\u031d\n&\f&\u000e&\u0320",
+    "\u000b&\u0005&\u0322\n&\u0003&\u0003&\u0003\'\u0003\'\u0007\'\u0328",
+    "\n\'\f\'\u000e\'\u032b\u000b\'\u0003\'\u0003\'\u0007\'\u032f\n\'\f\'",
+    "\u000e\'\u0332\u000b\'\u0003\'\u0003\'\u0007\'\u0336\n\'\f\'\u000e\'",
+    "\u0339\u000b\'\u0005\'\u033b\n\'\u0003\'\u0003\'\u0003(\u0003(\u0007",
+    "(\u0341\n(\f(\u000e(\u0344\u000b(\u0003(\u0003(\u0007(\u0348\n(\f(\u000e",
+    "(\u034b\u000b(\u0003(\u0003(\u0007(\u034f\n(\f(\u000e(\u0352\u000b(",
+    "\u0003(\u0003(\u0007(\u0356\n(\f(\u000e(\u0359\u000b(\u0003(\u0003(",
+    "\u0005(\u035d\n(\u0005(\u035f\n(\u0003)\u0003)\u0003)\u0005)\u0364\n",
+    ")\u0003*\u0003*\u0003+\u0003+\u0003+\u0003+\u0006+\u036c\n+\r+\u000e",
+    "+\u036d\u0003+\u0006+\u0371\n+\r+\u000e+\u0372\u0003+\u0007+\u0376\n",
+    "+\f+\u000e+\u0379\u000b+\u0003+\u0006+\u037c\n+\r+\u000e+\u037d\u0005",
+    "+\u0380\n+\u0003+\u0003+\u0005+\u0384\n+\u0003,\u0003,\u0003,\u0003",
+    ",\u0003,\u0003,\u0003,\u0003,\u0003,\u0003,\u0005,\u0390\n,\u0003-\u0003",
+    "-\u0003-\u0003-\u0003-\u0003-\u0003.\u0003.\u0003.\u0003.\u0003/\u0003",
+    "/\u0007/\u039e\n/\f/\u000e/\u03a1\u000b/\u0003/\u0003/\u0007/\u03a5",
+    "\n/\f/\u000e/\u03a8\u000b/\u0003/\u0003/\u0007/\u03ac\n/\f/\u000e/\u03af",
+    "\u000b/\u0003/\u0003/\u00030\u00030\u00031\u00031\u00061\u03b7\n1\r",
+    "1\u000e1\u03b8\u00031\u00031\u00061\u03bd\n1\r1\u000e1\u03be\u00031",
+    "\u00031\u00031\u00051\u03c4\n1\u00032\u00032\u00072\u03c8\n2\f2\u000e",
+    "2\u03cb\u000b2\u00032\u00032\u00072\u03cf\n2\f2\u000e2\u03d2\u000b2",
+    "\u00032\u00032\u00032\u00072\u03d7\n2\f2\u000e2\u03da\u000b2\u00032",
+    "\u00052\u03dd\n2\u00033\u00033\u00053\u03e1\n3\u00033\u00073\u03e4\n",
+    "3\f3\u000e3\u03e7\u000b3\u00033\u00033\u00034\u00074\u03ec\n4\f4\u000e",
+    "4\u03ef\u000b4\u00034\u00034\u00074\u03f3\n4\f4\u000e4\u03f6\u000b4",
+    "\u00034\u00034\u00074\u03fa\n4\f4\u000e4\u03fd\u000b4\u00034\u00034",
+    "\u00074\u0401\n4\f4\u000e4\u0404\u000b4\u00074\u0406\n4\f4\u000e4\u0409",
+    "\u000b4\u00034\u00054\u040c\n4\u00035\u00035\u00035\u00055\u0411\n5",
+    "\u00036\u00036\u00076\u0415\n6\f6\u000e6\u0418\u000b6\u00036\u00036",
+    "\u00037\u00037\u00077\u041e\n7\f7\u000e7\u0421\u000b7\u00037\u00037",
+    "\u00077\u0425\n7\f7\u000e7\u0428\u000b7\u00037\u00037\u00077\u042c\n",
+    "7\f7\u000e7\u042f\u000b7\u00037\u00037\u00077\u0433\n7\f7\u000e7\u0436",
+    "\u000b7\u00077\u0438\n7\f7\u000e7\u043b\u000b7\u00037\u00037\u00057",
+    "\u043f\n7\u00037\u00037\u00077\u0443\n7\f7\u000e7\u0446\u000b7\u0003",
+    "7\u00037\u00038\u00038\u00078\u044c\n8\f8\u000e8\u044f\u000b8\u0005",
+    "8\u0451\n8\u00038\u00038\u00078\u0455\n8\f8\u000e8\u0458\u000b8\u0003",
+    "8\u00038\u00078\u045c\n8\f8\u000e8\u045f\u000b8\u00038\u00038\u0007",
+    "8\u0463\n8\f8\u000e8\u0466\u000b8\u00038\u00038\u00039\u00039\u0003",
+    ":\u0003:\u0003;\u0003;\u0007;\u0470\n;\f;\u000e;\u0473\u000b;\u0003",
+    ";\u0003;\u0007;\u0477\n;\f;\u000e;\u047a\u000b;\u0003;\u0003;\u0003",
+    "<\u0003<\u0006<\u0480\n<\r<\u000e<\u0481\u0003<\u0003<\u0003<\u0003",
+    "<\u0003<\u0003<\u0003<\u0005<\u048b\n<\u0003=\u0003=\u0003=\u0007=\u0490",
+    "\n=\f=\u000e=\u0493\u000b=\u0003>\u0003>\u0006>\u0497\n>\r>\u000e>\u0498",
+    "\u0003>\u0003>\u0006>\u049d\n>\r>\u000e>\u049e\u0003>\u0005>\u04a2\n",
+    ">\u0003?\u0003?\u0005?\u04a6\n?\u0003@\u0006@\u04a9\n@\r@\u000e@\u04aa",
+    "\u0003A\u0003A\u0007A\u04af\nA\fA\u000eA\u04b2\u000bA\u0003A\u0003A",
+    "\u0005A\u04b6\nA\u0003B\u0003B\u0007B\u04ba\nB\fB\u000eB\u04bd\u000b",
+    "B\u0003B\u0003B\u0007B\u04c1\nB\fB\u000eB\u04c4\u000bB\u0003B\u0003",
+    "B\u0003B\u0002\u0002C\u0002\u0004\u0006\b\n\f\u000e\u0010\u0012\u0014",
+    "\u0016\u0018\u001a\u001c\u001e \"$&(*,.02468:<>@BDFHJLNPRTVXZ\\^`bd",
+    "fhjlnprtvxz|~\u0080\u0082\u0002\u0007\u0003\u0002()\u0004\u0002%%//",
+    "\u0004\u0002\u000f\u000f,-\u0003\u0002\u0010\u0011\u0004\u0002\u0006",
+    "\u0006//\u0002\u0551\u0002\u00a2\u0003\u0002\u0002\u0002\u0004\u00a4",
+    "\u0003\u0002\u0002\u0002\u0006\u00a8\u0003\u0002\u0002\u0002\b\u00aa",
+    "\u0003\u0002\u0002\u0002\n\u00ba\u0003\u0002\u0002\u0002\f\u00ca\u0003",
+    "\u0002\u0002\u0002\u000e\u00d8\u0003\u0002\u0002\u0002\u0010\u00da\u0003",
+    "\u0002\u0002\u0002\u0012\u00e0\u0003\u0002\u0002\u0002\u0014\u0100\u0003",
+    "\u0002\u0002\u0002\u0016\u0105\u0003\u0002\u0002\u0002\u0018\u0128\u0003",
+    "\u0002\u0002\u0002\u001a\u0132\u0003\u0002\u0002\u0002\u001c\u0142\u0003",
+    "\u0002\u0002\u0002\u001e\u0152\u0003\u0002\u0002\u0002 \u016f\u0003",
+    "\u0002\u0002\u0002\"\u0193\u0003\u0002\u0002\u0002$\u01cc\u0003\u0002",
+    "\u0002\u0002&\u01ce\u0003\u0002\u0002\u0002(\u01df\u0003\u0002\u0002",
+    "\u0002*\u01ee\u0003\u0002\u0002\u0002,\u01f0\u0003\u0002\u0002\u0002",
+    ".\u0215\u0003\u0002\u0002\u00020\u023a\u0003\u0002\u0002\u00022\u0251",
+    "\u0003\u0002\u0002\u00024\u025f\u0003\u0002\u0002\u00026\u0261\u0003",
+    "\u0002\u0002\u00028\u0270\u0003\u0002\u0002\u0002:\u0272\u0003\u0002",
+    "\u0002\u0002<\u028f\u0003\u0002\u0002\u0002>\u02c8\u0003\u0002\u0002",
+    "\u0002@\u02d6\u0003\u0002\u0002\u0002B\u02ec\u0003\u0002\u0002\u0002",
+    "D\u02ee\u0003\u0002\u0002\u0002F\u02fe\u0003\u0002\u0002\u0002H\u0301",
+    "\u0003\u0002\u0002\u0002J\u0313\u0003\u0002\u0002\u0002L\u0325\u0003",
+    "\u0002\u0002\u0002N\u033e\u0003\u0002\u0002\u0002P\u0363\u0003\u0002",
+    "\u0002\u0002R\u0365\u0003\u0002\u0002\u0002T\u0383\u0003\u0002\u0002",
+    "\u0002V\u0385\u0003\u0002\u0002\u0002X\u0391\u0003\u0002\u0002\u0002",
+    "Z\u0397\u0003\u0002\u0002\u0002\\\u039b\u0003\u0002\u0002\u0002^\u03b2",
+    "\u0003\u0002\u0002\u0002`\u03b4\u0003\u0002\u0002\u0002b\u03c5\u0003",
+    "\u0002\u0002\u0002d\u03de\u0003\u0002\u0002\u0002f\u03ed\u0003\u0002",
+    "\u0002\u0002h\u0410\u0003\u0002\u0002\u0002j\u0412\u0003\u0002\u0002",
+    "\u0002l\u041b\u0003\u0002\u0002\u0002n\u0450\u0003\u0002\u0002\u0002",
+    "p\u0469\u0003\u0002\u0002\u0002r\u046b\u0003\u0002\u0002\u0002t\u046d",
+    "\u0003\u0002\u0002\u0002v\u047d\u0003\u0002\u0002\u0002x\u048c\u0003",
+    "\u0002\u0002\u0002z\u0494\u0003\u0002\u0002\u0002|\u04a5\u0003\u0002",
+    "\u0002\u0002~\u04a8\u0003\u0002\u0002\u0002\u0080\u04b5\u0003\u0002",
+    "\u0002\u0002\u0082\u04b7\u0003\u0002\u0002\u0002\u0084\u0086\u0005\u0004",
+    "\u0003\u0002\u0085\u0084\u0003\u0002\u0002\u0002\u0086\u0089\u0003\u0002",
+    "\u0002\u0002\u0087\u0085\u0003\u0002\u0002\u0002\u0087\u0088\u0003\u0002",
+    "\u0002\u0002\u0088\u008d\u0003\u0002\u0002\u0002\u0089\u0087\u0003\u0002",
+    "\u0002\u0002\u008a\u008c\u0005\u0006\u0004\u0002\u008b\u008a\u0003\u0002",
+    "\u0002\u0002\u008c\u008f\u0003\u0002\u0002\u0002\u008d\u008b\u0003\u0002",
+    "\u0002\u0002\u008d\u008e\u0003\u0002\u0002\u0002\u008e\u009d\u0003\u0002",
+    "\u0002\u0002\u008f\u008d\u0003\u0002\u0002\u0002\u0090\u009e\u0005\u0012",
+    "\n\u0002\u0091\u009e\u0005,\u0017\u0002\u0092\u009e\u0005\"\u0012\u0002",
+    "\u0093\u009e\u0005V,\u0002\u0094\u009e\u0005\\/\u0002\u0095\u009e\u0005",
+    "`1\u0002\u0096\u009e\u0005b2\u0002\u0097\u009e\u0005v<\u0002\u0098\u009a",
+    "\u0005\u0004\u0003\u0002\u0099\u0098\u0003\u0002\u0002\u0002\u009a\u009b",
+    "\u0003\u0002\u0002\u0002\u009b\u0099\u0003\u0002\u0002\u0002\u009b\u009c",
+    "\u0003\u0002\u0002\u0002\u009c\u009e\u0003\u0002\u0002\u0002\u009d\u0090",
+    "\u0003\u0002\u0002\u0002\u009d\u0091\u0003\u0002\u0002\u0002\u009d\u0092",
+    "\u0003\u0002\u0002\u0002\u009d\u0093\u0003\u0002\u0002\u0002\u009d\u0094",
+    "\u0003\u0002\u0002\u0002\u009d\u0095\u0003\u0002\u0002\u0002\u009d\u0096",
+    "\u0003\u0002\u0002\u0002\u009d\u0097\u0003\u0002\u0002\u0002\u009d\u0099",
+    "\u0003\u0002\u0002\u0002\u009e\u009f\u0003\u0002\u0002\u0002\u009f\u009d",
+    "\u0003\u0002\u0002\u0002\u009f\u00a0\u0003\u0002\u0002\u0002\u00a0\u00a3",
+    "\u0003\u0002\u0002\u0002\u00a1\u00a3\u0007\u0002\u0002\u0003\u00a2\u0087",
+    "\u0003\u0002\u0002\u0002\u00a2\u00a1\u0003\u0002\u0002\u0002\u00a3\u0003",
+    "\u0003\u0002\u0002\u0002\u00a4\u00a5\t\u0002\u0002\u0002\u00a5\u0005",
+    "\u0003\u0002\u0002\u0002\u00a6\u00a9\u0005\b\u0005\u0002\u00a7\u00a9",
+    "\u0005\n\u0006\u0002\u00a8\u00a6\u0003\u0002\u0002\u0002\u00a8\u00a7",
+    "\u0003\u0002\u0002\u0002\u00a9\u0007\u0003\u0002\u0002\u0002\u00aa\u00ab",
+    "\u0007\u0003\u0002\u0002\u00ab\u00ac\u0007)\u0002\u0002\u00ac\u00b1",
+    "\u0005\f\u0007\u0002\u00ad\u00ae\u0007)\u0002\u0002\u00ae\u00af\u0007",
+    "\u000e\u0002\u0002\u00af\u00b0\u0007)\u0002\u0002\u00b0\u00b2\u0007",
+    "/\u0002\u0002\u00b1\u00ad\u0003\u0002\u0002\u0002\u00b1\u00b2\u0003",
+    "\u0002\u0002\u0002\u00b2\u00b3\u0003\u0002\u0002\u0002\u00b3\u00b7\u0007",
+    "(\u0002\u0002\u00b4\u00b6\u0005\u0004\u0003\u0002\u00b5\u00b4\u0003",
+    "\u0002\u0002\u0002\u00b6\u00b9\u0003\u0002\u0002\u0002\u00b7\u00b5\u0003",
+    "\u0002\u0002\u0002\u00b7\u00b8\u0003\u0002\u0002\u0002\u00b8\t\u0003",
+    "\u0002\u0002\u0002\u00b9\u00b7\u0003\u0002\u0002\u0002\u00ba\u00bb\u0007",
+    "\u0004\u0002\u0002\u00bb\u00bc\u0007)\u0002\u0002\u00bc\u00bd\u0005",
+    "\f\u0007\u0002\u00bd\u00be\u0007)\u0002\u0002\u00be\u00bf\u0007\u0003",
+    "\u0002\u0002\u00bf\u00c0\u0007)\u0002\u0002\u00c0\u00c1\u0005x=\u0002",
+    "\u00c1\u00c5\u0007(\u0002\u0002\u00c2\u00c4\u0005\u0004\u0003\u0002",
+    "\u00c3\u00c2\u0003\u0002\u0002\u0002\u00c4\u00c7\u0003\u0002\u0002\u0002",
+    "\u00c5\u00c3\u0003\u0002\u0002\u0002\u00c5\u00c6\u0003\u0002\u0002\u0002",
+    "\u00c6\u000b\u0003\u0002\u0002\u0002\u00c7\u00c5\u0003\u0002\u0002\u0002",
+    "\u00c8\u00cb\u0005\u000e\b\u0002\u00c9\u00cb\u0005\u0010\t\u0002\u00ca",
+    "\u00c8\u0003\u0002\u0002\u0002\u00ca\u00c9\u0003\u0002\u0002\u0002\u00cb",
+    "\r\u0003\u0002\u0002\u0002\u00cc\u00ce\u0007#\u0002\u0002\u00cd\u00cf",
+    "\t\u0003\u0002\u0002\u00ce\u00cd\u0003\u0002\u0002\u0002\u00cf\u00d0",
+    "\u0003\u0002\u0002\u0002\u00d0\u00ce\u0003\u0002\u0002\u0002\u00d0\u00d1",
+    "\u0003\u0002\u0002\u0002\u00d1\u00d9\u0003\u0002\u0002\u0002\u00d2\u00d4",
+    "\u0007$\u0002\u0002\u00d3\u00d5\t\u0003\u0002\u0002\u00d4\u00d3\u0003",
+    "\u0002\u0002\u0002\u00d5\u00d6\u0003\u0002\u0002\u0002\u00d6\u00d4\u0003",
+    "\u0002\u0002\u0002\u00d6\u00d7\u0003\u0002\u0002\u0002\u00d7\u00d9\u0003",
+    "\u0002\u0002\u0002\u00d8\u00cc\u0003\u0002\u0002\u0002\u00d8\u00d2\u0003",
+    "\u0002\u0002\u0002\u00d9\u000f\u0003\u0002\u0002\u0002\u00da\u00dc\u0007",
+    "\"\u0002\u0002\u00db\u00dd\t\u0003\u0002\u0002\u00dc\u00db\u0003\u0002",
+    "\u0002\u0002\u00dd\u00de\u0003\u0002\u0002\u0002\u00de\u00dc\u0003\u0002",
+    "\u0002\u0002\u00de\u00df\u0003\u0002\u0002\u0002\u00df\u0011\u0003\u0002",
+    "\u0002\u0002\u00e0\u00e2\u0007\u0005\u0002\u0002\u00e1\u00e3\u0005\u0004",
+    "\u0003\u0002\u00e2\u00e1\u0003\u0002\u0002\u0002\u00e3\u00e4\u0003\u0002",
+    "\u0002\u0002\u00e4\u00e2\u0003\u0002\u0002\u0002\u00e4\u00e5\u0003\u0002",
+    "\u0002\u0002\u00e5\u00e6\u0003\u0002\u0002\u0002\u00e6\u00ee\u0005\u0014",
+    "\u000b\u0002\u00e7\u00e9\u0005\u0004\u0003\u0002\u00e8\u00e7\u0003\u0002",
+    "\u0002\u0002\u00e9\u00ec\u0003\u0002\u0002\u0002\u00ea\u00e8\u0003\u0002",
+    "\u0002\u0002\u00ea\u00eb\u0003\u0002\u0002\u0002\u00eb\u00ed\u0003\u0002",
+    "\u0002\u0002\u00ec\u00ea\u0003\u0002\u0002\u0002\u00ed\u00ef\u0005\u0016",
+    "\f\u0002\u00ee\u00ea\u0003\u0002\u0002\u0002\u00ee\u00ef\u0003\u0002",
+    "\u0002\u0002\u00ef\u00f1\u0003\u0002\u0002\u0002\u00f0\u00f2\u0005\u0004",
+    "\u0003\u0002\u00f1\u00f0\u0003\u0002\u0002\u0002\u00f2\u00f3\u0003\u0002",
+    "\u0002\u0002\u00f3\u00f1\u0003\u0002\u0002\u0002\u00f3\u00f4\u0003\u0002",
+    "\u0002\u0002\u00f4\u00fe\u0003\u0002\u0002\u0002\u00f5\u00ff\u0005\u001a",
+    "\u000e\u0002\u00f6\u00fa\u0007!\u0002\u0002\u00f7\u00f9\u0005\u0004",
+    "\u0003\u0002\u00f8\u00f7\u0003\u0002\u0002\u0002\u00f9\u00fc\u0003\u0002",
+    "\u0002\u0002\u00fa\u00f8\u0003\u0002\u0002\u0002\u00fa\u00fb\u0003\u0002",
+    "\u0002\u0002\u00fb\u00fd\u0003\u0002\u0002\u0002\u00fc\u00fa\u0003\u0002",
+    "\u0002\u0002\u00fd\u00ff\u0005\u0018\r\u0002\u00fe\u00f5\u0003\u0002",
+    "\u0002\u0002\u00fe\u00f6\u0003\u0002\u0002\u0002\u00ff\u0013\u0003\u0002",
+    "\u0002\u0002\u0100\u0103\u0007/\u0002\u0002\u0101\u0102\u0007 \u0002",
+    "\u0002\u0102\u0104\u0007/\u0002\u0002\u0103\u0101\u0003\u0002\u0002",
+    "\u0002\u0103\u0104\u0003\u0002\u0002\u0002\u0104\u0015\u0003\u0002\u0002",
+    "\u0002\u0105\u0109\u0007\u001c\u0002\u0002\u0106\u0108\u0005\u0004\u0003",
+    "\u0002\u0107\u0106\u0003\u0002\u0002\u0002\u0108\u010b\u0003\u0002\u0002",
+    "\u0002\u0109\u0107\u0003\u0002\u0002\u0002\u0109\u010a\u0003\u0002\u0002",
+    "\u0002\u010a\u010c\u0003\u0002\u0002\u0002\u010b\u0109\u0003\u0002\u0002",
+    "\u0002\u010c\u0110\u0005\u0018\r\u0002\u010d\u010f\u0005\u0004\u0003",
+    "\u0002\u010e\u010d\u0003\u0002\u0002\u0002\u010f\u0112\u0003\u0002\u0002",
+    "\u0002\u0110\u010e\u0003\u0002\u0002\u0002\u0110\u0111\u0003\u0002\u0002",
+    "\u0002\u0111\u0123\u0003\u0002\u0002\u0002\u0112\u0110\u0003\u0002\u0002",
+    "\u0002\u0113\u0117\u0007\u0017\u0002\u0002\u0114\u0116\u0005\u0004\u0003",
+    "\u0002\u0115\u0114\u0003\u0002\u0002\u0002\u0116\u0119\u0003\u0002\u0002",
+    "\u0002\u0117\u0115\u0003\u0002\u0002\u0002\u0117\u0118\u0003\u0002\u0002",
+    "\u0002\u0118\u011a\u0003\u0002\u0002\u0002\u0119\u0117\u0003\u0002\u0002",
+    "\u0002\u011a\u011e\u0005\u0018\r\u0002\u011b\u011d\u0005\u0004\u0003",
+    "\u0002\u011c\u011b\u0003\u0002\u0002\u0002\u011d\u0120\u0003\u0002\u0002",
+    "\u0002\u011e\u011c\u0003\u0002\u0002\u0002\u011e\u011f\u0003\u0002\u0002",
+    "\u0002\u011f\u0122\u0003\u0002\u0002\u0002\u0120\u011e\u0003\u0002\u0002",
+    "\u0002\u0121\u0113\u0003\u0002\u0002\u0002\u0122\u0125\u0003\u0002\u0002",
+    "\u0002\u0123\u0121\u0003\u0002\u0002\u0002\u0123\u0124\u0003\u0002\u0002",
+    "\u0002\u0124\u0126\u0003\u0002\u0002\u0002\u0125\u0123\u0003\u0002\u0002",
+    "\u0002\u0126\u0127\u0007\u001d\u0002\u0002\u0127\u0017\u0003\u0002\u0002",
+    "\u0002\u0128\u0130\u0005\u0014\u000b\u0002\u0129\u012b\u0005\u0004\u0003",
+    "\u0002\u012a\u0129\u0003\u0002\u0002\u0002\u012b\u012e\u0003\u0002\u0002",
+    "\u0002\u012c\u012a\u0003\u0002\u0002\u0002\u012c\u012d\u0003\u0002\u0002",
+    "\u0002\u012d\u012f\u0003\u0002\u0002\u0002\u012e\u012c\u0003\u0002\u0002",
+    "\u0002\u012f\u0131\u0005\u0016\f\u0002\u0130\u012c\u0003\u0002\u0002",
+    "\u0002\u0130\u0131\u0003\u0002\u0002\u0002\u0131\u0019\u0003\u0002\u0002",
+    "\u0002\u0132\u0136\u0007\u0018\u0002\u0002\u0133\u0135\u0005\u0004\u0003",
+    "\u0002\u0134\u0133\u0003\u0002\u0002\u0002\u0135\u0138\u0003\u0002\u0002",
+    "\u0002\u0136\u0134\u0003\u0002\u0002\u0002\u0136\u0137\u0003\u0002\u0002",
+    "\u0002\u0137\u0139\u0003\u0002\u0002\u0002\u0138\u0136\u0003\u0002\u0002",
+    "\u0002\u0139\u013d\u0005\u001e\u0010\u0002\u013a\u013c\u0005\u0004\u0003",
+    "\u0002\u013b\u013a\u0003\u0002\u0002\u0002\u013c\u013f\u0003\u0002\u0002",
+    "\u0002\u013d\u013b\u0003\u0002\u0002\u0002\u013d\u013e\u0003\u0002\u0002",
+    "\u0002\u013e\u0140\u0003\u0002\u0002\u0002\u013f\u013d\u0003\u0002\u0002",
+    "\u0002\u0140\u0141\u0007\u0019\u0002\u0002\u0141\u001b\u0003\u0002\u0002",
+    "\u0002\u0142\u0146\u0007/\u0002\u0002\u0143\u0145\u0005\u0004\u0003",
+    "\u0002\u0144\u0143\u0003\u0002\u0002\u0002\u0145\u0148\u0003\u0002\u0002",
+    "\u0002\u0146\u0144\u0003\u0002\u0002\u0002\u0146\u0147\u0003\u0002\u0002",
+    "\u0002\u0147\u0149\u0003\u0002\u0002\u0002\u0148\u0146\u0003\u0002\u0002",
+    "\u0002\u0149\u014d\u0007&\u0002\u0002\u014a\u014c\u0005\u0004\u0003",
+    "\u0002\u014b\u014a\u0003\u0002\u0002\u0002\u014c\u014f\u0003\u0002\u0002",
+    "\u0002\u014d\u014b\u0003\u0002\u0002\u0002\u014d\u014e\u0003\u0002\u0002",
+    "\u0002\u014e\u0150\u0003\u0002\u0002\u0002\u014f\u014d\u0003\u0002\u0002",
+    "\u0002\u0150\u0151\u0005\u0018\r\u0002\u0151\u001d\u0003\u0002\u0002",
+    "\u0002\u0152\u0156\u0005\u001c\u000f\u0002\u0153\u0155\u0005\u0004\u0003",
+    "\u0002\u0154\u0153\u0003\u0002\u0002\u0002\u0155\u0158\u0003\u0002\u0002",
+    "\u0002\u0156\u0154\u0003\u0002\u0002\u0002\u0156\u0157\u0003\u0002\u0002",
+    "\u0002\u0157\u0169\u0003\u0002\u0002\u0002\u0158\u0156\u0003\u0002\u0002",
+    "\u0002\u0159\u015d\u0007\u0017\u0002\u0002\u015a\u015c\u0005\u0004\u0003",
+    "\u0002\u015b\u015a\u0003\u0002\u0002\u0002\u015c\u015f\u0003\u0002\u0002",
+    "\u0002\u015d\u015b\u0003\u0002\u0002\u0002\u015d\u015e\u0003\u0002\u0002",
+    "\u0002\u015e\u0160\u0003\u0002\u0002\u0002\u015f\u015d\u0003\u0002\u0002",
+    "\u0002\u0160\u0164\u0005\u001c\u000f\u0002\u0161\u0163\u0005\u0004\u0003",
+    "\u0002\u0162\u0161\u0003\u0002\u0002\u0002\u0163\u0166\u0003\u0002\u0002",
+    "\u0002\u0164\u0162\u0003\u0002\u0002\u0002\u0164\u0165\u0003\u0002\u0002",
+    "\u0002\u0165\u0168\u0003\u0002\u0002\u0002\u0166\u0164\u0003\u0002\u0002",
+    "\u0002\u0167\u0159\u0003\u0002\u0002\u0002\u0168\u016b\u0003\u0002\u0002",
+    "\u0002\u0169\u0167\u0003\u0002\u0002\u0002\u0169\u016a\u0003\u0002\u0002",
+    "\u0002\u016a\u016d\u0003\u0002\u0002\u0002\u016b\u0169\u0003\u0002\u0002",
+    "\u0002\u016c\u016e\u0007\u0017\u0002\u0002\u016d\u016c\u0003\u0002\u0002",
+    "\u0002\u016d\u016e\u0003\u0002\u0002\u0002\u016e\u001f\u0003\u0002\u0002",
+    "\u0002\u016f\u0173\u0007/\u0002\u0002\u0170\u0172\u0005\u0004\u0003",
+    "\u0002\u0171\u0170\u0003\u0002\u0002\u0002\u0172\u0175\u0003\u0002\u0002",
+    "\u0002\u0173\u0171\u0003\u0002\u0002\u0002\u0173\u0174\u0003\u0002\u0002",
+    "\u0002\u0174\u0176\u0003\u0002\u0002\u0002\u0175\u0173\u0003\u0002\u0002",
+    "\u0002\u0176\u017a\u0007&\u0002\u0002\u0177\u0179\u0005\u0004\u0003",
+    "\u0002\u0178\u0177\u0003\u0002\u0002\u0002\u0179\u017c\u0003\u0002\u0002",
+    "\u0002\u017a\u0178\u0003\u0002\u0002\u0002\u017a\u017b\u0003\u0002\u0002",
+    "\u0002\u017b\u017d\u0003\u0002\u0002\u0002\u017c\u017a\u0003\u0002\u0002",
+    "\u0002\u017d\u0190\u0005\u0018\r\u0002\u017e\u017f\u0007\u0017\u0002",
+    "\u0002\u017f\u0183\u0007/\u0002\u0002\u0180\u0182\u0005\u0004\u0003",
+    "\u0002\u0181\u0180\u0003\u0002\u0002\u0002\u0182\u0185\u0003\u0002\u0002",
+    "\u0002\u0183\u0181\u0003\u0002\u0002\u0002\u0183\u0184\u0003\u0002\u0002",
+    "\u0002\u0184\u0186\u0003\u0002\u0002\u0002\u0185\u0183\u0003\u0002\u0002",
+    "\u0002\u0186\u018a\u0007&\u0002\u0002\u0187\u0189\u0005\u0004\u0003",
+    "\u0002\u0188\u0187\u0003\u0002\u0002\u0002\u0189\u018c\u0003\u0002\u0002",
+    "\u0002\u018a\u0188\u0003\u0002\u0002\u0002\u018a\u018b\u0003\u0002\u0002",
+    "\u0002\u018b\u018d\u0003\u0002\u0002\u0002\u018c\u018a\u0003\u0002\u0002",
+    "\u0002\u018d\u018f\u0005\u0018\r\u0002\u018e\u017e\u0003\u0002\u0002",
+    "\u0002\u018f\u0192\u0003\u0002\u0002\u0002\u0190\u018e\u0003\u0002\u0002",
+    "\u0002\u0190\u0191\u0003\u0002\u0002\u0002\u0191!\u0003\u0002\u0002",
+    "\u0002\u0192\u0190\u0003\u0002\u0002\u0002\u0193\u0195\u0007\u0006\u0002",
+    "\u0002\u0194\u0196\u0005\u0004\u0003\u0002\u0195\u0194\u0003\u0002\u0002",
+    "\u0002\u0196\u0197\u0003\u0002\u0002\u0002\u0197\u0195\u0003\u0002\u0002",
+    "\u0002\u0197\u0198\u0003\u0002\u0002\u0002\u0198\u01bd\u0003\u0002\u0002",
+    "\u0002\u0199\u019d\u0007/\u0002\u0002\u019a\u019c\u0005\u0004\u0003",
+    "\u0002\u019b\u019a\u0003\u0002\u0002\u0002\u019c\u019f\u0003\u0002\u0002",
+    "\u0002\u019d\u019b\u0003\u0002\u0002\u0002\u019d\u019e\u0003\u0002\u0002",
+    "\u0002\u019e\u01a1\u0003\u0002\u0002\u0002\u019f\u019d\u0003\u0002\u0002",
+    "\u0002\u01a0\u0199\u0003\u0002\u0002\u0002\u01a0\u01a1\u0003\u0002\u0002",
+    "\u0002\u01a1\u01a2\u0003\u0002\u0002\u0002\u01a2\u01a4\u0007\u001a\u0002",
+    "\u0002\u01a3\u01a5\u0005 \u0011\u0002\u01a4\u01a3\u0003\u0002\u0002",
+    "\u0002\u01a4\u01a5\u0003\u0002\u0002\u0002\u01a5\u01a6\u0003\u0002\u0002",
+    "\u0002\u01a6\u01aa\u0007\u001b\u0002\u0002\u01a7\u01a9\u0005\u0004\u0003",
+    "\u0002\u01a8\u01a7\u0003\u0002\u0002\u0002\u01a9\u01ac\u0003\u0002\u0002",
+    "\u0002\u01aa\u01a8\u0003\u0002\u0002\u0002\u01aa\u01ab\u0003\u0002\u0002",
+    "\u0002\u01ab\u01bb\u0003\u0002\u0002\u0002\u01ac\u01aa\u0003\u0002\u0002",
+    "\u0002\u01ad\u01af\u0005\u0004\u0003\u0002\u01ae\u01ad\u0003\u0002\u0002",
+    "\u0002\u01ae\u01af\u0003\u0002\u0002\u0002\u01af\u01b0\u0003\u0002\u0002",
+    "\u0002\u01b0\u01b2\u0007&\u0002\u0002\u01b1\u01b3\u0005\u0004\u0003",
+    "\u0002\u01b2\u01b1\u0003\u0002\u0002\u0002\u01b2\u01b3\u0003\u0002\u0002",
+    "\u0002\u01b3\u01b4\u0003\u0002\u0002\u0002\u01b4\u01b8\u0005\u0018\r",
+    "\u0002\u01b5\u01b7\u0005\u0004\u0003\u0002\u01b6\u01b5\u0003\u0002\u0002",
+    "\u0002\u01b7\u01ba\u0003\u0002\u0002\u0002\u01b8\u01b6\u0003\u0002\u0002",
+    "\u0002\u01b8\u01b9\u0003\u0002\u0002\u0002\u01b9\u01bc\u0003\u0002\u0002",
+    "\u0002\u01ba\u01b8\u0003\u0002\u0002\u0002\u01bb\u01ae\u0003\u0002\u0002",
+    "\u0002\u01bb\u01bc\u0003\u0002\u0002\u0002\u01bc\u01be\u0003\u0002\u0002",
+    "\u0002\u01bd\u01a0\u0003\u0002\u0002\u0002\u01bd\u01be\u0003\u0002\u0002",
+    "\u0002\u01be\u01bf\u0003\u0002\u0002\u0002\u01bf\u01c1\u0005$\u0013",
+    "\u0002\u01c0\u01c2\u0007\'\u0002\u0002\u01c1\u01c0\u0003\u0002\u0002",
+    "\u0002\u01c1\u01c2\u0003\u0002\u0002\u0002\u01c2#\u0003\u0002\u0002",
+    "\u0002\u01c3\u01cd\u0005&\u0014\u0002\u01c4\u01c8\u0007!\u0002\u0002",
+    "\u01c5\u01c7\u0005\u0004\u0003\u0002\u01c6\u01c5\u0003\u0002\u0002\u0002",
+    "\u01c7\u01ca\u0003\u0002\u0002\u0002\u01c8\u01c6\u0003\u0002\u0002\u0002",
+    "\u01c8\u01c9\u0003\u0002\u0002\u0002\u01c9\u01cb\u0003\u0002\u0002\u0002",
+    "\u01ca\u01c8\u0003\u0002\u0002\u0002\u01cb\u01cd\u00056\u001c\u0002",
+    "\u01cc\u01c3\u0003\u0002\u0002\u0002\u01cc\u01c4\u0003\u0002\u0002\u0002",
+    "\u01cd%\u0003\u0002\u0002\u0002\u01ce\u01d0\u0007\u0018\u0002\u0002",
+    "\u01cf\u01d1\u0005(\u0015\u0002\u01d0\u01cf\u0003\u0002\u0002\u0002",
+    "\u01d1\u01d2\u0003\u0002\u0002\u0002\u01d2\u01d0\u0003\u0002\u0002\u0002",
+    "\u01d2\u01d3\u0003\u0002\u0002\u0002\u01d3\u01d7\u0003\u0002\u0002\u0002",
+    "\u01d4\u01d6\u0005\u0004\u0003\u0002\u01d5\u01d4\u0003\u0002\u0002\u0002",
+    "\u01d6\u01d9\u0003\u0002\u0002\u0002\u01d7\u01d5\u0003\u0002\u0002\u0002",
+    "\u01d7\u01d8\u0003\u0002\u0002\u0002\u01d8\u01da\u0003\u0002\u0002\u0002",
+    "\u01d9\u01d7\u0003\u0002\u0002\u0002\u01da\u01db\u0007\u0019\u0002\u0002",
+    "\u01db\'\u0003\u0002\u0002\u0002\u01dc\u01de\u0005\u0004\u0003\u0002",
+    "\u01dd\u01dc\u0003\u0002\u0002\u0002\u01de\u01e1\u0003\u0002\u0002\u0002",
+    "\u01df\u01dd\u0003\u0002\u0002\u0002\u01df\u01e0\u0003\u0002\u0002\u0002",
+    "\u01e0\u01ea\u0003\u0002\u0002\u0002\u01e1\u01df\u0003\u0002\u0002\u0002",
+    "\u01e2\u01eb\u0005*\u0016\u0002\u01e3\u01eb\u0005J&\u0002\u01e4\u01eb",
+    "\u0005L\'\u0002\u01e5\u01eb\u00050\u0019\u0002\u01e6\u01e7\u00056\u001c",
+    "\u0002\u01e7\u01e8\u0007\'\u0002\u0002\u01e8\u01eb\u0003\u0002\u0002",
+    "\u0002\u01e9\u01eb\u0005N(\u0002\u01ea\u01e2\u0003\u0002\u0002\u0002",
+    "\u01ea\u01e3\u0003\u0002\u0002\u0002\u01ea\u01e4\u0003\u0002\u0002\u0002",
+    "\u01ea\u01e5\u0003\u0002\u0002\u0002\u01ea\u01e6\u0003\u0002\u0002\u0002",
+    "\u01ea\u01e9\u0003\u0002\u0002\u0002\u01eb)\u0003\u0002\u0002\u0002",
+    "\u01ec\u01ef\u0005,\u0017\u0002\u01ed\u01ef\u0005.\u0018\u0002\u01ee",
+    "\u01ec\u0003\u0002\u0002\u0002\u01ee\u01ed\u0003\u0002\u0002\u0002\u01ef",
+    "+\u0003\u0002\u0002\u0002\u01f0\u01f4\u0007\n\u0002\u0002\u01f1\u01f3",
+    "\u0005\u0004\u0003\u0002\u01f2\u01f1\u0003\u0002\u0002\u0002\u01f3\u01f6",
+    "\u0003\u0002\u0002\u0002\u01f4\u01f2\u0003\u0002\u0002\u0002\u01f4\u01f5",
+    "\u0003\u0002\u0002\u0002\u01f5\u01f7\u0003\u0002\u0002\u0002\u01f6\u01f4",
+    "\u0003\u0002\u0002\u0002\u01f7\u01fb\u0007/\u0002\u0002\u01f8\u01fa",
+    "\u0005\u0004\u0003\u0002\u01f9\u01f8\u0003\u0002\u0002\u0002\u01fa\u01fd",
+    "\u0003\u0002\u0002\u0002\u01fb\u01f9\u0003\u0002\u0002\u0002\u01fb\u01fc",
+    "\u0003\u0002\u0002\u0002\u01fc\u0203\u0003\u0002\u0002\u0002\u01fd\u01fb",
+    "\u0003\u0002\u0002\u0002\u01fe\u0200\u0007&\u0002\u0002\u01ff\u0201",
+    "\u0005\u0004\u0003\u0002\u0200\u01ff\u0003\u0002\u0002\u0002\u0200\u0201",
+    "\u0003\u0002\u0002\u0002\u0201\u0202\u0003\u0002\u0002\u0002\u0202\u0204",
+    "\u0005\u0018\r\u0002\u0203\u01fe\u0003\u0002\u0002\u0002\u0203\u0204",
+    "\u0003\u0002\u0002\u0002\u0204\u0208\u0003\u0002\u0002\u0002\u0205\u0207",
+    "\u0005\u0004\u0003\u0002\u0206\u0205\u0003\u0002\u0002\u0002\u0207\u020a",
+    "\u0003\u0002\u0002\u0002\u0208\u0206\u0003\u0002\u0002\u0002\u0208\u0209",
+    "\u0003\u0002\u0002\u0002\u0209\u020b\u0003\u0002\u0002\u0002\u020a\u0208",
+    "\u0003\u0002\u0002\u0002\u020b\u020f\u0007!\u0002\u0002\u020c\u020e",
+    "\u0005\u0004\u0003\u0002\u020d\u020c\u0003\u0002\u0002\u0002\u020e\u0211",
+    "\u0003\u0002\u0002\u0002\u020f\u020d\u0003\u0002\u0002\u0002\u020f\u0210",
+    "\u0003\u0002\u0002\u0002\u0210\u0212\u0003\u0002\u0002\u0002\u0211\u020f",
+    "\u0003\u0002\u0002\u0002\u0212\u0213\u00056\u001c\u0002\u0213\u0214",
+    "\u0007\'\u0002\u0002\u0214-\u0003\u0002\u0002\u0002\u0215\u0219\u0007",
+    "\u000b\u0002\u0002\u0216\u0218\u0005\u0004\u0003\u0002\u0217\u0216\u0003",
+    "\u0002\u0002\u0002\u0218\u021b\u0003\u0002\u0002\u0002\u0219\u0217\u0003",
+    "\u0002\u0002\u0002\u0219\u021a\u0003\u0002\u0002\u0002\u021a\u021c\u0003",
+    "\u0002\u0002\u0002\u021b\u0219\u0003\u0002\u0002\u0002\u021c\u0220\u0007",
+    "/\u0002\u0002\u021d\u021f\u0005\u0004\u0003\u0002\u021e\u021d\u0003",
+    "\u0002\u0002\u0002\u021f\u0222\u0003\u0002\u0002\u0002\u0220\u021e\u0003",
+    "\u0002\u0002\u0002\u0220\u0221\u0003\u0002\u0002\u0002\u0221\u0228\u0003",
+    "\u0002\u0002\u0002\u0222\u0220\u0003\u0002\u0002\u0002\u0223\u0225\u0007",
+    "&\u0002\u0002\u0224\u0226\u0005\u0004\u0003\u0002\u0225\u0224\u0003",
+    "\u0002\u0002\u0002\u0225\u0226\u0003\u0002\u0002\u0002\u0226\u0227\u0003",
+    "\u0002\u0002\u0002\u0227\u0229\u0005\u0018\r\u0002\u0228\u0223\u0003",
+    "\u0002\u0002\u0002\u0228\u0229\u0003\u0002\u0002\u0002\u0229\u022d\u0003",
+    "\u0002\u0002\u0002\u022a\u022c\u0005\u0004\u0003\u0002\u022b\u022a\u0003",
+    "\u0002\u0002\u0002\u022c\u022f\u0003\u0002\u0002\u0002\u022d\u022b\u0003",
+    "\u0002\u0002\u0002\u022d\u022e\u0003\u0002\u0002\u0002\u022e\u0230\u0003",
+    "\u0002\u0002\u0002\u022f\u022d\u0003\u0002\u0002\u0002\u0230\u0234\u0007",
+    "!\u0002\u0002\u0231\u0233\u0005\u0004\u0003\u0002\u0232\u0231\u0003",
+    "\u0002\u0002\u0002\u0233\u0236\u0003\u0002\u0002\u0002\u0234\u0232\u0003",
+    "\u0002\u0002\u0002\u0234\u0235\u0003\u0002\u0002\u0002\u0235\u0237\u0003",
+    "\u0002\u0002\u0002\u0236\u0234\u0003\u0002\u0002\u0002\u0237\u0238\u0005",
+    "6\u001c\u0002\u0238\u0239\u0007\'\u0002\u0002\u0239/\u0003\u0002\u0002",
+    "\u0002\u023a\u023e\u0005~@\u0002\u023b\u023d\u0005\u0004\u0003\u0002",
+    "\u023c\u023b\u0003\u0002\u0002\u0002\u023d\u0240\u0003\u0002\u0002\u0002",
+    "\u023e\u023c\u0003\u0002\u0002\u0002\u023e\u023f\u0003\u0002\u0002\u0002",
+    "\u023f\u0241\u0003\u0002\u0002\u0002\u0240\u023e\u0003\u0002\u0002\u0002",
+    "\u0241\u0245\u0007!\u0002\u0002\u0242\u0244\u0005\u0004\u0003\u0002",
+    "\u0243\u0242\u0003\u0002\u0002\u0002\u0244\u0247\u0003\u0002\u0002\u0002",
+    "\u0245\u0243\u0003\u0002\u0002\u0002\u0245\u0246\u0003\u0002\u0002\u0002",
+    "\u0246\u0248\u0003\u0002\u0002\u0002\u0247\u0245\u0003\u0002\u0002\u0002",
+    "\u0248\u0249\u00056\u001c\u0002\u0249\u024a\u0007\'\u0002\u0002\u024a",
+    "1\u0003\u0002\u0002\u0002\u024b\u0252\u0007 \u0002\u0002\u024c\u0252",
+    "\u0007/\u0002\u0002\u024d\u0252\u0005R*\u0002\u024e\u0252\u0005\"\u0012",
+    "\u0002\u024f\u0252\u0005H%\u0002\u0250\u0252\u00058\u001d\u0002\u0251",
+    "\u024b\u0003\u0002\u0002\u0002\u0251\u024c\u0003\u0002\u0002\u0002\u0251",
+    "\u024d\u0003\u0002\u0002\u0002\u0251\u024e\u0003\u0002\u0002\u0002\u0251",
+    "\u024f\u0003\u0002\u0002\u0002\u0251\u0250\u0003\u0002\u0002\u0002\u0252",
+    "3\u0003\u0002\u0002\u0002\u0253\u0257\u00052\u001a\u0002\u0254\u0256",
+    "\u0005\u0004\u0003\u0002\u0255\u0254\u0003\u0002\u0002\u0002\u0256\u0259",
+    "\u0003\u0002\u0002\u0002\u0257\u0255\u0003\u0002\u0002\u0002\u0257\u0258",
+    "\u0003\u0002\u0002\u0002\u0258\u025b\u0003\u0002\u0002\u0002\u0259\u0257",
+    "\u0003\u0002\u0002\u0002\u025a\u0253\u0003\u0002\u0002\u0002\u025b\u025c",
+    "\u0003\u0002\u0002\u0002\u025c\u025a\u0003\u0002\u0002\u0002\u025c\u025d",
+    "\u0003\u0002\u0002\u0002\u025d\u0260\u0003\u0002\u0002\u0002\u025e\u0260",
+    "\u0005T+\u0002\u025f\u025a\u0003\u0002\u0002\u0002\u025f\u025e\u0003",
+    "\u0002\u0002\u0002\u02605\u0003\u0002\u0002\u0002\u0261\u026b\u0005",
+    "4\u001b\u0002\u0262\u0264\u0005\u0004\u0003\u0002\u0263\u0262\u0003",
+    "\u0002\u0002\u0002\u0264\u0267\u0003\u0002\u0002\u0002\u0265\u0263\u0003",
+    "\u0002\u0002\u0002\u0265\u0266\u0003\u0002\u0002\u0002\u0266\u0268\u0003",
+    "\u0002\u0002\u0002\u0267\u0265\u0003\u0002\u0002\u0002\u0268\u026a\u0005",
+    "4\u001b\u0002\u0269\u0265\u0003\u0002\u0002\u0002\u026a\u026d\u0003",
+    "\u0002\u0002\u0002\u026b\u0269\u0003\u0002\u0002\u0002\u026b\u026c\u0003",
+    "\u0002\u0002\u0002\u026c7\u0003\u0002\u0002\u0002\u026d\u026b\u0003",
+    "\u0002\u0002\u0002\u026e\u0271\u0005B\"\u0002\u026f\u0271\u0005F$\u0002",
+    "\u0270\u026e\u0003\u0002\u0002\u0002\u0270\u026f\u0003\u0002\u0002\u0002",
+    "\u02719\u0003\u0002\u0002\u0002\u0272\u0276\u00056\u001c\u0002\u0273",
+    "\u0275\u0005\u0004\u0003\u0002\u0274\u0273\u0003\u0002\u0002\u0002\u0275",
+    "\u0278\u0003\u0002\u0002\u0002\u0276\u0274\u0003\u0002\u0002\u0002\u0276",
+    "\u0277\u0003\u0002\u0002\u0002\u0277\u0289\u0003\u0002\u0002\u0002\u0278",
+    "\u0276\u0003\u0002\u0002\u0002\u0279\u027d\u0007\u0017\u0002\u0002\u027a",
+    "\u027c\u0005\u0004\u0003\u0002\u027b\u027a\u0003\u0002\u0002\u0002\u027c",
+    "\u027f\u0003\u0002\u0002\u0002\u027d\u027b\u0003\u0002\u0002\u0002\u027d",
+    "\u027e\u0003\u0002\u0002\u0002\u027e\u0280\u0003\u0002\u0002\u0002\u027f",
+    "\u027d\u0003\u0002\u0002\u0002\u0280\u0284\u00056\u001c\u0002\u0281",
+    "\u0283\u0005\u0004\u0003\u0002\u0282\u0281\u0003\u0002\u0002\u0002\u0283",
+    "\u0286\u0003\u0002\u0002\u0002\u0284\u0282\u0003\u0002\u0002\u0002\u0284",
+    "\u0285\u0003\u0002\u0002\u0002\u0285\u0288\u0003\u0002\u0002\u0002\u0286",
+    "\u0284\u0003\u0002\u0002\u0002\u0287\u0279\u0003\u0002\u0002\u0002\u0288",
+    "\u028b\u0003\u0002\u0002\u0002\u0289\u0287\u0003\u0002\u0002\u0002\u0289",
+    "\u028a\u0003\u0002\u0002\u0002\u028a\u028d\u0003\u0002\u0002\u0002\u028b",
+    "\u0289\u0003\u0002\u0002\u0002\u028c\u028e\u0007\u0017\u0002\u0002\u028d",
+    "\u028c\u0003\u0002\u0002\u0002\u028d\u028e\u0003\u0002\u0002\u0002\u028e",
+    ";\u0003\u0002\u0002\u0002\u028f\u0293\u0007/\u0002\u0002\u0290\u0292",
+    "\u0005\u0004\u0003\u0002\u0291\u0290\u0003\u0002\u0002\u0002\u0292\u0295",
+    "\u0003\u0002\u0002\u0002\u0293\u0291\u0003\u0002\u0002\u0002\u0293\u0294",
+    "\u0003\u0002\u0002\u0002\u0294\u0296\u0003\u0002\u0002\u0002\u0295\u0293",
+    "\u0003\u0002\u0002\u0002\u0296\u029a\u0007&\u0002\u0002\u0297\u0299",
+    "\u0005\u0004\u0003\u0002\u0298\u0297\u0003\u0002\u0002\u0002\u0299\u029c",
+    "\u0003\u0002\u0002\u0002\u029a\u0298\u0003\u0002\u0002\u0002\u029a\u029b",
+    "\u0003\u0002\u0002\u0002\u029b\u029d\u0003\u0002\u0002\u0002\u029c\u029a",
+    "\u0003\u0002\u0002\u0002\u029d\u02a1\u00056\u001c\u0002\u029e\u02a0",
+    "\u0005\u0004\u0003\u0002\u029f\u029e\u0003\u0002\u0002\u0002\u02a0\u02a3",
+    "\u0003\u0002\u0002\u0002\u02a1\u029f\u0003\u0002\u0002\u0002\u02a1\u02a2",
+    "\u0003\u0002\u0002\u0002\u02a2\u02c2\u0003\u0002\u0002\u0002\u02a3\u02a1",
+    "\u0003\u0002\u0002\u0002\u02a4\u02a8\u0007\u0017\u0002\u0002\u02a5\u02a7",
+    "\u0005\u0004\u0003\u0002\u02a6\u02a5\u0003\u0002\u0002\u0002\u02a7\u02aa",
+    "\u0003\u0002\u0002\u0002\u02a8\u02a6\u0003\u0002\u0002\u0002\u02a8\u02a9",
+    "\u0003\u0002\u0002\u0002\u02a9\u02ab\u0003\u0002\u0002\u0002\u02aa\u02a8",
+    "\u0003\u0002\u0002\u0002\u02ab\u02af\u0007/\u0002\u0002\u02ac\u02ae",
+    "\u0005\u0004\u0003\u0002\u02ad\u02ac\u0003\u0002\u0002\u0002\u02ae\u02b1",
+    "\u0003\u0002\u0002\u0002\u02af\u02ad\u0003\u0002\u0002\u0002\u02af\u02b0",
+    "\u0003\u0002\u0002\u0002\u02b0\u02b2\u0003\u0002\u0002\u0002\u02b1\u02af",
+    "\u0003\u0002\u0002\u0002\u02b2\u02b6\u0007&\u0002\u0002\u02b3\u02b5",
+    "\u0005\u0004\u0003\u0002\u02b4\u02b3\u0003\u0002\u0002\u0002\u02b5\u02b8",
+    "\u0003\u0002\u0002\u0002\u02b6\u02b4\u0003\u0002\u0002\u0002\u02b6\u02b7",
+    "\u0003\u0002\u0002\u0002\u02b7\u02b9\u0003\u0002\u0002\u0002\u02b8\u02b6",
+    "\u0003\u0002\u0002\u0002\u02b9\u02bd\u00056\u001c\u0002\u02ba\u02bc",
+    "\u0005\u0004\u0003\u0002\u02bb\u02ba\u0003\u0002\u0002\u0002\u02bc\u02bf",
+    "\u0003\u0002\u0002\u0002\u02bd\u02bb\u0003\u0002\u0002\u0002\u02bd\u02be",
+    "\u0003\u0002\u0002\u0002\u02be\u02c1\u0003\u0002\u0002\u0002\u02bf\u02bd",
+    "\u0003\u0002\u0002\u0002\u02c0\u02a4\u0003\u0002\u0002\u0002\u02c1\u02c4",
+    "\u0003\u0002\u0002\u0002\u02c2\u02c0\u0003\u0002\u0002\u0002\u02c2\u02c3",
+    "\u0003\u0002\u0002\u0002\u02c3\u02c6\u0003\u0002\u0002\u0002\u02c4\u02c2",
+    "\u0003\u0002\u0002\u0002\u02c5\u02c7\u0007\u0017\u0002\u0002\u02c6\u02c5",
+    "\u0003\u0002\u0002\u0002\u02c6\u02c7\u0003\u0002\u0002\u0002\u02c7=",
+    "\u0003\u0002\u0002\u0002\u02c8\u02cc\u0007\u0015\u0002\u0002\u02c9\u02cb",
+    "\u0007)\u0002\u0002\u02ca\u02c9\u0003\u0002\u0002\u0002\u02cb\u02ce",
+    "\u0003\u0002\u0002\u0002\u02cc\u02ca\u0003\u0002\u0002\u0002\u02cc\u02cd",
+    "\u0003\u0002\u0002\u0002\u02cd\u02cf\u0003\u0002\u0002\u0002\u02ce\u02cc",
+    "\u0003\u0002\u0002\u0002\u02cf\u02d3\u0005\u0018\r\u0002\u02d0\u02d2",
+    "\u0007)\u0002\u0002\u02d1\u02d0\u0003\u0002\u0002\u0002\u02d2\u02d5",
+    "\u0003\u0002\u0002\u0002\u02d3\u02d1\u0003\u0002\u0002\u0002\u02d3\u02d4",
+    "\u0003\u0002\u0002\u0002\u02d4?\u0003\u0002\u0002\u0002\u02d5\u02d3",
+    "\u0003\u0002\u0002\u0002\u02d6\u02da\u0007\u001e\u0002\u0002\u02d7\u02d9",
+    "\u0005\u0004\u0003\u0002\u02d8\u02d7\u0003\u0002\u0002\u0002\u02d9\u02dc",
+    "\u0003\u0002\u0002\u0002\u02da\u02d8\u0003\u0002\u0002\u0002\u02da\u02db",
+    "\u0003\u0002\u0002\u0002\u02db\u02de\u0003\u0002\u0002\u0002\u02dc\u02da",
+    "\u0003\u0002\u0002\u0002\u02dd\u02df\u0005:\u001e\u0002\u02de\u02dd",
+    "\u0003\u0002\u0002\u0002\u02de\u02df\u0003\u0002\u0002\u0002\u02df\u02e3",
+    "\u0003\u0002\u0002\u0002\u02e0\u02e2\u0005\u0004\u0003\u0002\u02e1\u02e0",
+    "\u0003\u0002\u0002\u0002\u02e2\u02e5\u0003\u0002\u0002\u0002\u02e3\u02e1",
+    "\u0003\u0002\u0002\u0002\u02e3\u02e4\u0003\u0002\u0002\u0002\u02e4\u02e6",
+    "\u0003\u0002\u0002\u0002\u02e5\u02e3\u0003\u0002\u0002\u0002\u02e6\u02e7",
+    "\u0007\u001f\u0002\u0002\u02e7A\u0003\u0002\u0002\u0002\u02e8\u02ed",
+    "\u0005@!\u0002\u02e9\u02ea\u0005> \u0002\u02ea\u02eb\u0005@!\u0002\u02eb",
+    "\u02ed\u0003\u0002\u0002\u0002\u02ec\u02e8\u0003\u0002\u0002\u0002\u02ec",
+    "\u02e9\u0003\u0002\u0002\u0002\u02edC\u0003\u0002\u0002\u0002\u02ee",
+    "\u02f2\u0007\u0018\u0002\u0002\u02ef\u02f1\u0005\u0004\u0003\u0002\u02f0",
+    "\u02ef\u0003\u0002\u0002\u0002\u02f1\u02f4\u0003\u0002\u0002\u0002\u02f2",
+    "\u02f0\u0003\u0002\u0002\u0002\u02f2\u02f3\u0003\u0002\u0002\u0002\u02f3",
+    "\u02f5\u0003\u0002\u0002\u0002\u02f4\u02f2\u0003\u0002\u0002\u0002\u02f5",
+    "\u02f9\u0005<\u001f\u0002\u02f6\u02f8\u0005\u0004\u0003\u0002\u02f7",
+    "\u02f6\u0003\u0002\u0002\u0002\u02f8\u02fb\u0003\u0002\u0002\u0002\u02f9",
+    "\u02f7\u0003\u0002\u0002\u0002\u02f9\u02fa\u0003\u0002\u0002\u0002\u02fa",
+    "\u02fc\u0003\u0002\u0002\u0002\u02fb\u02f9\u0003\u0002\u0002\u0002\u02fc",
+    "\u02fd\u0007\u0019\u0002\u0002\u02fdE\u0003\u0002\u0002\u0002\u02fe",
+    "\u02ff\u0005> \u0002\u02ff\u0300\u0005D#\u0002\u0300G\u0003\u0002\u0002",
+    "\u0002\u0301\u0305\u0007\u001a\u0002\u0002\u0302\u0304\u0005\u0004\u0003",
+    "\u0002\u0303\u0302\u0003\u0002\u0002\u0002\u0304\u0307\u0003\u0002\u0002",
+    "\u0002\u0305\u0303\u0003\u0002\u0002\u0002\u0305\u0306\u0003\u0002\u0002",
+    "\u0002\u0306\u0309\u0003\u0002\u0002\u0002\u0307\u0305\u0003\u0002\u0002",
+    "\u0002\u0308\u030a\u0005:\u001e\u0002\u0309\u0308\u0003\u0002\u0002",
+    "\u0002\u0309\u030a\u0003\u0002\u0002\u0002\u030a\u030e\u0003\u0002\u0002",
+    "\u0002\u030b\u030d\u0005\u0004\u0003\u0002\u030c\u030b\u0003\u0002\u0002",
+    "\u0002\u030d\u0310\u0003\u0002\u0002\u0002\u030e\u030c\u0003\u0002\u0002",
+    "\u0002\u030e\u030f\u0003\u0002\u0002\u0002\u030f\u0311\u0003\u0002\u0002",
+    "\u0002\u0310\u030e\u0003\u0002\u0002\u0002\u0311\u0312\u0007\u001b\u0002",
+    "\u0002\u0312I\u0003\u0002\u0002\u0002\u0313\u0321\u0007\f\u0002\u0002",
+    "\u0314\u0316\u0005\u0004\u0003\u0002\u0315\u0314\u0003\u0002\u0002\u0002",
+    "\u0316\u0319\u0003\u0002\u0002\u0002\u0317\u0315\u0003\u0002\u0002\u0002",
+    "\u0317\u0318\u0003\u0002\u0002\u0002\u0318\u031a\u0003\u0002\u0002\u0002",
+    "\u0319\u0317\u0003\u0002\u0002\u0002\u031a\u031e\u00056\u001c\u0002",
+    "\u031b\u031d\u0005\u0004\u0003\u0002\u031c\u031b\u0003\u0002\u0002\u0002",
+    "\u031d\u0320\u0003\u0002\u0002\u0002\u031e\u031c\u0003\u0002\u0002\u0002",
+    "\u031e\u031f\u0003\u0002\u0002\u0002\u031f\u0322\u0003\u0002\u0002\u0002",
+    "\u0320\u031e\u0003\u0002\u0002\u0002\u0321\u0317\u0003\u0002\u0002\u0002",
+    "\u0321\u0322\u0003\u0002\u0002\u0002\u0322\u0323\u0003\u0002\u0002\u0002",
+    "\u0323\u0324\u0007\'\u0002\u0002\u0324K\u0003\u0002\u0002\u0002\u0325",
+    "\u0329\u0007\r\u0002\u0002\u0326\u0328\u0005\u0004\u0003\u0002\u0327",
+    "\u0326\u0003\u0002\u0002\u0002\u0328\u032b\u0003\u0002\u0002\u0002\u0329",
+    "\u0327\u0003\u0002\u0002\u0002\u0329\u032a\u0003\u0002\u0002\u0002\u032a",
+    "\u032c\u0003\u0002\u0002\u0002\u032b\u0329\u0003\u0002\u0002\u0002\u032c",
+    "\u033a\u0005^0\u0002\u032d\u032f\u0005\u0004\u0003\u0002\u032e\u032d",
+    "\u0003\u0002\u0002\u0002\u032f\u0332\u0003\u0002\u0002\u0002\u0330\u032e",
+    "\u0003\u0002\u0002\u0002\u0330\u0331\u0003\u0002\u0002\u0002\u0331\u0333",
+    "\u0003\u0002\u0002\u0002\u0332\u0330\u0003\u0002\u0002\u0002\u0333\u0337",
+    "\u00056\u001c\u0002\u0334\u0336\u0005\u0004\u0003\u0002\u0335\u0334",
+    "\u0003\u0002\u0002\u0002\u0336\u0339\u0003\u0002\u0002\u0002\u0337\u0335",
+    "\u0003\u0002\u0002\u0002\u0337\u0338\u0003\u0002\u0002\u0002\u0338\u033b",
+    "\u0003\u0002\u0002\u0002\u0339\u0337\u0003\u0002\u0002\u0002\u033a\u0330",
+    "\u0003\u0002\u0002\u0002\u033a\u033b\u0003\u0002\u0002\u0002\u033b\u033c",
+    "\u0003\u0002\u0002\u0002\u033c\u033d\u0007\'\u0002\u0002\u033dM\u0003",
+    "\u0002\u0002\u0002\u033e\u0342\u0007\u0013\u0002\u0002\u033f\u0341\u0005",
+    "\u0004\u0003\u0002\u0340\u033f\u0003\u0002\u0002\u0002\u0341\u0344\u0003",
+    "\u0002\u0002\u0002\u0342\u0340\u0003\u0002\u0002\u0002\u0342\u0343\u0003",
+    "\u0002\u0002\u0002\u0343\u0345\u0003\u0002\u0002\u0002\u0344\u0342\u0003",
+    "\u0002\u0002\u0002\u0345\u0349\u00056\u001c\u0002\u0346\u0348\u0005",
+    "\u0004\u0003\u0002\u0347\u0346\u0003\u0002\u0002\u0002\u0348\u034b\u0003",
+    "\u0002\u0002\u0002\u0349\u0347\u0003\u0002\u0002\u0002\u0349\u034a\u0003",
+    "\u0002\u0002\u0002\u034a\u034c\u0003\u0002\u0002\u0002\u034b\u0349\u0003",
+    "\u0002\u0002\u0002\u034c\u035e\u0005P)\u0002\u034d\u034f\u0005\u0004",
+    "\u0003\u0002\u034e\u034d\u0003\u0002\u0002\u0002\u034f\u0352\u0003\u0002",
+    "\u0002\u0002\u0350\u034e\u0003\u0002\u0002\u0002\u0350\u0351\u0003\u0002",
+    "\u0002\u0002\u0351\u0353\u0003\u0002\u0002\u0002\u0352\u0350\u0003\u0002",
+    "\u0002\u0002\u0353\u0357\u0007\u0014\u0002\u0002\u0354\u0356\u0005\u0004",
+    "\u0003\u0002\u0355\u0354\u0003\u0002\u0002\u0002\u0356\u0359\u0003\u0002",
+    "\u0002\u0002\u0357\u0355\u0003\u0002\u0002\u0002\u0357\u0358\u0003\u0002",
+    "\u0002\u0002\u0358\u035c\u0003\u0002\u0002\u0002\u0359\u0357\u0003\u0002",
+    "\u0002\u0002\u035a\u035d\u0005N(\u0002\u035b\u035d\u0005P)\u0002\u035c",
+    "\u035a\u0003\u0002\u0002\u0002\u035c\u035b\u0003\u0002\u0002\u0002\u035d",
+    "\u035f\u0003\u0002\u0002\u0002\u035e\u0350\u0003\u0002\u0002\u0002\u035e",
+    "\u035f\u0003\u0002\u0002\u0002\u035fO\u0003\u0002\u0002\u0002\u0360",
+    "\u0364\u0005\"\u0012\u0002\u0361\u0364\u0005&\u0014\u0002\u0362\u0364",
+    "\u0005^0\u0002\u0363\u0360\u0003\u0002\u0002\u0002\u0363\u0361\u0003",
+    "\u0002\u0002\u0002\u0363\u0362\u0003\u0002\u0002\u0002\u0364Q\u0003",
+    "\u0002\u0002\u0002\u0365\u0366\t\u0004\u0002\u0002\u0366S\u0003\u0002",
+    "\u0002\u0002\u0367\u0384\u0007.\u0002\u0002\u0368\u0384\u0007&\u0002",
+    "\u0002\u0369\u0384\u0007\u001c\u0002\u0002\u036a\u036c\u0007\u001d\u0002",
+    "\u0002\u036b\u036a\u0003\u0002\u0002\u0002\u036c\u036d\u0003\u0002\u0002",
+    "\u0002\u036d\u036b\u0003\u0002\u0002\u0002\u036d\u036e\u0003\u0002\u0002",
+    "\u0002\u036e\u037f\u0003\u0002\u0002\u0002\u036f\u0371\u0007!\u0002",
+    "\u0002\u0370\u036f\u0003\u0002\u0002\u0002\u0371\u0372\u0003\u0002\u0002",
+    "\u0002\u0372\u0370\u0003\u0002\u0002\u0002\u0372\u0373\u0003\u0002\u0002",
+    "\u0002\u0373\u0377\u0003\u0002\u0002\u0002\u0374\u0376\u0007.\u0002",
+    "\u0002\u0375\u0374\u0003\u0002\u0002\u0002\u0376\u0379\u0003\u0002\u0002",
+    "\u0002\u0377\u0375\u0003\u0002\u0002\u0002\u0377\u0378\u0003\u0002\u0002",
+    "\u0002\u0378\u0380\u0003\u0002\u0002\u0002\u0379\u0377\u0003\u0002\u0002",
+    "\u0002\u037a\u037c\u0007.\u0002\u0002\u037b\u037a\u0003\u0002\u0002",
+    "\u0002\u037c\u037d\u0003\u0002\u0002\u0002\u037d\u037b\u0003\u0002\u0002",
+    "\u0002\u037d\u037e\u0003\u0002\u0002\u0002\u037e\u0380\u0003\u0002\u0002",
+    "\u0002\u037f\u0370\u0003\u0002\u0002\u0002\u037f\u037b\u0003\u0002\u0002",
+    "\u0002\u037f\u0380\u0003\u0002\u0002\u0002\u0380\u0384\u0003\u0002\u0002",
+    "\u0002\u0381\u0384\u0007\"\u0002\u0002\u0382\u0384\u0007%\u0002\u0002",
+    "\u0383\u0367\u0003\u0002\u0002\u0002\u0383\u0368\u0003\u0002\u0002\u0002",
+    "\u0383\u0369\u0003\u0002\u0002\u0002\u0383\u036b\u0003\u0002\u0002\u0002",
+    "\u0383\u0381\u0003\u0002\u0002\u0002\u0383\u0382\u0003\u0002\u0002\u0002",
+    "\u0384U\u0003\u0002\u0002\u0002\u0385\u0386\t\u0005\u0002\u0002\u0386",
+    "\u038f\u0007)\u0002\u0002\u0387\u0388\u0005X-\u0002\u0388\u0389\u0007",
+    ")\u0002\u0002\u0389\u038a\u0005Z.\u0002\u038a\u0390\u0003\u0002\u0002",
+    "\u0002\u038b\u038c\u0005Z.\u0002\u038c\u038d\u0007)\u0002\u0002\u038d",
+    "\u038e\u0005X-\u0002\u038e\u0390\u0003\u0002\u0002\u0002\u038f\u0387",
+    "\u0003\u0002\u0002\u0002\u038f\u038b\u0003\u0002\u0002\u0002\u0390W",
+    "\u0003\u0002\u0002\u0002\u0391\u0392\u0005^0\u0002\u0392\u0393\u0007",
+    ")\u0002\u0002\u0393\u0394\u0007\u000e\u0002\u0002\u0394\u0395\u0007",
+    ")\u0002\u0002\u0395\u0396\u0005T+\u0002\u0396Y\u0003\u0002\u0002\u0002",
+    "\u0397\u0398\u0007\u0012\u0002\u0002\u0398\u0399\u0007)\u0002\u0002",
+    "\u0399\u039a\u0007-\u0002\u0002\u039a[\u0003\u0002\u0002\u0002\u039b",
+    "\u039f\u0007\u0007\u0002\u0002\u039c\u039e\u0005\u0004\u0003\u0002\u039d",
+    "\u039c\u0003\u0002\u0002\u0002\u039e\u03a1\u0003\u0002\u0002\u0002\u039f",
+    "\u039d\u0003\u0002\u0002\u0002\u039f\u03a0\u0003\u0002\u0002\u0002\u03a0",
+    "\u03a2\u0003\u0002\u0002\u0002\u03a1\u039f\u0003\u0002\u0002\u0002\u03a2",
+    "\u03a6\u0007/\u0002\u0002\u03a3\u03a5\u0005\u0004\u0003\u0002\u03a4",
+    "\u03a3\u0003\u0002\u0002\u0002\u03a5\u03a8\u0003\u0002\u0002\u0002\u03a6",
+    "\u03a4\u0003\u0002\u0002\u0002\u03a6\u03a7\u0003\u0002\u0002\u0002\u03a7",
+    "\u03a9\u0003\u0002\u0002\u0002\u03a8\u03a6\u0003\u0002\u0002\u0002\u03a9",
+    "\u03ad\u0007&\u0002\u0002\u03aa\u03ac\u0005\u0004\u0003\u0002\u03ab",
+    "\u03aa\u0003\u0002\u0002\u0002\u03ac\u03af\u0003\u0002\u0002\u0002\u03ad",
+    "\u03ab\u0003\u0002\u0002\u0002\u03ad\u03ae\u0003\u0002\u0002\u0002\u03ae",
+    "\u03b0\u0003\u0002\u0002\u0002\u03af\u03ad\u0003\u0002\u0002\u0002\u03b0",
+    "\u03b1\u0005\u0018\r\u0002\u03b1]\u0003\u0002\u0002\u0002\u03b2\u03b3",
+    "\u0005\u0014\u000b\u0002\u03b3_\u0003\u0002\u0002\u0002\u03b4\u03b6",
+    "\u0007\b\u0002\u0002\u03b5\u03b7\u0005\u0004\u0003\u0002\u03b6\u03b5",
+    "\u0003\u0002\u0002\u0002\u03b7\u03b8\u0003\u0002\u0002\u0002\u03b8\u03b6",
+    "\u0003\u0002\u0002\u0002\u03b8\u03b9\u0003\u0002\u0002\u0002\u03b9\u03ba",
+    "\u0003\u0002\u0002\u0002\u03ba\u03bc\u0005^0\u0002\u03bb\u03bd\u0005",
+    "\u0004\u0003\u0002\u03bc\u03bb\u0003\u0002\u0002\u0002\u03bd\u03be\u0003",
+    "\u0002\u0002\u0002\u03be\u03bc\u0003\u0002\u0002\u0002\u03be\u03bf\u0003",
+    "\u0002\u0002\u0002\u03bf\u03c3\u0003\u0002\u0002\u0002\u03c0\u03c4\u0005",
+    "\"\u0012\u0002\u03c1\u03c4\u0005\u0014\u000b\u0002\u03c2\u03c4\u0005",
+    "&\u0014\u0002\u03c3\u03c0\u0003\u0002\u0002\u0002\u03c3\u03c1\u0003",
+    "\u0002\u0002\u0002\u03c3\u03c2\u0003\u0002\u0002\u0002\u03c4a\u0003",
+    "\u0002\u0002\u0002\u03c5\u03c9\u0007\u0016\u0002\u0002\u03c6\u03c8\u0007",
+    ")\u0002\u0002\u03c7\u03c6\u0003\u0002\u0002\u0002\u03c8\u03cb\u0003",
+    "\u0002\u0002\u0002\u03c9\u03c7\u0003\u0002\u0002\u0002\u03c9\u03ca\u0003",
+    "\u0002\u0002\u0002\u03ca\u03cc\u0003\u0002\u0002\u0002\u03cb\u03c9\u0003",
+    "\u0002\u0002\u0002\u03cc\u03d0\u0007/\u0002\u0002\u03cd\u03cf\u0007",
+    ")\u0002\u0002\u03ce\u03cd\u0003\u0002\u0002\u0002\u03cf\u03d2\u0003",
+    "\u0002\u0002\u0002\u03d0\u03ce\u0003\u0002\u0002\u0002\u03d0\u03d1\u0003",
+    "\u0002\u0002\u0002\u03d1\u03dc\u0003\u0002\u0002\u0002\u03d2\u03d0\u0003",
+    "\u0002\u0002\u0002\u03d3\u03dd\u0005d3\u0002\u03d4\u03d8\u0007!\u0002",
+    "\u0002\u03d5\u03d7\u0005\u0004\u0003\u0002\u03d6\u03d5\u0003\u0002\u0002",
+    "\u0002\u03d7\u03da\u0003\u0002\u0002\u0002\u03d8\u03d6\u0003\u0002\u0002",
+    "\u0002\u03d8\u03d9\u0003\u0002\u0002\u0002\u03d9\u03db\u0003\u0002\u0002",
+    "\u0002\u03da\u03d8\u0003\u0002\u0002\u0002\u03db\u03dd\u0007/\u0002",
+    "\u0002\u03dc\u03d3\u0003\u0002\u0002\u0002\u03dc\u03d4\u0003\u0002\u0002",
+    "\u0002\u03ddc\u0003\u0002\u0002\u0002\u03de\u03e0\u0007\u0018\u0002",
+    "\u0002\u03df\u03e1\u0005f4\u0002\u03e0\u03df\u0003\u0002\u0002\u0002",
+    "\u03e0\u03e1\u0003\u0002\u0002\u0002\u03e1\u03e5\u0003\u0002\u0002\u0002",
+    "\u03e2\u03e4\u0005\u0004\u0003\u0002\u03e3\u03e2\u0003\u0002\u0002\u0002",
+    "\u03e4\u03e7\u0003\u0002\u0002\u0002\u03e5\u03e3\u0003\u0002\u0002\u0002",
+    "\u03e5\u03e6\u0003\u0002\u0002\u0002\u03e6\u03e8\u0003\u0002\u0002\u0002",
+    "\u03e7\u03e5\u0003\u0002\u0002\u0002\u03e8\u03e9\u0007\u0019\u0002\u0002",
+    "\u03e9e\u0003\u0002\u0002\u0002\u03ea\u03ec\u0005\u0004\u0003\u0002",
+    "\u03eb\u03ea\u0003\u0002\u0002\u0002\u03ec\u03ef\u0003\u0002\u0002\u0002",
+    "\u03ed\u03eb\u0003\u0002\u0002\u0002\u03ed\u03ee\u0003\u0002\u0002\u0002",
+    "\u03ee\u03f0\u0003\u0002\u0002\u0002\u03ef\u03ed\u0003\u0002\u0002\u0002",
+    "\u03f0\u03f4\u0005h5\u0002\u03f1\u03f3\u0005\u0004\u0003\u0002\u03f2",
+    "\u03f1\u0003\u0002\u0002\u0002\u03f3\u03f6\u0003\u0002\u0002\u0002\u03f4",
+    "\u03f2\u0003\u0002\u0002\u0002\u03f4\u03f5\u0003\u0002\u0002\u0002\u03f5",
+    "\u0407\u0003\u0002\u0002\u0002\u03f6\u03f4\u0003\u0002\u0002\u0002\u03f7",
+    "\u03fb\u0007\u0017\u0002\u0002\u03f8\u03fa\u0005\u0004\u0003\u0002\u03f9",
+    "\u03f8\u0003\u0002\u0002\u0002\u03fa\u03fd\u0003\u0002\u0002\u0002\u03fb",
+    "\u03f9\u0003\u0002\u0002\u0002\u03fb\u03fc\u0003\u0002\u0002\u0002\u03fc",
+    "\u03fe\u0003\u0002\u0002\u0002\u03fd\u03fb\u0003\u0002\u0002\u0002\u03fe",
+    "\u0402\u0005h5\u0002\u03ff\u0401\u0005\u0004\u0003\u0002\u0400\u03ff",
+    "\u0003\u0002\u0002\u0002\u0401\u0404\u0003\u0002\u0002\u0002\u0402\u0400",
+    "\u0003\u0002\u0002\u0002\u0402\u0403\u0003\u0002\u0002\u0002\u0403\u0406",
+    "\u0003\u0002\u0002\u0002\u0404\u0402\u0003\u0002\u0002\u0002\u0405\u03f7",
+    "\u0003\u0002\u0002\u0002\u0406\u0409\u0003\u0002\u0002\u0002\u0407\u0405",
+    "\u0003\u0002\u0002\u0002\u0407\u0408\u0003\u0002\u0002\u0002\u0408\u040b",
+    "\u0003\u0002\u0002\u0002\u0409\u0407\u0003\u0002\u0002\u0002\u040a\u040c",
+    "\u0007\u0017\u0002\u0002\u040b\u040a\u0003\u0002\u0002\u0002\u040b\u040c",
+    "\u0003\u0002\u0002\u0002\u040cg\u0003\u0002\u0002\u0002\u040d\u0411",
+    "\u0005j6\u0002\u040e\u0411\u0005n8\u0002\u040f\u0411\u0005t;\u0002\u0410",
+    "\u040d\u0003\u0002\u0002\u0002\u0410\u040e\u0003\u0002\u0002\u0002\u0410",
+    "\u040f\u0003\u0002\u0002\u0002\u0411i\u0003\u0002\u0002\u0002\u0412",
+    "\u0416\t\u0006\u0002\u0002\u0413\u0415\u0007)\u0002\u0002\u0414\u0413",
+    "\u0003\u0002\u0002\u0002\u0415\u0418\u0003\u0002\u0002\u0002\u0416\u0414",
+    "\u0003\u0002\u0002\u0002\u0416\u0417\u0003\u0002\u0002\u0002\u0417\u0419",
+    "\u0003\u0002\u0002\u0002\u0418\u0416\u0003\u0002\u0002\u0002\u0419\u041a",
+    "\u0005l7\u0002\u041ak\u0003\u0002\u0002\u0002\u041b\u041f\u0007\u001a",
+    "\u0002\u0002\u041c\u041e\u0005\u0004\u0003\u0002\u041d\u041c\u0003\u0002",
+    "\u0002\u0002\u041e\u0421\u0003\u0002\u0002\u0002\u041f\u041d\u0003\u0002",
+    "\u0002\u0002\u041f\u0420\u0003\u0002\u0002\u0002\u0420\u0422\u0003\u0002",
+    "\u0002\u0002\u0421\u041f\u0003\u0002\u0002\u0002\u0422\u0426\u0005\u0018",
+    "\r\u0002\u0423\u0425\u0005\u0004\u0003\u0002\u0424\u0423\u0003\u0002",
+    "\u0002\u0002\u0425\u0428\u0003\u0002\u0002\u0002\u0426\u0424\u0003\u0002",
+    "\u0002\u0002\u0426\u0427\u0003\u0002\u0002\u0002\u0427\u0439\u0003\u0002",
+    "\u0002\u0002\u0428\u0426\u0003\u0002\u0002\u0002\u0429\u042d\u0007\u0017",
+    "\u0002\u0002\u042a\u042c\u0005\u0004\u0003\u0002\u042b\u042a\u0003\u0002",
+    "\u0002\u0002\u042c\u042f\u0003\u0002\u0002\u0002\u042d\u042b\u0003\u0002",
+    "\u0002\u0002\u042d\u042e\u0003\u0002\u0002\u0002\u042e\u0430\u0003\u0002",
+    "\u0002\u0002\u042f\u042d\u0003\u0002\u0002\u0002\u0430\u0434\u0005\u0018",
+    "\r\u0002\u0431\u0433\u0005\u0004\u0003\u0002\u0432\u0431\u0003\u0002",
+    "\u0002\u0002\u0433\u0436\u0003\u0002\u0002\u0002\u0434\u0432\u0003\u0002",
+    "\u0002\u0002\u0434\u0435\u0003\u0002\u0002\u0002\u0435\u0438\u0003\u0002",
+    "\u0002\u0002\u0436\u0434\u0003\u0002\u0002\u0002\u0437\u0429\u0003\u0002",
+    "\u0002\u0002\u0438\u043b\u0003\u0002\u0002\u0002\u0439\u0437\u0003\u0002",
+    "\u0002\u0002\u0439\u043a\u0003\u0002\u0002\u0002\u043a\u043c\u0003\u0002",
+    "\u0002\u0002\u043b\u0439\u0003\u0002\u0002\u0002\u043c\u043e\u0007\u001b",
+    "\u0002\u0002\u043d\u043f\u0005\u0004\u0003\u0002\u043e\u043d\u0003\u0002",
+    "\u0002\u0002\u043e\u043f\u0003\u0002\u0002\u0002\u043f\u0440\u0003\u0002",
+    "\u0002\u0002\u0440\u0444\u0007&\u0002\u0002\u0441\u0443\u0005\u0004",
+    "\u0003\u0002\u0442\u0441\u0003\u0002\u0002\u0002\u0443\u0446\u0003\u0002",
+    "\u0002\u0002\u0444\u0442\u0003\u0002\u0002\u0002\u0444\u0445\u0003\u0002",
+    "\u0002\u0002\u0445\u0447\u0003\u0002\u0002\u0002\u0446\u0444\u0003\u0002",
+    "\u0002\u0002\u0447\u0448\u0005\u0018\r\u0002\u0448m\u0003\u0002\u0002",
+    "\u0002\u0449\u044d\u0005p9\u0002\u044a\u044c\u0005\u0004\u0003\u0002",
+    "\u044b\u044a\u0003\u0002\u0002\u0002\u044c\u044f\u0003\u0002\u0002\u0002",
+    "\u044d\u044b\u0003\u0002\u0002\u0002\u044d\u044e\u0003\u0002\u0002\u0002",
     "\u044e\u0451\u0003\u0002\u0002\u0002\u044f\u044d\u0003\u0002\u0002\u0002",
-    "\u044f\u0450\u0003\u0002\u0002\u0002\u0450\u0453\u0003\u0002\u0002\u0002",
-    "\u0451\u044f\u0003\u0002\u0002\u0002\u0452\u044b\u0003\u0002\u0002\u0002",
-    "\u0452\u0453\u0003\u0002\u0002\u0002\u0453\u0454\u0003\u0002\u0002\u0002",
-    "\u0454\u0458\u0005T+\u0002\u0455\u0457\u0005\u0004\u0003\u0002\u0456",
-    "\u0455\u0003\u0002\u0002\u0002\u0457\u045a\u0003\u0002\u0002\u0002\u0458",
-    "\u0456\u0003\u0002\u0002\u0002\u0458\u0459\u0003\u0002\u0002\u0002\u0459",
-    "\u045b\u0003\u0002\u0002\u0002\u045a\u0458\u0003\u0002\u0002\u0002\u045b",
-    "\u045f\u0005r:\u0002\u045c\u045e\u0005\u0004\u0003\u0002\u045d\u045c",
-    "\u0003\u0002\u0002\u0002\u045e\u0461\u0003\u0002\u0002\u0002\u045f\u045d",
-    "\u0003\u0002\u0002\u0002\u045f\u0460\u0003\u0002\u0002\u0002\u0460\u0462",
-    "\u0003\u0002\u0002\u0002\u0461\u045f\u0003\u0002\u0002\u0002\u0462\u0466",
-    "\u0007&\u0002\u0002\u0463\u0465\u0005\u0004\u0003\u0002\u0464\u0463",
-    "\u0003\u0002\u0002\u0002\u0465\u0468\u0003\u0002\u0002\u0002\u0466\u0464",
-    "\u0003\u0002\u0002\u0002\u0466\u0467\u0003\u0002\u0002\u0002\u0467\u0469",
-    "\u0003\u0002\u0002\u0002\u0468\u0466\u0003\u0002\u0002\u0002\u0469\u046a",
-    "\u0005\u0018\r\u0002\u046ao\u0003\u0002\u0002\u0002\u046b\u046c\u0005",
-    "\u0018\r\u0002\u046cq\u0003\u0002\u0002\u0002\u046d\u046e\u0005\u0018",
-    "\r\u0002\u046es\u0003\u0002\u0002\u0002\u046f\u0473\u0007/\u0002\u0002",
-    "\u0470\u0472\u0007)\u0002\u0002\u0471\u0470\u0003\u0002\u0002\u0002",
-    "\u0472\u0475\u0003\u0002\u0002\u0002\u0473\u0471\u0003\u0002\u0002\u0002",
-    "\u0473\u0474\u0003\u0002\u0002\u0002\u0474\u0476\u0003\u0002\u0002\u0002",
-    "\u0475\u0473\u0003\u0002\u0002\u0002\u0476\u047a\u0007&\u0002\u0002",
-    "\u0477\u0479\u0007)\u0002\u0002\u0478\u0477\u0003\u0002\u0002\u0002",
-    "\u0479\u047c\u0003\u0002\u0002\u0002\u047a\u0478\u0003\u0002\u0002\u0002",
-    "\u047a\u047b\u0003\u0002\u0002\u0002\u047b\u047d\u0003\u0002\u0002\u0002",
-    "\u047c\u047a\u0003\u0002\u0002\u0002\u047d\u047e\u0005\u0018\r\u0002",
-    "\u047eu\u0003\u0002\u0002\u0002\u047f\u0481\u0007\t\u0002\u0002\u0480",
-    "\u0482\t\u0002\u0002\u0002\u0481\u0480\u0003\u0002\u0002\u0002\u0482",
-    "\u0483\u0003\u0002\u0002\u0002\u0483\u0481\u0003\u0002\u0002\u0002\u0483",
-    "\u0484\u0003\u0002\u0002\u0002\u0484\u048e\u0003\u0002\u0002\u0002\u0485",
-    "\u048f\u0005^0\u0002\u0486\u048f\u0005\u0012\n\u0002\u0487\u0488\u0005",
-    ",\u0017\u0002\u0488\u0489\u0007\'\u0002\u0002\u0489\u048f\u0003\u0002",
-    "\u0002\u0002\u048a\u048f\u0005\"\u0012\u0002\u048b\u048f\u0005V,\u0002",
-    "\u048c\u048f\u0005\\/\u0002\u048d\u048f\u0005b2\u0002\u048e\u0485\u0003",
-    "\u0002\u0002\u0002\u048e\u0486\u0003\u0002\u0002\u0002\u048e\u0487\u0003",
-    "\u0002\u0002\u0002\u048e\u048a\u0003\u0002\u0002\u0002\u048e\u048b\u0003",
-    "\u0002\u0002\u0002\u048e\u048c\u0003\u0002\u0002\u0002\u048e\u048d\u0003",
-    "\u0002\u0002\u0002\u048fw\u0003\u0002\u0002\u0002\u0490\u0495\u0005",
-    "z>\u0002\u0491\u0492\u0007\u0017\u0002\u0002\u0492\u0494\u0005z>\u0002",
-    "\u0493\u0491\u0003\u0002\u0002\u0002\u0494\u0497\u0003\u0002\u0002\u0002",
-    "\u0495\u0493\u0003\u0002\u0002\u0002\u0495\u0496\u0003\u0002\u0002\u0002",
-    "\u0496y\u0003\u0002\u0002\u0002\u0497\u0495\u0003\u0002\u0002\u0002",
-    "\u0498\u04a5\u0005|?\u0002\u0499\u049b\u0007)\u0002\u0002\u049a\u0499",
-    "\u0003\u0002\u0002\u0002\u049b\u049c\u0003\u0002\u0002\u0002\u049c\u049a",
-    "\u0003\u0002\u0002\u0002\u049c\u049d\u0003\u0002\u0002\u0002\u049d\u049e",
-    "\u0003\u0002\u0002\u0002\u049e\u04a0\u0007\u000e\u0002\u0002\u049f\u04a1",
-    "\u0007)\u0002\u0002\u04a0\u049f\u0003\u0002\u0002\u0002\u04a1\u04a2",
-    "\u0003\u0002\u0002\u0002\u04a2\u04a0\u0003\u0002\u0002\u0002\u04a2\u04a3",
-    "\u0003\u0002\u0002\u0002\u04a3\u04a4\u0003\u0002\u0002\u0002\u04a4\u04a6",
-    "\u0005|?\u0002\u04a5\u049a\u0003\u0002\u0002\u0002\u04a5\u04a6\u0003",
-    "\u0002\u0002\u0002\u04a6{\u0003\u0002\u0002\u0002\u04a7\u04aa\u0007",
-    "/\u0002\u0002\u04a8\u04aa\u0005T+\u0002\u04a9\u04a7\u0003\u0002\u0002",
-    "\u0002\u04a9\u04a8\u0003\u0002\u0002\u0002\u04aa}\u0003\u0002\u0002",
-    "\u0002\u04ab\u04ad\u0005\u0080A\u0002\u04ac\u04ab\u0003\u0002\u0002",
-    "\u0002\u04ad\u04ae\u0003\u0002\u0002\u0002\u04ae\u04ac\u0003\u0002\u0002",
-    "\u0002\u04ae\u04af\u0003\u0002\u0002\u0002\u04af\u007f\u0003\u0002\u0002",
-    "\u0002\u04b0\u04ba\u0007/\u0002\u0002\u04b1\u04b3\u0005\u0004\u0003",
-    "\u0002\u04b2\u04b1\u0003\u0002\u0002\u0002\u04b3\u04b6\u0003\u0002\u0002",
-    "\u0002\u04b4\u04b2\u0003\u0002\u0002\u0002\u04b4\u04b5\u0003\u0002\u0002",
-    "\u0002\u04b5\u04b7\u0003\u0002\u0002\u0002\u04b6\u04b4\u0003\u0002\u0002",
-    "\u0002\u04b7\u04ba\u0007 \u0002\u0002\u04b8\u04ba\u0005\u0082B\u0002",
-    "\u04b9\u04b0\u0003\u0002\u0002\u0002\u04b9\u04b4\u0003\u0002\u0002\u0002",
-    "\u04b9\u04b8\u0003\u0002\u0002\u0002\u04ba\u0081\u0003\u0002\u0002\u0002",
-    "\u04bb\u04bf\u0007\u001e\u0002\u0002\u04bc\u04be\u0007)\u0002\u0002",
-    "\u04bd\u04bc\u0003\u0002\u0002\u0002\u04be\u04c1\u0003\u0002\u0002\u0002",
-    "\u04bf\u04bd\u0003\u0002\u0002\u0002\u04bf\u04c0\u0003\u0002\u0002\u0002",
-    "\u04c0\u04c2\u0003\u0002\u0002\u0002\u04c1\u04bf\u0003\u0002\u0002\u0002",
-    "\u04c2\u04c6\u00056\u001c\u0002\u04c3\u04c5\u0007)\u0002\u0002\u04c4",
-    "\u04c3\u0003\u0002\u0002\u0002\u04c5\u04c8\u0003\u0002\u0002\u0002\u04c6",
-    "\u04c4\u0003\u0002\u0002\u0002\u04c6\u04c7\u0003\u0002\u0002\u0002\u04c7",
-    "\u04c9\u0003\u0002\u0002\u0002\u04c8\u04c6\u0003\u0002\u0002\u0002\u04c9",
-    "\u04ca\u0007\u001f\u0002\u0002\u04ca\u0083\u0003\u0002\u0002\u0002\u00b0",
-    "\u0087\u008d\u009d\u009f\u00a1\u00a4\u00aa\u00b3\u00b9\u00c7\u00cc\u00d2",
-    "\u00d8\u00da\u00e0\u00e6\u00ec\u00f0\u00f5\u00fc\u0100\u0105\u010b\u0112",
-    "\u0119\u0120\u0125\u012e\u0132\u0138\u013f\u0148\u014f\u0158\u015f\u0166",
-    "\u016b\u016f\u0175\u017c\u0185\u018c\u0192\u0199\u019f\u01a2\u01a6\u01ac",
-    "\u01b0\u01b4\u01ba\u01bd\u01bf\u01c3\u01ca\u01ce\u01d4\u01d9\u01e1\u01ec",
-    "\u01f0\u01f8\u01ff\u0204\u0207\u020c\u0213\u021c\u0223\u0228\u022b\u0230",
-    "\u0237\u0240\u0247\u0253\u0259\u025e\u0261\u0267\u026d\u0272\u0278\u027f",
-    "\u0286\u028b\u028f\u0295\u029c\u02a3\u02aa\u02b1\u02b8\u02bf\u02c4\u02c8",
-    "\u02ce\u02d5\u02dc\u02e0\u02e5\u02ee\u02f4\u02fb\u0307\u030b\u0310\u0319",
-    "\u0320\u0323\u032b\u0332\u0339\u033c\u0344\u034b\u0352\u0359\u035e\u0360",
-    "\u0365\u036f\u0374\u0379\u037f\u0381\u0385\u0391\u03a1\u03a8\u03af\u03ba",
-    "\u03c0\u03c5\u03cb\u03d2\u03da\u03de\u03e2\u03e7\u03ef\u03f6\u03fd\u0404",
-    "\u0409\u040d\u0412\u0418\u0421\u0428\u042f\u0436\u043b\u0440\u0446\u044f",
-    "\u0452\u0458\u045f\u0466\u0473\u047a\u0483\u048e\u0495\u049c\u04a2\u04a5",
-    "\u04a9\u04ae\u04b4\u04b9\u04bf\u04c6"].join("");
+    "\u0450\u0449\u0003\u0002\u0002\u0002\u0450\u0451\u0003\u0002\u0002\u0002",
+    "\u0451\u0452\u0003\u0002\u0002\u0002\u0452\u0456\u0005T+\u0002\u0453",
+    "\u0455\u0005\u0004\u0003\u0002\u0454\u0453\u0003\u0002\u0002\u0002\u0455",
+    "\u0458\u0003\u0002\u0002\u0002\u0456\u0454\u0003\u0002\u0002\u0002\u0456",
+    "\u0457\u0003\u0002\u0002\u0002\u0457\u0459\u0003\u0002\u0002\u0002\u0458",
+    "\u0456\u0003\u0002\u0002\u0002\u0459\u045d\u0005r:\u0002\u045a\u045c",
+    "\u0005\u0004\u0003\u0002\u045b\u045a\u0003\u0002\u0002\u0002\u045c\u045f",
+    "\u0003\u0002\u0002\u0002\u045d\u045b\u0003\u0002\u0002\u0002\u045d\u045e",
+    "\u0003\u0002\u0002\u0002\u045e\u0460\u0003\u0002\u0002\u0002\u045f\u045d",
+    "\u0003\u0002\u0002\u0002\u0460\u0464\u0007&\u0002\u0002\u0461\u0463",
+    "\u0005\u0004\u0003\u0002\u0462\u0461\u0003\u0002\u0002\u0002\u0463\u0466",
+    "\u0003\u0002\u0002\u0002\u0464\u0462\u0003\u0002\u0002\u0002\u0464\u0465",
+    "\u0003\u0002\u0002\u0002\u0465\u0467\u0003\u0002\u0002\u0002\u0466\u0464",
+    "\u0003\u0002\u0002\u0002\u0467\u0468\u0005\u0018\r\u0002\u0468o\u0003",
+    "\u0002\u0002\u0002\u0469\u046a\u0005\u0018\r\u0002\u046aq\u0003\u0002",
+    "\u0002\u0002\u046b\u046c\u0005\u0018\r\u0002\u046cs\u0003\u0002\u0002",
+    "\u0002\u046d\u0471\u0007/\u0002\u0002\u046e\u0470\u0007)\u0002\u0002",
+    "\u046f\u046e\u0003\u0002\u0002\u0002\u0470\u0473\u0003\u0002\u0002\u0002",
+    "\u0471\u046f\u0003\u0002\u0002\u0002\u0471\u0472\u0003\u0002\u0002\u0002",
+    "\u0472\u0474\u0003\u0002\u0002\u0002\u0473\u0471\u0003\u0002\u0002\u0002",
+    "\u0474\u0478\u0007&\u0002\u0002\u0475\u0477\u0007)\u0002\u0002\u0476",
+    "\u0475\u0003\u0002\u0002\u0002\u0477\u047a\u0003\u0002\u0002\u0002\u0478",
+    "\u0476\u0003\u0002\u0002\u0002\u0478\u0479\u0003\u0002\u0002\u0002\u0479",
+    "\u047b\u0003\u0002\u0002\u0002\u047a\u0478\u0003\u0002\u0002\u0002\u047b",
+    "\u047c\u0005\u0018\r\u0002\u047cu\u0003\u0002\u0002\u0002\u047d\u047f",
+    "\u0007\t\u0002\u0002\u047e\u0480\u0005\u0004\u0003\u0002\u047f\u047e",
+    "\u0003\u0002\u0002\u0002\u0480\u0481\u0003\u0002\u0002\u0002\u0481\u047f",
+    "\u0003\u0002\u0002\u0002\u0481\u0482\u0003\u0002\u0002\u0002\u0482\u048a",
+    "\u0003\u0002\u0002\u0002\u0483\u048b\u0005^0\u0002\u0484\u048b\u0005",
+    "\u0012\n\u0002\u0485\u048b\u0005,\u0017\u0002\u0486\u048b\u0005\"\u0012",
+    "\u0002\u0487\u048b\u0005V,\u0002\u0488\u048b\u0005\\/\u0002\u0489\u048b",
+    "\u0005b2\u0002\u048a\u0483\u0003\u0002\u0002\u0002\u048a\u0484\u0003",
+    "\u0002\u0002\u0002\u048a\u0485\u0003\u0002\u0002\u0002\u048a\u0486\u0003",
+    "\u0002\u0002\u0002\u048a\u0487\u0003\u0002\u0002\u0002\u048a\u0488\u0003",
+    "\u0002\u0002\u0002\u048a\u0489\u0003\u0002\u0002\u0002\u048bw\u0003",
+    "\u0002\u0002\u0002\u048c\u0491\u0005z>\u0002\u048d\u048e\u0007\u0017",
+    "\u0002\u0002\u048e\u0490\u0005z>\u0002\u048f\u048d\u0003\u0002\u0002",
+    "\u0002\u0490\u0493\u0003\u0002\u0002\u0002\u0491\u048f\u0003\u0002\u0002",
+    "\u0002\u0491\u0492\u0003\u0002\u0002\u0002\u0492y\u0003\u0002\u0002",
+    "\u0002\u0493\u0491\u0003\u0002\u0002\u0002\u0494\u04a1\u0005|?\u0002",
+    "\u0495\u0497\u0007)\u0002\u0002\u0496\u0495\u0003\u0002\u0002\u0002",
+    "\u0497\u0498\u0003\u0002\u0002\u0002\u0498\u0496\u0003\u0002\u0002\u0002",
+    "\u0498\u0499\u0003\u0002\u0002\u0002\u0499\u049a\u0003\u0002\u0002\u0002",
+    "\u049a\u049c\u0007\u000e\u0002\u0002\u049b\u049d\u0007)\u0002\u0002",
+    "\u049c\u049b\u0003\u0002\u0002\u0002\u049d\u049e\u0003\u0002\u0002\u0002",
+    "\u049e\u049c\u0003\u0002\u0002\u0002\u049e\u049f\u0003\u0002\u0002\u0002",
+    "\u049f\u04a0\u0003\u0002\u0002\u0002\u04a0\u04a2\u0005|?\u0002\u04a1",
+    "\u0496\u0003\u0002\u0002\u0002\u04a1\u04a2\u0003\u0002\u0002\u0002\u04a2",
+    "{\u0003\u0002\u0002\u0002\u04a3\u04a6\u0007/\u0002\u0002\u04a4\u04a6",
+    "\u0005T+\u0002\u04a5\u04a3\u0003\u0002\u0002\u0002\u04a5\u04a4\u0003",
+    "\u0002\u0002\u0002\u04a6}\u0003\u0002\u0002\u0002\u04a7\u04a9\u0005",
+    "\u0080A\u0002\u04a8\u04a7\u0003\u0002\u0002\u0002\u04a9\u04aa\u0003",
+    "\u0002\u0002\u0002\u04aa\u04a8\u0003\u0002\u0002\u0002\u04aa\u04ab\u0003",
+    "\u0002\u0002\u0002\u04ab\u007f\u0003\u0002\u0002\u0002\u04ac\u04b6\u0007",
+    "/\u0002\u0002\u04ad\u04af\u0005\u0004\u0003\u0002\u04ae\u04ad\u0003",
+    "\u0002\u0002\u0002\u04af\u04b2\u0003\u0002\u0002\u0002\u04b0\u04ae\u0003",
+    "\u0002\u0002\u0002\u04b0\u04b1\u0003\u0002\u0002\u0002\u04b1\u04b3\u0003",
+    "\u0002\u0002\u0002\u04b2\u04b0\u0003\u0002\u0002\u0002\u04b3\u04b6\u0007",
+    " \u0002\u0002\u04b4\u04b6\u0005\u0082B\u0002\u04b5\u04ac\u0003\u0002",
+    "\u0002\u0002\u04b5\u04b0\u0003\u0002\u0002\u0002\u04b5\u04b4\u0003\u0002",
+    "\u0002\u0002\u04b6\u0081\u0003\u0002\u0002\u0002\u04b7\u04bb\u0007\u001e",
+    "\u0002\u0002\u04b8\u04ba\u0007)\u0002\u0002\u04b9\u04b8\u0003\u0002",
+    "\u0002\u0002\u04ba\u04bd\u0003\u0002\u0002\u0002\u04bb\u04b9\u0003\u0002",
+    "\u0002\u0002\u04bb\u04bc\u0003\u0002\u0002\u0002\u04bc\u04be\u0003\u0002",
+    "\u0002\u0002\u04bd\u04bb\u0003\u0002\u0002\u0002\u04be\u04c2\u00056",
+    "\u001c\u0002\u04bf\u04c1\u0007)\u0002\u0002\u04c0\u04bf\u0003\u0002",
+    "\u0002\u0002\u04c1\u04c4\u0003\u0002\u0002\u0002\u04c2\u04c0\u0003\u0002",
+    "\u0002\u0002\u04c2\u04c3\u0003\u0002\u0002\u0002\u04c3\u04c5\u0003\u0002",
+    "\u0002\u0002\u04c4\u04c2\u0003\u0002\u0002\u0002\u04c5\u04c6\u0007\u001f",
+    "\u0002\u0002\u04c6\u0083\u0003\u0002\u0002\u0002\u00b0\u0087\u008d\u009b",
+    "\u009d\u009f\u00a2\u00a8\u00b1\u00b7\u00c5\u00ca\u00d0\u00d6\u00d8\u00de",
+    "\u00e4\u00ea\u00ee\u00f3\u00fa\u00fe\u0103\u0109\u0110\u0117\u011e\u0123",
+    "\u012c\u0130\u0136\u013d\u0146\u014d\u0156\u015d\u0164\u0169\u016d\u0173",
+    "\u017a\u0183\u018a\u0190\u0197\u019d\u01a0\u01a4\u01aa\u01ae\u01b2\u01b8",
+    "\u01bb\u01bd\u01c1\u01c8\u01cc\u01d2\u01d7\u01df\u01ea\u01ee\u01f4\u01fb",
+    "\u0200\u0203\u0208\u020f\u0219\u0220\u0225\u0228\u022d\u0234\u023e\u0245",
+    "\u0251\u0257\u025c\u025f\u0265\u026b\u0270\u0276\u027d\u0284\u0289\u028d",
+    "\u0293\u029a\u02a1\u02a8\u02af\u02b6\u02bd\u02c2\u02c6\u02cc\u02d3\u02da",
+    "\u02de\u02e3\u02ec\u02f2\u02f9\u0305\u0309\u030e\u0317\u031e\u0321\u0329",
+    "\u0330\u0337\u033a\u0342\u0349\u0350\u0357\u035c\u035e\u0363\u036d\u0372",
+    "\u0377\u037d\u037f\u0383\u038f\u039f\u03a6\u03ad\u03b8\u03be\u03c3\u03c9",
+    "\u03d0\u03d8\u03dc\u03e0\u03e5\u03ed\u03f4\u03fb\u0402\u0407\u040b\u0410",
+    "\u0416\u041f\u0426\u042d\u0434\u0439\u043e\u0444\u044d\u0450\u0456\u045d",
+    "\u0464\u0471\u0478\u0481\u048a\u0491\u0498\u049e\u04a1\u04a5\u04aa\u04b0",
+    "\u04b5\u04bb\u04c2"].join("");
 var atn = new antlr4.atn.ATNDeserializer().deserialize(serializedATN);
 var decisionsToDFA = atn.decisionToState.map(function (ds, index) { return new antlr4.dfa.DFA(ds, index); });
 var sharedContextCache = new antlr4.PredictionContextCache();
@@ -2724,6 +2730,17 @@ ModuleContext.prototype.types = function (i) {
         return this.getTypedRuleContext(TypesContext, i);
     }
 };
+ModuleContext.prototype.constdeclaration = function (i) {
+    if (i === undefined) {
+        i = null;
+    }
+    if (i === null) {
+        return this.getTypedRuleContexts(ConstdeclarationContext);
+    }
+    else {
+        return this.getTypedRuleContext(ConstdeclarationContext, i);
+    }
+};
 ModuleContext.prototype.functions = function (i) {
     if (i === undefined) {
         i = null;
@@ -2790,28 +2807,6 @@ ModuleContext.prototype.exports = function (i) {
         return this.getTypedRuleContext(ExportsContext, i);
     }
 };
-ModuleContext.prototype.constdeclaration = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTypedRuleContexts(ConstdeclarationContext);
-    }
-    else {
-        return this.getTypedRuleContext(ConstdeclarationContext, i);
-    }
-};
-ModuleContext.prototype.EOS = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.EOS);
-    }
-    else {
-        return this.getToken(LnParser.EOS, i);
-    }
-};
 ModuleContext.prototype.EOF = function () {
     return this.getToken(LnParser.EOF, 0);
 };
@@ -2831,7 +2826,7 @@ LnParser.prototype.module = function () {
     this.enterRule(localctx, 0, LnParser.RULE_module);
     var _la = 0; // Token type
     try {
-        this.state = 162;
+        this.state = 160;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.IMPORT:
@@ -2870,11 +2865,11 @@ LnParser.prototype.module = function () {
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 157;
+                this.state = 155;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 do {
-                    this.state = 157;
+                    this.state = 155;
                     this._errHandler.sync(this);
                     switch (this._input.LA(1)) {
                         case LnParser.TYPE:
@@ -2884,49 +2879,47 @@ LnParser.prototype.module = function () {
                         case LnParser.CONST:
                             this.state = 143;
                             this.constdeclaration();
-                            this.state = 144;
-                            this.match(LnParser.EOS);
                             break;
                         case LnParser.FN:
-                            this.state = 146;
+                            this.state = 144;
                             this.functions();
                             break;
                         case LnParser.PREFIX:
                         case LnParser.INFIX:
-                            this.state = 147;
+                            this.state = 145;
                             this.operatormapping();
                             break;
                         case LnParser.EVENT:
-                            this.state = 148;
+                            this.state = 146;
                             this.events();
                             break;
                         case LnParser.ON:
-                            this.state = 149;
+                            this.state = 147;
                             this.handlers();
                             break;
                         case LnParser.INTERFACE:
-                            this.state = 150;
+                            this.state = 148;
                             this.interfaces();
                             break;
                         case LnParser.EXPORT:
-                            this.state = 151;
+                            this.state = 149;
                             this.exports();
                             break;
                         case LnParser.NEWLINE:
                         case LnParser.WS:
-                            this.state = 153;
+                            this.state = 151;
                             this._errHandler.sync(this);
                             var _alt = 1;
                             do {
                                 switch (_alt) {
                                     case 1:
-                                        this.state = 152;
+                                        this.state = 150;
                                         this.blank();
                                         break;
                                     default:
                                         throw new antlr4.error.NoViableAltException(this);
                                 }
-                                this.state = 155;
+                                this.state = 153;
                                 this._errHandler.sync(this);
                                 _alt = this._interp.adaptivePredict(this._input, 2, this._ctx);
                             } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
@@ -2934,14 +2927,14 @@ LnParser.prototype.module = function () {
                         default:
                             throw new antlr4.error.NoViableAltException(this);
                     }
-                    this.state = 159;
+                    this.state = 157;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 } while ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.TYPE) | (1 << LnParser.FN) | (1 << LnParser.EVENT) | (1 << LnParser.ON) | (1 << LnParser.EXPORT) | (1 << LnParser.CONST) | (1 << LnParser.PREFIX) | (1 << LnParser.INFIX) | (1 << LnParser.INTERFACE))) !== 0) || _la === LnParser.NEWLINE || _la === LnParser.WS);
                 break;
             case LnParser.EOF:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 161;
+                this.state = 159;
                 this.match(LnParser.EOF);
                 break;
             default:
@@ -3000,7 +2993,7 @@ LnParser.prototype.blank = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 164;
+        this.state = 162;
         _la = this._input.LA(1);
         if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
             this._errHandler.recoverInline(this);
@@ -3061,15 +3054,15 @@ LnParser.prototype.imports = function () {
     this.enterRule(localctx, 4, LnParser.RULE_imports);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 168;
+        this.state = 166;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.IMPORT:
-                this.state = 166;
+                this.state = 164;
                 this.standardImport();
                 break;
             case LnParser.FROM:
-                this.state = 167;
+                this.state = 165;
                 this.fromImport();
                 break;
             default:
@@ -3159,36 +3152,36 @@ LnParser.prototype.standardImport = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 170;
+        this.state = 168;
         this.match(LnParser.IMPORT);
-        this.state = 171;
+        this.state = 169;
         this.match(LnParser.WS);
-        this.state = 172;
+        this.state = 170;
         this.dependency();
-        this.state = 177;
+        this.state = 175;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.WS) {
+            this.state = 171;
+            this.match(LnParser.WS);
+            this.state = 172;
+            this.match(LnParser.AS);
             this.state = 173;
             this.match(LnParser.WS);
             this.state = 174;
-            this.match(LnParser.AS);
-            this.state = 175;
-            this.match(LnParser.WS);
-            this.state = 176;
             this.match(LnParser.VARNAME);
         }
-        this.state = 179;
+        this.state = 177;
         this.match(LnParser.NEWLINE);
-        this.state = 183;
+        this.state = 181;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 8, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 180;
+                this.state = 178;
                 this.blank();
             }
-            this.state = 185;
+            this.state = 183;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 8, this._ctx);
         }
@@ -3275,31 +3268,31 @@ LnParser.prototype.fromImport = function () {
     this.enterRule(localctx, 8, LnParser.RULE_fromImport);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 186;
+        this.state = 184;
         this.match(LnParser.FROM);
+        this.state = 185;
+        this.match(LnParser.WS);
+        this.state = 186;
+        this.dependency();
         this.state = 187;
         this.match(LnParser.WS);
         this.state = 188;
-        this.dependency();
+        this.match(LnParser.IMPORT);
         this.state = 189;
         this.match(LnParser.WS);
         this.state = 190;
-        this.match(LnParser.IMPORT);
-        this.state = 191;
-        this.match(LnParser.WS);
-        this.state = 192;
         this.varlist();
-        this.state = 193;
+        this.state = 191;
         this.match(LnParser.NEWLINE);
-        this.state = 197;
+        this.state = 195;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 9, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 194;
+                this.state = 192;
                 this.blank();
             }
-            this.state = 199;
+            this.state = 197;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 9, this._ctx);
         }
@@ -3354,18 +3347,18 @@ LnParser.prototype.dependency = function () {
     var localctx = new DependencyContext(this, this._ctx, this.state);
     this.enterRule(localctx, 10, LnParser.RULE_dependency);
     try {
-        this.state = 202;
+        this.state = 200;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.CURDIR:
             case LnParser.PARDIR:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 200;
+                this.state = 198;
                 this.localdependency();
                 break;
             case LnParser.GLOBAL:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 201;
+                this.state = 199;
                 this.globaldependency();
                 break;
             default:
@@ -3445,18 +3438,18 @@ LnParser.prototype.localdependency = function () {
     this.enterRule(localctx, 12, LnParser.RULE_localdependency);
     var _la = 0; // Token type
     try {
-        this.state = 216;
+        this.state = 214;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.CURDIR:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 204;
+                this.state = 202;
                 this.match(LnParser.CURDIR);
-                this.state = 206;
+                this.state = 204;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 do {
-                    this.state = 205;
+                    this.state = 203;
                     _la = this._input.LA(1);
                     if (!(_la === LnParser.DIRSEP || _la === LnParser.VARNAME)) {
                         this._errHandler.recoverInline(this);
@@ -3465,20 +3458,20 @@ LnParser.prototype.localdependency = function () {
                         this._errHandler.reportMatch(this);
                         this.consume();
                     }
-                    this.state = 208;
+                    this.state = 206;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 } while (_la === LnParser.DIRSEP || _la === LnParser.VARNAME);
                 break;
             case LnParser.PARDIR:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 210;
+                this.state = 208;
                 this.match(LnParser.PARDIR);
-                this.state = 212;
+                this.state = 210;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 do {
-                    this.state = 211;
+                    this.state = 209;
                     _la = this._input.LA(1);
                     if (!(_la === LnParser.DIRSEP || _la === LnParser.VARNAME)) {
                         this._errHandler.recoverInline(this);
@@ -3487,7 +3480,7 @@ LnParser.prototype.localdependency = function () {
                         this._errHandler.reportMatch(this);
                         this.consume();
                     }
-                    this.state = 214;
+                    this.state = 212;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 } while (_la === LnParser.DIRSEP || _la === LnParser.VARNAME);
@@ -3567,13 +3560,13 @@ LnParser.prototype.globaldependency = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 218;
+        this.state = 216;
         this.match(LnParser.GLOBAL);
-        this.state = 220;
+        this.state = 218;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
-            this.state = 219;
+            this.state = 217;
             _la = this._input.LA(1);
             if (!(_la === LnParser.DIRSEP || _la === LnParser.VARNAME)) {
                 this._errHandler.recoverInline(this);
@@ -3582,7 +3575,7 @@ LnParser.prototype.globaldependency = function () {
                 this._errHandler.reportMatch(this);
                 this.consume();
             }
-            this.state = 222;
+            this.state = 220;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         } while (_la === LnParser.DIRSEP || _la === LnParser.VARNAME);
@@ -3662,68 +3655,68 @@ LnParser.prototype.types = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 224;
+        this.state = 222;
         this.match(LnParser.TYPE);
-        this.state = 226;
+        this.state = 224;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
-            this.state = 225;
+            this.state = 223;
             this.blank();
-            this.state = 228;
+            this.state = 226;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
-        this.state = 230;
+        this.state = 228;
         this.typename();
-        this.state = 238;
+        this.state = 236;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input, 17, this._ctx);
         if (la_ === 1) {
-            this.state = 234;
+            this.state = 232;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 231;
+                this.state = 229;
                 this.blank();
-                this.state = 236;
+                this.state = 234;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 237;
+            this.state = 235;
             this.typegenerics();
         }
-        this.state = 241;
+        this.state = 239;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
-            this.state = 240;
+            this.state = 238;
             this.blank();
-            this.state = 243;
+            this.state = 241;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
-        this.state = 254;
+        this.state = 252;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.OPENBODY:
-                this.state = 245;
+                this.state = 243;
                 this.typebody();
                 break;
             case LnParser.EQUALS:
-                this.state = 246;
+                this.state = 244;
                 this.match(LnParser.EQUALS);
-                this.state = 250;
+                this.state = 248;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 247;
+                    this.state = 245;
                     this.blank();
-                    this.state = 252;
+                    this.state = 250;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 253;
+                this.state = 251;
                 this.fulltypename();
                 break;
             default:
@@ -3789,15 +3782,15 @@ LnParser.prototype.typename = function () {
     this.enterRule(localctx, 18, LnParser.RULE_typename);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 256;
+        this.state = 254;
         this.match(LnParser.VARNAME);
-        this.state = 259;
+        this.state = 257;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input, 21, this._ctx);
         if (la_ === 1) {
-            this.state = 257;
+            this.state = 255;
             this.match(LnParser.METHODSEP);
-            this.state = 258;
+            this.state = 256;
             this.match(LnParser.VARNAME);
         }
     }
@@ -3886,63 +3879,63 @@ LnParser.prototype.typegenerics = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 261;
+        this.state = 259;
         this.match(LnParser.OPENGENERIC);
-        this.state = 265;
+        this.state = 263;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 262;
+            this.state = 260;
             this.blank();
-            this.state = 267;
+            this.state = 265;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 268;
+        this.state = 266;
         this.fulltypename();
-        this.state = 272;
+        this.state = 270;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 269;
+            this.state = 267;
             this.blank();
-            this.state = 274;
+            this.state = 272;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 291;
+        this.state = 289;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.SEP) {
-            this.state = 275;
+            this.state = 273;
             this.match(LnParser.SEP);
-            this.state = 279;
+            this.state = 277;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 276;
+                this.state = 274;
                 this.blank();
-                this.state = 281;
+                this.state = 279;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 282;
+            this.state = 280;
             this.fulltypename();
-            this.state = 286;
+            this.state = 284;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 283;
+                this.state = 281;
                 this.blank();
-                this.state = 288;
+                this.state = 286;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 293;
+            this.state = 291;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 294;
+        this.state = 292;
         this.match(LnParser.CLOSEGENERIC);
     }
     catch (re) {
@@ -4008,23 +4001,23 @@ LnParser.prototype.fulltypename = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 296;
+        this.state = 294;
         this.typename();
-        this.state = 304;
+        this.state = 302;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input, 28, this._ctx);
         if (la_ === 1) {
-            this.state = 300;
+            this.state = 298;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 297;
+                this.state = 295;
                 this.blank();
-                this.state = 302;
+                this.state = 300;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 303;
+            this.state = 301;
             this.typegenerics();
         }
     }
@@ -4094,31 +4087,31 @@ LnParser.prototype.typebody = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 306;
+        this.state = 304;
         this.match(LnParser.OPENBODY);
-        this.state = 310;
+        this.state = 308;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 307;
+            this.state = 305;
             this.blank();
-            this.state = 312;
+            this.state = 310;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 313;
+        this.state = 311;
         this.typelist();
-        this.state = 317;
+        this.state = 315;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 314;
+            this.state = 312;
             this.blank();
-            this.state = 319;
+            this.state = 317;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 320;
+        this.state = 318;
         this.match(LnParser.CLOSEBODY);
     }
     catch (re) {
@@ -4187,31 +4180,31 @@ LnParser.prototype.typeline = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 322;
+        this.state = 320;
         this.match(LnParser.VARNAME);
-        this.state = 326;
+        this.state = 324;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 323;
+            this.state = 321;
             this.blank();
-            this.state = 328;
+            this.state = 326;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 329;
+        this.state = 327;
         this.match(LnParser.TYPESEP);
-        this.state = 333;
+        this.state = 331;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 330;
+            this.state = 328;
             this.blank();
-            this.state = 335;
+            this.state = 333;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 336;
+        this.state = 334;
         this.fulltypename();
     }
     catch (re) {
@@ -4293,61 +4286,61 @@ LnParser.prototype.typelist = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 338;
+        this.state = 336;
         this.typeline();
-        this.state = 342;
+        this.state = 340;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 33, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 339;
+                this.state = 337;
                 this.blank();
             }
-            this.state = 344;
+            this.state = 342;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 33, this._ctx);
         }
-        this.state = 361;
+        this.state = 359;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 36, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 345;
+                this.state = 343;
                 this.match(LnParser.SEP);
-                this.state = 349;
+                this.state = 347;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 346;
+                    this.state = 344;
                     this.blank();
-                    this.state = 351;
+                    this.state = 349;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 352;
+                this.state = 350;
                 this.typeline();
-                this.state = 356;
+                this.state = 354;
                 this._errHandler.sync(this);
                 var _alt = this._interp.adaptivePredict(this._input, 35, this._ctx);
                 while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
                     if (_alt === 1) {
-                        this.state = 353;
+                        this.state = 351;
                         this.blank();
                     }
-                    this.state = 358;
+                    this.state = 356;
                     this._errHandler.sync(this);
                     _alt = this._interp.adaptivePredict(this._input, 35, this._ctx);
                 }
             }
-            this.state = 363;
+            this.state = 361;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 36, this._ctx);
         }
-        this.state = 365;
+        this.state = 363;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.SEP) {
-            this.state = 364;
+            this.state = 362;
             this.match(LnParser.SEP);
         }
     }
@@ -4452,65 +4445,65 @@ LnParser.prototype.arglist = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 367;
+        this.state = 365;
         this.match(LnParser.VARNAME);
-        this.state = 371;
+        this.state = 369;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 368;
+            this.state = 366;
             this.blank();
-            this.state = 373;
+            this.state = 371;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 374;
+        this.state = 372;
         this.match(LnParser.TYPESEP);
-        this.state = 378;
+        this.state = 376;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 375;
+            this.state = 373;
             this.blank();
-            this.state = 380;
+            this.state = 378;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 381;
+        this.state = 379;
         this.fulltypename();
-        this.state = 400;
+        this.state = 398;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.SEP) {
-            this.state = 382;
+            this.state = 380;
             this.match(LnParser.SEP);
-            this.state = 383;
+            this.state = 381;
             this.match(LnParser.VARNAME);
-            this.state = 387;
+            this.state = 385;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 384;
+                this.state = 382;
                 this.blank();
-                this.state = 389;
+                this.state = 387;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 390;
+            this.state = 388;
             this.match(LnParser.TYPESEP);
-            this.state = 394;
+            this.state = 392;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 391;
+                this.state = 389;
                 this.blank();
-                this.state = 396;
+                this.state = 394;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 397;
+            this.state = 395;
             this.fulltypename();
-            this.state = 402;
+            this.state = 400;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
@@ -4599,103 +4592,103 @@ LnParser.prototype.functions = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 403;
+        this.state = 401;
         this.match(LnParser.FN);
-        this.state = 405;
+        this.state = 403;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
-            this.state = 404;
+            this.state = 402;
             this.blank();
-            this.state = 407;
+            this.state = 405;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
-        this.state = 445;
+        this.state = 443;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.OPENARGS || _la === LnParser.VARNAME) {
-            this.state = 416;
+            this.state = 414;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             if (_la === LnParser.VARNAME) {
-                this.state = 409;
+                this.state = 407;
                 this.match(LnParser.VARNAME);
-                this.state = 413;
+                this.state = 411;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 410;
+                    this.state = 408;
                     this.blank();
-                    this.state = 415;
+                    this.state = 413;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
             }
-            this.state = 418;
+            this.state = 416;
             this.match(LnParser.OPENARGS);
-            this.state = 420;
+            this.state = 418;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             if (_la === LnParser.VARNAME) {
-                this.state = 419;
+                this.state = 417;
                 this.arglist();
             }
-            this.state = 422;
+            this.state = 420;
             this.match(LnParser.CLOSEARGS);
-            this.state = 426;
+            this.state = 424;
             this._errHandler.sync(this);
             var _alt = this._interp.adaptivePredict(this._input, 47, this._ctx);
             while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
                 if (_alt === 1) {
-                    this.state = 423;
+                    this.state = 421;
                     this.blank();
                 }
-                this.state = 428;
+                this.state = 426;
                 this._errHandler.sync(this);
                 _alt = this._interp.adaptivePredict(this._input, 47, this._ctx);
             }
-            this.state = 443;
+            this.state = 441;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             if (((((_la - 36)) & ~0x1f) == 0 && ((1 << (_la - 36)) & ((1 << (LnParser.TYPESEP - 36)) | (1 << (LnParser.NEWLINE - 36)) | (1 << (LnParser.WS - 36)))) !== 0)) {
+                this.state = 428;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+                if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+                    this.state = 427;
+                    this.blank();
+                }
                 this.state = 430;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-                if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 429;
-                    this.blank();
-                }
-                this.state = 432;
                 this.match(LnParser.TYPESEP);
-                this.state = 434;
+                this.state = 432;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 433;
+                    this.state = 431;
                     this.blank();
                 }
-                this.state = 436;
+                this.state = 434;
                 this.fulltypename();
-                this.state = 440;
+                this.state = 438;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 437;
+                    this.state = 435;
                     this.blank();
-                    this.state = 442;
+                    this.state = 440;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
             }
         }
-        this.state = 447;
+        this.state = 445;
         this.fullfunctionbody();
-        this.state = 449;
+        this.state = 447;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input, 53, this._ctx);
         if (la_ === 1) {
-            this.state = 448;
+            this.state = 446;
             this.match(LnParser.EOS);
         }
     }
@@ -4764,29 +4757,29 @@ LnParser.prototype.fullfunctionbody = function () {
     this.enterRule(localctx, 34, LnParser.RULE_fullfunctionbody);
     var _la = 0; // Token type
     try {
-        this.state = 460;
+        this.state = 458;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.OPENBODY:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 451;
+                this.state = 449;
                 this.functionbody();
                 break;
             case LnParser.EQUALS:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 452;
+                this.state = 450;
                 this.match(LnParser.EQUALS);
-                this.state = 456;
+                this.state = 454;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 453;
+                    this.state = 451;
                     this.blank();
-                    this.state = 458;
+                    this.state = 456;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 459;
+                this.state = 457;
                 this.assignables();
                 break;
             default:
@@ -4867,35 +4860,35 @@ LnParser.prototype.functionbody = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 462;
+        this.state = 460;
         this.match(LnParser.OPENBODY);
-        this.state = 464;
+        this.state = 462;
         this._errHandler.sync(this);
         var _alt = 1;
         do {
             switch (_alt) {
                 case 1:
-                    this.state = 463;
+                    this.state = 461;
                     this.statements();
                     break;
                 default:
                     throw new antlr4.error.NoViableAltException(this);
             }
-            this.state = 466;
+            this.state = 464;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 56, this._ctx);
         } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
-        this.state = 471;
+        this.state = 469;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 468;
+            this.state = 466;
             this.blank();
-            this.state = 473;
+            this.state = 471;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 474;
+        this.state = 472;
         this.match(LnParser.CLOSEBODY);
     }
     catch (re) {
@@ -4936,11 +4929,11 @@ StatementsContext.prototype.exits = function () {
 StatementsContext.prototype.emits = function () {
     return this.getTypedRuleContext(EmitsContext, 0);
 };
-StatementsContext.prototype.conditionals = function () {
-    return this.getTypedRuleContext(ConditionalsContext, 0);
-};
 StatementsContext.prototype.assignments = function () {
     return this.getTypedRuleContext(AssignmentsContext, 0);
+};
+StatementsContext.prototype.conditionals = function () {
+    return this.getTypedRuleContext(ConditionalsContext, 0);
 };
 StatementsContext.prototype.blank = function (i) {
     if (i === undefined) {
@@ -4975,47 +4968,47 @@ LnParser.prototype.statements = function () {
     this.enterRule(localctx, 38, LnParser.RULE_statements);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 479;
+        this.state = 477;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 58, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 476;
+                this.state = 474;
                 this.blank();
             }
-            this.state = 481;
+            this.state = 479;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 58, this._ctx);
         }
-        this.state = 490;
+        this.state = 488;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input, 59, this._ctx);
         switch (la_) {
             case 1:
-                this.state = 482;
+                this.state = 480;
                 this.declarations();
                 break;
             case 2:
-                this.state = 483;
+                this.state = 481;
                 this.exits();
                 break;
             case 3:
-                this.state = 484;
+                this.state = 482;
                 this.emits();
                 break;
             case 4:
-                this.state = 485;
-                this.conditionals();
+                this.state = 483;
+                this.assignments();
                 break;
             case 5:
-                this.state = 486;
-                this.assignments();
+                this.state = 484;
+                this.assignables();
+                this.state = 485;
+                this.match(LnParser.EOS);
                 break;
             case 6:
                 this.state = 487;
-                this.assignables();
-                this.state = 488;
-                this.match(LnParser.EOS);
+                this.conditionals();
                 break;
         }
     }
@@ -5048,9 +5041,6 @@ function DeclarationsContext(parser, parent, invokingState) {
 }
 DeclarationsContext.prototype = Object.create(antlr4.ParserRuleContext.prototype);
 DeclarationsContext.prototype.constructor = DeclarationsContext;
-DeclarationsContext.prototype.EOS = function () {
-    return this.getToken(LnParser.EOS, 0);
-};
 DeclarationsContext.prototype.constdeclaration = function () {
     return this.getTypedRuleContext(ConstdeclarationContext, 0);
 };
@@ -5072,23 +5062,22 @@ LnParser.prototype.declarations = function () {
     var localctx = new DeclarationsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 40, LnParser.RULE_declarations);
     try {
-        this.enterOuterAlt(localctx, 1);
-        this.state = 494;
+        this.state = 492;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.CONST:
-                this.state = 492;
+                this.enterOuterAlt(localctx, 1);
+                this.state = 490;
                 this.constdeclaration();
                 break;
             case LnParser.LET:
-                this.state = 493;
+                this.enterOuterAlt(localctx, 2);
+                this.state = 491;
                 this.letdeclaration();
                 break;
             default:
                 throw new antlr4.error.NoViableAltException(this);
         }
-        this.state = 496;
-        this.match(LnParser.EOS);
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -5131,6 +5120,9 @@ ConstdeclarationContext.prototype.EQUALS = function () {
 ConstdeclarationContext.prototype.assignables = function () {
     return this.getTypedRuleContext(AssignablesContext, 0);
 };
+ConstdeclarationContext.prototype.EOS = function () {
+    return this.getToken(LnParser.EOS, 0);
+};
 ConstdeclarationContext.prototype.blank = function (i) {
     if (i === undefined) {
         i = null;
@@ -5165,72 +5157,74 @@ LnParser.prototype.constdeclaration = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 498;
+        this.state = 494;
         this.match(LnParser.CONST);
-        this.state = 502;
+        this.state = 498;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 499;
+            this.state = 495;
             this.blank();
-            this.state = 504;
+            this.state = 500;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 505;
+        this.state = 501;
         this.match(LnParser.VARNAME);
-        this.state = 509;
+        this.state = 505;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 62, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 506;
+                this.state = 502;
                 this.blank();
             }
-            this.state = 511;
+            this.state = 507;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 62, this._ctx);
         }
-        this.state = 517;
+        this.state = 513;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.TYPESEP) {
-            this.state = 512;
+            this.state = 508;
             this.match(LnParser.TYPESEP);
-            this.state = 514;
+            this.state = 510;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 513;
+                this.state = 509;
                 this.blank();
             }
-            this.state = 516;
+            this.state = 512;
             this.fulltypename();
         }
-        this.state = 522;
+        this.state = 518;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 519;
+            this.state = 515;
             this.blank();
-            this.state = 524;
+            this.state = 520;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 525;
+        this.state = 521;
         this.match(LnParser.EQUALS);
-        this.state = 529;
+        this.state = 525;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 526;
+            this.state = 522;
             this.blank();
-            this.state = 531;
+            this.state = 527;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 532;
+        this.state = 528;
         this.assignables();
+        this.state = 529;
+        this.match(LnParser.EOS);
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -5273,6 +5267,9 @@ LetdeclarationContext.prototype.EQUALS = function () {
 LetdeclarationContext.prototype.assignables = function () {
     return this.getTypedRuleContext(AssignablesContext, 0);
 };
+LetdeclarationContext.prototype.EOS = function () {
+    return this.getToken(LnParser.EOS, 0);
+};
 LetdeclarationContext.prototype.blank = function (i) {
     if (i === undefined) {
         i = null;
@@ -5307,72 +5304,74 @@ LnParser.prototype.letdeclaration = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 534;
+        this.state = 531;
         this.match(LnParser.LET);
-        this.state = 538;
+        this.state = 535;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 535;
+            this.state = 532;
             this.blank();
-            this.state = 540;
+            this.state = 537;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 541;
+        this.state = 538;
         this.match(LnParser.VARNAME);
-        this.state = 545;
+        this.state = 542;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 68, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 542;
+                this.state = 539;
                 this.blank();
             }
-            this.state = 547;
+            this.state = 544;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 68, this._ctx);
         }
-        this.state = 553;
+        this.state = 550;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.TYPESEP) {
-            this.state = 548;
+            this.state = 545;
             this.match(LnParser.TYPESEP);
-            this.state = 550;
+            this.state = 547;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 549;
+                this.state = 546;
                 this.blank();
             }
-            this.state = 552;
+            this.state = 549;
             this.fulltypename();
         }
+        this.state = 555;
+        this._errHandler.sync(this);
+        _la = this._input.LA(1);
+        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
+            this.state = 552;
+            this.blank();
+            this.state = 557;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+        }
         this.state = 558;
-        this._errHandler.sync(this);
-        _la = this._input.LA(1);
-        while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 555;
-            this.blank();
-            this.state = 560;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-        }
-        this.state = 561;
         this.match(LnParser.EQUALS);
-        this.state = 565;
+        this.state = 562;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 562;
+            this.state = 559;
             this.blank();
-            this.state = 567;
+            this.state = 564;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 568;
+        this.state = 565;
         this.assignables();
+        this.state = 566;
+        this.match(LnParser.EOS);
     }
     catch (re) {
         if (re instanceof antlr4.error.RecognitionException) {
@@ -5443,33 +5442,33 @@ LnParser.prototype.assignments = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 570;
+        this.state = 568;
         this.varn();
-        this.state = 574;
+        this.state = 572;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 571;
+            this.state = 569;
             this.blank();
-            this.state = 576;
+            this.state = 574;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 577;
+        this.state = 575;
         this.match(LnParser.EQUALS);
-        this.state = 581;
+        this.state = 579;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 578;
+            this.state = 576;
             this.blank();
-            this.state = 583;
+            this.state = 581;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 584;
+        this.state = 582;
         this.assignables();
-        this.state = 585;
+        this.state = 583;
         this.match(LnParser.EOS);
     }
     catch (re) {
@@ -5534,40 +5533,40 @@ LnParser.prototype.baseassignable = function () {
     var localctx = new BaseassignableContext(this, this._ctx, this.state);
     this.enterRule(localctx, 48, LnParser.RULE_baseassignable);
     try {
-        this.state = 593;
+        this.state = 591;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.METHODSEP:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 587;
+                this.state = 585;
                 this.match(LnParser.METHODSEP);
                 break;
             case LnParser.VARNAME:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 588;
+                this.state = 586;
                 this.match(LnParser.VARNAME);
                 break;
             case LnParser.BOOLCONSTANT:
             case LnParser.STRINGCONSTANT:
             case LnParser.NUMBERCONSTANT:
                 this.enterOuterAlt(localctx, 3);
-                this.state = 589;
+                this.state = 587;
                 this.constants();
                 break;
             case LnParser.FN:
                 this.enterOuterAlt(localctx, 4);
-                this.state = 590;
+                this.state = 588;
                 this.functions();
                 break;
             case LnParser.OPENARGS:
                 this.enterOuterAlt(localctx, 5);
-                this.state = 591;
+                this.state = 589;
                 this.fncall();
                 break;
             case LnParser.NEW:
             case LnParser.OPENARRAY:
                 this.enterOuterAlt(localctx, 6);
-                this.state = 592;
+                this.state = 590;
                 this.objectliterals();
                 break;
             default:
@@ -5643,7 +5642,7 @@ LnParser.prototype.withoperators = function () {
     var localctx = new WithoperatorsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 50, LnParser.RULE_withoperators);
     try {
-        this.state = 607;
+        this.state = 605;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.FN:
@@ -5656,23 +5655,23 @@ LnParser.prototype.withoperators = function () {
             case LnParser.NUMBERCONSTANT:
             case LnParser.VARNAME:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 602;
+                this.state = 600;
                 this._errHandler.sync(this);
                 var _alt = 1;
                 do {
                     switch (_alt) {
                         case 1:
-                            this.state = 595;
+                            this.state = 593;
                             this.baseassignable();
-                            this.state = 599;
+                            this.state = 597;
                             this._errHandler.sync(this);
                             var _alt = this._interp.adaptivePredict(this._input, 76, this._ctx);
                             while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
                                 if (_alt === 1) {
-                                    this.state = 596;
+                                    this.state = 594;
                                     this.blank();
                                 }
-                                this.state = 601;
+                                this.state = 599;
                                 this._errHandler.sync(this);
                                 _alt = this._interp.adaptivePredict(this._input, 76, this._ctx);
                             }
@@ -5680,7 +5679,7 @@ LnParser.prototype.withoperators = function () {
                         default:
                             throw new antlr4.error.NoViableAltException(this);
                     }
-                    this.state = 604;
+                    this.state = 602;
                     this._errHandler.sync(this);
                     _alt = this._interp.adaptivePredict(this._input, 77, this._ctx);
                 } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
@@ -5692,7 +5691,7 @@ LnParser.prototype.withoperators = function () {
             case LnParser.TYPESEP:
             case LnParser.GENERALOPERATORS:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 606;
+                this.state = 604;
                 this.operators();
                 break;
             default:
@@ -5767,27 +5766,27 @@ LnParser.prototype.assignables = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 609;
+        this.state = 607;
         this.withoperators();
-        this.state = 619;
+        this.state = 617;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 80, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 613;
+                this.state = 611;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 610;
+                    this.state = 608;
                     this.blank();
-                    this.state = 615;
+                    this.state = 613;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 616;
+                this.state = 614;
                 this.withoperators();
             }
-            this.state = 621;
+            this.state = 619;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 80, this._ctx);
         }
@@ -5842,18 +5841,18 @@ LnParser.prototype.objectliterals = function () {
     var localctx = new ObjectliteralsContext(this, this._ctx, this.state);
     this.enterRule(localctx, 54, LnParser.RULE_objectliterals);
     try {
-        this.state = 624;
+        this.state = 622;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input, 81, this._ctx);
         switch (la_) {
             case 1:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 622;
+                this.state = 620;
                 this.arrayliteral();
                 break;
             case 2:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 623;
+                this.state = 621;
                 this.typeliteral();
                 break;
         }
@@ -5937,61 +5936,61 @@ LnParser.prototype.assignablelist = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 626;
+        this.state = 624;
         this.assignables();
-        this.state = 630;
+        this.state = 628;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 82, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 627;
+                this.state = 625;
                 this.blank();
             }
-            this.state = 632;
+            this.state = 630;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 82, this._ctx);
         }
-        this.state = 649;
+        this.state = 647;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 85, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 633;
+                this.state = 631;
                 this.match(LnParser.SEP);
-                this.state = 637;
+                this.state = 635;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 634;
+                    this.state = 632;
                     this.blank();
-                    this.state = 639;
+                    this.state = 637;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 640;
+                this.state = 638;
                 this.assignables();
-                this.state = 644;
+                this.state = 642;
                 this._errHandler.sync(this);
                 var _alt = this._interp.adaptivePredict(this._input, 84, this._ctx);
                 while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
                     if (_alt === 1) {
-                        this.state = 641;
+                        this.state = 639;
                         this.blank();
                     }
-                    this.state = 646;
+                    this.state = 644;
                     this._errHandler.sync(this);
                     _alt = this._interp.adaptivePredict(this._input, 84, this._ctx);
                 }
             }
-            this.state = 651;
+            this.state = 649;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 85, this._ctx);
         }
-        this.state = 653;
+        this.state = 651;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.SEP) {
-            this.state = 652;
+            this.state = 650;
             this.match(LnParser.SEP);
         }
     }
@@ -6096,109 +6095,109 @@ LnParser.prototype.typeassignlist = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 655;
+        this.state = 653;
         this.match(LnParser.VARNAME);
-        this.state = 659;
+        this.state = 657;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 656;
+            this.state = 654;
             this.blank();
-            this.state = 661;
+            this.state = 659;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 662;
+        this.state = 660;
         this.match(LnParser.TYPESEP);
-        this.state = 666;
+        this.state = 664;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 663;
+            this.state = 661;
             this.blank();
-            this.state = 668;
+            this.state = 666;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 669;
+        this.state = 667;
         this.assignables();
-        this.state = 673;
+        this.state = 671;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 89, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 670;
+                this.state = 668;
                 this.blank();
             }
-            this.state = 675;
+            this.state = 673;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 89, this._ctx);
         }
-        this.state = 706;
+        this.state = 704;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 94, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 676;
+                this.state = 674;
                 this.match(LnParser.SEP);
-                this.state = 680;
+                this.state = 678;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 677;
+                    this.state = 675;
                     this.blank();
-                    this.state = 682;
+                    this.state = 680;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 683;
+                this.state = 681;
                 this.match(LnParser.VARNAME);
-                this.state = 687;
+                this.state = 685;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 684;
+                    this.state = 682;
                     this.blank();
-                    this.state = 689;
+                    this.state = 687;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 690;
+                this.state = 688;
                 this.match(LnParser.TYPESEP);
-                this.state = 694;
+                this.state = 692;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 691;
+                    this.state = 689;
                     this.blank();
-                    this.state = 696;
+                    this.state = 694;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 697;
+                this.state = 695;
                 this.assignables();
-                this.state = 701;
+                this.state = 699;
                 this._errHandler.sync(this);
                 var _alt = this._interp.adaptivePredict(this._input, 93, this._ctx);
                 while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
                     if (_alt === 1) {
-                        this.state = 698;
+                        this.state = 696;
                         this.blank();
                     }
-                    this.state = 703;
+                    this.state = 701;
                     this._errHandler.sync(this);
                     _alt = this._interp.adaptivePredict(this._input, 93, this._ctx);
                 }
             }
-            this.state = 708;
+            this.state = 706;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 94, this._ctx);
         }
-        this.state = 710;
+        this.state = 708;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.SEP) {
-            this.state = 709;
+            this.state = 707;
             this.match(LnParser.SEP);
         }
     }
@@ -6265,27 +6264,27 @@ LnParser.prototype.literaldec = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 712;
+        this.state = 710;
         this.match(LnParser.NEW);
-        this.state = 716;
+        this.state = 714;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 713;
+            this.state = 711;
             this.match(LnParser.WS);
-            this.state = 718;
+            this.state = 716;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 719;
+        this.state = 717;
         this.fulltypename();
-        this.state = 723;
+        this.state = 721;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 720;
+            this.state = 718;
             this.match(LnParser.WS);
-            this.state = 725;
+            this.state = 723;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
@@ -6356,38 +6355,38 @@ LnParser.prototype.arraybase = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 726;
+        this.state = 724;
         this.match(LnParser.OPENARRAY);
-        this.state = 730;
+        this.state = 728;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 98, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 727;
+                this.state = 725;
                 this.blank();
             }
-            this.state = 732;
+            this.state = 730;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 98, this._ctx);
         }
-        this.state = 734;
+        this.state = 732;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (LnParser.GLOBAL - 32)) | (1 << (LnParser.DIRSEP - 32)) | (1 << (LnParser.TYPESEP - 32)) | (1 << (LnParser.STRINGCONSTANT - 32)) | (1 << (LnParser.NUMBERCONSTANT - 32)) | (1 << (LnParser.GENERALOPERATORS - 32)) | (1 << (LnParser.VARNAME - 32)))) !== 0)) {
-            this.state = 733;
+            this.state = 731;
             this.assignablelist();
         }
-        this.state = 739;
+        this.state = 737;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 736;
+            this.state = 734;
             this.blank();
-            this.state = 741;
+            this.state = 739;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 742;
+        this.state = 740;
         this.match(LnParser.CLOSEARRAY);
     }
     catch (re) {
@@ -6440,19 +6439,19 @@ LnParser.prototype.arrayliteral = function () {
     var localctx = new ArrayliteralContext(this, this._ctx, this.state);
     this.enterRule(localctx, 64, LnParser.RULE_arrayliteral);
     try {
-        this.state = 748;
+        this.state = 746;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.OPENARRAY:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 744;
+                this.state = 742;
                 this.arraybase();
                 break;
             case LnParser.NEW:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 745;
+                this.state = 743;
                 this.literaldec();
-                this.state = 746;
+                this.state = 744;
                 this.arraybase();
                 break;
             default:
@@ -6525,31 +6524,31 @@ LnParser.prototype.typebase = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 750;
+        this.state = 748;
         this.match(LnParser.OPENBODY);
-        this.state = 754;
+        this.state = 752;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 751;
+            this.state = 749;
             this.blank();
-            this.state = 756;
+            this.state = 754;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 757;
+        this.state = 755;
         this.typeassignlist();
-        this.state = 761;
+        this.state = 759;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 758;
+            this.state = 756;
             this.blank();
-            this.state = 763;
+            this.state = 761;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 764;
+        this.state = 762;
         this.match(LnParser.CLOSEBODY);
     }
     catch (re) {
@@ -6603,9 +6602,9 @@ LnParser.prototype.typeliteral = function () {
     this.enterRule(localctx, 68, LnParser.RULE_typeliteral);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 766;
+        this.state = 764;
         this.literaldec();
-        this.state = 767;
+        this.state = 765;
         this.typebase();
     }
     catch (re) {
@@ -6674,38 +6673,38 @@ LnParser.prototype.fncall = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 769;
+        this.state = 767;
         this.match(LnParser.OPENARGS);
-        this.state = 773;
+        this.state = 771;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 104, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 770;
+                this.state = 768;
                 this.blank();
             }
-            this.state = 775;
+            this.state = 773;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 104, this._ctx);
         }
-        this.state = 777;
+        this.state = 775;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (LnParser.GLOBAL - 32)) | (1 << (LnParser.DIRSEP - 32)) | (1 << (LnParser.TYPESEP - 32)) | (1 << (LnParser.STRINGCONSTANT - 32)) | (1 << (LnParser.NUMBERCONSTANT - 32)) | (1 << (LnParser.GENERALOPERATORS - 32)) | (1 << (LnParser.VARNAME - 32)))) !== 0)) {
-            this.state = 776;
+            this.state = 774;
             this.assignablelist();
         }
-        this.state = 782;
+        this.state = 780;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 779;
+            this.state = 777;
             this.blank();
-            this.state = 784;
+            this.state = 782;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 785;
+        this.state = 783;
         this.match(LnParser.CLOSEARGS);
     }
     catch (re) {
@@ -6774,36 +6773,36 @@ LnParser.prototype.exits = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 787;
+        this.state = 785;
         this.match(LnParser.RETURN);
-        this.state = 801;
+        this.state = 799;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (LnParser.GLOBAL - 32)) | (1 << (LnParser.DIRSEP - 32)) | (1 << (LnParser.TYPESEP - 32)) | (1 << (LnParser.NEWLINE - 32)) | (1 << (LnParser.WS - 32)) | (1 << (LnParser.STRINGCONSTANT - 32)) | (1 << (LnParser.NUMBERCONSTANT - 32)) | (1 << (LnParser.GENERALOPERATORS - 32)) | (1 << (LnParser.VARNAME - 32)))) !== 0)) {
-            this.state = 791;
+            this.state = 789;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 788;
+                this.state = 786;
                 this.blank();
-                this.state = 793;
+                this.state = 791;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 794;
+            this.state = 792;
             this.assignables();
-            this.state = 798;
+            this.state = 796;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 795;
+                this.state = 793;
                 this.blank();
-                this.state = 800;
+                this.state = 798;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
         }
-        this.state = 803;
+        this.state = 801;
         this.match(LnParser.EOS);
     }
     catch (re) {
@@ -6875,48 +6874,48 @@ LnParser.prototype.emits = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 805;
+        this.state = 803;
         this.match(LnParser.EMIT);
-        this.state = 809;
+        this.state = 807;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 806;
+            this.state = 804;
             this.blank();
-            this.state = 811;
+            this.state = 809;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 812;
+        this.state = 810;
         this.eventref();
-        this.state = 826;
+        this.state = 824;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if ((((_la) & ~0x1f) == 0 && ((1 << _la) & ((1 << LnParser.FN) | (1 << LnParser.BOOLCONSTANT) | (1 << LnParser.NEW) | (1 << LnParser.OPENARGS) | (1 << LnParser.OPENGENERIC) | (1 << LnParser.CLOSEGENERIC) | (1 << LnParser.OPENARRAY) | (1 << LnParser.METHODSEP))) !== 0) || ((((_la - 32)) & ~0x1f) == 0 && ((1 << (_la - 32)) & ((1 << (LnParser.GLOBAL - 32)) | (1 << (LnParser.DIRSEP - 32)) | (1 << (LnParser.TYPESEP - 32)) | (1 << (LnParser.NEWLINE - 32)) | (1 << (LnParser.WS - 32)) | (1 << (LnParser.STRINGCONSTANT - 32)) | (1 << (LnParser.NUMBERCONSTANT - 32)) | (1 << (LnParser.GENERALOPERATORS - 32)) | (1 << (LnParser.VARNAME - 32)))) !== 0)) {
-            this.state = 816;
+            this.state = 814;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 813;
+                this.state = 811;
                 this.blank();
-                this.state = 818;
+                this.state = 816;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 819;
+            this.state = 817;
             this.assignables();
-            this.state = 823;
+            this.state = 821;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 820;
+                this.state = 818;
                 this.blank();
-                this.state = 825;
+                this.state = 823;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
         }
-        this.state = 828;
+        this.state = 826;
         this.match(LnParser.EOS);
     }
     catch (re) {
@@ -6999,69 +6998,69 @@ LnParser.prototype.conditionals = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 830;
+        this.state = 828;
         this.match(LnParser.IF);
-        this.state = 834;
+        this.state = 832;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 831;
+            this.state = 829;
             this.blank();
-            this.state = 836;
+            this.state = 834;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 837;
+        this.state = 835;
         this.assignables();
-        this.state = 841;
+        this.state = 839;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 838;
+            this.state = 836;
             this.blank();
-            this.state = 843;
+            this.state = 841;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 844;
+        this.state = 842;
         this.blocklikes();
-        this.state = 862;
+        this.state = 860;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input, 119, this._ctx);
         if (la_ === 1) {
-            this.state = 848;
+            this.state = 846;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 845;
+                this.state = 843;
                 this.blank();
-                this.state = 850;
+                this.state = 848;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 851;
+            this.state = 849;
             this.match(LnParser.ELSE);
-            this.state = 855;
+            this.state = 853;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 852;
+                this.state = 850;
                 this.blank();
-                this.state = 857;
+                this.state = 855;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 860;
+            this.state = 858;
             this._errHandler.sync(this);
             switch (this._input.LA(1)) {
                 case LnParser.IF:
-                    this.state = 858;
+                    this.state = 856;
                     this.conditionals();
                     break;
                 case LnParser.FN:
                 case LnParser.OPENBODY:
                 case LnParser.VARNAME:
-                    this.state = 859;
+                    this.state = 857;
                     this.blocklikes();
                     break;
                 default:
@@ -7122,22 +7121,22 @@ LnParser.prototype.blocklikes = function () {
     var localctx = new BlocklikesContext(this, this._ctx, this.state);
     this.enterRule(localctx, 78, LnParser.RULE_blocklikes);
     try {
-        this.state = 867;
+        this.state = 865;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.FN:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 864;
+                this.state = 862;
                 this.functions();
                 break;
             case LnParser.OPENBODY:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 865;
+                this.state = 863;
                 this.functionbody();
                 break;
             case LnParser.VARNAME:
                 this.enterOuterAlt(localctx, 3);
-                this.state = 866;
+                this.state = 864;
                 this.eventref();
                 break;
             default:
@@ -7199,7 +7198,7 @@ LnParser.prototype.constants = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 869;
+        this.state = 867;
         _la = this._input.LA(1);
         if (!(((((_la - 13)) & ~0x1f) == 0 && ((1 << (_la - 13)) & ((1 << (LnParser.BOOLCONSTANT - 13)) | (1 << (LnParser.STRINGCONSTANT - 13)) | (1 << (LnParser.NUMBERCONSTANT - 13)))) !== 0))) {
             this._errHandler.recoverInline(this);
@@ -7300,90 +7299,90 @@ LnParser.prototype.operators = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 899;
+        this.state = 897;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.GENERALOPERATORS:
-                this.state = 871;
+                this.state = 869;
                 this.match(LnParser.GENERALOPERATORS);
                 break;
             case LnParser.TYPESEP:
-                this.state = 872;
+                this.state = 870;
                 this.match(LnParser.TYPESEP);
                 break;
             case LnParser.OPENGENERIC:
-                this.state = 873;
+                this.state = 871;
                 this.match(LnParser.OPENGENERIC);
                 break;
             case LnParser.CLOSEGENERIC:
-                this.state = 875;
+                this.state = 873;
                 this._errHandler.sync(this);
                 var _alt = 1;
                 do {
                     switch (_alt) {
                         case 1:
-                            this.state = 874;
+                            this.state = 872;
                             this.match(LnParser.CLOSEGENERIC);
                             break;
                         default:
                             throw new antlr4.error.NoViableAltException(this);
                     }
-                    this.state = 877;
+                    this.state = 875;
                     this._errHandler.sync(this);
                     _alt = this._interp.adaptivePredict(this._input, 121, this._ctx);
                 } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
-                this.state = 895;
+                this.state = 893;
                 this._errHandler.sync(this);
                 var la_ = this._interp.adaptivePredict(this._input, 125, this._ctx);
                 if (la_ === 1) {
-                    this.state = 880;
+                    this.state = 878;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                     do {
-                        this.state = 879;
+                        this.state = 877;
                         this.match(LnParser.EQUALS);
-                        this.state = 882;
+                        this.state = 880;
                         this._errHandler.sync(this);
                         _la = this._input.LA(1);
                     } while (_la === LnParser.EQUALS);
-                    this.state = 887;
+                    this.state = 885;
                     this._errHandler.sync(this);
                     var _alt = this._interp.adaptivePredict(this._input, 123, this._ctx);
                     while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
                         if (_alt === 1) {
-                            this.state = 884;
+                            this.state = 882;
                             this.match(LnParser.GENERALOPERATORS);
                         }
-                        this.state = 889;
+                        this.state = 887;
                         this._errHandler.sync(this);
                         _alt = this._interp.adaptivePredict(this._input, 123, this._ctx);
                     }
                 }
                 else if (la_ === 2) {
-                    this.state = 891;
+                    this.state = 889;
                     this._errHandler.sync(this);
                     var _alt = 1;
                     do {
                         switch (_alt) {
                             case 1:
-                                this.state = 890;
+                                this.state = 888;
                                 this.match(LnParser.GENERALOPERATORS);
                                 break;
                             default:
                                 throw new antlr4.error.NoViableAltException(this);
                         }
-                        this.state = 893;
+                        this.state = 891;
                         this._errHandler.sync(this);
                         _alt = this._interp.adaptivePredict(this._input, 124, this._ctx);
                     } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
                 }
                 break;
             case LnParser.GLOBAL:
-                this.state = 897;
+                this.state = 895;
                 this.match(LnParser.GLOBAL);
                 break;
             case LnParser.DIRSEP:
-                this.state = 898;
+                this.state = 896;
                 this.match(LnParser.DIRSEP);
                 break;
             default:
@@ -7459,7 +7458,7 @@ LnParser.prototype.operatormapping = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 901;
+        this.state = 899;
         _la = this._input.LA(1);
         if (!(_la === LnParser.PREFIX || _la === LnParser.INFIX)) {
             this._errHandler.recoverInline(this);
@@ -7468,25 +7467,25 @@ LnParser.prototype.operatormapping = function () {
             this._errHandler.reportMatch(this);
             this.consume();
         }
-        this.state = 902;
+        this.state = 900;
         this.match(LnParser.WS);
-        this.state = 911;
+        this.state = 909;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.VARNAME:
-                this.state = 903;
+                this.state = 901;
                 this.fntoop();
-                this.state = 904;
+                this.state = 902;
                 this.match(LnParser.WS);
-                this.state = 905;
+                this.state = 903;
                 this.opprecedence();
                 break;
             case LnParser.PRECEDENCE:
-                this.state = 907;
+                this.state = 905;
                 this.opprecedence();
-                this.state = 908;
+                this.state = 906;
                 this.match(LnParser.WS);
-                this.state = 909;
+                this.state = 907;
                 this.fntoop();
                 break;
             default:
@@ -7558,15 +7557,15 @@ LnParser.prototype.fntoop = function () {
     this.enterRule(localctx, 86, LnParser.RULE_fntoop);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 913;
+        this.state = 911;
         this.eventref();
+        this.state = 912;
+        this.match(LnParser.WS);
+        this.state = 913;
+        this.match(LnParser.AS);
         this.state = 914;
         this.match(LnParser.WS);
         this.state = 915;
-        this.match(LnParser.AS);
-        this.state = 916;
-        this.match(LnParser.WS);
-        this.state = 917;
         this.operators();
     }
     catch (re) {
@@ -7623,11 +7622,11 @@ LnParser.prototype.opprecedence = function () {
     this.enterRule(localctx, 88, LnParser.RULE_opprecedence);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 919;
+        this.state = 917;
         this.match(LnParser.PRECEDENCE);
-        this.state = 920;
+        this.state = 918;
         this.match(LnParser.WS);
-        this.state = 921;
+        this.state = 919;
         this.match(LnParser.NUMBERCONSTANT);
     }
     catch (re) {
@@ -7699,43 +7698,43 @@ LnParser.prototype.events = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 923;
+        this.state = 921;
         this.match(LnParser.EVENT);
-        this.state = 927;
+        this.state = 925;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 924;
+            this.state = 922;
             this.blank();
-            this.state = 929;
+            this.state = 927;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 930;
+        this.state = 928;
         this.match(LnParser.VARNAME);
-        this.state = 934;
+        this.state = 932;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 931;
+            this.state = 929;
             this.blank();
-            this.state = 936;
+            this.state = 934;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 937;
+        this.state = 935;
         this.match(LnParser.TYPESEP);
-        this.state = 941;
+        this.state = 939;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 938;
+            this.state = 936;
             this.blank();
-            this.state = 943;
+            this.state = 941;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 944;
+        this.state = 942;
         this.fulltypename();
     }
     catch (re) {
@@ -7786,7 +7785,7 @@ LnParser.prototype.eventref = function () {
     this.enterRule(localctx, 92, LnParser.RULE_eventref);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 946;
+        this.state = 944;
         this.typename();
     }
     catch (re) {
@@ -7861,43 +7860,43 @@ LnParser.prototype.handlers = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 948;
+        this.state = 946;
         this.match(LnParser.ON);
-        this.state = 950;
+        this.state = 948;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
-            this.state = 949;
+            this.state = 947;
             this.blank();
-            this.state = 952;
+            this.state = 950;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
-        this.state = 954;
+        this.state = 952;
         this.eventref();
-        this.state = 956;
+        this.state = 954;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
-            this.state = 955;
+            this.state = 953;
             this.blank();
-            this.state = 958;
+            this.state = 956;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
-        this.state = 963;
+        this.state = 961;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.FN:
-                this.state = 960;
+                this.state = 958;
                 this.functions();
                 break;
             case LnParser.VARNAME:
-                this.state = 961;
+                this.state = 959;
                 this.typename();
                 break;
             case LnParser.OPENBODY:
-                this.state = 962;
+                this.state = 960;
                 this.functionbody();
                 break;
             default:
@@ -7992,51 +7991,51 @@ LnParser.prototype.interfaces = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 965;
+        this.state = 963;
         this.match(LnParser.INTERFACE);
-        this.state = 969;
+        this.state = 967;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 966;
+            this.state = 964;
             this.match(LnParser.WS);
-            this.state = 971;
+            this.state = 969;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 972;
+        this.state = 970;
         this.match(LnParser.VARNAME);
-        this.state = 976;
+        this.state = 974;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 973;
+            this.state = 971;
             this.match(LnParser.WS);
-            this.state = 978;
+            this.state = 976;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 988;
+        this.state = 986;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.OPENBODY:
-                this.state = 979;
+                this.state = 977;
                 this.interfacebody();
                 break;
             case LnParser.EQUALS:
-                this.state = 980;
+                this.state = 978;
                 this.match(LnParser.EQUALS);
-                this.state = 984;
+                this.state = 982;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 981;
+                    this.state = 979;
                     this.blank();
-                    this.state = 986;
+                    this.state = 984;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 987;
+                this.state = 985;
                 this.match(LnParser.VARNAME);
                 break;
             default:
@@ -8109,26 +8108,26 @@ LnParser.prototype.interfacebody = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 990;
+        this.state = 988;
         this.match(LnParser.OPENBODY);
-        this.state = 992;
+        this.state = 990;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input, 138, this._ctx);
         if (la_ === 1) {
-            this.state = 991;
+            this.state = 989;
             this.interfacelist();
         }
-        this.state = 997;
+        this.state = 995;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 994;
+            this.state = 992;
             this.blank();
-            this.state = 999;
+            this.state = 997;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1000;
+        this.state = 998;
         this.match(LnParser.CLOSEBODY);
     }
     catch (re) {
@@ -8210,71 +8209,71 @@ LnParser.prototype.interfacelist = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1005;
+        this.state = 1003;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1002;
+            this.state = 1000;
             this.blank();
-            this.state = 1007;
+            this.state = 1005;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1008;
+        this.state = 1006;
         this.interfaceline();
-        this.state = 1012;
+        this.state = 1010;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 141, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 1009;
+                this.state = 1007;
                 this.blank();
             }
-            this.state = 1014;
+            this.state = 1012;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 141, this._ctx);
         }
-        this.state = 1031;
+        this.state = 1029;
         this._errHandler.sync(this);
         var _alt = this._interp.adaptivePredict(this._input, 144, this._ctx);
         while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
             if (_alt === 1) {
-                this.state = 1015;
+                this.state = 1013;
                 this.match(LnParser.SEP);
-                this.state = 1019;
+                this.state = 1017;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 1016;
+                    this.state = 1014;
                     this.blank();
-                    this.state = 1021;
+                    this.state = 1019;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 1022;
+                this.state = 1020;
                 this.interfaceline();
-                this.state = 1026;
+                this.state = 1024;
                 this._errHandler.sync(this);
                 var _alt = this._interp.adaptivePredict(this._input, 143, this._ctx);
                 while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER) {
                     if (_alt === 1) {
-                        this.state = 1023;
+                        this.state = 1021;
                         this.blank();
                     }
-                    this.state = 1028;
+                    this.state = 1026;
                     this._errHandler.sync(this);
                     _alt = this._interp.adaptivePredict(this._input, 143, this._ctx);
                 }
             }
-            this.state = 1033;
+            this.state = 1031;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 144, this._ctx);
         }
-        this.state = 1035;
+        this.state = 1033;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.SEP) {
-            this.state = 1034;
+            this.state = 1032;
             this.match(LnParser.SEP);
         }
     }
@@ -8331,23 +8330,23 @@ LnParser.prototype.interfaceline = function () {
     var localctx = new InterfacelineContext(this, this._ctx, this.state);
     this.enterRule(localctx, 102, LnParser.RULE_interfaceline);
     try {
-        this.state = 1040;
+        this.state = 1038;
         this._errHandler.sync(this);
         var la_ = this._interp.adaptivePredict(this._input, 146, this._ctx);
         switch (la_) {
             case 1:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 1037;
+                this.state = 1035;
                 this.functiontypeline();
                 break;
             case 2:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 1038;
+                this.state = 1036;
                 this.operatortypeline();
                 break;
             case 3:
                 this.enterOuterAlt(localctx, 3);
-                this.state = 1039;
+                this.state = 1037;
                 this.propertytypeline();
                 break;
         }
@@ -8418,7 +8417,7 @@ LnParser.prototype.functiontypeline = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1042;
+        this.state = 1040;
         _la = this._input.LA(1);
         if (!(_la === LnParser.FN || _la === LnParser.VARNAME)) {
             this._errHandler.recoverInline(this);
@@ -8427,17 +8426,17 @@ LnParser.prototype.functiontypeline = function () {
             this._errHandler.reportMatch(this);
             this.consume();
         }
-        this.state = 1046;
+        this.state = 1044;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 1043;
+            this.state = 1041;
             this.match(LnParser.WS);
-            this.state = 1048;
+            this.state = 1046;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1049;
+        this.state = 1047;
         this.functiontype();
     }
     catch (re) {
@@ -8528,84 +8527,84 @@ LnParser.prototype.functiontype = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1051;
+        this.state = 1049;
         this.match(LnParser.OPENARGS);
-        this.state = 1055;
+        this.state = 1053;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1052;
+            this.state = 1050;
             this.blank();
-            this.state = 1057;
+            this.state = 1055;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1058;
+        this.state = 1056;
         this.fulltypename();
-        this.state = 1062;
+        this.state = 1060;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1059;
+            this.state = 1057;
             this.blank();
-            this.state = 1064;
+            this.state = 1062;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1081;
+        this.state = 1079;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.SEP) {
-            this.state = 1065;
+            this.state = 1063;
             this.match(LnParser.SEP);
-            this.state = 1069;
+            this.state = 1067;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 1066;
+                this.state = 1064;
                 this.blank();
-                this.state = 1071;
+                this.state = 1069;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 1072;
+            this.state = 1070;
             this.fulltypename();
-            this.state = 1076;
+            this.state = 1074;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 1073;
+                this.state = 1071;
                 this.blank();
-                this.state = 1078;
+                this.state = 1076;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
-            this.state = 1083;
+            this.state = 1081;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1084;
+        this.state = 1082;
         this.match(LnParser.CLOSEARGS);
-        this.state = 1086;
+        this.state = 1084;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1085;
+            this.state = 1083;
             this.blank();
         }
-        this.state = 1088;
+        this.state = 1086;
         this.match(LnParser.TYPESEP);
-        this.state = 1092;
+        this.state = 1090;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1089;
+            this.state = 1087;
             this.blank();
-            this.state = 1094;
+            this.state = 1092;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1095;
+        this.state = 1093;
         this.fulltypename();
     }
     catch (re) {
@@ -8680,60 +8679,60 @@ LnParser.prototype.operatortypeline = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1104;
+        this.state = 1102;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.VARNAME) {
-            this.state = 1097;
+            this.state = 1095;
             this.leftarg();
-            this.state = 1101;
+            this.state = 1099;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                this.state = 1098;
+                this.state = 1096;
                 this.blank();
-                this.state = 1103;
+                this.state = 1101;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             }
         }
-        this.state = 1106;
+        this.state = 1104;
         this.operators();
-        this.state = 1110;
+        this.state = 1108;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1107;
+            this.state = 1105;
             this.blank();
-            this.state = 1112;
+            this.state = 1110;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1113;
+        this.state = 1111;
         this.rightarg();
-        this.state = 1117;
+        this.state = 1115;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1114;
+            this.state = 1112;
             this.blank();
-            this.state = 1119;
+            this.state = 1117;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1120;
+        this.state = 1118;
         this.match(LnParser.TYPESEP);
-        this.state = 1124;
+        this.state = 1122;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-            this.state = 1121;
+            this.state = 1119;
             this.blank();
-            this.state = 1126;
+            this.state = 1124;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1127;
+        this.state = 1125;
         this.fulltypename();
     }
     catch (re) {
@@ -8784,7 +8783,7 @@ LnParser.prototype.leftarg = function () {
     this.enterRule(localctx, 110, LnParser.RULE_leftarg);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1129;
+        this.state = 1127;
         this.fulltypename();
     }
     catch (re) {
@@ -8835,7 +8834,7 @@ LnParser.prototype.rightarg = function () {
     this.enterRule(localctx, 112, LnParser.RULE_rightarg);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1131;
+        this.state = 1129;
         this.fulltypename();
     }
     catch (re) {
@@ -8904,31 +8903,31 @@ LnParser.prototype.propertytypeline = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1133;
+        this.state = 1131;
         this.match(LnParser.VARNAME);
-        this.state = 1137;
+        this.state = 1135;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 1134;
+            this.state = 1132;
             this.match(LnParser.WS);
-            this.state = 1139;
+            this.state = 1137;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1140;
+        this.state = 1138;
         this.match(LnParser.TYPESEP);
-        this.state = 1144;
+        this.state = 1142;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 1141;
+            this.state = 1139;
             this.match(LnParser.WS);
-            this.state = 1146;
+            this.state = 1144;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1147;
+        this.state = 1145;
         this.fulltypename();
     }
     catch (re) {
@@ -8969,6 +8968,9 @@ ExportsContext.prototype.eventref = function () {
 ExportsContext.prototype.types = function () {
     return this.getTypedRuleContext(TypesContext, 0);
 };
+ExportsContext.prototype.constdeclaration = function () {
+    return this.getTypedRuleContext(ConstdeclarationContext, 0);
+};
 ExportsContext.prototype.functions = function () {
     return this.getTypedRuleContext(FunctionsContext, 0);
 };
@@ -8981,33 +8983,16 @@ ExportsContext.prototype.events = function () {
 ExportsContext.prototype.interfaces = function () {
     return this.getTypedRuleContext(InterfacesContext, 0);
 };
-ExportsContext.prototype.WS = function (i) {
+ExportsContext.prototype.blank = function (i) {
     if (i === undefined) {
         i = null;
     }
     if (i === null) {
-        return this.getTokens(LnParser.WS);
+        return this.getTypedRuleContexts(BlankContext);
     }
     else {
-        return this.getToken(LnParser.WS, i);
+        return this.getTypedRuleContext(BlankContext, i);
     }
-};
-ExportsContext.prototype.NEWLINE = function (i) {
-    if (i === undefined) {
-        i = null;
-    }
-    if (i === null) {
-        return this.getTokens(LnParser.NEWLINE);
-    }
-    else {
-        return this.getToken(LnParser.NEWLINE, i);
-    }
-};
-ExportsContext.prototype.constdeclaration = function () {
-    return this.getTypedRuleContext(ConstdeclarationContext, 0);
-};
-ExportsContext.prototype.EOS = function () {
-    return this.getToken(LnParser.EOS, 0);
 };
 ExportsContext.prototype.enterRule = function (listener) {
     if (listener instanceof LnListener) {
@@ -9026,57 +9011,48 @@ LnParser.prototype.exports = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1149;
+        this.state = 1147;
         this.match(LnParser.EXPORT);
-        this.state = 1151;
+        this.state = 1149;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         do {
-            this.state = 1150;
-            _la = this._input.LA(1);
-            if (!(_la === LnParser.NEWLINE || _la === LnParser.WS)) {
-                this._errHandler.recoverInline(this);
-            }
-            else {
-                this._errHandler.reportMatch(this);
-                this.consume();
-            }
-            this.state = 1153;
+            this.state = 1148;
+            this.blank();
+            this.state = 1151;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         } while (_la === LnParser.NEWLINE || _la === LnParser.WS);
-        this.state = 1164;
+        this.state = 1160;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.VARNAME:
-                this.state = 1155;
+                this.state = 1153;
                 this.eventref();
                 break;
             case LnParser.TYPE:
-                this.state = 1156;
+                this.state = 1154;
                 this.types();
                 break;
             case LnParser.CONST:
-                this.state = 1157;
+                this.state = 1155;
                 this.constdeclaration();
-                this.state = 1158;
-                this.match(LnParser.EOS);
                 break;
             case LnParser.FN:
-                this.state = 1160;
+                this.state = 1156;
                 this.functions();
                 break;
             case LnParser.PREFIX:
             case LnParser.INFIX:
-                this.state = 1161;
+                this.state = 1157;
                 this.operatormapping();
                 break;
             case LnParser.EVENT:
-                this.state = 1162;
+                this.state = 1158;
                 this.events();
                 break;
             case LnParser.INTERFACE:
-                this.state = 1163;
+                this.state = 1159;
                 this.interfaces();
                 break;
             default:
@@ -9151,17 +9127,17 @@ LnParser.prototype.varlist = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1166;
+        this.state = 1162;
         this.renameablevar();
-        this.state = 1171;
+        this.state = 1167;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.SEP) {
-            this.state = 1167;
+            this.state = 1163;
             this.match(LnParser.SEP);
-            this.state = 1168;
+            this.state = 1164;
             this.renameablevar();
-            this.state = 1173;
+            this.state = 1169;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
@@ -9237,35 +9213,35 @@ LnParser.prototype.renameablevar = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1174;
+        this.state = 1170;
         this.varop();
-        this.state = 1187;
+        this.state = 1183;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         if (_la === LnParser.WS) {
+            this.state = 1172;
+            this._errHandler.sync(this);
+            _la = this._input.LA(1);
+            do {
+                this.state = 1171;
+                this.match(LnParser.WS);
+                this.state = 1174;
+                this._errHandler.sync(this);
+                _la = this._input.LA(1);
+            } while (_la === LnParser.WS);
             this.state = 1176;
-            this._errHandler.sync(this);
-            _la = this._input.LA(1);
-            do {
-                this.state = 1175;
-                this.match(LnParser.WS);
-                this.state = 1178;
-                this._errHandler.sync(this);
-                _la = this._input.LA(1);
-            } while (_la === LnParser.WS);
-            this.state = 1180;
             this.match(LnParser.AS);
-            this.state = 1182;
+            this.state = 1178;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
             do {
-                this.state = 1181;
+                this.state = 1177;
                 this.match(LnParser.WS);
-                this.state = 1184;
+                this.state = 1180;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
             } while (_la === LnParser.WS);
-            this.state = 1186;
+            this.state = 1182;
             this.varop();
         }
     }
@@ -9319,12 +9295,12 @@ LnParser.prototype.varop = function () {
     var localctx = new VaropContext(this, this._ctx, this.state);
     this.enterRule(localctx, 122, LnParser.RULE_varop);
     try {
-        this.state = 1191;
+        this.state = 1187;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.VARNAME:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 1189;
+                this.state = 1185;
                 this.match(LnParser.VARNAME);
                 break;
             case LnParser.OPENGENERIC:
@@ -9334,7 +9310,7 @@ LnParser.prototype.varop = function () {
             case LnParser.TYPESEP:
             case LnParser.GENERALOPERATORS:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 1190;
+                this.state = 1186;
                 this.operators();
                 break;
             default:
@@ -9397,19 +9373,19 @@ LnParser.prototype.varn = function () {
     this.enterRule(localctx, 124, LnParser.RULE_varn);
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1194;
+        this.state = 1190;
         this._errHandler.sync(this);
         var _alt = 1;
         do {
             switch (_alt) {
                 case 1:
-                    this.state = 1193;
+                    this.state = 1189;
                     this.varsegment();
                     break;
                 default:
                     throw new antlr4.error.NoViableAltException(this);
             }
-            this.state = 1196;
+            this.state = 1192;
             this._errHandler.sync(this);
             _alt = this._interp.adaptivePredict(this._input, 169, this._ctx);
         } while (_alt != 2 && _alt != antlr4.atn.ATN.INVALID_ALT_NUMBER);
@@ -9479,34 +9455,34 @@ LnParser.prototype.varsegment = function () {
     this.enterRule(localctx, 126, LnParser.RULE_varsegment);
     var _la = 0; // Token type
     try {
-        this.state = 1207;
+        this.state = 1203;
         this._errHandler.sync(this);
         switch (this._input.LA(1)) {
             case LnParser.VARNAME:
                 this.enterOuterAlt(localctx, 1);
-                this.state = 1198;
+                this.state = 1194;
                 this.match(LnParser.VARNAME);
                 break;
             case LnParser.METHODSEP:
             case LnParser.NEWLINE:
             case LnParser.WS:
                 this.enterOuterAlt(localctx, 2);
-                this.state = 1202;
+                this.state = 1198;
                 this._errHandler.sync(this);
                 _la = this._input.LA(1);
                 while (_la === LnParser.NEWLINE || _la === LnParser.WS) {
-                    this.state = 1199;
+                    this.state = 1195;
                     this.blank();
-                    this.state = 1204;
+                    this.state = 1200;
                     this._errHandler.sync(this);
                     _la = this._input.LA(1);
                 }
-                this.state = 1205;
+                this.state = 1201;
                 this.match(LnParser.METHODSEP);
                 break;
             case LnParser.OPENARRAY:
                 this.enterOuterAlt(localctx, 3);
-                this.state = 1206;
+                this.state = 1202;
                 this.arrayaccess();
                 break;
             default:
@@ -9579,31 +9555,31 @@ LnParser.prototype.arrayaccess = function () {
     var _la = 0; // Token type
     try {
         this.enterOuterAlt(localctx, 1);
-        this.state = 1209;
+        this.state = 1205;
         this.match(LnParser.OPENARRAY);
-        this.state = 1213;
+        this.state = 1209;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 1210;
+            this.state = 1206;
             this.match(LnParser.WS);
-            this.state = 1215;
+            this.state = 1211;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1216;
+        this.state = 1212;
         this.assignables();
-        this.state = 1220;
+        this.state = 1216;
         this._errHandler.sync(this);
         _la = this._input.LA(1);
         while (_la === LnParser.WS) {
-            this.state = 1217;
+            this.state = 1213;
             this.match(LnParser.WS);
-            this.state = 1222;
+            this.state = 1218;
             this._errHandler.sync(this);
             _la = this._input.LA(1);
         }
-        this.state = 1223;
+        this.state = 1219;
         this.match(LnParser.CLOSEARRAY);
     }
     catch (re) {
@@ -10110,13 +10086,26 @@ ${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
                     const lookup = microstatements[microstatements.length - 1];
                     // TODO: Map support, which requires figuring out if the outer memory object is an array
                     // or a map.
-                    if (lookup.outputType.typename !== 'int64') {
-                        throw new Error(`${segment.getText()} cannot be used in an array lookup as it is not an int64
+                    if (lookup.outputType.typename === 'int64') {
+                        const opcodes = require('./opcodes').default;
+                        // Create a new variable to hold the `okR` size value
+                        const sizeName = "_" + uuid_1.v4().replace(/-/g, "_");
+                        microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], ['8'], []));
+                        // Insert an `okR` opcode.
+                        opcodes.exportScope.get('okR')[0].microstatementInlining([lookup.outputName, sizeName], scope, microstatements);
+                        const wrapped = microstatements[microstatements.length - 1];
+                        // Insert a `resfrom` opcode.
+                        opcodes.exportScope.get('resfrom')[0].microstatementInlining([original.outputName, wrapped.outputName], scope, microstatements);
+                    }
+                    else if (lookup.outputType.typename === 'Result<int64>') {
+                        const opcodes = require('./opcodes').default;
+                        // Insert a `resfrom` opcode.
+                        opcodes.exportScope.get('resfrom')[0].microstatementInlining([original.outputName, lookup.outputName], scope, microstatements);
+                    }
+                    else {
+                        throw new Error(`${segment.getText()} cannot be used in an array lookup as it is not an int64 or Result<int64>
 ${varAst.getText()} on line ${varAst.start.line}:${varAst.start.column}`);
                     }
-                    // Insert a `resfrom` opcode.
-                    const opcodes = require('./opcodes').default;
-                    opcodes.exportScope.get('resfrom')[0].microstatementInlining([original.outputName, lookup.outputName], scope, microstatements);
                     // We'll need a reference to this for later
                     const arrayRecord = original;
                     // Set the original to this newly-generated microstatement
@@ -11011,20 +11000,32 @@ ${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignabl
                     const assignableAst = arrbase.assignablelist().assignables(0);
                     Microstatement.fromAssignablesAst(assignableAst, scope, microstatements);
                     const arrIndex = microstatements[microstatements.length - 1];
-                    if (arrIndex.outputType.typename !== 'int64') {
-                        throw new Error(`Array access must be done with an int64 value
-${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
-                    }
                     if (!(currVal instanceof Microstatement) ||
                         currVal.outputType.originalType.typename !== 'Array') {
                         throw new Error(`Array access may only be performed on arrays.
 Previous value type: ${currVal.outputType.typename}
 ${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
                     }
-                    // All of those safeguards out of the way, time to extract the desired value
-                    // Insert a `resfrom` opcode.
-                    const opcodes = require('./opcodes').default;
-                    opcodes.exportScope.get('resfrom')[0].microstatementInlining([currVal.outputName, arrIndex.outputName], scope, microstatements);
+                    if (arrIndex.outputType.typename === 'int64') {
+                        const opcodes = require('./opcodes').default;
+                        // Create a new variable to hold the `okR` size value
+                        const sizeName = "_" + uuid_1.v4().replace(/-/g, "_");
+                        microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], ['8'], []));
+                        // Insert an `okR` opcode.
+                        opcodes.exportScope.get('okR')[0].microstatementInlining([arrIndex.outputName, sizeName], scope, microstatements);
+                        const wrapped = microstatements[microstatements.length - 1];
+                        // Insert a `resfrom` opcode.
+                        opcodes.exportScope.get('resfrom')[0].microstatementInlining([currVal.outputName, wrapped.outputName], scope, microstatements);
+                    }
+                    else if (arrIndex.outputType.typename === 'Result<int64>') {
+                        const opcodes = require('./opcodes').default;
+                        // Insert a `resfrom` opcode.
+                        opcodes.exportScope.get('resfrom')[0].microstatementInlining([currVal.outputName, arrIndex.outputName], scope, microstatements);
+                    }
+                    else {
+                        throw new Error(`Array access must be done with an int64 or Result<int64> value
+${baseassignable.getText()} on line ${baseassignable.start.line}:${baseassignable.start.column}`);
+                    }
                     // We'll need a reference to this for later
                     const arrayRecord = currVal;
                     // Update to this newly-generated microstatement
@@ -12510,7 +12511,39 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
                 args[argName] = getArgType;
             }
         }
+        let pure = true;
+        let statements = [];
+        const functionbody = functionAst.fullfunctionbody().functionbody();
+        if (functionbody !== null) {
+            const statementsAst = functionbody.statements();
+            for (const statementAst of statementsAst) {
+                let statement = Statement_1.default.create(statementAst, scope);
+                if (!statement.pure)
+                    pure = false;
+                statements.push(statement);
+            }
+        }
+        else {
+            const assignablesAst = functionAst.fullfunctionbody().assignables();
+            const statementAst = Ast.statementAstFromString(`return ${assignablesAst.getText()};\n`);
+            const statement = Statement_1.default.create(statementAst, scope);
+            if (!statement.pure)
+                pure = false;
+            statements.push(statement);
+        }
+        return new UserFunction(name, args, functionAst, scope, statements, pure);
+    }
+    getName() {
+        return this.name;
+    }
+    getArguments() {
+        return this.args;
+    }
+    generateReturnType() {
+        const functionAst = this.returnType; // Abusing that field to lazily load the return type
         let returnType = null;
+        let scope = this.scope;
+        let args = this.args;
         if (functionAst.fulltypename() !== null) {
             let getReturnType = scope.deepGet(functionAst.fulltypename().getText());
             if (getReturnType == null || !(getReturnType instanceof Type_1.default)) {
@@ -12534,27 +12567,13 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
             }
             returnType = getReturnType;
         }
-        let pure = true;
-        let statements = [];
         const functionbody = functionAst.fullfunctionbody().functionbody();
         if (functionbody !== null) {
-            const statementsAst = functionbody.statements();
-            for (const statementAst of statementsAst) {
-                let statement = Statement_1.default.create(statementAst, scope);
-                if (!statement.pure)
-                    pure = false;
-                statements.push(statement);
-            }
             if (returnType === null)
                 returnType = Type_1.default.builtinTypes['void'];
         }
         else {
             const assignablesAst = functionAst.fullfunctionbody().assignables();
-            const statementAst = Ast.statementAstFromString(`return ${assignablesAst.getText()};\n`);
-            const statement = Statement_1.default.create(statementAst, scope);
-            if (!statement.pure)
-                pure = false;
-            statements.push(statement);
             if (!returnType && Object.keys(args).every(arg => args[arg].typename !== 'function')) {
                 // We're going to use the Microstatement logic here
                 const microstatements = [];
@@ -12586,15 +12605,12 @@ ${statements[i].statementAst.getText().trim()} on line ${statements[i].statement
                 returnType = opcode ? opcode[0].getReturnType() : Type_1.default.builtinTypes['void'];
             }
         }
-        return new UserFunction(name, args, returnType, scope, statements, pure);
-    }
-    getName() {
-        return this.name;
-    }
-    getArguments() {
-        return this.args;
+        return returnType;
     }
     getReturnType() {
+        if (!(this.returnType instanceof Type_1.default)) {
+            this.returnType = this.generateReturnType();
+        }
         return this.returnType;
     }
     isPure() {
@@ -13316,7 +13332,12 @@ Type_1.Type.builtinTypes['Array'].solidify(['anythingElse'], opcodeScope);
 Type_1.Type.builtinTypes.Maybe.solidify(['any'], opcodeScope);
 Type_1.Type.builtinTypes.Result.solidify(['any'], opcodeScope);
 Type_1.Type.builtinTypes.Result.solidify(['anythingElse'], opcodeScope);
+Type_1.Type.builtinTypes.Result.solidify(['int8'], opcodeScope);
+Type_1.Type.builtinTypes.Result.solidify(['int16'], opcodeScope);
+Type_1.Type.builtinTypes.Result.solidify(['int32'], opcodeScope);
 Type_1.Type.builtinTypes.Result.solidify(['int64'], opcodeScope);
+Type_1.Type.builtinTypes.Result.solidify(['float32'], opcodeScope);
+Type_1.Type.builtinTypes.Result.solidify(['float64'], opcodeScope);
 Type_1.Type.builtinTypes.Result.solidify(['string'], opcodeScope);
 Type_1.Type.builtinTypes.Either.solidify(['any', 'anythingElse'], opcodeScope);
 Type_1.Type.builtinTypes.InitialReduce.solidify(['any', 'anythingElse'], opcodeScope);
@@ -13761,18 +13782,18 @@ addopcodes({
     f32str: [{ number: t('float32'), }, t('string')],
     f64str: [{ number: t('float64'), }, t('string')],
     boolstr: [{ boo: t('bool'), }, t('string')],
-    addi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    addi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    addi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    addi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    addf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-    addf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
-    subi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    subi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    subi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    subi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    subf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-    subf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
+    addi8: [{ a: t('Result<int8>'), b: t('Result<int8>'), }, t('Result<int8>')],
+    addi16: [{ a: t('Result<int16>'), b: t('Result<int16>'), }, t('Result<int16>')],
+    addi32: [{ a: t('Result<int32>'), b: t('Result<int32>'), }, t('Result<int32>')],
+    addi64: [{ a: t('Result<int64>'), b: t('Result<int64>'), }, t('Result<int64>')],
+    addf32: [{ a: t('Result<float32>'), b: t('Result<float32>'), }, t('Result<float32>')],
+    addf64: [{ a: t('Result<float64>'), b: t('Result<float64>'), }, t('Result<float64>')],
+    subi8: [{ a: t('Result<int8>'), b: t('Result<int8>'), }, t('Result<int8>')],
+    subi16: [{ a: t('Result<int16>'), b: t('Result<int16>'), }, t('Result<int16>')],
+    subi32: [{ a: t('Result<int32>'), b: t('Result<int32>'), }, t('Result<int32>')],
+    subi64: [{ a: t('Result<int64>'), b: t('Result<int64>'), }, t('Result<int64>')],
+    subf32: [{ a: t('Result<float32>'), b: t('Result<float32>'), }, t('Result<float32>')],
+    subf64: [{ a: t('Result<float64>'), b: t('Result<float64>'), }, t('Result<float64>')],
     negi8: [{ a: t('int8'), }, t('int8')],
     negi16: [{ a: t('int16'), }, t('int16')],
     negi32: [{ a: t('int32'), }, t('int32')],
@@ -13785,28 +13806,28 @@ addopcodes({
     absi64: [{ a: t('int64'), }, t('int64')],
     absf32: [{ a: t('float32'), }, t('float32')],
     absf64: [{ a: t('float64'), }, t('float64')],
-    muli8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    muli16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    muli32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    muli64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    mulf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-    mulf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
-    divi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    divi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    divi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    divi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    divf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-    divf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
+    muli8: [{ a: t('Result<int8>'), b: t('Result<int8>'), }, t('Result<int8>')],
+    muli16: [{ a: t('Result<int16>'), b: t('Result<int16>'), }, t('Result<int16>')],
+    muli32: [{ a: t('Result<int32>'), b: t('Result<int32>'), }, t('Result<int32>')],
+    muli64: [{ a: t('Result<int64>'), b: t('Result<int64>'), }, t('Result<int64>')],
+    mulf32: [{ a: t('Result<float32>'), b: t('Result<float32>'), }, t('Result<float32>')],
+    mulf64: [{ a: t('Result<float64>'), b: t('Result<float64>'), }, t('Result<float64>')],
+    divi8: [{ a: t('Result<int8>'), b: t('Result<int8>'), }, t('Result<int8>')],
+    divi16: [{ a: t('Result<int16>'), b: t('Result<int16>'), }, t('Result<int16>')],
+    divi32: [{ a: t('Result<int32>'), b: t('Result<int32>'), }, t('Result<int32>')],
+    divi64: [{ a: t('Result<int64>'), b: t('Result<int64>'), }, t('Result<int64>')],
+    divf32: [{ a: t('Result<float32>'), b: t('Result<float32>'), }, t('Result<float32>')],
+    divf64: [{ a: t('Result<float64>'), b: t('Result<float64>'), }, t('Result<float64>')],
     modi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
     modi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
     modi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
     modi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    powi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    powi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    powi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    powi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    powf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-    powf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
+    powi8: [{ a: t('Result<int8>'), b: t('Result<int8>'), }, t('Result<int8>')],
+    powi16: [{ a: t('Result<int16>'), b: t('Result<int16>'), }, t('Result<int16>')],
+    powi32: [{ a: t('Result<int32>'), b: t('Result<int32>'), }, t('Result<int32>')],
+    powi64: [{ a: t('Result<int64>'), b: t('Result<int64>'), }, t('Result<int64>')],
+    powf32: [{ a: t('Result<float32>'), b: t('Result<float32>'), }, t('Result<float32>')],
+    powf64: [{ a: t('Result<float64>'), b: t('Result<float64>'), }, t('Result<float64>')],
     sqrtf32: [{ a: t('float32'), }, t('float32')],
     sqrtf64: [{ a: t('float64'), }, t('float64')],
     andi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
@@ -13975,7 +13996,7 @@ addopcodes({
     getOrRS: [{ a: t('Result<any>'), b: t('string'), }, t('string')],
     getR: [{ a: t('Result<any>'), }, t('any')],
     getErr: [{ a: t('Result<any>'), b: t('Error'), }, t('Error')],
-    resfrom: [{ arr: t('Array<any>'), addr: t('int64') }, t('Result<any>')],
+    resfrom: [{ arr: t('Array<any>'), addr: t('Result<int64>') }, t('Result<any>')],
     mainE: [{ a: t('any'), size: t('int64'), }, t('Either<any, anythingElse>')],
     altE: [{ a: t('anythingElse'), size: t('int64'), }, t('Either<any, anythingElse>')],
     isMain: [{ a: t('Either<any, anythingElse>'), }, t('bool')],
@@ -39580,6 +39601,15 @@ const exec = util.promisify ? util.promisify(require('child_process').exec) : ()
 
 const e = new EventEmitter()
 
+const INT8MAX = 2 ** 7 - 1
+const INT8MIN = -(2 ** 7)
+const INT16MAX = 2 ** 15 - 1
+const INT16MIN = -(2 ** 15)
+const INT32MAX = 2 ** 31 - 1
+const INT32MIN = -(2 ** 31)
+const INT64MAX = 2n ** 63n - 1n
+const INT64MIN = -(2n ** 31n)
+
 // Hashing opcodes (hashv is recursive, needs to be defined outside of the export object)
 const hashcore = (hasher, a) => {
   // TODO: We have to turn these values into ArrayBuffers of the right type. There's currently an
@@ -39596,6 +39626,9 @@ const hashcore = (hasher, a) => {
       const view = new Float64Array(buffer)
       view.set([a], 0)
     }
+  } else if (typeof a === 'bigint') {
+    const view = new BigInt64Array(buffer)
+    view.set([a], 0)
   } else if (typeof a === 'string') {
     // If it's a string, we treat it like an array of 64-bit integers with a prefixed 64-bit length
     // to match the behavior of the Rust runtime
@@ -39621,7 +39654,7 @@ const hashcore = (hasher, a) => {
   }
   return hasher
 }
-const hashf = a => Number(BigInt.asIntN(64, hashcore(xxh.h64().init(0xfa57), a).digest()))
+const hashf = a => BigInt.asIntN(64, hashcore(xxh.h64().init(0xfa57), a).digest())
 const hashv = arr => {
   // The Rust runtime considers strings a variable type, but they are more like a fixed type for JS
   if (typeof arr === 'string') return hashf(arr)
@@ -39637,7 +39670,19 @@ const hashv = arr => {
       }
     }
   }
-  return Number(BigInt.asIntN(64, hasher.digest())) // TODO: Move all i64 to BigInt?
+  return BigInt.asIntN(64, hasher.digest())
+}
+
+const copyarr = a => {
+  try {
+    return JSON.parse(JSON.stringify(a))
+  } catch (e) {
+    if (typeof a[0] === 'bigint') {
+      return a.map(v => BigInt(v))
+    } else {
+      return a.map(v => copyarr(v))
+    }
+  }
 }
 
 // Not very OOP, but since the HTTP server is a singleton right now, store open connections here
@@ -39651,7 +39696,7 @@ module.exports = {
   i8f64:    a => a,
   i16f64:   a => a,
   i32f64:   a => a,
-  i64f64:   a => a,
+  i64f64:   a => parseFloat(a.toString()),
   f32f64:   a => a,
   strf64:   a => parseFloat(a),
   boolf64:  a => a ? 1.0 : 0.0,
@@ -39659,30 +39704,30 @@ module.exports = {
   i8f32:    a => a,
   i16f32:   a => a,
   i32f32:   a => a,
-  i64f32:   a => a,
+  i64f32:   a => parseFloat(a.toString()),
   f64f32:   a => a,
   strf32:   a => parseFloat(a),
   boolf32:  a => a ? 1.0 : 0.0,
 
-  i8i64:    a => a,
-  i16i64:   a => a,
-  i32i64:   a => a,
-  f32i64:   a => Math.floor(a),
-  f64i64:   a => Math.floor(a),
-  stri64:   a => parseInt(a), // intentionally allowing other bases here
-  booli64:  a => a ? 1 : 0,
+  i8i64:    a => BigInt(a),
+  i16i64:   a => BigInt(a),
+  i32i64:   a => BigInt(a),
+  f32i64:   a => BigInt(Math.floor(a)),
+  f64i64:   a => BigInt(Math.floor(a)),
+  stri64:   a => BigInt(parseInt(a)), // intentionally allowing other bases here
+  booli64:  a => a ? 1n : 0n,
 
   i8i32:    a => a,
   i16i32:   a => a,
-  i64i32:   a => a,
+  i64i32:   a => Number(BigInt.asIntN(32, a)),
   f32i32:   a => Math.floor(a),
   f64i32:   a => Math.floor(a),
   stri32:   a => parseInt(a),
-  booli64:  a => a ? 1 : 0,
+  booli32:  a => a ? 1 : 0,
 
   i8i16:    a => a,
   i32i16:   a => a,
-  i64i16:   a => a,
+  i64i16:   a => Number(BigInt.asIntN(16, a)),
   f32i16:   a => Math.floor(a),
   f64i16:   a => Math.floor(a),
   stri16:   a => parseInt(a),
@@ -39690,7 +39735,7 @@ module.exports = {
 
   i16i8:    a => a,
   i32i8:    a => a,
-  i64i8:    a => a,
+  i64i8:    a => Number(BigInt.asIntN(8, a)),
   f32i8:    a => Math.floor(a),
   f64i8:    a => Math.floor(a),
   stri8:    a => parseInt(a),
@@ -39699,7 +39744,7 @@ module.exports = {
   i8bool:   a => a !== 0,
   i16bool:  a => a !== 0,
   i32bool:  a => a !== 0,
-  i64bool:  a => a !== 0,
+  i64bool:  a => a !== 0n,
   f32bool:  a => a !== 0.0,
   f64bool:  a => a !== 0.0,
   strbool:  a => a === "true",
@@ -39713,59 +39758,317 @@ module.exports = {
   boolstr:  a => a.toString(),
 
   // Arithmetic opcodes
-  addi8:   (a, b) => a + b,
-  addi16:  (a, b) => a + b,
-  addi32:  (a, b) => a + b,
-  addi64:  (a, b) => a + b,
-  addf32:  (a, b) => a + b,
-  addf64:  (a, b) => a + b,
+  addi8:   (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0 && b > 0 && a > INT8MAX - b) return [0, 'overflow']
+    if (a < 0 && b < 0 && a < INT8MIN - b) return [0, 'underflow']
+    return [1, a + b]
+  },
+  addi16:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0 && b > 0 && a > INT16MAX - b) return [0, 'overflow']
+    if (a < 0 && b < 0 && a < INT16MIN - b) return [0, 'underflow']
+    return [1, a + b]
+  },
+  addi32:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0 && b > 0 && a > INT32MAX - b) return [0, 'overflow']
+    if (a < 0 && b < 0 && a < INT32MIN - b) return [0, 'underflow']
+    return [1, a + b]
+  },
+  addi64:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0n && b > 0n && a > INT64MAX - b) return [0, 'overflow']
+    if (a < 0n && b < 0n && a < INT64MIN - b) return [0, 'underflow']
+    return [1, a + b]
+  },
+  addf32:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    const out = a + b
+    if (out === Number.POSITIVE_INFINITY) return [0, 'overflow']
+    if (out === Number.NEGATIVE_INFINITY) return [0, 'underflow']
+    return [1, out]
+  },
+  addf64:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    const out = a + b
+    if (out === Number.POSITIVE_INFINITY) return [0, 'overflow']
+    if (out === Number.NEGATIVE_INFINITY) return [0, 'underflow']
+    return [1, out]
+  },
 
-  subi8:   (a, b) => a - b,
-  subi16:  (a, b) => a - b,
-  subi32:  (a, b) => a - b,
-  subi64:  (a, b) => a - b,
-  subf32:  (a, b) => a - b,
-  subf64:  (a, b) => a - b,
+  subi8:   (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0 && b < 0 && a > INT8MAX + b) return [0, 'overflow']
+    if (a < 0 && b > 0 && a < INT8MIN + b) return [0, 'underflow']
+    return [1, a - b]
+  },
+  subi16:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0 && b < 0 && a > INT16MAX + b) return [0, 'overflow']
+    if (a < 0 && b > 0 && a < INT16MIN + b) return [0, 'underflow']
+    return [1, a - b]
+  },
+  subi32:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0 && b < 0 && a > INT32MAX + b) return [0, 'overflow']
+    if (a < 0 && b > 0 && a < INT32MIN + b) return [0, 'underflow']
+    return [1, a - b]
+  },
+  subi64:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0n && b < 0n && a > INT32MAX + b) return [0, 'overflow']
+    if (a < 0n && b > 0n && a < INT32MIN + b) return [0, 'underflow']
+    return [1, a - b]
+  },
+  subf32:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    const out = a - b
+    if (out === Number.POSITIVE_INFINITY) return [0, 'overflow']
+    if (out === Number.NEGATIVE_INFINITY) return [0, 'underflow']
+    return [1, out]
+  },
+  subf64:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    const out = a - b
+    if (out === Number.POSITIVE_INFINITY) return [0, 'overflow']
+    if (out === Number.NEGATIVE_INFINITY) return [0, 'underflow']
+    return [1, out]
+  },
 
   negi8:    a => 0 - a,
   negi16:   a => 0 - a,
   negi32:   a => 0 - a,
-  negi64:   a => 0 - a,
+  negi64:   a => 0n - a,
   negf32:   a => 0.0 - a,
   negf64:   a => 0.0 - a,
 
   absi8:    a => Math.abs(a),
   absi16:   a => Math.abs(a),
   absi32:   a => Math.abs(a),
-  absi64:   a => Math.abs(a),
+  absi64:   a => a > 0n ? a : -a,
   absf32:   a => Math.abs(a),
   absf64:   a => Math.abs(a),
 
-  muli8:   (a, b) => a * b,
-  muli16:  (a, b) => a * b,
-  muli32:  (a, b) => a * b,
-  muli64:  (a, b) => a * b,
-  mulf32:  (a, b) => a * b,
-  mulf64:  (a, b) => a * b,
+  muli8:   (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0 && b > 0 && a > INT8MAX / b) return [0, 'overflow']
+    if (a < 0 && b < 0 && a < INT8MIN / b) return [0, 'underflow']
+    return [1, a * b]
+  },
+  muli16:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0 && b > 0 && a > INT16MAX / b) return [0, 'overflow']
+    if (a < 0 && b < 0 && a < INT16MIN / b) return [0, 'underflow']
+    return [1, a * b]
+  },
+  muli32:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0 && b > 0 && a > INT32MAX / b) return [0, 'overflow']
+    if (a < 0 && b < 0 && a < INT32MIN / b) return [0, 'underflow']
+    return [1, a * b]
+  },
+  muli64:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0n && b > 0n && a > INT64MAX / b) return [0, 'overflow']
+    if (a < 0n && b < 0n && a < INT64MIN / b) return [0, 'underflow']
+    return [1, a * b]
+  },
+  mulf32:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    const out = a * b
+    if (out === Number.POSITIVE_INFINITY) return [0, 'overflow']
+    if (out === Number.NEGATIVE_INFINITY) return [0, 'underflow']
+    return [1, out]
+  },
+  mulf64:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    const out = a * b
+    if (out === Number.POSITIVE_INFINITY) return [0, 'overflow']
+    if (out === Number.NEGATIVE_INFINITY) return [0, 'underflow']
+    return [1, out]
+  },
 
-  divi8:   (a, b) => Math.floor(a / b),
-  divi16:  (a, b) => Math.floor(a / b),
-  divi32:  (a, b) => Math.floor(a / b),
-  divi64:  (a, b) => Math.floor(a / b),
-  divf32:  (a, b) => a / b,
-  divf64:  (a, b) => a / b,
+  divi8:   (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (b === 0) return [0, 'divide-by-zero']
+    return [1, Math.floor(a / b)]
+  },
+  divi16:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (b === 0) return [0, 'divide-by-zero']
+    return [1, Math.floor(a / b)]
+  },
+  divi32:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (b === 0) return [0, 'divide-by-zero']
+    return [1, Math.floor(a / b)]
+  },
+  divi64:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (b === 0n) return [0, 'divide-by-zero']
+    return [1, a / b]
+  },
+  divf32:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (b === 0.0) return [0, 'divide-by-zero']
+    const out = a / b
+    if (out === Number.POSITIVE_INFINITY) return [0, 'overflow']
+    if (out === Number.NEGATIVE_INFINITY) return [0, 'underflow']
+    return [1, out]
+  },
+  divf64:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (b === 0.0) return [0, 'divide-by-zero']
+    const out = a / b
+    if (out === Number.POSITIVE_INFINITY) return [0, 'overflow']
+    if (out === Number.NEGATIVE_INFINITY) return [0, 'underflow']
+    return [1, out]
+  },
 
   modi8:   (a, b) => a % b,
   modi16:  (a, b) => a % b,
   modi32:  (a, b) => a % b,
   modi64:  (a, b) => a % b,
 
-  powi8:   (a, b) => Math.floor(a ** b), // If 'b' is negative, it would produce a fraction
-  powi16:  (a, b) => Math.floor(a ** b),
-  powi32:  (a, b) => Math.floor(a ** b),
-  powi64:  (a, b) => Math.floor(a ** b),
-  powf32:  (a, b) => a ** b,
-  powf64:  (a, b) => a ** b,
+  powi8:   (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0 && b > 1 && a > INT8MAX ** (1 / b)) return [0, 'overflow']
+    if (a < 0 && b > 1 && a < INT8MIN ** (1 / b)) return [0, 'underflow']
+    return [1, Math.floor(a ** b)]
+  },
+  powi16:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0 && b > 1 && a > INT16MAX ** (1 / b)) return [0, 'overflow']
+    if (a < 0 && b > 1 && a < INT16MIN ** (1 / b)) return [0, 'underflow']
+    return [1, Math.floor(a ** b)]
+  },
+  powi32:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0 && b > 1 && a > INT32MAX ** (1 / b)) return [0, 'overflow']
+    if (a < 0 && b > 1 && a < INT32MIN ** (1 / b)) return [0, 'underflow']
+    return [1, Math.floor(a ** b)]
+  },
+  powi64:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    if (a > 0 && b > 1n) {
+      const af = parseFloat(a.toString())
+      const bf = parseFloat(b.toString())
+      const maxf = parseFloat(INT64MAX.toString())
+      if (af > maxf ** (1 / bf)) return [0, 'overflow']
+    }
+    if (a < 0n && b > 1n) {
+      const af = parseFloat(a.toString())
+      const bf = parseFloat(b.toString())
+      const minf = parseFloat(INT64MIN.toString())
+      if (af < minf ** (1 / bf)) return [0, 'underflow']
+    }
+    return [1, a ** b]
+  },
+  powf32:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    const out = a ** b
+    if (out === Number.POSITIVE_INFINITY) return [0, 'overflow']
+    if (out === Number.NEGATIVE_INFINITY) return [0, 'underflow']
+    return [1, out]
+  },
+  powf64:  (ra, rb) => {
+    if (!ra[0]) return ra
+    if (!rb[0]) return rb
+    const a = ra[1]
+    const b = rb[1]
+    const out = a ** b
+    if (out === Number.POSITIVE_INFINITY) return [0, 'overflow']
+    if (out === Number.NEGATIVE_INFINITY) return [0, 'underflow']
+    return [1, out]
+  },
 
   sqrtf32:  a => Math.sqrt(a),
   sqrtf64:  a => Math.sqrt(a),
@@ -39867,14 +40170,14 @@ module.exports = {
   // String opcodes
   catstr:  (a, b) => a.concat(b),
   split:   (a, b) => a.split(b),
-  repstr:  (a, b) => new Array(b).fill(a).join(''),
+  repstr:  (a, b) => new Array(parseInt(b.toString())).fill(a).join(''),
   // TODO: templ, after maps are figured out
   matches: (a, b) => RegExp(b).test(a),
   indstr:  (a, b) => {
     const ind = a.indexOf(b)
     return ind > -1 ? [ true, ind, ] : [ false, 'substring not found', ]
   },
-  lenstr:   a => a.length,
+  lenstr:   a => BigInt(a.length),
   trim:     a => a.trim(),
   copyfrom:(arr, ind) => JSON.parse(JSON.stringify(arr[ind])),
   copytof: (arr, ind, val) => { arr[ind] = val }, // These do the same thing in JS
@@ -39885,7 +40188,7 @@ module.exports = {
   newarr:   size => new Array(), // Ignored because JS push doesn't behave as desired
   pusharr: (arr, val, size) => arr.push(val),
   poparr:   arr => arr.length > 0 ? [ true, arr.pop(), ] : [ false, 'cannot pop empty array', ],
-  lenarr:   arr => arr.length,
+  lenarr:   arr => BigInt(arr.length),
   indarrf: (arr, val) => {
     const ind = arr.indexOf(val)
     return ind > -1 ? [ true, ind, ] : [ false, 'element not found', ]
@@ -39895,8 +40198,8 @@ module.exports = {
     return ind > -1 ? [ true, ind, ] : [ false, 'element not found', ]
   },
   delindx: (arr, idx) => {
-    const spliced = arr.splice(idx, 1)
-    if (spliced.length === 1 && idx >= 0) {
+    const spliced = arr.splice(parseInt(idx.toString()), 1)
+    if (spliced.length === 1 && parseInt(idx.toString()) >= 0) {
       return [ true, spliced[0] ]
     } else {
       return [ false, `cannot remove idx ${idx} from array with length ${arr.length}` ]
@@ -39905,7 +40208,11 @@ module.exports = {
   join:    (arr, sep) => arr.join(sep),
   map:     async (arr, fn) => await Promise.all(arr.map(fn)),
   mapl:    async (arr, fn) => await Promise.all(arr.map(fn)),
-  reparr:  (arr, n) => Array.from(new Array(n * arr.length)).map((_, i) => JSON.parse(JSON.stringify(arr[i % arr.length]))),
+  reparr:  (arr, n) => Array.from(new Array(parseInt(n.toString()) * arr.length))
+    .map((_, i) => typeof arr[i % arr.length] === 'bigint' ?
+      BigInt(arr[i % arr.length]) :
+      JSON.parse(JSON.stringify(arr[i % arr.length]))
+    ),
   each:    async (arr, fn) => {
     await Promise.all(arr.map(fn)) // Thrown away but awaited to maintain consistent execution
   },
@@ -40042,14 +40349,17 @@ module.exports = {
   copyi8:   a => JSON.parse(JSON.stringify(a)),
   copyi16:  a => JSON.parse(JSON.stringify(a)),
   copyi32:  a => JSON.parse(JSON.stringify(a)),
-  copyi64:  a => JSON.parse(JSON.stringify(a)),
+  copyi64:  a => BigInt(a),
   copyvoid: a => JSON.parse(JSON.stringify(a)),
   copyf32:  a => JSON.parse(JSON.stringify(a)),
   copyf64:  a => JSON.parse(JSON.stringify(a)),
   copybool: a => JSON.parse(JSON.stringify(a)),
   copystr:  a => JSON.parse(JSON.stringify(a)),
   // Actually the recommended deep clone mechanism: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Deep_Clone
-  copyarr:  a => JSON.parse(JSON.stringify(a)),
+  // Doesn't work with BigInt :(
+  // copyarr:  a => JSON.parse(JSON.stringify(a)),
+  // Implementation is now recursive with a try-catch wrapper, so not great for perf
+  copyarr,
   zeroed:  () => null,
 
   // Trig opcodes
@@ -40101,13 +40411,21 @@ module.exports = {
     }
   },
   getErr:  (a, b) => a[0] ? b : a[1],
-  resfrom: (arr, ind) => ind >= 0 && ind < arr.length ? [
-    true,
-    arr[ind],
-  ] : [
-    false,
-    'out-of-bounds access',
-  ],
+  resfrom: (arr, rind) => {
+    if (!rind[0]) return rind
+    const ind = rind[1]
+    if (ind >= 0 && ind < arr.length) {
+      return [
+        true,
+        arr[ind],
+      ]
+    } else {
+      return [
+        false,
+        'out-of-bounds access',
+      ]
+    }
+  },
   mainE:    a => [
     true,
     a,
@@ -40218,7 +40536,7 @@ module.exports = {
   },
   httplsn:  async (port) => {
     const server = http.createServer((req, res) => {
-      const connId = hashf(Math.random().toString())
+      const connId = Number(hashf(Math.random().toString()))
       httpConns[connId] = {
         req,
         res,
@@ -40239,7 +40557,7 @@ module.exports = {
     return await new Promise(resolve => {
       server.on('error', e => resolve([ false, e.code, ]))
       server.listen({
-        port,
+        port: parseInt(port.toString()),
       }, () => resolve([ true, 'ok', ]))
     })
   },
@@ -40251,14 +40569,14 @@ module.exports = {
     return new Promise(resolve => {
       conn.res.on('close', () => resolve([ false, 'client hangup', ]))
       conn.res
-        .writeHead(status, headers.reduce((acc, kv) => {
+        .writeHead(Number(status), headers.reduce((acc, kv) => {
           acc[kv[0]] = kv[1]
           return acc
         }, {}))
         .end(body, () => resolve([ true, 'ok', ]))
     })
   },
-  waitop:   async (a) => await new Promise(resolve => setTimeout(resolve, a)),
+  waitop:   async (a) => await new Promise(resolve => setTimeout(resolve, Number(a))),
   execop:   async (cmd) => {
     try {
       const res = await exec(cmd)
@@ -40272,7 +40590,7 @@ module.exports = {
   // "Special" opcodes
   stdoutp:  out => process.stdout.write(out),
   stderrp:  err => process.stderr.write(err),
-  exitop:   code => process.exit(code),
+  exitop:   code => process.exit(parseInt(code.toString())),
 
   // Event bookkeeping
   emit:    (name, payload) => e.emit(name, payload),

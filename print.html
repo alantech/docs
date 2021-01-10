@@ -291,10 +291,10 @@ fn functionName {
 }
 
 // If the function is a single statement that is returned, it can be written with a shorthand syntax
-fn addOne(i: int64) = i + 1;
+fn addOne(i: int64) = i + 1 || 0;
 
 // This syntax can be annotated with the return type, but that is unlikely to improve clarity
-fn subtractOne(i: int64): int64 = i - 1;
+fn subtractOne(i: int64): int64 = i - 1 || 0;
 
 // Anonymous functions can only be used as an assignable value either to a variable
 const anonymousFunction = fn (firstArg: argType, secondArg: anotherType): returnType {
@@ -302,7 +302,7 @@ const anonymousFunction = fn (firstArg: argType, secondArg: anotherType): return
 }
 
 // Or being passed into a higher-order function
-const doubled = someArray.map(fn (val: int64) = val * 2);
+const doubled = someArray.map(fn (val: int64) = val * 2 || 0);
 
 // In situations where a function takes no arguments and it is unambiguous, the function can be
 // represented solely with the curly braces
@@ -345,7 +345,7 @@ fn someFn (arg1: int64, arg2: float64): int64 {
 <p>Method form allows you to pull the first argument out of the function and treat the function call like an Object-Oriented Language's method syntax. This allows method chaining, which can be much more legible when the output of one function is the input of the next, without requiring a custom chaining syntax that some functional languages have adopted (eg <code>|&gt;</code> in F#). Eg, <code>3.add(2).mul(5).mod(3)</code> is equivalent to <code>mod(mul(add(3, 2), 5), 3)</code>.</p>
 <h4><a class="header" href="#operators" id="operators">Operators</a></h4>
 <p>In Alan, operators are just a special form of function.</p>
-<p>All operators are made up of only the symbols: <code>+, -, /, *, ^, ., ~, `, !, @, #, $, %, &amp;, |, :, &lt;, &gt;, ?, =</code> (excluding the commas used to separate them from each other, they are reserved for list separators only). See the <a href="./builtins/operators.html">built-in operators here</a>.</p>
+<p>All operators are made up of only the symbols: <code>+, -, /, \, *, ^, ., ~, `, !, @, #, $, %, &amp;, |, :, &lt;, &gt;, ?, =</code> (excluding the commas used to separate them from each other, they are reserved for list separators only). See the <a href="./builtins/operators.html">built-in operators here</a>.</p>
 <p>Operators have operator precedence to determine how they are implicitly grouped by parenthesis.</p>
 <p>Any exported operator <em>must</em> also export its implementing functions, so users can choose to use the more descriptive function names instead of the terse-but-cryptic operator symbols.</p>
 <p>Operators have only two forms: prefix operators that take only one argument and infix (in-between) operators that take two arguments.</p>
@@ -380,7 +380,7 @@ const varname = constantOrFunctionCallOrExpression;
 <p>Any type that exists in the language can be assigned. Simple constants are simply declared, or produced via function calls or operator expressions. User-defined types can be assigned to constants through the use of a constructor function and calling it, through an expression involving operators that produces the user-defined type, or through the user-type literal syntax. Arrays and HashMaps have similar but slightly different syntaxes, as they deal with inherently plural data versus the struct-like user-defined types:</p>
 <pre><code class="language-alan">const simpleConstant: bool = true;
 const simpleConstant2 = &quot;simple&quot;;
-const expressionResult: int64 = 3 + 5 * 2 + fnCall2(3, 1);
+const expressionResult: int64 = 3 + 5 * 2 + fnCall2(3, 1) || 0;
 const fnResult: someType = functioncall(3, 5);
 const userTypeLiteral = new UserType {
   key: &quot;val&quot;,
@@ -574,7 +574,7 @@ fn reciprocal(val: float64): Result&lt;float64&gt; {
     return err('Divide by zero error!');
   } else {
     // creates a Result with a value
-    return ok(1.0 / val);
+    return 1.0 / val;
   }
 }
 
@@ -584,8 +584,8 @@ on start {
   if oneFifth.isOk() {
     // gets the Result's value or default if it is an Error
     print(oneFifth.getOr(0.0));
-    // getOr can be expressed with an | operator
-    print(oneFifth | 0.0);
+    // getOr can be expressed with an || operator
+    print(oneFifth || 0.0);
   }
 
   // checks if the Result has an error
@@ -767,22 +767,22 @@ export Foo
 <p>The <code>int64</code> and <code>float64</code> types are special among the numeric types, as these are the types that any numeric constant will be represented as, depending on whether or not it has a decimal. They have been given aliases of <code>int</code> and <code>float</code> respectively for that reason.</p>
 <p>The four &quot;main&quot; basic types (<code>int64</code>, <code>float64</code>, <code>bool</code> and <code>void</code>) have constant representations that you can easily type. The non-64-bit numeric types are considered specialized types and are discouraged (the runtime does not take advantage of the potential space optimizations they provide to keep the internal memory addressing system simpler), so constants for those types must be explicitly casted using the <code>to&lt;Type&gt;</code> functions discussed in the <a href="builtins/./type_coercion.html">Type Coercion</a> section.</p>
 <p>The integers have basic base-10 integer form as well as hexadecimal form. Binary and Octal forms are not implemented but that may change if there is demand for it.</p>
-<pre><code class="language-alan">const base10 = 12345
-const base16 = 0xabcde
+<pre><code class="language-alan">const base10 = 12345;
+const base16 = 0xabcde;
 </code></pre>
 <p>The floating point numbers have only basic base-10 with a decimal point form, no scientific notation form yet, but that may change if there is demand for it.</p>
-<pre><code class="language-alan">const floating = 1.2345
+<pre><code class="language-alan">const floating = 1.2345;
 </code></pre>
 <p>Booleans are represented by the keywords <code>true</code> and <code>false</code>. <code>void</code> has no representation beyond <code>void</code>. It can't be assigned to, and is meant to represent functions that return nothing.</p>
-<pre><code class="language-alan">const boolean = true
-const someVoid = void
+<pre><code class="language-alan">const boolean = true;
+const someVoid = void;
 </code></pre>
 <p>The basic types are included in the root scope and never need to be explicitly defined, they always exist.</p>
 <h5><a class="header" href="#strings" id="strings">Strings</a></h5>
 <p>Strings (<code>string</code>) are a bit beyond the basic type. From the perspective of the user of Alan they are <code>utf-8</code> byte arrays (multi-byte code points increase the string length by 2 or 3, not 1). If there is significant demand for it, string length checks and other operations will be switched to the codepoint model versus the byte array model.</p>
 <p>Strings are defined by wrapping double or single quotes (<code>&quot;</code> or <code>'</code>) around text. They work identically to Javascript strings, with the same sorts of C-style escape codes. Within the runtime, however, they are represented as Pascal strings with a 64-bit header, which makes certain operations faster than their C-string counterparts (particularly length checking, which is O(1)) but means 8 extra bytes are required for each string versus C-string's traditional 1 extra byte, so lots of small strings will consume more memory.</p>
-<pre><code class="language-alan">const myString = &quot;My string's string&quot;
-const myOtherString = 'My other string\'s string'
+<pre><code class="language-alan">const myString = &quot;My string's string&quot;;
+const myOtherString = 'My other string\'s string';
 </code></pre>
 <h5><a class="header" href="#special-types" id="special-types">Special Types</a></h5>
 <ul>
@@ -797,23 +797,23 @@ const myOtherString = 'My other string\'s string'
 </ul>
 <p>Functions are covered in the <a href="builtins/../functions.html">Functions</a> section. <code>Either&lt;T, U&gt;</code> is a special type that can hold two values. Other special types are built on top of it. <code>Maybe&lt;T&gt;</code> is equivalent to <code>Either&lt;T, void&gt;</code> and <code>Result&lt;T&gt;</code> is equivalent to <code>Either&lt;T, Error&gt;</code>. <code>Error</code> and <code>Result</code> are more extensively covered in the <a href="builtins/../error_handling.html">Error Handling</a> section.</p>
 <p>A <code>HashMap&lt;K, V&gt;</code> creates a mapping from <code>K</code> to <code>V</code>. An <code>Array&lt;V&gt;</code> in Alan can hold more than one <code>V</code> at a time. Arrays can be defined with an explicit type or the compiler can infer the type for you:</p>
-<pre><code class="language-alan">const test = new Array&lt;int&gt; [ 1, 2, 3, 4, 5 ]
-const count = [1, 2, 3, 4, 5]
+<pre><code class="language-alan">const test = new Array&lt;int&gt; [ 1, 2, 3, 4, 5 ];
+const count = [1, 2, 3, 4, 5];
 </code></pre>
 <p>The sections that cover built-in functions for <a href="builtins/./array_api.html">Array Manipulation</a> and <a href="builtins/./hashmap_api.html">HashMap Manipulation</a> provide a better sense of how to manipulate the values stored in <code>Array&lt;V&gt;</code>, <code>HashMap&lt;K, V&gt;</code> and <code>KeyVal&lt;K, V&gt;</code>.</p>
 <h4><a class="header" href="#built-in-functions" id="built-in-functions">Built-in Functions</a></h4>
 <p>The <a href="builtins/../functions.html">function</a> signatures will be written in the form <code>functionName(argumentType, argumentType): returnType</code> with a brief description above each. These functions will be grouped into general categories, such as type coercion, arithmetic, etc. Because of <a href="builtins/../functions.html#function-dispatch">multiple dispatch</a> you may see the same function name repeated multiple times, while other times you may see the use of the <code>any</code> interface for a function that operates on multiple types. When you see multiple dispatch being used with specific types, that means there's an optimized implementation for that specific type, while the use of the <code>any</code> interface means that this was not done (many times because it was not necessary).</p>
 <h4><a class="header" href="#type-coercion" id="type-coercion">Type Coercion</a></h4>
-<h5><a class="header" href="#tofloat-or-tofloat64" id="tofloat-or-tofloat64">toFloat or toFloat64</a></h5>
-<pre><code class="language-alan">// Converts the built-in basic types to 64-bit floats which are the default numeric float type
-toFloat(int8): float     // toFloat64(int8): float64
-toFloat(int16): float    // toFloat64(int16): float64
-toFloat(int32): float    // toFloat64(int32): float64
-toFloat(int64): float    // toFloat64(int64): float64
-toFloat(float32): float  // toFloat64(float32): float64
-toFloat(float): float    // toFloat64(float64): float64
-toFloat(bool): float     // toFloat64(bool): float64
-toFloat(string): float   // toFloat64(string): float64
+<h5><a class="header" href="#tofloat64" id="tofloat64">toFloat64</a></h5>
+<pre><code class="language-alan">// Converts the built-in basic types to 64-bit floats
+toFloat64(int8): float64
+toFloat64(int16): float64
+toFloat64(int32): float64
+toFloat64(int64): float64
+toFloat64(float32): float64
+toFloat64(float64): float64
+toFloat64(bool): float64
+toFloat64(string): float64
 </code></pre>
 <h5><a class="header" href="#tofloat32" id="tofloat32">toFloat32</a></h5>
 <pre><code class="language-alan">// Converts the built-in basic types to 32-bit floats
@@ -826,16 +826,21 @@ toFloat32(float64): float32
 toFloat32(bool): float32
 toFloat32(string): float32
 </code></pre>
-<h5><a class="header" href="#toint-or-toint64" id="toint-or-toint64">toInt or toInt64</a></h5>
-<pre><code class="language-alan">// Converts the built-in basic types to 64-bit integers which are the default numeric int type
-toInt(int8): int         // toInt64(int8): int64
-toInt(int16): int        // toInt64(int16): int64
-toInt(int32): int        // toInt64(int32): int64
-toInt(int): int          // toInt64(int64): int64
-toInt(float32): int      // toInt64(float32): int64
-toInt(float64): int      // toInt64(float64): int64
-toInt(bool): int         // toInt64(bool): int64
-toInt(string): int       // toInt64(string): int64
+<h4><a class="header" href="#tofloat" id="tofloat">toFloat</a></h4>
+<pre><code class="language-alan">// Converts to the `float` type, which is an alias for `float64`
+// `canFloat64` is an interface that catches any type with a `toFloat64` function
+toFloat(canFloat64): float
+</code></pre>
+<h5><a class="header" href="#toint64" id="toint64">toInt64</a></h5>
+<pre><code class="language-alan">// Converts the built-in basic types to 64-bit integers
+toInt64(int8): int64
+toInt64(int16): int64
+toInt64(int32): int64
+toInt64(int64): int64
+toInt64(float32): int64
+toInt64(float64): int64
+toInt64(bool): int64
+toInt64(string): int64
 </code></pre>
 <h5><a class="header" href="#toint32" id="toint32">toInt32</a></h5>
 <pre><code class="language-alan">// Converts the built-in basic types to 32-bit integers
@@ -870,6 +875,11 @@ toInt8(float64): int8
 toInt8(bool): int8
 toInt8(string): int8
 </code></pre>
+<h4><a class="header" href="#toint" id="toint">toInt</a></h4>
+<pre><code class="language-alan">// Converts to the `int` type, which is an alias for `int64`
+// `canInt64` is an interface that catches any type with a `toInt64` function
+toInt(canInt64): int
+</code></pre>
 <h5><a class="header" href="#tobool" id="tobool">toBool</a></h5>
 <pre><code class="language-alan">// Converts the built-in basic types to booleans
 toBool(int8): bool
@@ -896,220 +906,579 @@ toString(Result&lt;Stringifiable&gt;): string
 </code></pre>
 <p>These coercions will not fail. When converting down into an integer of a smaller bitsize, numbers larger than that integer's <code>INT_MAX</code> are pegged at <code>INT_MAX</code>, smaller than <code>INT_MIN</code> pegged at <code>INT_MIN</code> and <code>NaN</code> or strings that aren't actually integers are converted to <code>0</code>. This may be changed to a <code>Result</code> type that requires a user-defined default value on failure. <code>Result</code> types wrapping a type that can also be converted to a string directly, with either the string version of the result, or the error message.</p>
 <h4><a class="header" href="#arithmetic" id="arithmetic">Arithmetic</a></h4>
+<p>Most arithmetic functions can fail by overflowing, underflowing, or dividing by zero, so these functions return Result-wrapped values instead of bare values in case of such failure. For convenience, all arithmetic functions can also accept result-wrapped values, and if the value is an error, it passes it through for consumption elsewhere.</p>
 <h5><a class="header" href="#add" id="add">add</a></h5>
 <pre><code class="language-alan">// Adds two numbers
-add(int8, int8): int8
-add(int16, int16): int16
-add(int32, int32): int32
-add(int64, int64): int64
-add(float32, float32): float32
-add(float64, float64): float64
+add(int8, int8): Result&lt;int8&gt;
+add(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+add(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+add(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
+add(int16, int16): Result&lt;int16&gt;
+add(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+add(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+add(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
+add(int32, int32): Result&lt;int32&gt;
+add(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+add(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+add(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
+add(int64, int64): Result&lt;int64&gt;
+add(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+add(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+add(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
+add(float32, float32): Result&lt;float32&gt;
+add(Result&lt;float32&gt;, float32): Result&lt;float32&gt;
+add(float32, Result&lt;float32&gt;): Result&lt;float32&gt;
+add(Result&lt;float32&gt;, Result&lt;float32&gt;): Result&lt;float32&gt;
+add(float64, float64): Result&lt;float64&gt;
+add(Result&lt;float64&gt;, float64): Result&lt;float64&gt;
+add(float64, Result&lt;float64&gt;): Result&lt;float64&gt;
+add(Result&lt;float64&gt;, Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#sub" id="sub">sub</a></h5>
 <pre><code class="language-alan">// Subtracts two numbers
-sub(int8, int8): int8
-sub(int16, int16): int16
-sub(int32, int32): int32
-sub(int64, int64): int64
-sub(float32, float32): float32
-sub(float64, float64): float64
+sub(int8, int8): Result&lt;int8&gt;
+sub(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+sub(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+sub(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
+sub(int16, int16): Result&lt;int16&gt;
+sub(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+sub(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+sub(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
+sub(int32, int32): Result&lt;int32&gt;
+sub(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+sub(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+sub(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
+sub(int64, int64): Result&lt;int64&gt;
+sub(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+sub(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+sub(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
+sub(float32, float32): Result&lt;float32&gt;
+sub(Result&lt;float32&gt;, float32): Result&lt;float32&gt;
+sub(float32, Result&lt;float32&gt;): Result&lt;float32&gt;
+sub(Result&lt;float32&gt;, Result&lt;float32&gt;): Result&lt;float32&gt;
+sub(float64, float64): Result&lt;float64&gt;
+sub(Result&lt;float64&gt;, float64): Result&lt;float64&gt;
+sub(float64, Result&lt;float64&gt;): Result&lt;float64&gt;
+sub(Result&lt;float64&gt;, Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#negate" id="negate">negate</a></h5>
 <pre><code class="language-alan">// Negates the number
 negate(int8): int8
+negate(Result&lt;int8&gt;): Result&lt;int8&gt;
 negate(int16): int16
+negate(Result&lt;int16&gt;): Result&lt;int16&gt;
 negate(int32): int32
+negate(Result&lt;int32&gt;): Result&lt;int32&gt;
 negate(int64): int64
+negate(Result&lt;int64&gt;): Result&lt;int64&gt;
 negate(float32): float32
+negate(Result&lt;float32&gt;): Result&lt;float32&gt;
 negate(float64): float64
+negate(Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#abs" id="abs">abs</a></h5>
 <pre><code class="language-alan">// Returns the absolute value of the number
 abs(int8): int8
+abs(Result&lt;int8&gt;): Result&lt;int8&gt;
 abs(int16): int16
+abs(Result&lt;int16&gt;): Result&lt;int16&gt;
 abs(int32): int32
+abs(Result&lt;int32&gt;): Result&lt;int32&gt;
 abs(int64): int64
+abs(Result&lt;int64&gt;): Result&lt;int64&gt;
 abs(float32): float32
+abs(Result&lt;float32&gt;): Result&lt;float32&gt;
 abs(float64): float64
+abs(Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#mul" id="mul">mul</a></h5>
 <pre><code class="language-alan">// Multiplies two numbers
-mul(int8, int8): int8
-mul(int16, int16): int16
-mul(int32, int32): int32
-mul(int64, int64): int64
-mul(float32, float32): float32
-mul(float64, float64): float64
+mul(int8, int8): Result&lt;int8&gt;
+mul(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+mul(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+mul(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
+mul(int16, int16): Result&lt;int16&gt;
+mul(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+mul(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+mul(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
+mul(int32, int32): Result&lt;int32&gt;
+mul(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+mul(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+mul(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
+mul(int64, int64): Result&lt;int64&gt;
+mul(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+mul(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+mul(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
+mul(float32, float32): Result&lt;float32&gt;
+mul(Result&lt;float32&gt;, float32): Result&lt;float32&gt;
+mul(float32, Result&lt;float32&gt;): Result&lt;float32&gt;
+mul(Result&lt;float32&gt;, Result&lt;float32&gt;): Result&lt;float32&gt;
+mul(float64, float64): Result&lt;float64&gt;
+mul(Result&lt;float64&gt;, float64): Result&lt;float64&gt;
+mul(float64, Result&lt;float64&gt;): Result&lt;float64&gt;
+mul(Result&lt;float64&gt;, Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#div" id="div">div</a></h5>
 <pre><code class="language-alan">// Divides two numbers
-div(int8, int8): int8
-div(int16, int16): int16
-div(int32, int32): int32
-div(int64, int64): int64
-div(float32, float32): float32
-div(float64, float64): float64
+div(int8, int8): Result&lt;int8&gt;
+div(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+div(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+div(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
+div(int16, int16): Result&lt;int16&gt;
+div(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+div(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+div(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
+div(int32, int32): Result&lt;int32&gt;
+div(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+div(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+div(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
+div(int64, int64): Result&lt;int64&gt;
+div(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+div(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+div(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
+div(float32, float32): Result&lt;float32&gt;
+div(Result&lt;float32&gt;, float32): Result&lt;float32&gt;
+div(float32, Result&lt;float32&gt;): Result&lt;float32&gt;
+div(Result&lt;float32&gt;, Result&lt;float32&gt;): Result&lt;float32&gt;
+div(float64, float64): Result&lt;float64&gt;
+div(Result&lt;float64&gt;, float64): Result&lt;float64&gt;
+div(float64, Result&lt;float64&gt;): Result&lt;float64&gt;
+div(Result&lt;float64&gt;, Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#pow" id="pow">pow</a></h5>
 <pre><code class="language-alan">// Raises the first number to the power of the second number
-pow(int8, int8): int8
-pow(int16, int16): int16
-pow(int32, int32): int32
-pow(int64, int64): int64
-pow(float32, float32): float32
-pow(float64, float64): float64
+pow(int8, int8): Result&lt;int8&gt;
+pow(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+pow(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+pow(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
+pow(int16, int16): Result&lt;int16&gt;
+pow(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+pow(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+pow(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
+pow(int32, int32): Result&lt;int32&gt;
+pow(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+pow(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+pow(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
+pow(int64, int64): Result&lt;int64&gt;
+pow(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+pow(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+pow(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
+pow(float32, float32): Result&lt;float32&gt;
+pow(Result&lt;float32&gt;, float32): Result&lt;float32&gt;
+pow(float32, Result&lt;float32&gt;): Result&lt;float32&gt;
+pow(Result&lt;float32&gt;, Result&lt;float32&gt;): Result&lt;float32&gt;
+pow(float64, float64): Result&lt;float64&gt;
+pow(Result&lt;float64&gt;, float64): Result&lt;float64&gt;
+pow(float64, Result&lt;float64&gt;): Result&lt;float64&gt;
+pow(Result&lt;float64&gt;, Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#mod" id="mod">mod</a></h5>
 <pre><code class="language-alan">// Returns the modulus (remainder) of an integer division
 mod(int8, int8): int8
+mod(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+mod(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+mod(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 mod(int16, int16): int16
+mod(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+mod(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+mod(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 mod(int32, int32): int32
+mod(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+mod(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+mod(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 mod(int64, int64): int64
+mod(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+mod(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+mod(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 </code></pre>
 <h5><a class="header" href="#sqrt" id="sqrt">sqrt</a></h5>
 <pre><code class="language-alan">// Returns the square root of a number
 sqrt(float32): float32
+sqrt(Result&lt;float32&gt;): Result&lt;float32&gt;
 sqrt(float64): float64
+sqrt(Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#min" id="min">min</a></h5>
 <pre><code class="language-alan">// Returns the smallest of two numbers
-min(int8, int8): int8
-min(int16, int16): int16
-min(int32, int32): int32
-min(int64, int64): int64
-min(float32, float32): float32
-min(float64, float64): float64
-min(string, string): string
+// `Orderable` is an interface indicating that it has the less than / greater than, etc operators
+min(Orderable, Orderable): Orderable
 </code></pre>
 <h5><a class="header" href="#max" id="max">max</a></h5>
 <pre><code class="language-alan">// Returns the largest of two numbers
-max(int8, int8): int8
-max(int16, int16): int16
-max(int32, int32): int32
-max(int64, int64): int64
-max(float32, float32): float32
-max(float64, float64): float64
-max(string, string): string
+// `Orderable` is an interface indicating that it has the less than / greater than, etc operators
+max(Orderable, Orderable): Orderable
 </code></pre>
 <h4><a class="header" href="#logical-and-bitwise" id="logical-and-bitwise">Logical and Bitwise</a></h4>
+<p>Logical and bitwise operations cannot fail, but they accept Result-wrapped values and will pass through an error, if any, or will themselves wrap their result. This allows mixing arithmetic operations with logical and bitwise operations without constant re-casting.</p>
 <h5><a class="header" href="#and" id="and">and</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `and`
 and(int8, int8): int8
+and(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+and(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+and(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 and(int16, int16): int16
+and(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+and(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+and(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 and(int32, int32): int32
+and(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+and(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+and(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 and(int64, int64): int64
+and(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+and(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+and(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 and(bool, bool): bool
+and(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+and(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+and(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 <h5><a class="header" href="#or" id="or">or</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `or`
 or(int8, int8): int8
+or(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+or(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+or(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 or(int16, int16): int16
+or(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+or(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+or(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 or(int32, int32): int32
+or(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+or(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+or(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 or(int64, int64): int64
+or(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+or(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+or(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 or(bool, bool): bool
+or(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+or(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+or(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
+</code></pre>
+<h5><a class="header" href="#boolor" id="boolor">boolor</a></h5>
+<pre><code class="language-alan">// An alias for `or` only for the logical (boolean) version, meant for the `||` operator
+boolor(bool, bool): bool
+boolor(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+boolor(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+boolor(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 <h5><a class="header" href="#xor" id="xor">xor</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `xor`
 xor(int8, int8): int8
+xor(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+xor(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+xor(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 xor(int16, int16): int16
+xor(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+xor(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+xor(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 xor(int32, int32): int32
+xor(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+xor(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+xor(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 xor(int64, int64): int64
+xor(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+xor(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+xor(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 xor(bool, bool): bool
+xor(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+xor(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+xor(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 <h5><a class="header" href="#not" id="not">not</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `not`
 not(int8): int8
+not(Result&lt;int8&gt;): Result&lt;int8&gt;
 not(int16): int16
+not(Result&lt;int16&gt;): Result&lt;int16&gt;
 not(int32): int32
+not(Result&lt;int32&gt;): Result&lt;int32&gt;
 not(int64): int64
+not(Result&lt;int64&gt;): Result&lt;int64&gt;
 not(bool): bool
+not(Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 <h5><a class="header" href="#nand" id="nand">nand</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `nand`
 nand(int8, int8): int8
+nand(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+nand(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+nand(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 nand(int16, int16): int16
+nand(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+nand(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+nand(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 nand(int32, int32): int32
+nand(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+nand(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+nand(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 nand(int64, int64): int64
+nand(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+nand(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+nand(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 nand(bool, bool): bool
+nand(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+nand(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+nand(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 <h5><a class="header" href="#nor" id="nor">nor</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `nor`
 nor(int8, int8): int8
+nor(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+nor(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+nor(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 nor(int16, int16): int16
+nor(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+nor(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+nor(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 nor(int32, int32): int32
+nor(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+nor(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+nor(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 nor(int64, int64): int64
+nor(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+nor(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+nor(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 nor(bool, bool): bool
+nor(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+nor(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+nor(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 <h5><a class="header" href="#xnor" id="xnor">xnor</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `xnor`
 xnor(int8, int8): int8
+xnor(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+xnor(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+xnor(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 xnor(int16, int16): int16
+xnor(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+xnor(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+xnor(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 xnor(int32, int32): int32
+xnor(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+xnor(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+xnor(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 xnor(int64, int64): int64
+xnor(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+xnor(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+xnor(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 xnor(bool, bool): bool
+xnor(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+xnor(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+xnor(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 <h4><a class="header" href="#comparators" id="comparators">Comparators</a></h4>
+<p>Comparator functions accept Result-wrapped values, but they consume them and always return a true or false. If either value to be compared is an error, the comparators will return false, modeled after IEEE Floating Point NaN comparison behavior.</p>
 <h5><a class="header" href="#eq" id="eq">eq</a></h5>
 <pre><code class="language-alan">// Checks if the two values are equal
 eq(int8, int8): bool
+eq(Result&lt;int8&gt;, int8): bool
+eq(int8, Result&lt;int8&gt;): bool
+eq(Result&lt;int8&gt;, Result&lt;int8&gt;): bool
 eq(int16, int16): bool
+eq(Result&lt;int16&gt;, int16): bool
+eq(int16, Result&lt;int16&gt;): bool
+eq(Result&lt;int16&gt;, Result&lt;int16&gt;): bool
 eq(int32, int32): bool
+eq(Result&lt;int32&gt;, int32): bool
+eq(int32, Result&lt;int32&gt;): bool
+eq(Result&lt;int32&gt;, Result&lt;int32&gt;): bool
 eq(int64, int64): bool
+eq(Result&lt;int64&gt;, int64): bool
+eq(int64, Result&lt;int64&gt;): bool
+eq(Result&lt;int64&gt;, Result&lt;int64&gt;): bool
 eq(float32, float32): bool
+eq(Result&lt;float32&gt;, float32): bool
+eq(float32, Result&lt;float32&gt;): bool
+eq(Result&lt;float32&gt;, Result&lt;float32&gt;): bool
 eq(float64, float64): bool
+eq(Result&lt;float64&gt;, float64): bool
+eq(float64, Result&lt;float64&gt;): bool
+eq(Result&lt;float64&gt;, Result&lt;float64&gt;): bool
 eq(string, string): bool
+eq(Result&lt;string&gt;, string): bool
+eq(string, Result&lt;string&gt;): bool
+eq(Result&lt;string&gt;, Result&lt;string&gt;): bool
 eq(bool, bool): bool
+eq(Result&lt;bool&gt;, bool): bool
+eq(bool, Result&lt;bool&gt;): bool
+eq(Result&lt;bool&gt;, Result&lt;bool&gt;): bool
 </code></pre>
 <h5><a class="header" href="#neq" id="neq">neq</a></h5>
 <pre><code class="language-alan">// Checks if the two values are not equal
 neq(int8, int8): bool
+neq(Result&lt;int8&gt;, int8): bool
+neq(int8, Result&lt;int8&gt;): bool
+neq(Result&lt;int8&gt;, Result&lt;int8&gt;): bool
 neq(int16, int16): bool
+neq(Result&lt;int16&gt;, int16): bool
+neq(int16, Result&lt;int16&gt;): bool
+neq(Result&lt;int16&gt;, Result&lt;int16&gt;): bool
 neq(int32, int32): bool
+neq(Result&lt;int32&gt;, int32): bool
+neq(int32, Result&lt;int32&gt;): bool
+neq(Result&lt;int32&gt;, Result&lt;int32&gt;): bool
 neq(int64, int64): bool
+neq(Result&lt;int64&gt;, int64): bool
+neq(int64, Result&lt;int64&gt;): bool
+neq(Result&lt;int64&gt;, Result&lt;int64&gt;): bool
 neq(float32, float32): bool
+neq(Result&lt;float32&gt;, float32): bool
+neq(float32, Result&lt;float32&gt;): bool
+neq(Result&lt;float32&gt;, Result&lt;float32&gt;): bool
 neq(float64, float64): bool
+neq(Result&lt;float64&gt;, float64): bool
+neq(float64, Result&lt;float64&gt;): bool
+neq(Result&lt;float64&gt;, Result&lt;float64&gt;): bool
 neq(string, string): bool
+neq(Result&lt;string&gt;, string): bool
+neq(string, Result&lt;string&gt;): bool
+neq(Result&lt;string&gt;, Result&lt;string&gt;): bool
 neq(bool, bool): bool
+neq(Result&lt;bool&gt;, bool): bool
+neq(bool, Result&lt;bool&gt;): bool
+neq(Result&lt;bool&gt;, Result&lt;bool&gt;): bool
 </code></pre>
 <h5><a class="header" href="#lt" id="lt">lt</a></h5>
 <pre><code class="language-alan">// Checks if the first value is less than the second
 lt(int8, int8): bool
+lt(Result&lt;int8&gt;, int8): bool
+lt(int8, Result&lt;int8&gt;): bool
+lt(Result&lt;int8&gt;, Result&lt;int8&gt;): bool
 lt(int16, int16): bool
+lt(Result&lt;int16&gt;, int16): bool
+lt(int16, Result&lt;int16&gt;): bool
+lt(Result&lt;int16&gt;, Result&lt;int16&gt;): bool
 lt(int32, int32): bool
+lt(Result&lt;int32&gt;, int32): bool
+lt(int32, Result&lt;int32&gt;): bool
+lt(Result&lt;int32&gt;, Result&lt;int32&gt;): bool
 lt(int64, int64): bool
+lt(Result&lt;int64&gt;, int64): bool
+lt(int64, Result&lt;int64&gt;): bool
+lt(Result&lt;int64&gt;, Result&lt;int64&gt;): bool
 lt(float32, float32): bool
+lt(Result&lt;float32&gt;, float32): bool
+lt(float32, Result&lt;float32&gt;): bool
+lt(Result&lt;float32&gt;, Result&lt;float32&gt;): bool
 lt(float64, float64): bool
+lt(Result&lt;float64&gt;, float64): bool
+lt(float64, Result&lt;float64&gt;): bool
+lt(Result&lt;float64&gt;, Result&lt;float64&gt;): bool
 lt(string, string): bool
+lt(Result&lt;string&gt;, string): bool
+lt(string, Result&lt;string&gt;): bool
+lt(Result&lt;string&gt;, Result&lt;string&gt;): bool
+lt(bool, bool): bool
+lt(Result&lt;bool&gt;, bool): bool
+lt(bool, Result&lt;bool&gt;): bool
+lt(Result&lt;bool&gt;, Result&lt;bool&gt;): bool
 </code></pre>
 <h5><a class="header" href="#lte" id="lte">lte</a></h5>
 <pre><code class="language-alan">// Checks if the first value is less than or equal to the second
 lte(int8, int8): bool
+lte(Result&lt;int8&gt;, int8): bool
+lte(int8, Result&lt;int8&gt;): bool
+lte(Result&lt;int8&gt;, Result&lt;int8&gt;): bool
 lte(int16, int16): bool
+lte(Result&lt;int16&gt;, int16): bool
+lte(int16, Result&lt;int16&gt;): bool
+lte(Result&lt;int16&gt;, Result&lt;int16&gt;): bool
 lte(int32, int32): bool
+lte(Result&lt;int32&gt;, int32): bool
+lte(int32, Result&lt;int32&gt;): bool
+lte(Result&lt;int32&gt;, Result&lt;int32&gt;): bool
 lte(int64, int64): bool
+lte(Result&lt;int64&gt;, int64): bool
+lte(int64, Result&lt;int64&gt;): bool
+lte(Result&lt;int64&gt;, Result&lt;int64&gt;): bool
 lte(float32, float32): bool
+lte(Result&lt;float32&gt;, float32): bool
+lte(float32, Result&lt;float32&gt;): bool
+lte(Result&lt;float32&gt;, Result&lt;float32&gt;): bool
 lte(float64, float64): bool
+lte(Result&lt;float64&gt;, float64): bool
+lte(float64, Result&lt;float64&gt;): bool
+lte(Result&lt;float64&gt;, Result&lt;float64&gt;): bool
 lte(string, string): bool
+lte(Result&lt;string&gt;, string): bool
+lte(string, Result&lt;string&gt;): bool
+lte(Result&lt;string&gt;, Result&lt;string&gt;): bool
+lte(bool, bool): bool
+lte(Result&lt;bool&gt;, bool): bool
+lte(bool, Result&lt;bool&gt;): bool
+lte(Result&lt;bool&gt;, Result&lt;bool&gt;): bool
 </code></pre>
 <h5><a class="header" href="#gt" id="gt">gt</a></h5>
 <pre><code class="language-alan">// Checks if the first value is greater than the second
 gt(int8, int8): bool
+gt(Result&lt;int8&gt;, int8): bool
+gt(int8, Result&lt;int8&gt;): bool
+gt(Result&lt;int8&gt;, Result&lt;int8&gt;): bool
 gt(int16, int16): bool
+gt(Result&lt;int16&gt;, int16): bool
+gt(int16, Result&lt;int16&gt;): bool
+gt(Result&lt;int16&gt;, Result&lt;int16&gt;): bool
 gt(int32, int32): bool
+gt(Result&lt;int32&gt;, int32): bool
+gt(int32, Result&lt;int32&gt;): bool
+gt(Result&lt;int32&gt;, Result&lt;int32&gt;): bool
 gt(int64, int64): bool
+gt(Result&lt;int64&gt;, int64): bool
+gt(int64, Result&lt;int64&gt;): bool
+gt(Result&lt;int64&gt;, Result&lt;int64&gt;): bool
 gt(float32, float32): bool
+gt(Result&lt;float32&gt;, float32): bool
+gt(float32, Result&lt;float32&gt;): bool
+gt(Result&lt;float32&gt;, Result&lt;float32&gt;): bool
 gt(float64, float64): bool
+gt(Result&lt;float64&gt;, float64): bool
+gt(float64, Result&lt;float64&gt;): bool
+gt(Result&lt;float64&gt;, Result&lt;float64&gt;): bool
 gt(string, string): bool
+gt(Result&lt;string&gt;, string): bool
+gt(string, Result&lt;string&gt;): bool
+gt(Result&lt;string&gt;, Result&lt;string&gt;): bool
+gt(bool, bool): bool
+gt(Result&lt;bool&gt;, bool): bool
+gt(bool, Result&lt;bool&gt;): bool
+gt(Result&lt;bool&gt;, Result&lt;bool&gt;): bool
 </code></pre>
 <h5><a class="header" href="#gte" id="gte">gte</a></h5>
 <pre><code class="language-alan">// Checks if the first value is greater than or equal to the second
 gte(int8, int8): bool
+gte(Result&lt;int8&gt;, int8): bool
+gte(int8, Result&lt;int8&gt;): bool
+gte(Result&lt;int8&gt;, Result&lt;int8&gt;): bool
 gte(int16, int16): bool
+gte(Result&lt;int16&gt;, int16): bool
+gte(int16, Result&lt;int16&gt;): bool
+gte(Result&lt;int16&gt;, Result&lt;int16&gt;): bool
 gte(int32, int32): bool
+gte(Result&lt;int32&gt;, int32): bool
+gte(int32, Result&lt;int32&gt;): bool
+gte(Result&lt;int32&gt;, Result&lt;int32&gt;): bool
 gte(int64, int64): bool
+gte(Result&lt;int64&gt;, int64): bool
+gte(int64, Result&lt;int64&gt;): bool
+gte(Result&lt;int64&gt;, Result&lt;int64&gt;): bool
 gte(float32, float32): bool
+gte(Result&lt;float32&gt;, float32): bool
+gte(float32, Result&lt;float32&gt;): bool
+gte(Result&lt;float32&gt;, Result&lt;float32&gt;): bool
 gte(float64, float64): bool
+gte(Result&lt;float64&gt;, float64): bool
+gte(float64, Result&lt;float64&gt;): bool
+gte(Result&lt;float64&gt;, Result&lt;float64&gt;): bool
 gte(string, string): bool
+gte(Result&lt;string&gt;, string): bool
+gte(string, Result&lt;string&gt;): bool
+gte(Result&lt;string&gt;, Result&lt;string&gt;): bool
+gte(bool, bool): bool
+gte(Result&lt;bool&gt;, bool): bool
+gte(bool, Result&lt;bool&gt;): bool
+gte(Result&lt;bool&gt;, Result&lt;bool&gt;): bool
 </code></pre>
 <h4><a class="header" href="#string-manipulation" id="string-manipulation">String Manipulation</a></h4>
 <h5><a class="header" href="#concat" id="concat">concat</a></h5>
@@ -1461,7 +1830,7 @@ wait(int64): void
       <td><code>|</code></td><td>infix</td><td>2</td><td><a href="builtins/./bitwise.html#or">or</a></td>
     </tr>
     <tr>
-      <td><code>||</code></td><td>infix</td><td>2</td><td><a href="builtins/./bitwise.html#or">or</a></td>
+      <td><code>||</code></td><td>infix</td><td>2</td><td><a href="builtins/./bitwise.html#boolor">boolor</a></td>
     </tr>
     <tr>
       <td><code>^</code></td><td>infix</td><td>2</td><td><a href="builtins/./bitwise.html#xor">xor</a></td>
@@ -1473,16 +1842,13 @@ wait(int64): void
       <td><code>!^</code></td><td>infix</td><td>2</td><td><a href="builtins/./bitwise.html#xnor">xnor</a></td>
     </tr>
     <tr>
-      <td><code>|</code></td><td>infix</td><td>2</td><td><a href="builtins/./result_maybe.html#getOr">getOr</a></td>
-    </tr>
-    <tr>
       <td><code>||</code></td><td>infix</td><td>2</td><td><a href="builtins/./result_maybe.html#getOr">getOr</a></td>
     </tr>
     <tr>
       <td><code>*</code></td><td>infix</td><td>3</td><td><a href="builtins/./array_api.html#repeat">repeat</a></td>
     </tr>
     <tr>
-      <td><code>/</code></td><td>infix</td><td>3</td><td><a href="builtins/./string_api.html#repeat">repeat</a></td>
+      <td><code>/</code></td><td>infix</td><td>3</td><td><a href="builtins/./string_api.html#split">split</a></td>
     </tr>
     <tr>
       <td><code>%</code></td><td>infix</td><td>3</td><td><a href="builtins/./string_api.html#template">template</a></td>
@@ -1528,30 +1894,66 @@ interface anythingElse {}
 <pre><code class="language-alan">// An interface that restricts valid types to only those that can be converted into strings. Useful
 // for printing.
 interface Stringifiable {
-  toString(Stringifiable): string
+  toString(Stringifiable): string,
+}
+</code></pre>
+<h4><a class="header" href="#orderable" id="orderable">Orderable</a></h4>
+<pre><code class="language-alan">// An interface that restricts valid types to only those that can be ordered versus each other. This
+// is used for the `min` and `max` functions. Will later also be used for Array sorting.
+interface Orderable {
+  lt(Orderable, Orderable): bool,
+  lte(Orderable, Orderable): bool,
+  gt(Orderable, Orderable): bool,
+  gte(Orderable, Orderable): bool,
 }
 </code></pre>
 <h5><a class="header" href="#hashable" id="hashable">Hashable</a></h5>
 <pre><code class="language-alan">// An interface that determines if a type is hashable and comparable. Used by HashMap for the keys.
+// Due to how `toHash` is implemented, the true constraint is only if `eq` has been implemented.
 interface Hashable {
-  toHash(Hashable): int64
-  eq(Hashable, Hashable): bool
+  toHash(Hashable): int64,
+  eq(Hashable, Hashable): bool,
 }
 </code></pre>
+<h5><a class="header" href="#canfloat64" id="canfloat64">canFloat64</a></h5>
+<pre><code class="language-alan">// An interface that determines if the type can be converted to a float64. Used for the `float` type
+// alias.
+interface canFloat64 {
+  toFloat64(canFloat64): float64,
+}
+</code></pre>
+<h5><a class="header" href="#canint64" id="canint64">canInt64</a></h5>
+<pre><code class="language-alan">// An interface that determines if the type can be converted to an int64. Used for the `int` type
+// alias.
+interface canInt64 {
+  toInt64(canInt64): int64,
+}</code></pre>
 <h2><a class="header" href="#standard-library" id="standard-library">Standard Library</a></h2>
 <p>The <a href="https://github.com/alantech/alan/tree/main/std">Alan Standard Library</a> is still small and barely complete enough to make non-trivial programs with, at the moment. We intend to follow the &quot;batteries included&quot; ethos of Python and Java and include many libraries such that &quot;normal&quot; usage of the language only requires libraries for access to third-party services, and then only as a convenience.</p>
 <p>If you are interested in contributing please drop us a line on <a href="https://discord.gg/XatB9we">Discord</a>.</p>
 <h3><a class="header" href="#stdapp" id="stdapp">@std/app</a></h3>
-<p>Currently very bare, only a single <code>print</code> function that takes all of the basic types and puts it on the console, and three events <code>start</code>, <code>exit</code>, and <code>stdout</code>. <code>start</code> intended to be handled by the user as it is automatically emitted <em>once</em> and <code>exit</code> to be emitted by the user when the program should finish. <code>stdout</code> is for more direct streaming of characters to standard out.</p>
-<p>The formal declarations:</p>
-<pre><code class="language-alan">fn print(Stringifiable): void
-</code></pre>
+<p>There are three concepts currently in <code>app</code>, process start and exit management, <code>stdout</code> writing, and <code>stderr</code> writing.</p>
+<p>If your application needs to trigger explicit execution on startup (eg, it's not a web server) then you would register a listener on the <code>start</code> event:</p>
 <pre><code class="language-alan">event start: void
 </code></pre>
+<p>When you want to terminate the process, you would emit an exit code at the <code>exit</code> event:</p>
 <pre><code class="language-alan">event exit: int8
 </code></pre>
+<p>To write to <code>stdout</code> you either directly emit strings to the <code>stdout</code> event:</p>
 <pre><code class="language-alan">event stdout: string
 </code></pre>
+<p>Or you can call <code>print</code> with any type that matches the <code>Stringifiable</code> interface:</p>
+<pre><code class="language-alan">fn print(Stringifiable): void
+</code></pre>
+<p><code>print</code> automatically appends a newline character to the output.</p>
+<p>To write to <code>stderr</code> you either directly emit strings to the <code>stderr</code> event:</p>
+<pre><code class="language-alan">event stderr: string
+</code></pre>
+<p>Or you can call <code>eprint</code> with any type that matches the <code>Stringifiable</code> interface:</p>
+<pre><code class="language-alan">fn eprint(Stringifiable): void
+</code></pre>
+<p><code>eprint</code> automatically appends a newline character to the output.</p>
+<p>Eventually process arguments and stdin will be accessible here, but this is not yet the case.</p>
 <h2><a class="header" href="#stdseq-to-express-sequential-algorithms-in-alan" id="stdseq-to-express-sequential-algorithms-in-alan">@std/seq to express Sequential Algorithms in Alan</a></h2>
 <p>Alan does not allow arbitrary, or classical, loops or recursion and <a href="./advanced_examples.html#loopln">the preferred way to do iteration is with arrays</a>. However, there are algorithms people need to write that are inherently sequential, and often non-deterministic on the number of steps needed to take, such as with numeric approximation algorithms like Newton-Raphson, or anything written as a recursive function call. Most of the problems developers need to solve do not require this linearity, but for when it really is required, we are reintroducing this power in a controlled manner that still allows the AVM to be able to plan around these algorithms and provide the guarantee of termination. The <code>@std/seq</code> syntax was <a href="https://github.com/alantech/alan/blob/main/rfcs/007%20-%20Sequential%20Algorithms%20RFC.md">designed</a> to <em>not</em> feel like classical control flow in order to nudge developers to find better, more deterministic and more parallelizable mechanisms, instead.</p>
 <p>Here are the function signatures of the sequential functions that <code>@std/seq</code> provides:</p>
@@ -1600,7 +2002,7 @@ on start {
   let s = seq(100);
   let sum = 0;
   s.while(fn = sum &lt; 10, fn {
-    sum = sum + 1;
+    sum = sum + 1 || 0;
   });
   print(sum);
   emit exit 0;
@@ -1618,7 +2020,7 @@ on start {
   let sum = 0;
   // TODO: Still need type inference working for multi-line closures
   s.doWhile(fn (): bool {
-    sum = sum + 1;
+    sum = sum + 1 || 0;
     return sum &lt; 10;
   });
   print(sum);
@@ -1658,7 +2060,7 @@ on start {
 </code></pre>
 <p><code>Self</code> is another opaque type that the AVM can use to keep track of the function to be called recursively and how deep the recursion has gone so far. The <code>recursiveFn</code> <em>must</em> wrap its value in a <code>Result</code> type because <code>alan</code> may interject and bubble up an error if the recursion limit is reached.</p>
 <h3><a class="header" href="#stdcmd" id="stdcmd">@std/cmd</a></h3>
-<p>Also very bare, only a single type <code>ExecRes</code>, and a function: <code>exec</code> with the signature:</p>
+<p>Currently very bare, only a single type <code>ExecRes</code>, and a function: <code>exec</code> with the signature:</p>
 <pre><code class="language-alan">type ExecRes {
   exitCode: int64,
   stdout: string,
@@ -1671,6 +2073,8 @@ on start {
 <h3><a class="header" href="#stddeps" id="stddeps">@std/deps</a></h3>
 <p>This library provides code to manage the dependencies of an Alan project.</p>
 <p>It exports one event, <code>install</code> that scripts managing dependencies should use instead of <code>start</code>.</p>
+<pre><code class="language-alan">event install: void
+</code></pre>
 <p>It also exports two functions <code>add</code>, and <code>commit</code> with the following signature:</p>
 <pre><code>add(string): void
 commit(): void
@@ -1678,249 +2082,439 @@ commit(): void
 <p>The <code>add</code> function takes the given string, treats it as a <code>git</code> URL and acquires the specified repository. Currently assumes a Github-like URL format ending with <code>accountName/projectName.git</code> and uses this namespacing to place the git repository into the project dependency tree such that it is accessible to import as <code>@accountName/projectName</code>. The <code>commit</code> function indicates that all changes to the dependency tree are done and allows the dependency management program to commit and close out.</p>
 <h3><a class="header" href="#stdtrig" id="stdtrig">@std/trig</a></h3>
 <p>This standard library provides the constants <a href="https://simple.wikipedia.org/wiki/E_(mathematical_constant)">e</a>, <a href="https://en.wikipedia.org/wiki/Pi">pi</a>, and <a href="https://math.wikia.org/wiki/Tau_(constant)">tau</a>, <a href="https://en.wikipedia.org/wiki/List_of_trigonometric_identities">all of the trigonometric functions</a>, the <a href="https://en.wikipedia.org/wiki/Hyperbolic_functions">hyperbolic functions</a>, the <a href="https://en.wikipedia.org/wiki/Common_logarithm">common</a> and <a href="https://en.wikipedia.org/wiki/Natural_logarithm">natural</a> logarithms, and the <a href="https://en.wikipedia.org/wiki/Exponential_function">exp function</a>.</p>
-<p>All of the trigonometric functions are exported with both <code>float32</code> and <code>float64</code> support, and with both a short 3-5 character name common in textbooks and a fully-spelled out name. Eg, <code>sin</code> is the same as <code>sine</code> and <code>ahcc</code> is the same as <code>archacovercosine</code>. The meanings and uses of the trigonometric functions will not be covered in here as the Wikipedia links in the first paragraph provide a far better and in-depth explanation, including some <a href="https://upload.wikimedia.org/wikipedia/commons/9/9d/Circle-trig6.svg">great visual diagrams</a> that can elucidate things quickly for those already familiar with the classic <code>sin</code>, <code>cos</code>, and <code>tan</code>. Instead, below will be a listing of the signatures of everything exported by the library.</p>
+<p>All of the trigonometric functions are exported with <code>float32</code> and <code>float64</code> support as well as Result-wrapped variants. Most are infallible but some are not. The trigonometric functions are defined with both a short 3-5 character name common in textbooks and a fully-spelled out name. Eg, <code>sin</code> is the same as <code>sine</code> and <code>ahcc</code> is the same as <code>archacovercosine</code>. The meanings and uses of the trigonometric functions will not be covered in here as the Wikipedia links in the first paragraph provide a far better and in-depth explanation, including some <a href="https://upload.wikimedia.org/wikipedia/commons/9/9d/Circle-trig6.svg">great visual diagrams</a> that can elucidate things quickly for those already familiar with the classic <code>sin</code>, <code>cos</code>, and <code>tan</code>. Instead, below will be a listing of the signatures of everything exported by the library.</p>
 <pre><code class="language-alan">e: float64
 pi: float64
 tau: float64
 
 fn exp(float64): float64
+fn exp(Result&lt;float64&gt;): Result&lt;float64&gt;
 fn exp(float32): float32
+fn exp(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn ln(x: float64): float64
-fn ln(x: float32): float32
+fn ln(float64): float64
+fn ln(float32): float32
+fn ln(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn ln(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn log(x: float64): float64
-fn log(x: float32): float32
+fn log(float64): float64
+fn log(float32): float32
+fn log(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn log(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn sin(x: float64): float64
-fn sin(x: float32): float32
-fn sine(x: float64): float64
-fn sine(x: float32): float32
+fn sin(float64): float64
+fn sin(float32): float32
+fn sin(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn sin(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn sine(float64): float64
+fn sine(float32): float32
+fn sine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn sine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn cos(x: float64): float64
-fn cos(x: float32): float32
-fn cosine(x: float64): float64
-fn cosine(x: float32): float32
+fn cos(float64): float64
+fn cos(float32): float32
+fn cos(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cos(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn cosine(float64): float64
+fn cosine(float32): float32
+fn cosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn tan(x: float64): float64
-fn tan(x: float32): float32
-fn tangent(x: float64): float64
-fn tangent(x: float32): float32
+fn tan(float64): float64
+fn tan(float32): float32
+fn tan(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn tan(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn tangent(float64): float64
+fn tangent(float32): float32
+fn tangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn tangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn sec(x: float64): float64
-fn sec(x: float32): float32
-fn secant(x: float64): float64
-fn secant(x: float32): float32
+fn sec(float64): Result&lt;float64&gt;
+fn sec(float32): Result&lt;float32&gt;
+fn sec(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn sec(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn secant(float64): Result&lt;float64&gt;
+fn secant(float32): Result&lt;float32&gt;
+fn secant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn secant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn csc(x: float64): float64
-fn csc(x: float32): float32
-fn cosecant(x: float64): float64
-fn cosecant(x: float32): float32
+fn csc(float64): Result&lt;float64&gt;
+fn csc(float32): Result&lt;float32&gt;
+fn csc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn csc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn cosecant(float64): Result&lt;float64&gt;
+fn cosecant(float32): Result&lt;float32&gt;
+fn cosecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cosecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn cot(x: float64): float64
-fn cot(x: float32): float32
-fn cotangent(x: float64): float64
-fn cotangent(x: float32): float32
+fn cot(float64): Result&lt;float64&gt;
+fn cot(float32): Result&lt;float32&gt;
+fn cot(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cot(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn cotangent(float64): Result&lt;float64&gt;
+fn cotangent(float32): Result&lt;float32&gt;
+fn cotangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cotangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn asin(x: float64): float64
-fn asin(x: float32): float32
-fn arcsine(x: float64): float64
-fn arcsine(x: float32): float32
+fn asin(float64): float64
+fn asin(float32): float32
+fn asin(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn asin(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcsine(float64): float64
+fn arcsine(float32): float32
+fn arcsine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcsine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acos(x: float64): float64
-fn acos(x: float32): float32
-fn arccosine(x: float64): float64
-fn arccosine(x: float32): float32
+fn acos(float64): float64
+fn acos(float32): float32
+fn acos(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acos(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arccosine(float64): Result&lt;float64&gt;
+fn arccosine(float32): Result&lt;float32&gt;
+fn arccosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arccosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn atan(x: float64): float64
-fn atan(x: float32): float32
-fn arctangent(x: float64): float64
-fn arctangent(x: float32): float32
+fn atan(float64): float64
+fn atan(float32): float32
+fn atan(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn atan(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arctangent(float64): float64
+fn arctangent(float32): float32
+fn arctangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arctangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn asec(x: float64): float64
-fn asec(x: float32): float32
-fn arcsecant(x: float64): float64
-fn arcsecant(x: float32): float32
+fn asec(float64): Result&lt;float64&gt;
+fn asec(float32): Result&lt;float32&gt;
+fn asec(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn asec(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcsecant(float64): float64
+fn arcsecant(float32): float32
+fn arcsecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcsecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acsc(x: float64): float64
-fn acsc(x: float32): float32
-fn arccosecant(x: float64): float64
-fn arccosecant(x: float32): float32
+fn acsc(float64): Result&lt;float64&gt;
+fn acsc(float32): Result&lt;float32&gt;
+fn acsc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acsc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arccosecant(float64): Result&lt;float64&gt;
+fn arccosecant(float32): Result&lt;float32&gt;
+fn arccosecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arccosecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acot(x: float64): float64
-fn acot(x: float32): float32
-fn arccotangent(x: float64): float64
-fn arccotangent(x: float32): float32
+fn acot(float64): Result&lt;float64&gt;
+fn acot(float32): Result&lt;float32&gt;
+fn acot(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acot(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arccotangent(float64): Result&lt;float64&gt;
+fn arccotangent(float32): Result&lt;float32&gt;
+fn arccotangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arccotangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn ver(x: float64): float64
-fn ver(x: float32): float32
-fn versine(x: float64): float64
-fn versine(x: float32): float32
+fn ver(float64): Result&lt;float64&gt;
+fn ver(float32): Result&lt;float32&gt;
+fn ver(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn ver(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn versine(float64): Result&lt;float64&gt;
+fn versine(float32): Result&lt;float32&gt;
+fn versine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn versine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn vcs(x: float64): float64
-fn vcs(x: float32): float32
-fn vercosine(x: float64): float64
-fn vercosine(x: float32): float32
+fn vcs(float64): Result&lt;float64&gt;
+fn vcs(float32): Result&lt;float32&gt;
+fn vcs(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn vcs(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn vercosine(float64): Result&lt;float64&gt;
+fn vercosine(float32): Result&lt;float32&gt;
+fn vercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn vercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn cvs(x: float64): float64
-fn cvs(x: float32): float32
-fn coversine(x: float64): float64
-fn coversine(x: float32): float32
+fn cvs(float64): Result&lt;float64&gt;
+fn cvs(float32): Result&lt;float32&gt;
+fn cvs(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cvs(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn coversine(float64): Result&lt;float64&gt;
+fn coversine(float32): Result&lt;float32&gt;
+fn coversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn coversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn cvc(x: float64): float64
-fn cvc(x: float32): float32
-fn covercosine(x: float64): float64
-fn covercosine(x: float32): float32
+fn cvc(float64): Result&lt;float64&gt;
+fn cvc(float32): Result&lt;float32&gt;
+fn cvc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cvc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn covercosine(float64): Result&lt;float64&gt;
+fn covercosine(float32): Result&lt;float32&gt;
+fn covercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn covercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn hav(x: float64): float64
-fn hav(x: float32): float32
-fn haversine(x: float64): float64
-fn haversine(x: float32): float32
+fn hav(float64): Result&lt;float64&gt;
+fn hav(float32): Result&lt;float32&gt;
+fn hav(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hav(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn haversine(float64): Result&lt;float64&gt;
+fn haversine(float32): Result&lt;float32&gt;
+fn haversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn haversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn hvc(x: float64): float64
-fn hvc(x: float32): float32
-fn havercosine(x: float64): float64
-fn havercosine(x: float32): float32
+fn hvc(float64): Result&lt;float64&gt;
+fn hvc(float32): Result&lt;float32&gt;
+fn hvc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hvc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn havercosine(float64): Result&lt;float64&gt;
+fn havercosine(float32): Result&lt;float32&gt;
+fn havercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn havercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn hcv(x: float64): float64
-fn hcv(x: float32): float32
-fn hacoversine(x: float64): float64
-fn hacoversine(x: float32): float32
+fn hcv(float64): Result&lt;float64&gt;
+fn hcv(float32): Result&lt;float32&gt;
+fn hcv(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hcv(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hacoversine(float64): Result&lt;float64&gt;
+fn hacoversine(float32): Result&lt;float32&gt;
+fn hacoversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hacoversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn hcc(x: float64): float64
-fn hcc(x: float32): float32
-fn hacovercosine(x: float64): float64
-fn hacovercosine(x: float32): float32
+fn hcc(float64): Result&lt;float64&gt;
+fn hcc(float32): Result&lt;float32&gt;
+fn hcc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hcc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hacovercosine(float64): Result&lt;float64&gt;
+fn hacovercosine(float32): Result&lt;float32&gt;
+fn hacovercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hacovercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn exs(x: float64): float64
-fn exs(x: float32): float32
-fn exsecant(x: float64): float64
-fn exsecant(x: float32): float32
+fn exs(float64): Result&lt;float64&gt;
+fn exs(float32): Result&lt;float32&gt;
+fn exs(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn exs(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn exsecant(float64): Result&lt;float64&gt;
+fn exsecant(float32): Result&lt;float32&gt;
+fn exsecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn exsecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn exc(x: float64): float64
-fn exc(x: float32): float32
-fn excosecant(x: float64): float64
-fn excosecant(x: float32): float32
+fn exc(float64): Result&lt;float64&gt;
+fn exc(float32): Result&lt;float32&gt;
+fn exc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn exc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn excosecant(float64): Result&lt;float64&gt;
+fn excosecant(float32): Result&lt;float32&gt;
+fn excosecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn excosecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn crd(x: float64): float64
-fn crd(x: float32): float32
-fn chord(x: float64): float64
-fn chord(x: float32): float32
+fn crd(float64): Result&lt;float64&gt;
+fn crd(float32): Result&lt;float32&gt;
+fn crd(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn crd(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn chord(float64): Result&lt;float64&gt;
+fn chord(float32): Result&lt;float32&gt;
+fn chord(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn chord(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn aver(x: float64): float64
-fn aver(x: float32): float32
-fn arcversine(x: float64): float64
-fn arcversine(x: float32): float32
+fn aver(float64): Result&lt;float64&gt;
+fn aver(float32): Result&lt;float32&gt;
+fn aver(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn aver(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcversine(float64): Result&lt;float64&gt;
+fn arcversine(float32): Result&lt;float32&gt;
+fn arcversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn avcs(x: float64): float64
-fn avcs(x: float32): float32
-fn arcvercosine(x: float64): float64
-fn arcvercosine(x: float32): float32
+fn avcs(float64): Result&lt;float64&gt;
+fn avcs(float32): Result&lt;float32&gt;
+fn avcs(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn avcs(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcvercosine(float64): Result&lt;float64&gt;
+fn arcvercosine(float32): Result&lt;float32&gt;
+fn arcvercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcvercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acvs(x: float64): float64
-fn acvs(x: float32): float32
-fn arccoversine(x: float64): float64
-fn arccoversine(x: float32): float32
+fn acvs(float64): Result&lt;float64&gt;
+fn acvs(float32): Result&lt;float32&gt;
+fn acvs(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acvs(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arccoversine(float64): Result&lt;float64&gt;
+fn arccoversine(float32): Result&lt;float32&gt;
+fn arccoversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arccoversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acvc(x: float64): float64
-fn acvc(x: float32): float32
-fn arccovercosine(x: float64): float64
-fn arccovercosine(x: float32): float32
+fn acvc(float64): Result&lt;float64&gt;
+fn acvc(float32): Result&lt;float32&gt;
+fn acvc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acvc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arccovercosine(float64): Result&lt;float64&gt;
+fn arccovercosine(float32): Result&lt;float32&gt;
+fn arccovercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arccovercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn ahav(x: float64): float64
-fn ahav(x: float32): float32
-fn archaversine(x: float64): float64
-fn archaversine(x: float32): float32
+fn ahav(float64): Result&lt;float64&gt;
+fn ahav(float32): Result&lt;float32&gt;
+fn ahav(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn ahav(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn archaversine(float64): Result&lt;float64&gt;
+fn archaversine(float32): Result&lt;float32&gt;
+fn archaversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn archaversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn ahvc(x: float64): float64
-fn ahvc(x: float32): float32
-fn archavercosine(x: float64): float64
-fn archavercosine(x: float32): float32
+fn ahvc(float64): Result&lt;float64&gt;
+fn ahvc(float32): Result&lt;float32&gt;
+fn ahvc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn ahvc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn archavercosine(float64): Result&lt;float64&gt;
+fn archavercosine(float32): Result&lt;float32&gt;
+fn archavercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn archavercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn ahcv(x: float64): float64
-fn ahcv(x: float32): float32
-fn archacoversine(x: float64): float64
-fn archacoversine(x: float32): float32
+fn ahcv(float64): Result&lt;float64&gt;
+fn ahcv(float32): Result&lt;float32&gt;
+fn ahcv(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn ahcv(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn archacoversine(float64): Result&lt;float64&gt;
+fn archacoversine(float32): Result&lt;float32&gt;
+fn archacoversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn archacoversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn ahcc(x: float64): float64
-fn ahcc(x: float32): float32
-fn archacovercosine(x: float64): float64
-fn archacovercosine(x: float32): float32
+fn ahcc(float64): Result&lt;float64&gt;
+fn ahcc(float32): Result&lt;float32&gt;
+fn ahcc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn ahcc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn archacovercosine(float64): Result&lt;float64&gt;
+fn archacovercosine(float32): Result&lt;float32&gt;
+fn archacovercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn archacovercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn aexs(x: float64): float64
-fn aexs(x: float32): float32
-fn arcexsecant(x: float64): float64
-fn arcexsecant(x: float32): float32
+fn aexs(float64): Result&lt;float64&gt;
+fn aexs(float32): Result&lt;float32&gt;
+fn aexs(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn aexs(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcexsecant(float64): Result&lt;float64&gt;
+fn arcexsecant(float32): Result&lt;float32&gt;
+fn arcexsecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcexsecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn aexc(x: float64): float64
-fn aexc(x: float32): float32
-fn arcexcosecant(x: float64): float64
-fn arcexcosecant(x: float32): float32
+fn aexc(float64): Result&lt;float64&gt;
+fn aexc(float32): Result&lt;float32&gt;
+fn aexc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn aexc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcexcosecant(float64): Result&lt;float64&gt;
+fn arcexcosecant(float32): Result&lt;float32&gt;
+fn arcexcosecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcexcosecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acrd(x: float64): float64
-fn acrd(x: float32): float32
-fn arcchord(x: float64): float64
-fn arcchord(x: float32): float32
+fn acrd(float64): Result&lt;float64&gt;
+fn acrd(float32): Result&lt;float32&gt;
+fn acrd(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acrd(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcchord(float64): Result&lt;float64&gt;
+fn arcchord(float32): Result&lt;float32&gt;
+fn arcchord(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcchord(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn sinh(x: float64): float64
-fn sinh(x: float32): float32
-fn hyperbolicSine(x: float64): float64
-fn hyperbolicSine(x: float32): float32
+fn sinh(float64): float64
+fn sinh(float32): float32
+fn sinh(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn sinh(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicSine(float64): float64
+fn hyperbolicSine(float32): float32
+fn hyperbolicSine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicSine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn cosh(x: float64): float64
-fn cosh(x: float32): float32
-fn hyperbolicCosine(x: float64): float64
-fn hyperbolicCosine(x: float32): float32
+fn cosh(float64): float64
+fn cosh(float32): float32
+fn cosh(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cosh(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicCosine(float64): float64
+fn hyperbolicCosine(float32): float32
+fn hyperbolicCosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicCosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn tanh(x: float64): float64
-fn tanh(x: float32): float32
-fn hyperbolicTangent(x: float64): float64
-fn hyperbolicTangent(x: float32): float32
+fn tanh(float64): float64
+fn tanh(float32): float32
+fn tanh(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn tanh(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicTangent(float64): float64
+fn hyperbolicTangent(float32): float32
+fn hyperbolicTangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicTangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn sech(x: float64): float64
-fn sech(x: float32): float32
-fn hyperbolicSecant(x: float64): float64
-fn hyperbolicSecant(x: float32): float32
+fn sech(float64): Result&lt;float64&gt;
+fn sech(float32): Result&lt;float32&gt;
+fn sech(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn sech(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicSecant(float64): Result&lt;float64&gt;
+fn hyperbolicSecant(float32): Result&lt;float32&gt;
+fn hyperbolicSecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicSecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn csch(x: float64): float64
-fn csch(x: float32): float32
-fn hyperbolicCosecant(x: float64): float64
-fn hyperbolicCosecant(x: float32): float32
+fn csch(float64): Result&lt;float64&gt;
+fn csch(float32): Result&lt;float32&gt;
+fn csch(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn csch(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicCosecant(float64): Result&lt;float64&gt;
+fn hyperbolicCosecant(float32): Result&lt;float32&gt;
+fn hyperbolicCosecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicCosecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn coth(x: float64): float64
-fn coth(x: float32): float32
-fn hyperbolicCotangent(x: float64): float64
-fn hyperbolicCotangent(x: float32): float32
+fn coth(float64): Result&lt;float64&gt;
+fn coth(float32): Result&lt;float32&gt;
+fn coth(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn coth(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicCotangent(float64): Result&lt;float64&gt;
+fn hyperbolicCotangent(float32): Result&lt;float32&gt;
+fn hyperbolicCotangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicCotangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn asinh(x: float64): float64
-fn asinh(x: float32): float32
-fn hyperbolicArcsine(x: float64): float64
-fn hyperbolicArcsine(x: float32): float32
+fn asinh(float64): Result&lt;float64&gt;
+fn asinh(float32): Result&lt;float32&gt;
+fn asinh(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn asinh(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicArcsine(float64): Result&lt;float64&gt;
+fn hyperbolicArcsine(float32): Result&lt;float32&gt;
+fn hyperbolicArcsine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicArcsine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acosh(x: float64): float64
-fn acosh(x: float32): float32
-fn hyperbolicArccosine(x: float64): float64
-fn hyperbolicArccosine(x: float32): float32
+fn acosh(float64): Result&lt;float64&gt;
+fn acosh(float32): Result&lt;float32&gt;
+fn acosh(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acosh(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicArccosine(float64): Result&lt;float64&gt;
+fn hyperbolicArccosine(float32): Result&lt;float32&gt;
+fn hyperbolicArccosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicArccosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn atanh(x: float64): float64
-fn atanh(x: float32): float32
-fn hyperbolicArctangent(x: float64): float64
-fn hyperbolicArctangent(x: float32): float32
+fn atanh(float64): Result&lt;float64&gt;
+fn atanh(float32): Result&lt;float32&gt;
+fn atanh(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn atanh(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicArctangent(float64): Result&lt;float64&gt;
+fn hyperbolicArctangent(float32): Result&lt;float32&gt;
+fn hyperbolicArctangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicArctangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn asech(x: float64): float64
-fn asech(x: float32): float32
-fn hyperbolicArcsecant(x: float64): float64
-fn hyperbolicArcsecant(x: float32): float32
+fn asech(float64): Result&lt;float64&gt;
+fn asech(float32): Result&lt;float32&gt;
+fn asech(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn asech(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicArcsecant(float64): Result&lt;float64&gt;
+fn hyperbolicArcsecant(float32): Result&lt;float32&gt;
+fn hyperbolicArcsecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicArcsecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acsch(x: float64): float64
-fn acsch(x: float32): float32
-fn hyperbolicArccosecant(x: float64): float64
-fn hyperbolicArccosecant(x: float32): float32
+fn acsch(float64): Result&lt;float64&gt;
+fn acsch(float32): Result&lt;float32&gt;
+fn acsch(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acsch(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicArccosecant(float64): Result&lt;float64&gt;
+fn hyperbolicArccosecant(float32): Result&lt;float32&gt;
+fn hyperbolicArccosecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicArccosecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acoth(x: float64): float64
-fn acoth(x: float32): float32
-fn hyperbolicArccotangent(x: float64): float64
-fn hyperbolicArccotangent(x: float32): float32
+fn acoth(float64): Result&lt;float64&gt;
+fn acoth(float32): Result&lt;float32&gt;
+fn acoth(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acoth(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicArccotangent(float64): Result&lt;float64&gt;
+fn hyperbolicArccotangent(float32): Result&lt;float32&gt;
+fn hyperbolicArccotangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicArccotangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 </code></pre>
 <h1><a class="header" href="#examples-with-explanations" id="examples-with-explanations">Examples with Explanations</a></h1>
 <p>In this section, several examples will be demonstrated with the Alan language. Some of them will be repetitious, showing multiple ways to accomplish the same thing.</p>
@@ -2017,7 +2611,7 @@ on start main
 
 on start {
   const count = [1, 2, 3, 4, 5];
-  const byTwos = count.map(fn (n: int64): int64 = n * 2);
+  const byTwos = count.map(fn (n: int64): int64 = n * 2 || 0);
   count.map(toString).join(', ').print();
   byTwos.map(toString).join(', ').print();
   emit exit 0;
@@ -2523,17 +3117,17 @@ on app.start {
 <p><strong>AMM</strong> is a heavily stripped-down version of the language but technically syntactically compatible. It only has constants, events, event handlers, functions, closures, function calls, and assignments. Everything else, including conditionals, is stripped away.</p>
 <p><strong>JS:</strong> <em>AMM</em> looks surprisingly close to Javascript/Typescript, so a transpiler was written that mostly just strips out the type information and replaces all of opcode calls with method calls on <a href="https://github.com/alantech/alan/blob/main/js-runtime/index.js">a pretty simple runtime shim</a>.</p>
 <p>The transpiled Javascript doesn't have any of the benefits of the language in terms of cpu parallelism or automatic concurrency, but with some extra intelligence in the transpilation and judicious use of WebWorker threads that could be restored.</p>
-<p><strong>AGA</strong> looks very similar to assembly, but with annotation on events, closures, and the dependency graph that the Alan Runtime uses reorganize for concurrency and parallelism benefits.</p>
+<p><strong>AGA</strong> looks very similar to assembly, but with annotation on events, closures, and the dependency graph that the Alan Runtime uses to reorganize for concurrency and parallelism benefits.</p>
 <p><strong>AGC</strong> is the binary version of <em>AGA</em> and is a near direct translation of the text to a 64-bit little-endian integer packed array, with keywords being given numeric values that are clearly interpretable as 8 UTF-8/ASCII characters.</p>
-<p>The compiler contains as a set of AST generators for the various input formats (<a href="https://github.com/alantech/alan/tree/main/compiler/src/ln">ln</a>, <a href="https://github.com/alantech/alan/blob/main/compiler/src/amm.ts">amm</a>, <a href="https://github.com/alantech/alan/blob/main/compiler/src/aga.ts">aga</a>) with ln using <a href="https://www.antlr.org/">ANTLR</a> to define its grammar and the other two using our homegrown <a href="https://github.com/alantech/alan/blob/main/compiler/src/lp.ts">lp</a>.</p>
+<p>The compiler contains as a set of AST generators for the various input formats (<a href="https://github.com/alantech/alan/tree/main/compiler/src/ln.ts">ln</a>, <a href="https://github.com/alantech/alan/blob/main/compiler/src/amm.ts">amm</a>, <a href="https://github.com/alantech/alan/blob/main/compiler/src/aga.ts">aga</a>). The grammars are defined using our homegrown <a href="https://github.com/alantech/alan/blob/main/compiler/src/lp.ts">lp</a> recursive descent parser.</p>
 <p>Next, the compiler has the translation stages that go from one input format to another output format (<a href="https://github.com/alantech/alan/tree/main/compiler/src/lntoamm">lntoamm</a>, <a href="https://github.com/alantech/alan/blob/main/compiler/src/ammtojs.ts">ammtojs</a>, <a href="https://github.com/alantech/alan/blob/main/compiler/src/ammtoaga.ts">ammtoaga</a>, <a href="https://github.com/alantech/alan/blob/main/compiler/src/agatoagc.ts">agatoagc</a>).</p>
 <p>While overkill at the moment, the compiler <a href="https://github.com/alantech/alan/blob/main/compiler/src/pipeline.ts">solves the shortest path from the specified input file to output file and constructs the pipeline to do so on the fly</a>. (This is much faster than it sounds and has allowed us to add new inputs/outputs and translation formats quickly.)</p>
 <h2><a class="header" href="#ln-to-amm" id="ln-to-amm">LN to AMM</a></h2>
-<p>The first stage of the compiler dominates with more than 90% of the total compile time, and within that, the ANTLR-generated parser takes over 99% of the time within the <code>lntoamm</code> layer. (Speeding this up is very important to us.) Once the AST is generated, the first layer transforms this into a scope-oriented collection of elements and then generates AMM code on a per-event-handler basis, finally it looks for constants in these handlers and hoists them to the global scope and deduplicates them, then emits this in the AMM format.</p>
+<p>The first stage of the compiler dominates with the most complex grammar rules in parsing and the most flexibility in interpreting generics and interface-based functions into &quot;real&quot; types and functions. Once the AST is generated, the first layer transforms this into a scope-oriented collection of elements and then generates AMM code on a per-event-handler basis, finally it looks for constants in these handlers and hoists them to the global scope and deduplicates them, then emits this in the AMM format.</p>
 <h2><a class="header" href="#amm-to-js-or-aga" id="amm-to-js-or-aga">AMM to JS or AGA</a></h2>
-<p>The next stage of the compiler takes the AMM and converts it either into AGA or Javascript. Javascript is a very simple translation, as AMM was designed to look like a &quot;least common denominator scope-based language&quot; which is a very large number of popular languages, and particularly so for Javascript also having a built-in event loop versus that concept being a library. The AGA conversion takes a bit more time as the variables need to be assigned memory addresses during their run and nested scopes in event handlers pulled out into &quot;closure handlers&quot;, but both of these conversions, both the parsing of AMM and the generation of JS or AGA, take less than 1% of the time the first stage compiler takes.</p>
+<p>The next stage of the compiler takes the AMM and converts it either into AGA or Javascript. Javascript is a very simple translation, as AMM was designed to look like a &quot;least common denominator scope-based language&quot; which is a very large number of popular languages, and particularly so for Javascript also having a built-in event loop versus that concept being a library. The AGA conversion takes a bit more time as the variables need to be assigned memory addresses during their run and nested scopes in event handlers pulled out into &quot;closure handlers&quot;.</p>
 <h2><a class="header" href="#aga-to-agc" id="aga-to-agc">AGA to AGC</a></h2>
-<p>If targeting to AGC, the final stage of the compiler converts the AGA to it with a very straightforward parse and re-emit into 64-bit integers appended to an array and then written to disk. This format doesn't work in the browser due to depending on Node.js's Buffer API as well as the new BigInt/BigUInt support it has, which no browser shim supports, yet, but thankfully that is not needed to build runnable code in the browser!</p>
+<p>If targeting to AGC, the final stage of the compiler converts the AGA to AGC with a very straightforward parse and re-emit into 64-bit integers appended to an array and then written to disk. This format doesn't work in the browser due to depending on Node.js's Buffer API, which no browser shim supports, yet, but thankfully that is not needed to build runnable code in the browser!</p>
 <h2><a class="header" href="#amm-language-reference" id="amm-language-reference">AMM Language Reference</a></h2>
 <p>Alan-- is an intentionally strict subset of Alan's grammar as an intermediate stage for compilation. It defines a relatively simple scope-based syntax that happens to be a perfectly suitable subset for converting to a variety of different languages, including conversion towards assembly-like languages (AGA) or other scope-based languages like Javascript.</p>
 <p>The only syntactic elements left in the language are constants, let variables, let variable reassignment, events, event handlers, closure functions, and function calls. Everything else, including conditionals, is stripped away. These remaining elements also have some constraints placed on them versus their fuller representation in Alan proper.</p>

@@ -160,22 +160,22 @@
 <p>The <code>int64</code> and <code>float64</code> types are special among the numeric types, as these are the types that any numeric constant will be represented as, depending on whether or not it has a decimal. They have been given aliases of <code>int</code> and <code>float</code> respectively for that reason.</p>
 <p>The four &quot;main&quot; basic types (<code>int64</code>, <code>float64</code>, <code>bool</code> and <code>void</code>) have constant representations that you can easily type. The non-64-bit numeric types are considered specialized types and are discouraged (the runtime does not take advantage of the potential space optimizations they provide to keep the internal memory addressing system simpler), so constants for those types must be explicitly casted using the <code>to&lt;Type&gt;</code> functions discussed in the <a href="./type_coercion.html">Type Coercion</a> section.</p>
 <p>The integers have basic base-10 integer form as well as hexadecimal form. Binary and Octal forms are not implemented but that may change if there is demand for it.</p>
-<pre><code class="language-alan">const base10 = 12345
-const base16 = 0xabcde
+<pre><code class="language-alan">const base10 = 12345;
+const base16 = 0xabcde;
 </code></pre>
 <p>The floating point numbers have only basic base-10 with a decimal point form, no scientific notation form yet, but that may change if there is demand for it.</p>
-<pre><code class="language-alan">const floating = 1.2345
+<pre><code class="language-alan">const floating = 1.2345;
 </code></pre>
 <p>Booleans are represented by the keywords <code>true</code> and <code>false</code>. <code>void</code> has no representation beyond <code>void</code>. It can't be assigned to, and is meant to represent functions that return nothing.</p>
-<pre><code class="language-alan">const boolean = true
-const someVoid = void
+<pre><code class="language-alan">const boolean = true;
+const someVoid = void;
 </code></pre>
 <p>The basic types are included in the root scope and never need to be explicitly defined, they always exist.</p>
 <h5><a class="header" href="#strings" id="strings">Strings</a></h5>
 <p>Strings (<code>string</code>) are a bit beyond the basic type. From the perspective of the user of Alan they are <code>utf-8</code> byte arrays (multi-byte code points increase the string length by 2 or 3, not 1). If there is significant demand for it, string length checks and other operations will be switched to the codepoint model versus the byte array model.</p>
 <p>Strings are defined by wrapping double or single quotes (<code>&quot;</code> or <code>'</code>) around text. They work identically to Javascript strings, with the same sorts of C-style escape codes. Within the runtime, however, they are represented as Pascal strings with a 64-bit header, which makes certain operations faster than their C-string counterparts (particularly length checking, which is O(1)) but means 8 extra bytes are required for each string versus C-string's traditional 1 extra byte, so lots of small strings will consume more memory.</p>
-<pre><code class="language-alan">const myString = &quot;My string's string&quot;
-const myOtherString = 'My other string\'s string'
+<pre><code class="language-alan">const myString = &quot;My string's string&quot;;
+const myOtherString = 'My other string\'s string';
 </code></pre>
 <h5><a class="header" href="#special-types" id="special-types">Special Types</a></h5>
 <ul>
@@ -190,8 +190,8 @@ const myOtherString = 'My other string\'s string'
 </ul>
 <p>Functions are covered in the <a href="../functions.html">Functions</a> section. <code>Either&lt;T, U&gt;</code> is a special type that can hold two values. Other special types are built on top of it. <code>Maybe&lt;T&gt;</code> is equivalent to <code>Either&lt;T, void&gt;</code> and <code>Result&lt;T&gt;</code> is equivalent to <code>Either&lt;T, Error&gt;</code>. <code>Error</code> and <code>Result</code> are more extensively covered in the <a href="../error_handling.html">Error Handling</a> section.</p>
 <p>A <code>HashMap&lt;K, V&gt;</code> creates a mapping from <code>K</code> to <code>V</code>. An <code>Array&lt;V&gt;</code> in Alan can hold more than one <code>V</code> at a time. Arrays can be defined with an explicit type or the compiler can infer the type for you:</p>
-<pre><code class="language-alan">const test = new Array&lt;int&gt; [ 1, 2, 3, 4, 5 ]
-const count = [1, 2, 3, 4, 5]
+<pre><code class="language-alan">const test = new Array&lt;int&gt; [ 1, 2, 3, 4, 5 ];
+const count = [1, 2, 3, 4, 5];
 </code></pre>
 <p>The sections that cover built-in functions for <a href="./array_api.html">Array Manipulation</a> and <a href="./hashmap_api.html">HashMap Manipulation</a> provide a better sense of how to manipulate the values stored in <code>Array&lt;V&gt;</code>, <code>HashMap&lt;K, V&gt;</code> and <code>KeyVal&lt;K, V&gt;</code>.</p>
 

@@ -157,7 +157,7 @@ const varname = constantOrFunctionCallOrExpression;
 <p>Any type that exists in the language can be assigned. Simple constants are simply declared, or produced via function calls or operator expressions. User-defined types can be assigned to constants through the use of a constructor function and calling it, through an expression involving operators that produces the user-defined type, or through the user-type literal syntax. Arrays and HashMaps have similar but slightly different syntaxes, as they deal with inherently plural data versus the struct-like user-defined types:</p>
 <pre><code class="language-alan">const simpleConstant: bool = true;
 const simpleConstant2 = &quot;simple&quot;;
-const expressionResult: int64 = 3 + 5 * 2 + fnCall2(3, 1);
+const expressionResult: int64 = 3 + 5 * 2 + fnCall2(3, 1) || 0;
 const fnResult: someType = functioncall(3, 5);
 const userTypeLiteral = new UserType {
   key: &quot;val&quot;,

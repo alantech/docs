@@ -144,100 +144,207 @@
         <div id="content" class="content">
             <main>
                 <h4><a class="header" href="#arithmetic" id="arithmetic">Arithmetic</a></h4>
+<p>Most arithmetic functions can fail by overflowing, underflowing, or dividing by zero, so these functions return Result-wrapped values instead of bare values in case of such failure. For convenience, all arithmetic functions can also accept result-wrapped values, and if the value is an error, it passes it through for consumption elsewhere.</p>
 <h5><a class="header" href="#add" id="add">add</a></h5>
 <pre><code class="language-alan">// Adds two numbers
-add(int8, int8): int8
-add(int16, int16): int16
-add(int32, int32): int32
-add(int64, int64): int64
-add(float32, float32): float32
-add(float64, float64): float64
+add(int8, int8): Result&lt;int8&gt;
+add(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+add(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+add(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
+add(int16, int16): Result&lt;int16&gt;
+add(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+add(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+add(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
+add(int32, int32): Result&lt;int32&gt;
+add(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+add(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+add(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
+add(int64, int64): Result&lt;int64&gt;
+add(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+add(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+add(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
+add(float32, float32): Result&lt;float32&gt;
+add(Result&lt;float32&gt;, float32): Result&lt;float32&gt;
+add(float32, Result&lt;float32&gt;): Result&lt;float32&gt;
+add(Result&lt;float32&gt;, Result&lt;float32&gt;): Result&lt;float32&gt;
+add(float64, float64): Result&lt;float64&gt;
+add(Result&lt;float64&gt;, float64): Result&lt;float64&gt;
+add(float64, Result&lt;float64&gt;): Result&lt;float64&gt;
+add(Result&lt;float64&gt;, Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#sub" id="sub">sub</a></h5>
 <pre><code class="language-alan">// Subtracts two numbers
-sub(int8, int8): int8
-sub(int16, int16): int16
-sub(int32, int32): int32
-sub(int64, int64): int64
-sub(float32, float32): float32
-sub(float64, float64): float64
+sub(int8, int8): Result&lt;int8&gt;
+sub(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+sub(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+sub(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
+sub(int16, int16): Result&lt;int16&gt;
+sub(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+sub(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+sub(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
+sub(int32, int32): Result&lt;int32&gt;
+sub(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+sub(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+sub(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
+sub(int64, int64): Result&lt;int64&gt;
+sub(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+sub(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+sub(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
+sub(float32, float32): Result&lt;float32&gt;
+sub(Result&lt;float32&gt;, float32): Result&lt;float32&gt;
+sub(float32, Result&lt;float32&gt;): Result&lt;float32&gt;
+sub(Result&lt;float32&gt;, Result&lt;float32&gt;): Result&lt;float32&gt;
+sub(float64, float64): Result&lt;float64&gt;
+sub(Result&lt;float64&gt;, float64): Result&lt;float64&gt;
+sub(float64, Result&lt;float64&gt;): Result&lt;float64&gt;
+sub(Result&lt;float64&gt;, Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#negate" id="negate">negate</a></h5>
 <pre><code class="language-alan">// Negates the number
 negate(int8): int8
+negate(Result&lt;int8&gt;): Result&lt;int8&gt;
 negate(int16): int16
+negate(Result&lt;int16&gt;): Result&lt;int16&gt;
 negate(int32): int32
+negate(Result&lt;int32&gt;): Result&lt;int32&gt;
 negate(int64): int64
+negate(Result&lt;int64&gt;): Result&lt;int64&gt;
 negate(float32): float32
+negate(Result&lt;float32&gt;): Result&lt;float32&gt;
 negate(float64): float64
+negate(Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#abs" id="abs">abs</a></h5>
 <pre><code class="language-alan">// Returns the absolute value of the number
 abs(int8): int8
+abs(Result&lt;int8&gt;): Result&lt;int8&gt;
 abs(int16): int16
+abs(Result&lt;int16&gt;): Result&lt;int16&gt;
 abs(int32): int32
+abs(Result&lt;int32&gt;): Result&lt;int32&gt;
 abs(int64): int64
+abs(Result&lt;int64&gt;): Result&lt;int64&gt;
 abs(float32): float32
+abs(Result&lt;float32&gt;): Result&lt;float32&gt;
 abs(float64): float64
+abs(Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#mul" id="mul">mul</a></h5>
 <pre><code class="language-alan">// Multiplies two numbers
-mul(int8, int8): int8
-mul(int16, int16): int16
-mul(int32, int32): int32
-mul(int64, int64): int64
-mul(float32, float32): float32
-mul(float64, float64): float64
+mul(int8, int8): Result&lt;int8&gt;
+mul(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+mul(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+mul(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
+mul(int16, int16): Result&lt;int16&gt;
+mul(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+mul(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+mul(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
+mul(int32, int32): Result&lt;int32&gt;
+mul(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+mul(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+mul(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
+mul(int64, int64): Result&lt;int64&gt;
+mul(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+mul(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+mul(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
+mul(float32, float32): Result&lt;float32&gt;
+mul(Result&lt;float32&gt;, float32): Result&lt;float32&gt;
+mul(float32, Result&lt;float32&gt;): Result&lt;float32&gt;
+mul(Result&lt;float32&gt;, Result&lt;float32&gt;): Result&lt;float32&gt;
+mul(float64, float64): Result&lt;float64&gt;
+mul(Result&lt;float64&gt;, float64): Result&lt;float64&gt;
+mul(float64, Result&lt;float64&gt;): Result&lt;float64&gt;
+mul(Result&lt;float64&gt;, Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#div" id="div">div</a></h5>
 <pre><code class="language-alan">// Divides two numbers
-div(int8, int8): int8
-div(int16, int16): int16
-div(int32, int32): int32
-div(int64, int64): int64
-div(float32, float32): float32
-div(float64, float64): float64
+div(int8, int8): Result&lt;int8&gt;
+div(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+div(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+div(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
+div(int16, int16): Result&lt;int16&gt;
+div(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+div(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+div(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
+div(int32, int32): Result&lt;int32&gt;
+div(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+div(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+div(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
+div(int64, int64): Result&lt;int64&gt;
+div(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+div(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+div(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
+div(float32, float32): Result&lt;float32&gt;
+div(Result&lt;float32&gt;, float32): Result&lt;float32&gt;
+div(float32, Result&lt;float32&gt;): Result&lt;float32&gt;
+div(Result&lt;float32&gt;, Result&lt;float32&gt;): Result&lt;float32&gt;
+div(float64, float64): Result&lt;float64&gt;
+div(Result&lt;float64&gt;, float64): Result&lt;float64&gt;
+div(float64, Result&lt;float64&gt;): Result&lt;float64&gt;
+div(Result&lt;float64&gt;, Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#pow" id="pow">pow</a></h5>
 <pre><code class="language-alan">// Raises the first number to the power of the second number
-pow(int8, int8): int8
-pow(int16, int16): int16
-pow(int32, int32): int32
-pow(int64, int64): int64
-pow(float32, float32): float32
-pow(float64, float64): float64
+pow(int8, int8): Result&lt;int8&gt;
+pow(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+pow(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+pow(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
+pow(int16, int16): Result&lt;int16&gt;
+pow(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+pow(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+pow(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
+pow(int32, int32): Result&lt;int32&gt;
+pow(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+pow(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+pow(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
+pow(int64, int64): Result&lt;int64&gt;
+pow(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+pow(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+pow(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
+pow(float32, float32): Result&lt;float32&gt;
+pow(Result&lt;float32&gt;, float32): Result&lt;float32&gt;
+pow(float32, Result&lt;float32&gt;): Result&lt;float32&gt;
+pow(Result&lt;float32&gt;, Result&lt;float32&gt;): Result&lt;float32&gt;
+pow(float64, float64): Result&lt;float64&gt;
+pow(Result&lt;float64&gt;, float64): Result&lt;float64&gt;
+pow(float64, Result&lt;float64&gt;): Result&lt;float64&gt;
+pow(Result&lt;float64&gt;, Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#mod" id="mod">mod</a></h5>
 <pre><code class="language-alan">// Returns the modulus (remainder) of an integer division
 mod(int8, int8): int8
+mod(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+mod(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+mod(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 mod(int16, int16): int16
+mod(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+mod(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+mod(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 mod(int32, int32): int32
+mod(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+mod(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+mod(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 mod(int64, int64): int64
+mod(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+mod(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+mod(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 </code></pre>
 <h5><a class="header" href="#sqrt" id="sqrt">sqrt</a></h5>
 <pre><code class="language-alan">// Returns the square root of a number
 sqrt(float32): float32
+sqrt(Result&lt;float32&gt;): Result&lt;float32&gt;
 sqrt(float64): float64
+sqrt(Result&lt;float64&gt;): Result&lt;float64&gt;
 </code></pre>
 <h5><a class="header" href="#min" id="min">min</a></h5>
 <pre><code class="language-alan">// Returns the smallest of two numbers
-min(int8, int8): int8
-min(int16, int16): int16
-min(int32, int32): int32
-min(int64, int64): int64
-min(float32, float32): float32
-min(float64, float64): float64
-min(string, string): string
+// `Orderable` is an interface indicating that it has the less than / greater than, etc operators
+min(Orderable, Orderable): Orderable
 </code></pre>
 <h5><a class="header" href="#max" id="max">max</a></h5>
 <pre><code class="language-alan">// Returns the largest of two numbers
-max(int8, int8): int8
-max(int16, int16): int16
-max(int32, int32): int32
-max(int64, int64): int64
-max(float32, float32): float32
-max(float64, float64): float64
-max(string, string): string
+// `Orderable` is an interface indicating that it has the less than / greater than, etc operators
+max(Orderable, Orderable): Orderable
 </code></pre>
 
             </main>

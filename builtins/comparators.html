@@ -144,67 +144,216 @@
         <div id="content" class="content">
             <main>
                 <h4><a class="header" href="#comparators" id="comparators">Comparators</a></h4>
+<p>Comparator functions accept Result-wrapped values, but they consume them and always return a true or false. If either value to be compared is an error, the comparators will return false, modeled after IEEE Floating Point NaN comparison behavior.</p>
 <h5><a class="header" href="#eq" id="eq">eq</a></h5>
 <pre><code class="language-alan">// Checks if the two values are equal
 eq(int8, int8): bool
+eq(Result&lt;int8&gt;, int8): bool
+eq(int8, Result&lt;int8&gt;): bool
+eq(Result&lt;int8&gt;, Result&lt;int8&gt;): bool
 eq(int16, int16): bool
+eq(Result&lt;int16&gt;, int16): bool
+eq(int16, Result&lt;int16&gt;): bool
+eq(Result&lt;int16&gt;, Result&lt;int16&gt;): bool
 eq(int32, int32): bool
+eq(Result&lt;int32&gt;, int32): bool
+eq(int32, Result&lt;int32&gt;): bool
+eq(Result&lt;int32&gt;, Result&lt;int32&gt;): bool
 eq(int64, int64): bool
+eq(Result&lt;int64&gt;, int64): bool
+eq(int64, Result&lt;int64&gt;): bool
+eq(Result&lt;int64&gt;, Result&lt;int64&gt;): bool
 eq(float32, float32): bool
+eq(Result&lt;float32&gt;, float32): bool
+eq(float32, Result&lt;float32&gt;): bool
+eq(Result&lt;float32&gt;, Result&lt;float32&gt;): bool
 eq(float64, float64): bool
+eq(Result&lt;float64&gt;, float64): bool
+eq(float64, Result&lt;float64&gt;): bool
+eq(Result&lt;float64&gt;, Result&lt;float64&gt;): bool
 eq(string, string): bool
+eq(Result&lt;string&gt;, string): bool
+eq(string, Result&lt;string&gt;): bool
+eq(Result&lt;string&gt;, Result&lt;string&gt;): bool
 eq(bool, bool): bool
+eq(Result&lt;bool&gt;, bool): bool
+eq(bool, Result&lt;bool&gt;): bool
+eq(Result&lt;bool&gt;, Result&lt;bool&gt;): bool
 </code></pre>
 <h5><a class="header" href="#neq" id="neq">neq</a></h5>
 <pre><code class="language-alan">// Checks if the two values are not equal
 neq(int8, int8): bool
+neq(Result&lt;int8&gt;, int8): bool
+neq(int8, Result&lt;int8&gt;): bool
+neq(Result&lt;int8&gt;, Result&lt;int8&gt;): bool
 neq(int16, int16): bool
+neq(Result&lt;int16&gt;, int16): bool
+neq(int16, Result&lt;int16&gt;): bool
+neq(Result&lt;int16&gt;, Result&lt;int16&gt;): bool
 neq(int32, int32): bool
+neq(Result&lt;int32&gt;, int32): bool
+neq(int32, Result&lt;int32&gt;): bool
+neq(Result&lt;int32&gt;, Result&lt;int32&gt;): bool
 neq(int64, int64): bool
+neq(Result&lt;int64&gt;, int64): bool
+neq(int64, Result&lt;int64&gt;): bool
+neq(Result&lt;int64&gt;, Result&lt;int64&gt;): bool
 neq(float32, float32): bool
+neq(Result&lt;float32&gt;, float32): bool
+neq(float32, Result&lt;float32&gt;): bool
+neq(Result&lt;float32&gt;, Result&lt;float32&gt;): bool
 neq(float64, float64): bool
+neq(Result&lt;float64&gt;, float64): bool
+neq(float64, Result&lt;float64&gt;): bool
+neq(Result&lt;float64&gt;, Result&lt;float64&gt;): bool
 neq(string, string): bool
+neq(Result&lt;string&gt;, string): bool
+neq(string, Result&lt;string&gt;): bool
+neq(Result&lt;string&gt;, Result&lt;string&gt;): bool
 neq(bool, bool): bool
+neq(Result&lt;bool&gt;, bool): bool
+neq(bool, Result&lt;bool&gt;): bool
+neq(Result&lt;bool&gt;, Result&lt;bool&gt;): bool
 </code></pre>
 <h5><a class="header" href="#lt" id="lt">lt</a></h5>
 <pre><code class="language-alan">// Checks if the first value is less than the second
 lt(int8, int8): bool
+lt(Result&lt;int8&gt;, int8): bool
+lt(int8, Result&lt;int8&gt;): bool
+lt(Result&lt;int8&gt;, Result&lt;int8&gt;): bool
 lt(int16, int16): bool
+lt(Result&lt;int16&gt;, int16): bool
+lt(int16, Result&lt;int16&gt;): bool
+lt(Result&lt;int16&gt;, Result&lt;int16&gt;): bool
 lt(int32, int32): bool
+lt(Result&lt;int32&gt;, int32): bool
+lt(int32, Result&lt;int32&gt;): bool
+lt(Result&lt;int32&gt;, Result&lt;int32&gt;): bool
 lt(int64, int64): bool
+lt(Result&lt;int64&gt;, int64): bool
+lt(int64, Result&lt;int64&gt;): bool
+lt(Result&lt;int64&gt;, Result&lt;int64&gt;): bool
 lt(float32, float32): bool
+lt(Result&lt;float32&gt;, float32): bool
+lt(float32, Result&lt;float32&gt;): bool
+lt(Result&lt;float32&gt;, Result&lt;float32&gt;): bool
 lt(float64, float64): bool
+lt(Result&lt;float64&gt;, float64): bool
+lt(float64, Result&lt;float64&gt;): bool
+lt(Result&lt;float64&gt;, Result&lt;float64&gt;): bool
 lt(string, string): bool
+lt(Result&lt;string&gt;, string): bool
+lt(string, Result&lt;string&gt;): bool
+lt(Result&lt;string&gt;, Result&lt;string&gt;): bool
+lt(bool, bool): bool
+lt(Result&lt;bool&gt;, bool): bool
+lt(bool, Result&lt;bool&gt;): bool
+lt(Result&lt;bool&gt;, Result&lt;bool&gt;): bool
 </code></pre>
 <h5><a class="header" href="#lte" id="lte">lte</a></h5>
 <pre><code class="language-alan">// Checks if the first value is less than or equal to the second
 lte(int8, int8): bool
+lte(Result&lt;int8&gt;, int8): bool
+lte(int8, Result&lt;int8&gt;): bool
+lte(Result&lt;int8&gt;, Result&lt;int8&gt;): bool
 lte(int16, int16): bool
+lte(Result&lt;int16&gt;, int16): bool
+lte(int16, Result&lt;int16&gt;): bool
+lte(Result&lt;int16&gt;, Result&lt;int16&gt;): bool
 lte(int32, int32): bool
+lte(Result&lt;int32&gt;, int32): bool
+lte(int32, Result&lt;int32&gt;): bool
+lte(Result&lt;int32&gt;, Result&lt;int32&gt;): bool
 lte(int64, int64): bool
+lte(Result&lt;int64&gt;, int64): bool
+lte(int64, Result&lt;int64&gt;): bool
+lte(Result&lt;int64&gt;, Result&lt;int64&gt;): bool
 lte(float32, float32): bool
+lte(Result&lt;float32&gt;, float32): bool
+lte(float32, Result&lt;float32&gt;): bool
+lte(Result&lt;float32&gt;, Result&lt;float32&gt;): bool
 lte(float64, float64): bool
+lte(Result&lt;float64&gt;, float64): bool
+lte(float64, Result&lt;float64&gt;): bool
+lte(Result&lt;float64&gt;, Result&lt;float64&gt;): bool
 lte(string, string): bool
+lte(Result&lt;string&gt;, string): bool
+lte(string, Result&lt;string&gt;): bool
+lte(Result&lt;string&gt;, Result&lt;string&gt;): bool
+lte(bool, bool): bool
+lte(Result&lt;bool&gt;, bool): bool
+lte(bool, Result&lt;bool&gt;): bool
+lte(Result&lt;bool&gt;, Result&lt;bool&gt;): bool
 </code></pre>
 <h5><a class="header" href="#gt" id="gt">gt</a></h5>
 <pre><code class="language-alan">// Checks if the first value is greater than the second
 gt(int8, int8): bool
+gt(Result&lt;int8&gt;, int8): bool
+gt(int8, Result&lt;int8&gt;): bool
+gt(Result&lt;int8&gt;, Result&lt;int8&gt;): bool
 gt(int16, int16): bool
+gt(Result&lt;int16&gt;, int16): bool
+gt(int16, Result&lt;int16&gt;): bool
+gt(Result&lt;int16&gt;, Result&lt;int16&gt;): bool
 gt(int32, int32): bool
+gt(Result&lt;int32&gt;, int32): bool
+gt(int32, Result&lt;int32&gt;): bool
+gt(Result&lt;int32&gt;, Result&lt;int32&gt;): bool
 gt(int64, int64): bool
+gt(Result&lt;int64&gt;, int64): bool
+gt(int64, Result&lt;int64&gt;): bool
+gt(Result&lt;int64&gt;, Result&lt;int64&gt;): bool
 gt(float32, float32): bool
+gt(Result&lt;float32&gt;, float32): bool
+gt(float32, Result&lt;float32&gt;): bool
+gt(Result&lt;float32&gt;, Result&lt;float32&gt;): bool
 gt(float64, float64): bool
+gt(Result&lt;float64&gt;, float64): bool
+gt(float64, Result&lt;float64&gt;): bool
+gt(Result&lt;float64&gt;, Result&lt;float64&gt;): bool
 gt(string, string): bool
+gt(Result&lt;string&gt;, string): bool
+gt(string, Result&lt;string&gt;): bool
+gt(Result&lt;string&gt;, Result&lt;string&gt;): bool
+gt(bool, bool): bool
+gt(Result&lt;bool&gt;, bool): bool
+gt(bool, Result&lt;bool&gt;): bool
+gt(Result&lt;bool&gt;, Result&lt;bool&gt;): bool
 </code></pre>
 <h5><a class="header" href="#gte" id="gte">gte</a></h5>
 <pre><code class="language-alan">// Checks if the first value is greater than or equal to the second
 gte(int8, int8): bool
+gte(Result&lt;int8&gt;, int8): bool
+gte(int8, Result&lt;int8&gt;): bool
+gte(Result&lt;int8&gt;, Result&lt;int8&gt;): bool
 gte(int16, int16): bool
+gte(Result&lt;int16&gt;, int16): bool
+gte(int16, Result&lt;int16&gt;): bool
+gte(Result&lt;int16&gt;, Result&lt;int16&gt;): bool
 gte(int32, int32): bool
+gte(Result&lt;int32&gt;, int32): bool
+gte(int32, Result&lt;int32&gt;): bool
+gte(Result&lt;int32&gt;, Result&lt;int32&gt;): bool
 gte(int64, int64): bool
+gte(Result&lt;int64&gt;, int64): bool
+gte(int64, Result&lt;int64&gt;): bool
+gte(Result&lt;int64&gt;, Result&lt;int64&gt;): bool
 gte(float32, float32): bool
+gte(Result&lt;float32&gt;, float32): bool
+gte(float32, Result&lt;float32&gt;): bool
+gte(Result&lt;float32&gt;, Result&lt;float32&gt;): bool
 gte(float64, float64): bool
+gte(Result&lt;float64&gt;, float64): bool
+gte(float64, Result&lt;float64&gt;): bool
+gte(Result&lt;float64&gt;, Result&lt;float64&gt;): bool
 gte(string, string): bool
+gte(Result&lt;string&gt;, string): bool
+gte(string, Result&lt;string&gt;): bool
+gte(Result&lt;string&gt;, Result&lt;string&gt;): bool
+gte(bool, bool): bool
+gte(Result&lt;bool&gt;, bool): bool
+gte(bool, Result&lt;bool&gt;): bool
+gte(Result&lt;bool&gt;, Result&lt;bool&gt;): bool
 </code></pre>
 
             </main>

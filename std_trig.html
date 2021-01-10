@@ -145,249 +145,439 @@
             <main>
                 <h3><a class="header" href="#stdtrig" id="stdtrig">@std/trig</a></h3>
 <p>This standard library provides the constants <a href="https://simple.wikipedia.org/wiki/E_(mathematical_constant)">e</a>, <a href="https://en.wikipedia.org/wiki/Pi">pi</a>, and <a href="https://math.wikia.org/wiki/Tau_(constant)">tau</a>, <a href="https://en.wikipedia.org/wiki/List_of_trigonometric_identities">all of the trigonometric functions</a>, the <a href="https://en.wikipedia.org/wiki/Hyperbolic_functions">hyperbolic functions</a>, the <a href="https://en.wikipedia.org/wiki/Common_logarithm">common</a> and <a href="https://en.wikipedia.org/wiki/Natural_logarithm">natural</a> logarithms, and the <a href="https://en.wikipedia.org/wiki/Exponential_function">exp function</a>.</p>
-<p>All of the trigonometric functions are exported with both <code>float32</code> and <code>float64</code> support, and with both a short 3-5 character name common in textbooks and a fully-spelled out name. Eg, <code>sin</code> is the same as <code>sine</code> and <code>ahcc</code> is the same as <code>archacovercosine</code>. The meanings and uses of the trigonometric functions will not be covered in here as the Wikipedia links in the first paragraph provide a far better and in-depth explanation, including some <a href="https://upload.wikimedia.org/wikipedia/commons/9/9d/Circle-trig6.svg">great visual diagrams</a> that can elucidate things quickly for those already familiar with the classic <code>sin</code>, <code>cos</code>, and <code>tan</code>. Instead, below will be a listing of the signatures of everything exported by the library.</p>
+<p>All of the trigonometric functions are exported with <code>float32</code> and <code>float64</code> support as well as Result-wrapped variants. Most are infallible but some are not. The trigonometric functions are defined with both a short 3-5 character name common in textbooks and a fully-spelled out name. Eg, <code>sin</code> is the same as <code>sine</code> and <code>ahcc</code> is the same as <code>archacovercosine</code>. The meanings and uses of the trigonometric functions will not be covered in here as the Wikipedia links in the first paragraph provide a far better and in-depth explanation, including some <a href="https://upload.wikimedia.org/wikipedia/commons/9/9d/Circle-trig6.svg">great visual diagrams</a> that can elucidate things quickly for those already familiar with the classic <code>sin</code>, <code>cos</code>, and <code>tan</code>. Instead, below will be a listing of the signatures of everything exported by the library.</p>
 <pre><code class="language-alan">e: float64
 pi: float64
 tau: float64
 
 fn exp(float64): float64
+fn exp(Result&lt;float64&gt;): Result&lt;float64&gt;
 fn exp(float32): float32
+fn exp(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn ln(x: float64): float64
-fn ln(x: float32): float32
+fn ln(float64): float64
+fn ln(float32): float32
+fn ln(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn ln(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn log(x: float64): float64
-fn log(x: float32): float32
+fn log(float64): float64
+fn log(float32): float32
+fn log(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn log(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn sin(x: float64): float64
-fn sin(x: float32): float32
-fn sine(x: float64): float64
-fn sine(x: float32): float32
+fn sin(float64): float64
+fn sin(float32): float32
+fn sin(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn sin(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn sine(float64): float64
+fn sine(float32): float32
+fn sine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn sine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn cos(x: float64): float64
-fn cos(x: float32): float32
-fn cosine(x: float64): float64
-fn cosine(x: float32): float32
+fn cos(float64): float64
+fn cos(float32): float32
+fn cos(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cos(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn cosine(float64): float64
+fn cosine(float32): float32
+fn cosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn tan(x: float64): float64
-fn tan(x: float32): float32
-fn tangent(x: float64): float64
-fn tangent(x: float32): float32
+fn tan(float64): float64
+fn tan(float32): float32
+fn tan(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn tan(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn tangent(float64): float64
+fn tangent(float32): float32
+fn tangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn tangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn sec(x: float64): float64
-fn sec(x: float32): float32
-fn secant(x: float64): float64
-fn secant(x: float32): float32
+fn sec(float64): Result&lt;float64&gt;
+fn sec(float32): Result&lt;float32&gt;
+fn sec(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn sec(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn secant(float64): Result&lt;float64&gt;
+fn secant(float32): Result&lt;float32&gt;
+fn secant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn secant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn csc(x: float64): float64
-fn csc(x: float32): float32
-fn cosecant(x: float64): float64
-fn cosecant(x: float32): float32
+fn csc(float64): Result&lt;float64&gt;
+fn csc(float32): Result&lt;float32&gt;
+fn csc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn csc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn cosecant(float64): Result&lt;float64&gt;
+fn cosecant(float32): Result&lt;float32&gt;
+fn cosecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cosecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn cot(x: float64): float64
-fn cot(x: float32): float32
-fn cotangent(x: float64): float64
-fn cotangent(x: float32): float32
+fn cot(float64): Result&lt;float64&gt;
+fn cot(float32): Result&lt;float32&gt;
+fn cot(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cot(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn cotangent(float64): Result&lt;float64&gt;
+fn cotangent(float32): Result&lt;float32&gt;
+fn cotangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cotangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn asin(x: float64): float64
-fn asin(x: float32): float32
-fn arcsine(x: float64): float64
-fn arcsine(x: float32): float32
+fn asin(float64): float64
+fn asin(float32): float32
+fn asin(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn asin(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcsine(float64): float64
+fn arcsine(float32): float32
+fn arcsine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcsine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acos(x: float64): float64
-fn acos(x: float32): float32
-fn arccosine(x: float64): float64
-fn arccosine(x: float32): float32
+fn acos(float64): float64
+fn acos(float32): float32
+fn acos(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acos(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arccosine(float64): Result&lt;float64&gt;
+fn arccosine(float32): Result&lt;float32&gt;
+fn arccosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arccosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn atan(x: float64): float64
-fn atan(x: float32): float32
-fn arctangent(x: float64): float64
-fn arctangent(x: float32): float32
+fn atan(float64): float64
+fn atan(float32): float32
+fn atan(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn atan(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arctangent(float64): float64
+fn arctangent(float32): float32
+fn arctangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arctangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn asec(x: float64): float64
-fn asec(x: float32): float32
-fn arcsecant(x: float64): float64
-fn arcsecant(x: float32): float32
+fn asec(float64): Result&lt;float64&gt;
+fn asec(float32): Result&lt;float32&gt;
+fn asec(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn asec(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcsecant(float64): float64
+fn arcsecant(float32): float32
+fn arcsecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcsecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acsc(x: float64): float64
-fn acsc(x: float32): float32
-fn arccosecant(x: float64): float64
-fn arccosecant(x: float32): float32
+fn acsc(float64): Result&lt;float64&gt;
+fn acsc(float32): Result&lt;float32&gt;
+fn acsc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acsc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arccosecant(float64): Result&lt;float64&gt;
+fn arccosecant(float32): Result&lt;float32&gt;
+fn arccosecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arccosecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acot(x: float64): float64
-fn acot(x: float32): float32
-fn arccotangent(x: float64): float64
-fn arccotangent(x: float32): float32
+fn acot(float64): Result&lt;float64&gt;
+fn acot(float32): Result&lt;float32&gt;
+fn acot(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acot(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arccotangent(float64): Result&lt;float64&gt;
+fn arccotangent(float32): Result&lt;float32&gt;
+fn arccotangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arccotangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn ver(x: float64): float64
-fn ver(x: float32): float32
-fn versine(x: float64): float64
-fn versine(x: float32): float32
+fn ver(float64): Result&lt;float64&gt;
+fn ver(float32): Result&lt;float32&gt;
+fn ver(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn ver(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn versine(float64): Result&lt;float64&gt;
+fn versine(float32): Result&lt;float32&gt;
+fn versine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn versine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn vcs(x: float64): float64
-fn vcs(x: float32): float32
-fn vercosine(x: float64): float64
-fn vercosine(x: float32): float32
+fn vcs(float64): Result&lt;float64&gt;
+fn vcs(float32): Result&lt;float32&gt;
+fn vcs(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn vcs(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn vercosine(float64): Result&lt;float64&gt;
+fn vercosine(float32): Result&lt;float32&gt;
+fn vercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn vercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn cvs(x: float64): float64
-fn cvs(x: float32): float32
-fn coversine(x: float64): float64
-fn coversine(x: float32): float32
+fn cvs(float64): Result&lt;float64&gt;
+fn cvs(float32): Result&lt;float32&gt;
+fn cvs(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cvs(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn coversine(float64): Result&lt;float64&gt;
+fn coversine(float32): Result&lt;float32&gt;
+fn coversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn coversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn cvc(x: float64): float64
-fn cvc(x: float32): float32
-fn covercosine(x: float64): float64
-fn covercosine(x: float32): float32
+fn cvc(float64): Result&lt;float64&gt;
+fn cvc(float32): Result&lt;float32&gt;
+fn cvc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cvc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn covercosine(float64): Result&lt;float64&gt;
+fn covercosine(float32): Result&lt;float32&gt;
+fn covercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn covercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn hav(x: float64): float64
-fn hav(x: float32): float32
-fn haversine(x: float64): float64
-fn haversine(x: float32): float32
+fn hav(float64): Result&lt;float64&gt;
+fn hav(float32): Result&lt;float32&gt;
+fn hav(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hav(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn haversine(float64): Result&lt;float64&gt;
+fn haversine(float32): Result&lt;float32&gt;
+fn haversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn haversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn hvc(x: float64): float64
-fn hvc(x: float32): float32
-fn havercosine(x: float64): float64
-fn havercosine(x: float32): float32
+fn hvc(float64): Result&lt;float64&gt;
+fn hvc(float32): Result&lt;float32&gt;
+fn hvc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hvc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn havercosine(float64): Result&lt;float64&gt;
+fn havercosine(float32): Result&lt;float32&gt;
+fn havercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn havercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn hcv(x: float64): float64
-fn hcv(x: float32): float32
-fn hacoversine(x: float64): float64
-fn hacoversine(x: float32): float32
+fn hcv(float64): Result&lt;float64&gt;
+fn hcv(float32): Result&lt;float32&gt;
+fn hcv(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hcv(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hacoversine(float64): Result&lt;float64&gt;
+fn hacoversine(float32): Result&lt;float32&gt;
+fn hacoversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hacoversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn hcc(x: float64): float64
-fn hcc(x: float32): float32
-fn hacovercosine(x: float64): float64
-fn hacovercosine(x: float32): float32
+fn hcc(float64): Result&lt;float64&gt;
+fn hcc(float32): Result&lt;float32&gt;
+fn hcc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hcc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hacovercosine(float64): Result&lt;float64&gt;
+fn hacovercosine(float32): Result&lt;float32&gt;
+fn hacovercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hacovercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn exs(x: float64): float64
-fn exs(x: float32): float32
-fn exsecant(x: float64): float64
-fn exsecant(x: float32): float32
+fn exs(float64): Result&lt;float64&gt;
+fn exs(float32): Result&lt;float32&gt;
+fn exs(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn exs(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn exsecant(float64): Result&lt;float64&gt;
+fn exsecant(float32): Result&lt;float32&gt;
+fn exsecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn exsecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn exc(x: float64): float64
-fn exc(x: float32): float32
-fn excosecant(x: float64): float64
-fn excosecant(x: float32): float32
+fn exc(float64): Result&lt;float64&gt;
+fn exc(float32): Result&lt;float32&gt;
+fn exc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn exc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn excosecant(float64): Result&lt;float64&gt;
+fn excosecant(float32): Result&lt;float32&gt;
+fn excosecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn excosecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn crd(x: float64): float64
-fn crd(x: float32): float32
-fn chord(x: float64): float64
-fn chord(x: float32): float32
+fn crd(float64): Result&lt;float64&gt;
+fn crd(float32): Result&lt;float32&gt;
+fn crd(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn crd(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn chord(float64): Result&lt;float64&gt;
+fn chord(float32): Result&lt;float32&gt;
+fn chord(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn chord(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn aver(x: float64): float64
-fn aver(x: float32): float32
-fn arcversine(x: float64): float64
-fn arcversine(x: float32): float32
+fn aver(float64): Result&lt;float64&gt;
+fn aver(float32): Result&lt;float32&gt;
+fn aver(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn aver(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcversine(float64): Result&lt;float64&gt;
+fn arcversine(float32): Result&lt;float32&gt;
+fn arcversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn avcs(x: float64): float64
-fn avcs(x: float32): float32
-fn arcvercosine(x: float64): float64
-fn arcvercosine(x: float32): float32
+fn avcs(float64): Result&lt;float64&gt;
+fn avcs(float32): Result&lt;float32&gt;
+fn avcs(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn avcs(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcvercosine(float64): Result&lt;float64&gt;
+fn arcvercosine(float32): Result&lt;float32&gt;
+fn arcvercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcvercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acvs(x: float64): float64
-fn acvs(x: float32): float32
-fn arccoversine(x: float64): float64
-fn arccoversine(x: float32): float32
+fn acvs(float64): Result&lt;float64&gt;
+fn acvs(float32): Result&lt;float32&gt;
+fn acvs(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acvs(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arccoversine(float64): Result&lt;float64&gt;
+fn arccoversine(float32): Result&lt;float32&gt;
+fn arccoversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arccoversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acvc(x: float64): float64
-fn acvc(x: float32): float32
-fn arccovercosine(x: float64): float64
-fn arccovercosine(x: float32): float32
+fn acvc(float64): Result&lt;float64&gt;
+fn acvc(float32): Result&lt;float32&gt;
+fn acvc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acvc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arccovercosine(float64): Result&lt;float64&gt;
+fn arccovercosine(float32): Result&lt;float32&gt;
+fn arccovercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arccovercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn ahav(x: float64): float64
-fn ahav(x: float32): float32
-fn archaversine(x: float64): float64
-fn archaversine(x: float32): float32
+fn ahav(float64): Result&lt;float64&gt;
+fn ahav(float32): Result&lt;float32&gt;
+fn ahav(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn ahav(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn archaversine(float64): Result&lt;float64&gt;
+fn archaversine(float32): Result&lt;float32&gt;
+fn archaversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn archaversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn ahvc(x: float64): float64
-fn ahvc(x: float32): float32
-fn archavercosine(x: float64): float64
-fn archavercosine(x: float32): float32
+fn ahvc(float64): Result&lt;float64&gt;
+fn ahvc(float32): Result&lt;float32&gt;
+fn ahvc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn ahvc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn archavercosine(float64): Result&lt;float64&gt;
+fn archavercosine(float32): Result&lt;float32&gt;
+fn archavercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn archavercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn ahcv(x: float64): float64
-fn ahcv(x: float32): float32
-fn archacoversine(x: float64): float64
-fn archacoversine(x: float32): float32
+fn ahcv(float64): Result&lt;float64&gt;
+fn ahcv(float32): Result&lt;float32&gt;
+fn ahcv(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn ahcv(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn archacoversine(float64): Result&lt;float64&gt;
+fn archacoversine(float32): Result&lt;float32&gt;
+fn archacoversine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn archacoversine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn ahcc(x: float64): float64
-fn ahcc(x: float32): float32
-fn archacovercosine(x: float64): float64
-fn archacovercosine(x: float32): float32
+fn ahcc(float64): Result&lt;float64&gt;
+fn ahcc(float32): Result&lt;float32&gt;
+fn ahcc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn ahcc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn archacovercosine(float64): Result&lt;float64&gt;
+fn archacovercosine(float32): Result&lt;float32&gt;
+fn archacovercosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn archacovercosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn aexs(x: float64): float64
-fn aexs(x: float32): float32
-fn arcexsecant(x: float64): float64
-fn arcexsecant(x: float32): float32
+fn aexs(float64): Result&lt;float64&gt;
+fn aexs(float32): Result&lt;float32&gt;
+fn aexs(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn aexs(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcexsecant(float64): Result&lt;float64&gt;
+fn arcexsecant(float32): Result&lt;float32&gt;
+fn arcexsecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcexsecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn aexc(x: float64): float64
-fn aexc(x: float32): float32
-fn arcexcosecant(x: float64): float64
-fn arcexcosecant(x: float32): float32
+fn aexc(float64): Result&lt;float64&gt;
+fn aexc(float32): Result&lt;float32&gt;
+fn aexc(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn aexc(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcexcosecant(float64): Result&lt;float64&gt;
+fn arcexcosecant(float32): Result&lt;float32&gt;
+fn arcexcosecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcexcosecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acrd(x: float64): float64
-fn acrd(x: float32): float32
-fn arcchord(x: float64): float64
-fn arcchord(x: float32): float32
+fn acrd(float64): Result&lt;float64&gt;
+fn acrd(float32): Result&lt;float32&gt;
+fn acrd(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acrd(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn arcchord(float64): Result&lt;float64&gt;
+fn arcchord(float32): Result&lt;float32&gt;
+fn arcchord(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn arcchord(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn sinh(x: float64): float64
-fn sinh(x: float32): float32
-fn hyperbolicSine(x: float64): float64
-fn hyperbolicSine(x: float32): float32
+fn sinh(float64): float64
+fn sinh(float32): float32
+fn sinh(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn sinh(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicSine(float64): float64
+fn hyperbolicSine(float32): float32
+fn hyperbolicSine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicSine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn cosh(x: float64): float64
-fn cosh(x: float32): float32
-fn hyperbolicCosine(x: float64): float64
-fn hyperbolicCosine(x: float32): float32
+fn cosh(float64): float64
+fn cosh(float32): float32
+fn cosh(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn cosh(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicCosine(float64): float64
+fn hyperbolicCosine(float32): float32
+fn hyperbolicCosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicCosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn tanh(x: float64): float64
-fn tanh(x: float32): float32
-fn hyperbolicTangent(x: float64): float64
-fn hyperbolicTangent(x: float32): float32
+fn tanh(float64): float64
+fn tanh(float32): float32
+fn tanh(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn tanh(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicTangent(float64): float64
+fn hyperbolicTangent(float32): float32
+fn hyperbolicTangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicTangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn sech(x: float64): float64
-fn sech(x: float32): float32
-fn hyperbolicSecant(x: float64): float64
-fn hyperbolicSecant(x: float32): float32
+fn sech(float64): Result&lt;float64&gt;
+fn sech(float32): Result&lt;float32&gt;
+fn sech(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn sech(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicSecant(float64): Result&lt;float64&gt;
+fn hyperbolicSecant(float32): Result&lt;float32&gt;
+fn hyperbolicSecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicSecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn csch(x: float64): float64
-fn csch(x: float32): float32
-fn hyperbolicCosecant(x: float64): float64
-fn hyperbolicCosecant(x: float32): float32
+fn csch(float64): Result&lt;float64&gt;
+fn csch(float32): Result&lt;float32&gt;
+fn csch(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn csch(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicCosecant(float64): Result&lt;float64&gt;
+fn hyperbolicCosecant(float32): Result&lt;float32&gt;
+fn hyperbolicCosecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicCosecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn coth(x: float64): float64
-fn coth(x: float32): float32
-fn hyperbolicCotangent(x: float64): float64
-fn hyperbolicCotangent(x: float32): float32
+fn coth(float64): Result&lt;float64&gt;
+fn coth(float32): Result&lt;float32&gt;
+fn coth(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn coth(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicCotangent(float64): Result&lt;float64&gt;
+fn hyperbolicCotangent(float32): Result&lt;float32&gt;
+fn hyperbolicCotangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicCotangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn asinh(x: float64): float64
-fn asinh(x: float32): float32
-fn hyperbolicArcsine(x: float64): float64
-fn hyperbolicArcsine(x: float32): float32
+fn asinh(float64): Result&lt;float64&gt;
+fn asinh(float32): Result&lt;float32&gt;
+fn asinh(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn asinh(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicArcsine(float64): Result&lt;float64&gt;
+fn hyperbolicArcsine(float32): Result&lt;float32&gt;
+fn hyperbolicArcsine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicArcsine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acosh(x: float64): float64
-fn acosh(x: float32): float32
-fn hyperbolicArccosine(x: float64): float64
-fn hyperbolicArccosine(x: float32): float32
+fn acosh(float64): Result&lt;float64&gt;
+fn acosh(float32): Result&lt;float32&gt;
+fn acosh(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acosh(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicArccosine(float64): Result&lt;float64&gt;
+fn hyperbolicArccosine(float32): Result&lt;float32&gt;
+fn hyperbolicArccosine(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicArccosine(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn atanh(x: float64): float64
-fn atanh(x: float32): float32
-fn hyperbolicArctangent(x: float64): float64
-fn hyperbolicArctangent(x: float32): float32
+fn atanh(float64): Result&lt;float64&gt;
+fn atanh(float32): Result&lt;float32&gt;
+fn atanh(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn atanh(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicArctangent(float64): Result&lt;float64&gt;
+fn hyperbolicArctangent(float32): Result&lt;float32&gt;
+fn hyperbolicArctangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicArctangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn asech(x: float64): float64
-fn asech(x: float32): float32
-fn hyperbolicArcsecant(x: float64): float64
-fn hyperbolicArcsecant(x: float32): float32
+fn asech(float64): Result&lt;float64&gt;
+fn asech(float32): Result&lt;float32&gt;
+fn asech(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn asech(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicArcsecant(float64): Result&lt;float64&gt;
+fn hyperbolicArcsecant(float32): Result&lt;float32&gt;
+fn hyperbolicArcsecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicArcsecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acsch(x: float64): float64
-fn acsch(x: float32): float32
-fn hyperbolicArccosecant(x: float64): float64
-fn hyperbolicArccosecant(x: float32): float32
+fn acsch(float64): Result&lt;float64&gt;
+fn acsch(float32): Result&lt;float32&gt;
+fn acsch(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acsch(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicArccosecant(float64): Result&lt;float64&gt;
+fn hyperbolicArccosecant(float32): Result&lt;float32&gt;
+fn hyperbolicArccosecant(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicArccosecant(Result&lt;float32&gt;): Result&lt;float32&gt;
 
-fn acoth(x: float64): float64
-fn acoth(x: float32): float32
-fn hyperbolicArccotangent(x: float64): float64
-fn hyperbolicArccotangent(x: float32): float32
+fn acoth(float64): Result&lt;float64&gt;
+fn acoth(float32): Result&lt;float32&gt;
+fn acoth(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn acoth(Result&lt;float32&gt;): Result&lt;float32&gt;
+fn hyperbolicArccotangent(float64): Result&lt;float64&gt;
+fn hyperbolicArccotangent(float32): Result&lt;float32&gt;
+fn hyperbolicArccotangent(Result&lt;float64&gt;): Result&lt;float64&gt;
+fn hyperbolicArccotangent(Result&lt;float32&gt;): Result&lt;float32&gt;
 </code></pre>
 
             </main>

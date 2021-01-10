@@ -144,61 +144,164 @@
         <div id="content" class="content">
             <main>
                 <h4><a class="header" href="#logical-and-bitwise" id="logical-and-bitwise">Logical and Bitwise</a></h4>
+<p>Logical and bitwise operations cannot fail, but they accept Result-wrapped values and will pass through an error, if any, or will themselves wrap their result. This allows mixing arithmetic operations with logical and bitwise operations without constant re-casting.</p>
 <h5><a class="header" href="#and" id="and">and</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `and`
 and(int8, int8): int8
+and(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+and(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+and(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 and(int16, int16): int16
+and(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+and(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+and(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 and(int32, int32): int32
+and(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+and(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+and(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 and(int64, int64): int64
+and(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+and(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+and(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 and(bool, bool): bool
+and(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+and(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+and(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 <h5><a class="header" href="#or" id="or">or</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `or`
 or(int8, int8): int8
+or(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+or(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+or(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 or(int16, int16): int16
+or(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+or(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+or(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 or(int32, int32): int32
+or(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+or(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+or(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 or(int64, int64): int64
+or(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+or(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+or(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 or(bool, bool): bool
+or(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+or(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+or(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
+</code></pre>
+<h5><a class="header" href="#boolor" id="boolor">boolor</a></h5>
+<pre><code class="language-alan">// An alias for `or` only for the logical (boolean) version, meant for the `||` operator
+boolor(bool, bool): bool
+boolor(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+boolor(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+boolor(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 <h5><a class="header" href="#xor" id="xor">xor</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `xor`
 xor(int8, int8): int8
+xor(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+xor(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+xor(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 xor(int16, int16): int16
+xor(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+xor(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+xor(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 xor(int32, int32): int32
+xor(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+xor(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+xor(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 xor(int64, int64): int64
+xor(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+xor(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+xor(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 xor(bool, bool): bool
+xor(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+xor(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+xor(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 <h5><a class="header" href="#not" id="not">not</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `not`
 not(int8): int8
+not(Result&lt;int8&gt;): Result&lt;int8&gt;
 not(int16): int16
+not(Result&lt;int16&gt;): Result&lt;int16&gt;
 not(int32): int32
+not(Result&lt;int32&gt;): Result&lt;int32&gt;
 not(int64): int64
+not(Result&lt;int64&gt;): Result&lt;int64&gt;
 not(bool): bool
+not(Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 <h5><a class="header" href="#nand" id="nand">nand</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `nand`
 nand(int8, int8): int8
+nand(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+nand(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+nand(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 nand(int16, int16): int16
+nand(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+nand(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+nand(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 nand(int32, int32): int32
+nand(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+nand(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+nand(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 nand(int64, int64): int64
+nand(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+nand(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+nand(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 nand(bool, bool): bool
+nand(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+nand(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+nand(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 <h5><a class="header" href="#nor" id="nor">nor</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `nor`
 nor(int8, int8): int8
+nor(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+nor(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+nor(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 nor(int16, int16): int16
+nor(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+nor(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+nor(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 nor(int32, int32): int32
+nor(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+nor(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+nor(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 nor(int64, int64): int64
+nor(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+nor(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+nor(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 nor(bool, bool): bool
+nor(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+nor(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+nor(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 <h5><a class="header" href="#xnor" id="xnor">xnor</a></h5>
 <pre><code class="language-alan">// Return the logical or bitwise `xnor`
 xnor(int8, int8): int8
+xnor(Result&lt;int8&gt;, int8): Result&lt;int8&gt;
+xnor(int8, Result&lt;int8&gt;): Result&lt;int8&gt;
+xnor(Result&lt;int8&gt;, Result&lt;int8&gt;): Result&lt;int8&gt;
 xnor(int16, int16): int16
+xnor(Result&lt;int16&gt;, int16): Result&lt;int16&gt;
+xnor(int16, Result&lt;int16&gt;): Result&lt;int16&gt;
+xnor(Result&lt;int16&gt;, Result&lt;int16&gt;): Result&lt;int16&gt;
 xnor(int32, int32): int32
+xnor(Result&lt;int32&gt;, int32): Result&lt;int32&gt;
+xnor(int32, Result&lt;int32&gt;): Result&lt;int32&gt;
+xnor(Result&lt;int32&gt;, Result&lt;int32&gt;): Result&lt;int32&gt;
 xnor(int64, int64): int64
+xnor(Result&lt;int64&gt;, int64): Result&lt;int64&gt;
+xnor(int64, Result&lt;int64&gt;): Result&lt;int64&gt;
+xnor(Result&lt;int64&gt;, Result&lt;int64&gt;): Result&lt;int64&gt;
 xnor(bool, bool): bool
+xnor(Result&lt;bool&gt;, bool): Result&lt;bool&gt;
+xnor(bool, Result&lt;bool&gt;): Result&lt;bool&gt;
+xnor(Result&lt;bool&gt;, Result&lt;bool&gt;): Result&lt;bool&gt;
 </code></pre>
 
             </main>

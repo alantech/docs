@@ -804,16 +804,16 @@ const count = [1, 2, 3, 4, 5]
 <h4><a class="header" href="#built-in-functions" id="built-in-functions">Built-in Functions</a></h4>
 <p>The <a href="builtins/../functions.html">function</a> signatures will be written in the form <code>functionName(argumentType, argumentType): returnType</code> with a brief description above each. These functions will be grouped into general categories, such as type coercion, arithmetic, etc. Because of <a href="builtins/../functions.html#function-dispatch">multiple dispatch</a> you may see the same function name repeated multiple times, while other times you may see the use of the <code>any</code> interface for a function that operates on multiple types. When you see multiple dispatch being used with specific types, that means there's an optimized implementation for that specific type, while the use of the <code>any</code> interface means that this was not done (many times because it was not necessary).</p>
 <h4><a class="header" href="#type-coercion" id="type-coercion">Type Coercion</a></h4>
-<h5><a class="header" href="#tofloat64" id="tofloat64">toFloat64</a></h5>
-<pre><code class="language-alan">// Converts the built-in basic types to 64-bit floats
-toFloat64(int8): float64
-toFloat64(int16): float64
-toFloat64(int32): float64
-toFloat64(int64): float64
-toFloat64(float32): float64
-toFloat64(float64): float64
-toFloat64(bool): float64
-toFloat64(string): float64
+<h5><a class="header" href="#tofloat-or-tofloat64" id="tofloat-or-tofloat64">toFloat or toFloat64</a></h5>
+<pre><code class="language-alan">// Converts the built-in basic types to 64-bit floats which are the default numeric float type
+toFloat(int8): float     // toFloat64(int8): float64
+toFloat(int16): float    // toFloat64(int16): float64
+toFloat(int32): float    // toFloat64(int32): float64
+toFloat(int64): float    // toFloat64(int64): float64
+toFloat(float32): float  // toFloat64(float32): float64
+toFloat(float): float    // toFloat64(float64): float64
+toFloat(bool): float     // toFloat64(bool): float64
+toFloat(string): float   // toFloat64(string): float64
 </code></pre>
 <h5><a class="header" href="#tofloat32" id="tofloat32">toFloat32</a></h5>
 <pre><code class="language-alan">// Converts the built-in basic types to 32-bit floats
@@ -826,16 +826,16 @@ toFloat32(float64): float32
 toFloat32(bool): float32
 toFloat32(string): float32
 </code></pre>
-<h5><a class="header" href="#toint64" id="toint64">toInt64</a></h5>
-<pre><code class="language-alan">// Converts the built-in basic types to 64-bit integers
-toInt64(int8): int64
-toInt64(int16): int64
-toInt64(int32): int64
-toInt64(int64): int64
-toInt64(float32): int64
-toInt64(float64): int64
-toInt64(bool): int64
-toInt64(string): int64
+<h5><a class="header" href="#toint-or-toint64" id="toint-or-toint64">toInt or toInt64</a></h5>
+<pre><code class="language-alan">// Converts the built-in basic types to 64-bit integers which are the default numeric int type
+toInt(int8): int         // toInt64(int8): int64
+toInt(int16): int        // toInt64(int16): int64
+toInt(int32): int        // toInt64(int32): int64
+toInt(int): int          // toInt64(int64): int64
+toInt(float32): int      // toInt64(float32): int64
+toInt(float64): int      // toInt64(float64): int64
+toInt(bool): int         // toInt64(bool): int64
+toInt(string): int       // toInt64(string): int64
 </code></pre>
 <h5><a class="header" href="#toint32" id="toint32">toInt32</a></h5>
 <pre><code class="language-alan">// Converts the built-in basic types to 32-bit integers

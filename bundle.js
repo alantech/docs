@@ -1106,8 +1106,9 @@ const standardImport = lp_1.NamedAnd.build({
     blank,
     dependency,
     renamed,
+    a: optblank,
     newline,
-    optwhitespace,
+    b: optwhitespace,
 });
 const fromImport = lp_1.NamedAnd.build({
     fromn,
@@ -1117,8 +1118,9 @@ const fromImport = lp_1.NamedAnd.build({
     importn,
     c: blank,
     varlist,
+    d: optblank,
     newline,
-    optwhitespace,
+    e: optwhitespace,
 });
 const imports = lp_1.ZeroOrMore.build(lp_1.NamedOr.build({
     standardImport,

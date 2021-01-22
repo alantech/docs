@@ -152,6 +152,8 @@
    JS      AGA (Alan Graphcode Assembler, dependency graph code in a text format)
             |
            AGC (Alan Graphcode, binary format for the runtime)
+            |
+           AGZ (Alan Graphcode GZipped, compressed binary format for the runtime)
 </code></pre>
 <p><strong>LN</strong> is the high level language meant to be easily accessible, like a cleaned-up Typescript/JS. Automatic memory management, automatic IO concurrency, automatic event-level and array-level CPU parallelism (two tracks in the runtime right now), and a strict type system but with interfaces for defining generic functions that we believe we can write <a href="https://github.com/alantech/alan/blob/main/rfcs/006%20-%20Automatic%20Argument%20Interfaces%20RFC.md">100% automatic type inference with without the compiler requiring a fallback to an explicit type</a>.</p>
 <p><strong>AMM</strong> is a heavily stripped-down version of the language but technically syntactically compatible. It only has constants, events, event handlers, functions, closures, function calls, and assignments. Everything else, including conditionals, is stripped away.</p>
@@ -159,6 +161,7 @@
 <p>The transpiled Javascript doesn't have any of the benefits of the language in terms of cpu parallelism or automatic concurrency, but with some extra intelligence in the transpilation and judicious use of WebWorker threads that could be restored.</p>
 <p><strong>AGA</strong> looks very similar to assembly, but with annotation on events, closures, and the dependency graph that the Alan Runtime uses to reorganize for concurrency and parallelism benefits.</p>
 <p><strong>AGC</strong> is the binary version of <em>AGA</em> and is a near direct translation of the text to a 64-bit little-endian integer packed array, with keywords being given numeric values that are clearly interpretable as 8 UTF-8/ASCII characters.</p>
+<p><strong>AGZ</strong> is a gzipped <em>AGC</em> file that can also be loaded directly by the AVM.</p>
 <p>The compiler contains as a set of AST generators for the various input formats (<a href="https://github.com/alantech/alan/tree/main/compiler/src/ln.ts">ln</a>, <a href="https://github.com/alantech/alan/blob/main/compiler/src/amm.ts">amm</a>, <a href="https://github.com/alantech/alan/blob/main/compiler/src/aga.ts">aga</a>). The grammars are defined using our homegrown <a href="https://github.com/alantech/alan/blob/main/compiler/src/lp.ts">lp</a> recursive descent parser.</p>
 <p>Next, the compiler has the translation stages that go from one input format to another output format (<a href="https://github.com/alantech/alan/tree/main/compiler/src/lntoamm">lntoamm</a>, <a href="https://github.com/alantech/alan/blob/main/compiler/src/ammtojs.ts">ammtojs</a>, <a href="https://github.com/alantech/alan/blob/main/compiler/src/ammtoaga.ts">ammtoaga</a>, <a href="https://github.com/alantech/alan/blob/main/compiler/src/agatoagc.ts">agatoagc</a>).</p>
 <p>While overkill at the moment, the compiler <a href="https://github.com/alantech/alan/blob/main/compiler/src/pipeline.ts">solves the shortest path from the specified input file to output file and constructs the pipeline to do so on the fly</a>. (This is much faster than it sounds and has allowed us to add new inputs/outputs and translation formats quickly.)</p>
@@ -167,7 +170,9 @@
 <h2><a class="header" href="#amm-to-js-or-aga" id="amm-to-js-or-aga">AMM to JS or AGA</a></h2>
 <p>The next stage of the compiler takes the AMM and converts it either into AGA or Javascript. Javascript is a very simple translation, as AMM was designed to look like a &quot;least common denominator scope-based language&quot; which is a very large number of popular languages, and particularly so for Javascript also having a built-in event loop versus that concept being a library. The AGA conversion takes a bit more time as the variables need to be assigned memory addresses during their run and nested scopes in event handlers pulled out into &quot;closure handlers&quot;.</p>
 <h2><a class="header" href="#aga-to-agc" id="aga-to-agc">AGA to AGC</a></h2>
-<p>If targeting to AGC, the final stage of the compiler converts the AGA to AGC with a very straightforward parse and re-emit into 64-bit integers appended to an array and then written to disk. This format doesn't work in the browser due to depending on Node.js's Buffer API, which no browser shim supports, yet, but thankfully that is not needed to build runnable code in the browser!</p>
+<p>If targeting to AGC, this stage of the compiler converts the AGA to AGC with a very straightforward parse and re-emit into 64-bit integers appended to an array and then written to disk. This format doesn't work in the browser due to depending on Node.js's Buffer API, which no browser shim supports, yet, but thankfully that is not needed to build runnable code in the browser!</p>
+<h2><a class="header" href="#agc-to-agz" id="agc-to-agz">AGC to AGZ</a></h2>
+<p>If the final output target is AGZ, the final stage of the compiler takes the AGC binary, compresses it, and writes out the compressed data. This stage depends on Node.js' built-in zlib bindings so it also does not work in the browser, but is also not necessary there.</p>
 
             </main>
 

@@ -171,8 +171,8 @@ Expand-Archive -Path alan-windows.zip -DestinationPath C:\windows
 <p>If you wish to contribute to Alan, or if your operating system and/or CPU architecture do not match the above, you'll need a development environment to build Alan locally:</p>
 <ul>
 <li>git (any recent version should work)</li>
-<li>Node.js &gt;=10.20.1, &lt;14.0.0</li>
-<li>Rust &gt;=1.41.1</li>
+<li>Node.js &gt;=10.20.1</li>
+<li>Rust &gt;=1.45.0</li>
 <li>A complete C toolchain (gcc, clang, msvc)</li>
 </ul>
 <p>Once those are installed, simply:</p>
@@ -193,6 +193,10 @@ on app.start {
 <p>Now compile the code to produce an AGC binary and then run it which prints <code>Hello, World!</code>:</p>
 <pre><code class="language-bash">alan compile hello_world.ln hello_world.agc
 alan run hello_world.agc
+</code></pre>
+<p>If your binary output size is very large and you don't mind the slight increase in startup time, you can also compile to AGZ for a gzipped version of the binary that can also be run directly:</p>
+<pre><code class="language-bash">alan compile hello_world.ln hello_world.agz
+alan run hello_world.agz
 </code></pre>
 <p>You can also run the source file directly:</p>
 <pre><code class="language-bash">alan hello_world.ln

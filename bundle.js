@@ -36,7 +36,7 @@ module.exports = {
   },
 }
 
-},{"../dist/lntoamm/Ast":7,"../dist/lntoamm/Module":11,"../dist/lntoamm/Scope":13,"../dist/lntoamm/opcodes":19,"./stdlibs.json":2}],2:[function(require,module,exports){
+},{"../dist/lntoamm/Ast":9,"../dist/lntoamm/Module":13,"../dist/lntoamm/Scope":15,"../dist/lntoamm/opcodes":21,"./stdlibs.json":2}],2:[function(require,module,exports){
 module.exports={"app.ln":"/**\n * @std/app - The entrypoint for CLI apps\n */\n\n// The `start` event with a signature like `event start` but has special meaning in the runtime\nexport start\n\n// The `stdout` event\nexport event stdout: string\n\n// `@std/app` has access to a special `stdoutp` opcode to trigger stdout writing\non stdout fn (out: string) = stdoutp(out);\n\n// The `print` function converts its input to a string, appends a newline, and does a blocking write to stdout\nexport fn print(out: Stringifiable) {\n  stdoutp(out.toString() + \"\\n\");\n}\n\n// The `exit` event\nexport event exit: int8\n\n// `@std/app` has access to a special `exitop` opcode to trigger the exit behavior\non exit fn (status: int8) = exitop(status);\n\n// The `stderr` event\nexport event stderr: string\n\n// `@std/app` has access to a special `stderrp` opcode to trigger stderr writing\non stderr fn (err: string) = stderrp(err);\n\n// The `eprint` function converts its input to a string, appends a newline, and does a blocking write to stderr\nexport fn eprint(err: Stringifiable) {\n  stderrp(err.toString() + \"\\n\");\n}\n","cmd.ln":"/**\n * @std/cmd - The entrypoint for working with command line processes.\n */\n\nexport fn exec(n: string) = execop(n);","datastore.ln":"/**\n * @std/datastore - Shared mutable state with controlled access\n */\n\n// Just syntactic sugar to seem less stringly-typed than it is\nexport fn namespace(ns: string) = ns;\n\n// The set function to store shared data\nexport fn set(ns: string, key: string, val: any) = dssetv(ns, key, val);\nexport fn set(ns: string, key: string, val: int8) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: int16) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: int32) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: int64) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: float32) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: float64) = dssetf(ns, key, val);\nexport fn set(ns: string, key: string, val: bool) = dssetf(ns, key, val);\n\n// The has function to test if a shared key exists\nexport fn has(ns: string, key: string): bool = dshas(ns, key);\n\n// The del function to remove a shared key\nexport fn del(ns: string, key: string): bool = dsdel(ns, key);\n\n// The getOr function to get a value or the return the provided default\nexport fn getOr(ns: string, key: string, default: any) {\n  return dsgetv(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int8) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int16) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int32) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: int64) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: float32) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: float64) {\n  return dsgetf(ns, key).getOr(default);\n}\nexport fn getOr(ns: string, key: string, default: bool) {\n  return dsgetf(ns, key).getOr(default);\n}\n","deps.ln":"from @std/app import start, print, exit\nfrom @std/cmd import exec\n\n/**\n * @std/deps - The entrypoint to install dependencies for an alan program\n */\n\n// The `install` event\nexport event install: void\n\n// The `add` function takes a string that describes a .git repository and install it in /dependencies\nexport fn add(remote: string) {\n  // TODO implement proper error handling\n  const parts = remote.split('/');\n  const repo = parts[length(parts) - 1] || '';\n  const group = parts[parts.length() - 2] || '';\n  const dest = '/dependencies/' + group + '/' + repo;\n  const rm = exec('rm -rf .' + dest);\n  const git = exec('git clone ' + remote + ' .' + dest);\n  print(git.stderr);\n  const rm2 = exec('rm -rf .' + dest + '/.git');\n}\n\n// The `commit` function takes no arguments. Currently just causes the application to quit, but\n// eventually would be the point where the dependencies defined by the calls to `add` could be\n// compared against the currently-installed dependencies, and a faster install would be possible\nexport fn commit() {\n  emit exit 0;\n}\n\n// Emit the `install` event on app `start`\non start {\n  // TODO: optimize to parse the existing dependencies tree, if any, to build up a list of dependencies\n  // that are already installed so calls by the user to install them again (assuming the version is identical)\n  // are skipped, calls to upgrade or install new dependencies are performed, and then the remaining list\n  // of dependencies at the end are removed.\n  exec('rm -rf dependencies');\n  exec('mkdir dependencies');\n  emit install;\n}\n","http.ln":"/**\n * @std/http - Built-in client and server for http\n */\n\n/**\n * HTTP Client\n */\n\nexport fn get(url: string) = httpget(url);\nexport fn post(url: string, payload: string) = httppost(url, payload);\n\n/**\n * HTTP Server\n */\n\n// The InternalRequest type for inbound http requests\ntype InternalRequest {\n  url: string,\n  headers: Array<KeyVal<string, string>>,\n  body: string,\n  connId: int64,\n}\n\n// The InternalResponse type for inbount http requests\ntype InternalResponse {\n  status: int64,\n  headers: Array<KeyVal<string, string>>,\n  body: string,\n  connId: int64,\n}\n\n// The exposed Request type\nexport type Request {\n  url: string,\n  headers: HashMap<string, string>,\n  body: string,\n}\n\n// The exposed Response type\nexport type Response {\n  status: int64,\n  headers: HashMap<string, string>,\n  body: string,\n  connId: int64,\n}\n\n// The roll-up Connection type with both\nexport type Connection {\n  req: Request,\n  res: Response,\n}\n\n// The connection event\nexport event connection: Connection\n\n// The special connection event with a signature like `event __conn: InternalConnection`\n// This wrapper function takes the internal connection object, converts it to the user-friendly\n// connection object, and then emits it on a new event for user code to pick up\non __conn fn (conn: InternalRequest) {\n  emit connection new Connection {\n    req: new Request {\n      url: conn.url,\n      headers: toHashMap(conn.headers),\n      body: conn.body,\n    },\n    res: new Response {\n      status: 200, // If not set by the user, assume they meant it to be good\n      headers: newHashMap('Content-Length', '0'), // If not set by the user, assume no data\n      body: '', // If not set by the user, assume no data\n      connId: conn.connId,\n    },\n  };\n}\n\n// The listen function tells the http server to start up and listen on the given port\n// For now only one http server per application, a macro system is necessary to improve this\n// Returns a Result with either an 'ok' string or an error\nexport fn listen(port: int64) = httplsn(port);\n\n// The body function sets the body for a Response, sets the Content-Length header, and retuns the\n// Response for chaining needs\nexport fn body(res: Response, body: string) {\n  res.body = body;\n  const len = body.length();\n  set(res.headers, 'Content-Length', len.toString());\n  return res;\n}\n\n// The status function sets the status of the response\nexport fn status(res: Response, status: int64) {\n  res.status = status;\n  return res;\n}\n\n// The send function converts the response object into an internal response object and passed that\n// back to the HTTP server. A Result type with either an 'ok' string or an error is returned\nexport fn send(res: Response): Result<string> {\n  const ires = new InternalResponse {\n    status: res.status,\n    headers: res.headers.keyVal,\n    body: res.body,\n    connId: res.connId,\n  };\n  return httpsend(ires);\n}","json.ln":"/* @std/json - A library for parsing, representing, and serializing to and from JSON\n * This representation can handle every JSON type, and if you squint at it, it cannot represent an\n * invalid value. This is not entirely true without a small liberty being taken. If a JSONNode is an\n * object, its children *should* be `KeyVal<string, JSONBase>` type, but if they're just `JSONBase`\n * you could also just use the `toString` representation of the value as its key and the value as\n * the value. Similarly, you should not ever have children attached to a `JSONBase`, but you can\n * just ignore those children.\n */\nexport type IsObject {\n  isObject: bool,\n}\n// TODO: Fix issues with using `void` as a value in the compiler\nexport type Null {\n  isNull: bool,\n}\nexport const null = new Null {\n  isNull: true,\n};\nexport type JSONBase = Either<Either<float64, bool>, Either<string, Either<IsObject, Null>>>\nexport type JSONNode = Either<KeyVal<string, JSONBase>, JSONBase>\nexport type JSON = Tree<JSONNode>\n\n/* IsObject Functions */\nexport fn toObject() = new IsObject {\n  isObject: true,\n};\nexport fn toArray() = new IsObject {\n  isObject: false,\n};\n\nexport fn isObject(a: IsObject) = a.isObject;\nexport fn isArray(a: IsObject) = !a.isObject;\n\n/* JSONBase functions */\nexport fn toJSONBase(a: float64): JSONBase {\n  return main(main(a));\n}\nexport fn toJSONBase(a: bool): JSONBase {\n  return main(alt(a));\n}\nexport fn toJSONBase(a: string): JSONBase {\n  return alt(main(a));\n}\nexport fn toJSONBase(a: IsObject): JSONBase {\n  return alt(alt(main(a)));\n}\nexport fn toJSONBase(a: Null): JSONBase {\n  alt(alt(alt(a)));\n}\nexport fn toJSONBase(): JSONBase {\n  alt(alt(alt(null)));\n}\n\nexport fn getFloat64(a: JSONBase): Result<float64> {\n  if a.isMain() {\n    const b = a.getMainOr(alt(false)); // TODO: Not require the default value here\n    if b.isMain() {\n      return ok(b.getMainOr(0.0));\n    }\n  }\n  return err(\"JSON Node is not a number type\");\n}\nexport fn getBool(a: JSONBase): Result<bool> {\n  if a.isMain() {\n    const b = a.getMainOr(main(0.0));\n    if b.isAlt() {\n      return ok(b.getAltOr(false));\n    }\n  }\n  return err(\"JSON Node is not a bool type\");\n}\nexport fn getString(a: JSONBase): Result<string> {\n  if a.isAlt() {\n    const b = a.getAltOr(alt(alt(null)));\n    if b.isMain() {\n      return ok(b.getMainOr(''));\n    }\n  }\n  return err(\"JSON Node is not a string type\");\n}\nexport fn getIsObject(a: JSONBase): Result<IsObject> {\n  if a.isAlt() {\n    const b = a.getAltOr(alt(alt(null)));\n    if b.isAlt() {\n      const c = b.getAltOr(alt(null));\n      if c.isMain() {\n        return ok(c.getMainOr(new IsObject {\n          isObject: false,\n        }));\n      }\n    }\n  }\n  return err(\"JSON Node is not an object or array\");\n}\nexport fn isFloat64(a: JSONBase): bool {\n  if a.isMain() {\n    const b = a.getMainOr(alt(false));\n    return b.isMain();\n  }\n  return false;\n}\nexport fn isBool(a: JSONBase): bool {\n  if a.isMain() {\n    const b = a.getMainOr(main(0.0));\n    return b.isAlt();\n  }\n  return false;\n}\nexport fn isString(a: JSONBase): bool {\n  if a.isAlt() {\n    const b = a.getAltOr(alt(null));\n    return b.isMain();\n  }\n  return false;\n}\nexport fn isObjectOrArray(a: JSONBase): bool {\n  if a.isAlt() {\n    const b = a.getAltOr(main(''));\n    if b.isAlt() {\n      const c = b.getAltOr(alt(null));\n      return c.isMain();\n    }\n  }\n  return false;\n}\nexport fn isNull(a: JSONBase): bool {\n  if a.isAlt() {\n    const b = a.getAltOr(main(''));\n    if b.isAlt() {\n      const c = b.getAltOr(new IsObject {\n        isObject: false,\n      });\n      return c.isAlt();\n    }\n  }\n  return false;\n}\nexport fn toString(a: JSONBase): string {\n  if a.isMain() {\n    const b = a.getMainOr(main(0.0));\n    if b.isMain() {\n      return b.getMainOr(0.0).toString();\n    } else {\n      return b.getAltOr(false).toString();\n    }\n  } else {\n    const b = a.getAltOr(main(''));\n    if b.isMain() {\n      return '\"' + b.getMainOr('').split('\"').join('\\\\\"') + '\"';\n    } else {\n      const c = b.getAltOr(alt(null));\n      if c.isMain() {\n        const obj = c.getMainOr(new IsObject {\n          isObject: false,\n        });\n        if obj.isObject {\n          return '{}';\n        } else {\n          return '[]';\n        }\n      } else {\n        return 'null';\n      }\n    }\n  }\n}\n\n/* JSONNode function */\nexport fn toJSONNode(a: float64): JSONNode {\n  return alt(a.toJSONBase());\n}\nexport fn toJSONNode(a: bool): JSONNode {\n  return alt(a.toJSONBase());\n}\nexport fn toJSONNode(a: string): JSONNode {\n  return alt(a.toJSONBase());\n}\nexport fn toJSONNode(a: IsObject): JSONNode {\n  return alt(a.toJSONBase());\n}\nexport fn toJSONNode(a: Null): JSONNode {\n  return alt(a.toJSONBase());\n}\nexport fn toJSONNode(): JSONNode {\n  return alt(toJSONBase());\n}\nexport fn toJSONNode(a: JSONBase): JSONNode {\n  return alt(a);\n}\nexport fn toJSONNode(a: KeyVal<string, JSONBase>): JSONNode {\n  return main(a);\n}\n\nexport fn getFloat64(a: JSONNode): Result<float64> {\n  if a.isAlt() {\n    const b = a.getAltOr(toJSONBase());\n    return b.getFloat64();\n  }\n  return err(\"JSON Node is not a number type\");\n}\nexport fn getBool(a: JSONNode): Result<bool> {\n  if a.isAlt() {\n    const b = a.getAltOr(toJSONBase());\n    return b.getBool();\n  }\n  return err(\"JSON Node is not a bool type\");\n}\nexport fn getString(a: JSONNode): Result<bool> {\n  if a.isAlt() {\n    const b = a.getAltOr(toJSONBase());\n    return b.getString();\n  }\n  return err(\"JSON Node is not a string type\");\n}\nexport fn getIsObject(a: JSONNode): Result<IsObject> {\n  if a.isAlt() {\n    const b = a.getAltOr(toJSONBase());\n    return b.getIsObject();\n  }\n  return err(\"JSON Node is not an object or array\");\n}\nexport fn getKeyVal(a: JSONNode): Result<KeyVal<string, JSONBase>> {\n  if a.isMain() {\n    return ok(a.getMainOr(new KeyVal<string, JSONBase> {\n      key: '',\n      val: toJSONBase(),\n    }));\n  }\n  return err(\"JSON Element is not a KeyVal type\");\n}\nexport fn isFloat64(a: JSONNode): bool {\n  if a.isAlt() {\n    const b = a.getAltOr(toJSONBase());\n    return b.isFloat64();\n  }\n  return false;\n}\nexport fn isBool(a: JSONNode): bool {\n  if a.isAlt() {\n    const b = a.getAltOr(toJSONBase());\n    return b.isBool();\n  }\n  return false;\n}\nexport fn isString(a: JSONNode): bool {\n  if a.isAlt() {\n    const b = a.getAltOr(toJSONBase());\n    return b.isString();\n  }\n  return false;\n}\nexport fn isObjectOrArray(a: JSONNode): bool {\n  if a.isAlt() {\n    const b = a.getAltOr(toJSONBase());\n    return b.isObjectOrArray();\n  }\n  return false;\n}\nexport fn isNull(a: JSONNode): bool {\n  if a.isAlt() {\n    const b = a.getAltOr(toJSONBase(0.0));\n    return b.isNull();\n  }\n  return false;\n}\nexport fn isKeyVal(a: JSONNode): bool {\n  return a.isMain();\n}\nexport fn toString(a: JSONNode): string {\n  if a.isAlt() {\n    const b = a.getAltOr(toJSONBase());\n    return b.toString();\n  }\n  const b = a.getMainOr(new KeyVal<string, JSONBase> {\n    key: '',\n    val: toJSONBase(),\n  });\n  return '\"' + b.key.split('\"').join('\\\\\"') + '\": ' + b.val.toString();\n}\n\n// JSON Functions\nexport fn toJSON(a: float64): JSON = newTree(a.toJSONNode());\nexport fn toJSON(a: bool): JSON = newTree(a.toJSONNode());\nexport fn toJSON(a: string): JSON = newTree(a.toJSONNode());\nexport fn toJSON(a: Null): JSON = newTree(a.toJSONNode());\nexport fn toJSON(a: IsObject): JSON = newTree(a.toJSONNode());\nexport fn toJSON(): JSON = newTree(toJSONNode());\n// TODO: Would an interface help here?\nexport fn toJSON(a: HashMap<string, float64>): JSON {\n  const json = newTree(toObject().toJSONNode());\n  a.keyVal().eachLin(fn (kv: KeyVal<string, float64>) {\n    const kv2 = new KeyVal<string, JSONBase> {\n      key: kv.key,\n      val: kv.val.toJSONBase(),\n    };\n    json.addChild(kv2.toJSONNode());\n  });\n  return json;\n}\nexport fn toJSON(a: HashMap<string, bool>): JSON {\n  const json = newTree(toObject().toJSONNode());\n  a.keyVal().eachLin(fn (kv: KeyVal<string, bool>) {\n    const kv2 = new KeyVal<string, JSONBase> {\n      key: kv.key,\n      val: kv.val.toJSONBase(),\n    };\n    json.addChild(kv2.toJSONNode());\n  });\n  return json;\n}\nexport fn toJSON(a: HashMap<string, string>): JSON {\n  const json = newTree(toObject().toJSONNode());\n  a.keyVal().eachLin(fn (kv: KeyVal<string, string>) {\n    const kv2 = new KeyVal<string, JSONBase> {\n      key: kv.key,\n      val: kv.val.toJSONBase(),\n    };\n    json.addChild(kv2.toJSONNode());\n  });\n  return json;\n}\nexport fn toJSON(a: HashMap<string, Null>): JSON { // Would anyone even use such a thing?\n  const json = newTree(toObject().toJSONNode());\n  a.keyVal().eachLin(fn (kv: KeyVal<string, Null>) {\n    const kv2 = new KeyVal<string, JSONBase> {\n      key: kv.key,\n      val: kv.val.toJSONBase(),\n    };\n    json.addChild(kv2.toJSONNode());\n  });\n  return json;\n}\nexport fn toJSON(a: HashMap<string, IsObject>): JSON {\n  const json = newTree(toObject().toJSONNode());\n  a.keyVal().eachLin(fn (kv: KeyVal<string, IsObject>) {\n    const kv2 = new KeyVal<string, JSONBase> {\n      key: kv.key,\n      val: kv.val.toJSONBase(),\n    };\n    json.addChild(kv2.toJSONNode());\n  });\n  return json;\n}\nexport fn toJSON(a: HashMap<string, JSONBase>): JSON {\n  const json = newTree(toObject().toJSONNode());\n  a.keyVal().eachLin(fn (kv: KeyVal<string, JSONBase>) {\n    json.addChild(kv.toJSONNode());\n  });\n  return json;\n}\n// TODO: Same story, different function. It feels like an interface type would work here\nexport fn toJSON(a: Array<float64>): JSON {\n  const json = newTree(toArray().toJSONNode());\n  a.eachLin(fn (v: float64) {\n    json.addChild(v.toJSONNode());\n  });\n  return json;\n}\nexport fn toJSON(a: Array<bool>): JSON {\n  const json = newTree(toArray().toJSONNode());\n  a.eachLin(fn (v: bool) {\n    json.addChild(v.toJSONNode());\n  });\n  return json;\n}\nexport fn toJSON(a: Array<string>): JSON {\n  const json = newTree(toArray().toJSONNode());\n  a.eachLin(fn (v: string) {\n    json.addChild(v.toJSONNode());\n  });\n  return json;\n}\nexport fn toJSON(a: Array<Null>): JSON { // Would anyone even use such a thing?\n  const json = newTree(toArray().toJSONNode());\n  a.eachLin(fn (v: Null) {\n    json.addChild(v.toJSONNode());\n  });\n  return json;\n}\nexport fn toJSON(a: Array<IsObject>): JSON {\n  const json = newTree(toArray().toJSONNode());\n  a.eachLin(fn (v: IsObject) {\n    json.addChild(v.toJSONNode());\n  });\n  return json;\n}\nexport fn toJSON(a: Array<JSONBase>): JSON {\n  const json = newTree(toArray().toJSONNode());\n  a.eachLin(fn (v: JSONBase) {\n    json.addChild(v.toJSONNode());\n  });\n  return json;\n}\n\nexport fn newJSONObject(): JSON {\n  return new IsObject {\n    isObject: true,\n  }.toJSON();\n}\n\nexport fn newJSONArray(): JSON {\n  return new IsObject {\n    isObject: false,\n  }.toJSON();\n}\n\nexport fn addKeyVal(j: JSON, key: string, val: JSONBase): JSON {\n  const kv = new KeyVal<string, JSONBase> {\n    key: key,\n    val: val,\n  };\n  j.addChild(kv.toJSONNode());\n  return j;\n}\nexport fn addKeyVal(j: JSON, key: string, val: float64): JSON {\n  const kv = new KeyVal<string, JSONBase> {\n    key: key,\n    val: val.toJSONBase(),\n  };\n  j.addChild(kv.toJSONNode());\n  return j;\n}\nexport fn addKeyVal(j: JSON, key: string, val: bool): JSON {\n  const kv = new KeyVal<string, JSONBase> {\n    key: key,\n    val: val.toJSONBase(),\n  };\n  j.addChild(kv.toJSONNode());\n  return j;\n}\nexport fn addKeyVal(j: JSON, key: string, val: string): JSON {\n  const kv = new KeyVal<string, JSONBase> {\n    key: key,\n    val: val.toJSONBase(),\n  };\n  j.addChild(kv.toJSONNode());\n  return j;\n}\nexport fn addKeyVal(j: JSON, key: string, val: IsObject): JSON {\n  const kv = new KeyVal<string, JSONBase> {\n    key: key,\n    val: val.toJSONBase(),\n  };\n  j.addChild(kv.toJSONNode());\n  return j;\n}\nexport fn addKeyVal(j: JSON, key: string, val: Null): JSON {\n  const kv = new KeyVal<string, JSONBase> {\n    key: key,\n    val: val.toJSONBase(),\n  };\n  j.addChild(kv.toJSONNode());\n  return j;\n}\nexport fn addKeyVal(j: JSON, key: string): JSON {\n  const kv = new KeyVal<string, JSONBase> {\n    key: key,\n    val: toJSONBase(),\n  };\n  j.addChild(kv.toJSONNode());\n  return j;\n}\nexport fn addKeyVal(j: JSON, key: string, val: JSON): JSON {\n  const childNode = j.addChild(val);\n  // Now mutate the attached sub-tree's root node to become a KeyVal pair\n  const baseNode = childNode || toJSONNode();\n  if baseNode.isKeyVal() {\n    // Just update the key to match.\n    // TODO, Make this assignment work in one line\n    let n = baseNode.getMainOr(new KeyVal<string, JSONBase> {\n      key: key,\n      val: toJSONBase(),\n    });\n    n.key = key;\n    return j;\n  }\n  // We need to replace the JSONNode itself\n  const baseVal = baseNode.getAltOr(toJSONBase());\n  const newVal = new KeyVal<string, JSONBase> {\n    key: key,\n    val: baseVal,\n  }.toJSONNode();\n  j.vals.set(childNode.id, newVal);\n  return j;\n}\n\nexport fn push(j: JSON, val: JSON): JSON {\n  j.addChild(val);\n  return j;\n}\nexport fn push(j: JSON, val: JSONNode): JSON {\n  j.addChild(val);\n  return j;\n}\nexport fn push(j: JSON, val: JSONBase): JSON {\n  j.addChild(val.toJSONNode());\n  return j;\n}\nexport fn push(j: JSON, val: float64): JSON {\n  j.addChild(val.toJSONNode());\n  return j;\n}\nexport fn push(j: JSON, val: bool): JSON {\n  j.addChild(val.toJSONNode());\n  return j;\n}\nexport fn push(j: JSON, val: string): JSON {\n  j.addChild(val.toJSONNode());\n  return j;\n}\nexport fn push(j: JSON, val: IsObject): JSON {\n  j.addChild(val.toJSONNode());\n  return j;\n}\nexport fn push(j: JSON, val: Null): JSON {\n  j.addChild(val.toJSONNode());\n  return j;\n}\nexport fn push(j: JSON): JSON {\n  j.addChild(toJSONNode());\n  return j;\n}\n\n// TODO: Remove this hardwired version of `toString` once `foldup` compiles correctly\nexport fn toString(j: JSON): string {\n  // Get the leaf nodes\n  const leaves = j\n    .toNodeArray()\n    .filter(fn (n: Node<JSONNode>): bool = n.getChildren().length().eq(0));\n  // Create a lookup table from their ids to their output values\n  let lookup = leaves.map(fn (l: Node<JSONNode>): KeyVal<int64, string> {\n    return new KeyVal<int64, string> {\n      key: l.id,\n      val: toString(l || toJSONNode()),\n    };\n  }).toHashMap();\n  // Construct a list of nodes to process, based on the parents of the leaf nodes, using a HashMap\n  // as a set, but only those parents that have all children set by these leaves\n  let nodeList = newHashMap(-1, false);\n  leaves.eachLin(fn (l: Node<JSONNode>) {\n    const parentId = l.getParent().id;\n    if parentId > -1 {\n      nodeList.set(l.getParent().id, true);\n    }\n  });\n  nodeList.keyVal().filter(fn (kv: KeyVal<int64, bool>): bool {\n    const n = j.getNodeById(kv.key);\n    const children = n.getChildren();\n    let missingChildren = false;\n    children.eachLin(fn (c: Node<JSONNode>) {\n      if lookup.get(c.id).isErr() {\n        missingChildren = true;\n      }\n    });\n    return missingChildren;\n  }).eachLin(fn (kv: KeyVal<int64, bool>) {\n    nodeList.set(kv.key, false);\n  });\n  // Execute the following block over and over again until there are no more nodes to process\n  seqdo(newseq(pow(2, 62).getOr(0)), fn (): bool {\n    // Generate a list of ids from the nodeList by filtering out all `false` entries and mapping\n    // the remaining ids into Nodes\n    const nodes = nodeList\n      .keyVal()\n      .filter(fn (kv: KeyVal<int64, bool>): bool = kv.val)\n      .map(fn (kv: KeyVal<int64, bool>): Node<JSONNode> = j.getNodeById(kv.key));\n    // Generate the array of child output values per node by mapping each node first into the array\n    // of children and then mapping that into the values stored in the lookup hashmap\n    const childVals = nodes.map(fn (n: Node<JSONNode>): Array<string> {\n      return n.tree.children[n.id].getOr(new Array<int64> []).map(fn (x: int64): string {\n        return lookup.get(x).getR();\n      });\n    });\n    // Compute the new output values by calling the folding function on the nodes and their paired\n    // child arrays\n    const newVals = nodes.map(fn (n: Node<JSONNode>, i: int64): string {\n      const nodeVal = n || toJSONNode();\n      if nodeVal.isKeyVal() {\n        const kv = nodeVal.getKeyVal() || new KeyVal<string, JSONBase> {\n          key: '',\n          val: toJSONBase(),\n        };\n        if kv.val.isObjectOrArray() {\n          const isObject = kv.val.getIsObject().getR();\n          if isObject.isObject {\n            return '\"' + kv.key + '\": {' + childVals[i].getR().join(', ') + '}';\n          } else {\n            return '\"' + kv.key + '\": [' + childVals[i].getR().join(', ') + ']';\n          }\n        } else {\n          return nodeVal.toString();\n        }\n      }\n      if nodeVal.isObjectOrArray() {\n        const isObject = nodeVal.getIsObject().getR();\n        if isObject.isObject {\n          return '{' + childVals[i].getR().join(', ') + '}';\n        } else {\n          return '[' + childVals[i].getR().join(', ') + ']';\n        }\n      } else {\n        // This is an invalid path for JSON, we'll just ignore the children, instead, for now\n        return nodeVal.toString();\n      }\n    });\n    // Wipe the set by marking all values as false (we don't have HashMap deletes, yet)\n    nodeList.keys().eachLin(fn (k: int64) = nodeList.set(k, false));\n    // Then for each node, if it has a parent, add its parent to the set and its value to the lookup\n    nodes.eachLin(fn (n: Node<JSONNode>, i: int64) {\n      const parentId = n.getParent().id;\n      if parentId > -1 {\n        nodeList.set(parentId, true);\n      }\n      lookup.set(n.id, newVals[i].getR());\n    });\n    // Scan through the parents and disable any that are missing one or more of its children, this\n    // allows unbalanced trees to process correctly\n    nodeList.keyVal().filter(fn (kv: KeyVal<int64, bool>): bool {\n      const n = j.getNodeById(kv.key);\n      const children = n.getChildren();\n      let missingChildren = false;\n      children.eachLin(fn (c: Node<JSONNode>) {\n        if lookup.get(c.id).isErr() {\n          missingChildren = true;\n        }\n      });\n      return missingChildren;\n    }).eachLin(fn (kv: KeyVal<int64, bool>) {\n      nodeList.set(kv.key, false);\n    });\n    // Check if there are any nodes in the set to process and exit the loop if no\n    return nodeList.keyVal().filter(fn (kv: KeyVal<int64, bool>): bool = kv.val).length().gt(0);\n  });\n  // Lookup the root node's value as that should be the output and return it\n  return lookup.get(j.getRootNode().id).getR();\n}\n\nexport interface json {\n  toJSON(float64): json,\n  toJSON(bool): json,\n  toJSON(string): json,\n  toJSON(Null): json,\n  toJSON(HashMap<string, float64>): json,\n  toJSON(HashMap<string, bool>): json,\n  toJSON(HashMap<string, string>): json,\n  toJSON(HashMap<string, Null>): json,\n  toJSON(Array<float64>): json,\n  toJSON(Array<bool>): json,\n  toJSON(Array<string>): json,\n  toJSON(Array<Null>): json,\n  toString(json): string,\n  /*newJSONObject(): json,\n  newJSONArray(): json,*/\n  addKeyVal(json, string, float64): json,\n  addKeyVal(json, string, bool): json,\n  addKeyVal(json, string, Null): json,\n  addKeyVal(json, string): json,\n  addKeyVal(json, string, json): json,\n  push(json, json): json,\n  push(json, float64): json,\n  push(json, bool): json,\n  push(json, string): json,\n  push(json, Null): json,\n  push(json): json,\n}\n","root.ln":"/**\n * The root scope. These definitions are automatically available from every module.\n * These are almost entirely wrappers around runtime opcodes to provide a friendlier\n * name and using function dispatch based on input arguments to pick the correct opcode.\n */\n\n// TODO: See about making an export block scope so we don't have to write `export` so much\n\n// Export all of the built-in types\nexport void\nexport int8\nexport int16\nexport int32\nexport int64\nexport float32\nexport float64\nexport bool\nexport string\nexport function // TODO: Make the function type more explicit than this\nexport Array\nexport Error\nexport Maybe\nexport Result\nexport Either\n\n// Type aliasing of int64 and float64 to just int and float, as these are the default types\nexport type int = int64\nexport type float = float64\n\n// Default Interfaces\nexport interface any {}\nexport interface anythingElse = any // Same as `any` but doesn't match with it\nexport interface Stringifiable {\n  toString(Stringifiable): string,\n}\nexport interface Orderable {\n  lt(Orderable, Orderable): bool,\n  lte(Orderable, Orderable): bool,\n  gt(Orderable, Orderable): bool,\n  gte(Orderable, Orderable): bool,\n}\nexport interface canFloat64 {\n  toFloat64(canFloat64): float64\n}\nexport interface canInt64 {\n  toInt64(canInt64): int64\n}\n\n// Type conversion functions\nexport fn toFloat64(n: int8) = i8f64(n);\nexport fn toFloat64(n: int16) = i16f64(n);\nexport fn toFloat64(n: int32) = i32f64(n);\nexport fn toFloat64(n: int64) = i64f64(n);\nexport fn toFloat64(n: float32) = f32f64(n);\nexport fn toFloat64(n: float64) = n;\nexport fn toFloat64(n: string) = strf64(n);\nexport fn toFloat64(n: bool) = boolf64(n);\n\nexport fn toFloat32(n: int8) = i8f32(n);\nexport fn toFloat32(n: int16) = i16f32(n);\nexport fn toFloat32(n: int32) = i32f32(n);\nexport fn toFloat32(n: int64) = i64f32(n);\nexport fn toFloat32(n: float32) = n;\nexport fn toFloat32(n: float64) = f64f32(n);\nexport fn toFloat32(n: string) = strf32(n);\nexport fn toFloat32(n: bool) = boolf32(n);\n\nexport fn toInt64(n: int8) = i8i64(n);\nexport fn toInt64(n: int16) = i16i64(n);\nexport fn toInt64(n: int32) = i32i64(n);\nexport fn toInt64(n: int64) = n;\nexport fn toInt64(n: float32) = f32i64(n);\nexport fn toInt64(n: float64) = f64i64(n);\nexport fn toInt64(n: string) = stri64(n);\nexport fn toInt64(n: bool) = booli64(n);\n\nexport fn toInt32(n: int8) = i8i32(n);\nexport fn toInt32(n: int16) = i16i32(n);\nexport fn toInt32(n: int32) = n;\nexport fn toInt32(n: int64) = i64i32(n);\nexport fn toInt32(n: float32) = f32i32(n);\nexport fn toInt32(n: float64) = f64i32(n);\nexport fn toInt32(n: string) = stri32(n);\nexport fn toInt32(n: bool) = booli32(n);\n\nexport fn toInt16(n: int8) = i8i16(n);\nexport fn toInt16(n: int16) = n;\nexport fn toInt16(n: int32) = i32i16(n);\nexport fn toInt16(n: int64) = i64i16(n);\nexport fn toInt16(n: float32) = f32i16(n);\nexport fn toInt16(n: float64) = f64i16(n);\nexport fn toInt16(n: string) = stri16(n);\nexport fn toInt16(n: bool) = booli16(n);\n\nexport fn toInt8(n: int8) = n;\nexport fn toInt8(n: int16) = i16i8(n);\nexport fn toInt8(n: int32) = i32i8(n);\nexport fn toInt8(n: int64) = i64i8(n);\nexport fn toInt8(n: float32) = f32i8(n);\nexport fn toInt8(n: float64) = f64i8(n);\nexport fn toInt8(n: string) = stri8(n);\nexport fn toInt8(n: bool) = booli8(n);\n\nexport fn toBool(n: int8) = i8bool(n);\nexport fn toBool(n: int16) = i16bool(n);\nexport fn toBool(n: int32) = i32bool(n);\nexport fn toBool(n: int64) = i64bool(n);\nexport fn toBool(n: float32) = f32bool(n);\nexport fn toBool(n: float64) = f64bool(n);\nexport fn toBool(n: string) = strbool(n);\nexport fn toBool(n: bool) = n;\n\nexport fn toString(n: int8) = i8str(n);\nexport fn toString(n: int16) = i16str(n);\nexport fn toString(n: int32) = i32str(n);\nexport fn toString(n: int64) = i64str(n);\nexport fn toString(n: float32) = f32str(n);\nexport fn toString(n: float64) = f64str(n);\nexport fn toString(n: string) = n;\nexport fn toString(n: bool) = boolstr(n);\n\n// Type alias conversion functions\nexport fn toFloat(n: canFloat64): float = toFloat64(n);\nexport fn toInt(n: canInt64): int = toInt64(n);\n\n// Error, Maybe, Result, and Either types and functions\nexport error // opcode with signature `fn error(string): Error`\nexport fn ref(a: any) = refv(a);\nexport fn ref(a: void) = reff(a);\nexport fn ref(a: int8) = reff(a);\nexport fn ref(a: int16) = reff(a);\nexport fn ref(a: int32) = reff(a);\nexport fn ref(a: int64) = reff(a);\nexport fn ref(a: float32) = reff(a);\nexport fn ref(a: float64) = reff(a);\nexport fn ref(a: bool) = reff(a);\nexport noerr // opcode with signature `fn noerr(): Error`\nexport fn toString(err: Error) = errorstr(err);\n\nexport fn some(val: any) = someM(val, 0);\nexport fn some(val: int8) = someM(val, 8);\nexport fn some(val: int16) = someM(val, 8);\nexport fn some(val: int32) = someM(val, 8);\nexport fn some(val: int64) = someM(val, 8);\nexport fn some(val: float32) = someM(val, 8);\nexport fn some(val: float64) = someM(val, 8);\nexport fn some(val: bool) = someM(val, 8);\nexport fn none() = noneM();\nexport isSome // opcode with signature `fn isSome(Maybe<any>): bool`\nexport isNone // opcode with signature `fn isNone(Maybe<any>): bool`\nexport fn getOr(maybe: Maybe<any>, default: any) = getOrM(maybe, default);\n\nexport fn ok(val: any) = okR(val, 0);\nexport fn ok(val: int8) = okR(val, 8);\nexport fn ok(val: int16) = okR(val, 8);\nexport fn ok(val: int32) = okR(val, 8);\nexport fn ok(val: int64) = okR(val, 8);\nexport fn ok(val: float32) = okR(val, 8);\nexport fn ok(val: float64) = okR(val, 8);\nexport fn ok(val: bool) = okR(val, 8);\nexport err // opcode with signature `fn err(string): Result<any>`\nexport isOk // opcode with signature `fn isOk(Result<any>): bool`\nexport isErr // opcode with signature `fn isErr(Result<any>: bool`\nexport fn getOr(result: Result<any>, default: any) = getOrR(result, default);\nexport fn getOr(result: Result<any>, default: string) = getOrRS(result, default);\nexport getErr // opcode with signature `fn getErr(Result<any>, Error): Error`\nexport fn toString(n: Result<Stringifiable>): string {\n  if n.isOk() {\n    return n.getR().toString();\n  } else {\n    return n.getErr(noerr()).toString();\n  }\n}\nexport fn getOrExit(result: Result<any>): any {\n  if result.isErr() {\n    stderrp(result.toString());\n    exitop(1.toInt8());\n  } else {\n    return result.getR();\n  }\n}\n\nexport fn main(val: any) = mainE(val, 0);\nexport fn main(val: int8) = mainE(val, 8);\nexport fn main(val: int16) = mainE(val, 8);\nexport fn main(val: int32) = mainE(val, 8);\nexport fn main(val: int64) = mainE(val, 8);\nexport fn main(val: float32) = mainE(val, 8);\nexport fn main(val: float64) = mainE(val, 8);\nexport fn main(val: bool) = mainE(val, 8);\nexport fn alt(val: any) = altE(val, 0);\nexport fn alt(val: int8) = altE(val, 8);\nexport fn alt(val: int16) = altE(val, 8);\nexport fn alt(val: int32) = altE(val, 8);\nexport fn alt(val: int64) = altE(val, 8);\nexport fn alt(val: float32) = altE(val, 8);\nexport fn alt(val: float64) = altE(val, 8);\nexport fn alt(val: bool) = altE(val, 8);\nexport isMain // opcode with signature `fn isMain(Either<any, anythingElse>): bool`\nexport isAlt // opcode with signature `fn isAlt(Either<any, anythingElse): bool`\nexport fn getMainOr(either: Either<any, anythingElse>, default: any) = mainOr(either, default);\nexport fn getAltOr(either: Either<any, anythingElse>, default: anythingElse) = altOr(either, default);\n\n// Arithmetic functions\nexport fn add(a: int8, b: int8) = addi8(ok(a), ok(b));\nexport fn add(a: Result<int8>, b: int8) = addi8(a, ok(b));\nexport fn add(a: int8, b: Result<int8>) = addi8(ok(a), b);\nexport fn add(a: Result<int8>, b: Result<int8>) = addi8(a, b);\nexport fn add(a: int16, b: int16) = addi16(ok(a), ok(b));\nexport fn add(a: Result<int16>, b: int16) = addi16(a, ok(b));\nexport fn add(a: int16, b: Result<int16>) = addi16(ok(a), b);\nexport fn add(a: Result<int16>, b: Result<int16>) = addi16(a, b);\nexport fn add(a: int32, b: int32) = addi32(ok(a), ok(b));\nexport fn add(a: Result<int32>, b: int32) = addi32(a, ok(b));\nexport fn add(a: int32, b: Result<int32>) = addi32(ok(a), b);\nexport fn add(a: Result<int32>, b: Result<int32>) = addi32(a, b);\nexport fn add(a: int64, b: int64) = addi64(ok(a), ok(b));\nexport fn add(a: Result<int64>, b: int64) = addi64(a, ok(b));\nexport fn add(a: int64, b: Result<int64>) = addi64(ok(a), b);\nexport fn add(a: Result<int64>, b: Result<int64>) = addi64(a, b);\nexport fn add(a: float32, b: float32) = addf32(ok(a), ok(b));\nexport fn add(a: Result<float32>, b: float32) = addf32(a, ok(b));\nexport fn add(a: float32, b: Result<float32>) = addf32(ok(a), b);\nexport fn add(a: Result<float32>, b: Result<float32>) = addf32(a, b);\nexport fn add(a: float64, b: float64) = addf64(ok(a), ok(b));\nexport fn add(a: Result<float64>, b: float64) = addf64(a, ok(b));\nexport fn add(a: float64, b: Result<float64>) = addf64(ok(a), b);\nexport fn add(a: Result<float64>, b: Result<float64>) = addf64(a, b);\n\nexport fn sub(a: int8, b: int8) = subi8(ok(a), ok(b));\nexport fn sub(a: Result<int8>, b: int8) = subi8(a, ok(b));\nexport fn sub(a: int8, b: Result<int8>) = subi8(ok(a), b);\nexport fn sub(a: Result<int8>, b: Result<int8>) = subi8(a, b);\nexport fn sub(a: int16, b: int16) = subi16(ok(a), ok(b));\nexport fn sub(a: Result<int16>, b: int16) = subi16(a, ok(b));\nexport fn sub(a: int16, b: Result<int16>) = subi16(ok(a), b);\nexport fn sub(a: Result<int16>, b: Result<int16>) = subi16(a, b);\nexport fn sub(a: int32, b: int32) = subi32(ok(a), ok(b));\nexport fn sub(a: Result<int32>, b: int32) = subi32(a, ok(b));\nexport fn sub(a: int32, b: Result<int32>) = subi32(ok(a), b);\nexport fn sub(a: Result<int32>, b: Result<int32>) = subi32(a, b);\nexport fn sub(a: int64, b: int64) = subi64(ok(a), ok(b));\nexport fn sub(a: Result<int64>, b: int64) = subi64(a, ok(b));\nexport fn sub(a: int64, b: Result<int64>) = subi64(ok(a), b);\nexport fn sub(a: Result<int64>, b: Result<int64>) = subi64(a, b);\nexport fn sub(a: float32, b: float32) = subf32(ok(a), ok(b));\nexport fn sub(a: Result<float32>, b: float32) = subf32(a, ok(b));\nexport fn sub(a: float32, b: Result<float32>) = subf32(ok(a), b);\nexport fn sub(a: Result<float32>, b: Result<float32>) = subf32(a, b);\nexport fn sub(a: float64, b: float64) = subf64(ok(a), ok(b));\nexport fn sub(a: Result<float64>, b: float64) = subf64(a, ok(b));\nexport fn sub(a: float64, b: Result<float64>) = subf64(ok(a), b);\nexport fn sub(a: Result<float64>, b: Result<float64>) = subf64(a, b);\n\nexport fn negate(n: int8) = negi8(n);\nexport fn negate(n: Result<int8>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(negi8(n.getR()));\n}\nexport fn negate(n: int16) = negi16(n);\nexport fn negate(n: Result<int16>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(negi16(n.getR()));\n}\nexport fn negate(n: int32) = negi32(n);\nexport fn negate(n: Result<int32>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(negi32(n.getR()));\n}\nexport fn negate(n: int64) = negi64(n);\nexport fn negate(n: Result<int64>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(negi64(n.getR()));\n}\nexport fn negate(n: float32) = negf32(n);\nexport fn negate(n: Result<float32>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(negf32(n.getR()));\n}\nexport fn negate(n: float64) = negf64(n);\nexport fn negate(n: Result<float64>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(negf64(n.getR()));\n}\n\nexport fn abs(n: int8) = absi8(n);\nexport fn abs(n: Result<int8>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(absi8(n.getR()));\n}\nexport fn abs(n: int16) = absi16(n);\nexport fn abs(n: Result<int16>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(absi16(n.getR()));\n}\nexport fn abs(n: int32) = absi32(n);\nexport fn abs(n: Result<int32>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(absi32(n.getR()));\n}\nexport fn abs(n: int64) = absi64(n);\nexport fn abs(n: Result<int64>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(absi64(n.getR()));\n}\nexport fn abs(n: float32) = absf32(n);\nexport fn abs(n: Result<float32>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(absf32(n.getR()));\n}\nexport fn abs(n: float64) = absf64(n);\nexport fn abs(n: Result<float64>) {\n  if n.isErr() {\n    return n;\n  }\n  return ok(absf64(n.getR()));\n}\n\nexport fn mul(a: int8, b: int8) = muli8(ok(a), ok(b));\nexport fn mul(a: Result<int8>, b: int8) = muli8(a, ok(b));\nexport fn mul(a: int8, b: Result<int8>) = muli8(ok(a), b);\nexport fn mul(a: Result<int8>, b: Result<int8>) = muli8(a, b);\nexport fn mul(a: int16, b: int16) = muli16(ok(a), ok(b));\nexport fn mul(a: Result<int16>, b: int16) = muli16(a, ok(b));\nexport fn mul(a: int16, b: Result<int16>) = muli16(ok(a), b);\nexport fn mul(a: Result<int16>, b: Result<int16>) = muli16(a, b);\nexport fn mul(a: int32, b: int32) = muli32(ok(a), ok(b));\nexport fn mul(a: Result<int32>, b: int32) = muli32(a, ok(b));\nexport fn mul(a: int32, b: Result<int32>) = muli32(ok(a), b);\nexport fn mul(a: Result<int32>, b: Result<int32>) = muli32(a, b);\nexport fn mul(a: int64, b: int64) = muli64(ok(a), ok(b));\nexport fn mul(a: Result<int64>, b: int64) = muli64(a, ok(b));\nexport fn mul(a: int64, b: Result<int64>) = muli64(ok(a), b);\nexport fn mul(a: Result<int64>, b: Result<int64>) = muli64(a, b);\nexport fn mul(a: float32, b: float32) = mulf32(ok(a), ok(b));\nexport fn mul(a: Result<float32>, b: float32) = mulf32(a, ok(b));\nexport fn mul(a: float32, b: Result<float32>) = mulf32(ok(a), b);\nexport fn mul(a: Result<float32>, b: Result<float32>) = mulf32(a, b);\nexport fn mul(a: float64, b: float64) = mulf64(ok(a), ok(b));\nexport fn mul(a: Result<float64>, b: float64) = mulf64(a, ok(b));\nexport fn mul(a: float64, b: Result<float64>) = mulf64(ok(a), b);\nexport fn mul(a: Result<float64>, b: Result<float64>) = mulf64(a, b);\n\nexport fn div(a: int8, b: int8) = divi8(ok(a), ok(b));\nexport fn div(a: Result<int8>, b: int8) = divi8(a, ok(b));\nexport fn div(a: int8, b: Result<int8>) = divi8(ok(a), b);\nexport fn div(a: Result<int8>, b: Result<int8>) = divi8(a, b);\nexport fn div(a: int16, b: int16) = divi16(ok(a), ok(b));\nexport fn div(a: Result<int16>, b: int16) = divi16(a, ok(b));\nexport fn div(a: int16, b: Result<int16>) = divi16(ok(a), b);\nexport fn div(a: Result<int16>, b: Result<int16>) = divi16(a, b);\nexport fn div(a: int32, b: int32) = divi32(ok(a), ok(b));\nexport fn div(a: Result<int32>, b: int32) = divi32(a, ok(b));\nexport fn div(a: int32, b: Result<int32>) = divi32(ok(a), b);\nexport fn div(a: Result<int32>, b: Result<int32>) = divi32(a, b);\nexport fn div(a: int64, b: int64) = divi64(ok(a), ok(b));\nexport fn div(a: Result<int64>, b: int64) = divi64(a, ok(b));\nexport fn div(a: int64, b: Result<int64>) = divi64(ok(a), b);\nexport fn div(a: Result<int64>, b: Result<int64>) = divi64(a, b);\nexport fn div(a: float32, b: float32) = divf32(ok(a), ok(b));\nexport fn div(a: Result<float32>, b: float32) = divf32(a, ok(b));\nexport fn div(a: float32, b: Result<float32>) = divf32(ok(a), b);\nexport fn div(a: Result<float32>, b: Result<float32>) = divf32(a, b);\nexport fn div(a: float64, b: float64) = divf64(ok(a), ok(b));\nexport fn div(a: Result<float64>, b: float64) = divf64(a, ok(b));\nexport fn div(a: float64, b: Result<float64>) = divf64(ok(a), b);\nexport fn div(a: Result<float64>, b: Result<float64>) = divf64(a, b);\n\nexport fn mod(a: int8, b: int8) = modi8(a, b);\nexport fn mod(a: Result<int8>, b: int8) {\n  if a.isErr() {\n    return a;\n  }\n  return ok(modi8(a.getR(), b));\n}\nexport fn mod(a: int8, b: Result<int8>) {\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi8(a, b.getR()));\n}\nexport fn mod(a: Result<int8>, b: Result<int8>) {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi8(a.getR(), b.getR()));\n}\nexport fn mod(a: int16, b: int16) = modi16(a, b);\nexport fn mod(a: Result<int16>, b: int16) {\n  if a.isErr() {\n    return a;\n  }\n  return ok(modi16(a.getR(), b));\n}\nexport fn mod(a: int16, b: Result<int16>) {\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi16(a, b.getR()));\n}\nexport fn mod(a: Result<int16>, b: Result<int16>) {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi16(a.getR(), b.getR()));\n}\nexport fn mod(a: int32, b: int32) = modi32(a, b);\nexport fn mod(a: Result<int32>, b: int32) {\n  if a.isErr() {\n    return a;\n  }\n  return ok(modi32(a.getR(), b));\n}\nexport fn mod(a: int32, b: Result<int32>) {\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi32(a, b.getR()));\n}\nexport fn mod(a: Result<int32>, b: Result<int32>) {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi32(a.getR(), b.getR()));\n}\nexport fn mod(a: int64, b: int64) = modi64(a, b);\nexport fn mod(a: Result<int64>, b: int64) {\n  if a.isErr() {\n    return a;\n  }\n  return ok(modi64(a.getR(), b));\n}\nexport fn mod(a: int64, b: Result<int64>) {\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi64(a, b.getR()));\n}\nexport fn mod(a: Result<int64>, b: Result<int64>) {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(modi64(a.getR(), b.getR()));\n}\n\nexport fn pow(a: int8, b: int8) = powi8(ok(a), ok(b));\nexport fn pow(a: Result<int8>, b: int8) = powi8(a, ok(b));\nexport fn pow(a: int8, b: Result<int8>) = powi8(ok(a), b);\nexport fn pow(a: Result<int8>, b: Result<int8>) = powi8(a, b);\nexport fn pow(a: int16, b: int16) = powi16(ok(a), ok(b));\nexport fn pow(a: Result<int16>, b: int16) = powi16(a, ok(b));\nexport fn pow(a: int16, b: Result<int16>) = powi16(ok(a), b);\nexport fn pow(a: Result<int16>, b: Result<int16>) = powi16(a, b);\nexport fn pow(a: int32, b: int32) = powi32(ok(a), ok(b));\nexport fn pow(a: Result<int32>, b: int32) = powi32(a, ok(b));\nexport fn pow(a: int32, b: Result<int32>) = powi32(ok(a), b);\nexport fn pow(a: Result<int32>, b: Result<int32>) = powi32(a, b);\nexport fn pow(a: int64, b: int64) = powi64(ok(a), ok(b));\nexport fn pow(a: Result<int64>, b: int64) = powi64(a, ok(b));\nexport fn pow(a: int64, b: Result<int64>) = powi64(ok(a), b);\nexport fn pow(a: Result<int64>, b: Result<int64>) = powi64(a, b);\nexport fn pow(a: float32, b: float32) = powf32(ok(a), ok(b));\nexport fn pow(a: Result<float32>, b: float32) = powf32(a, ok(b));\nexport fn pow(a: float32, b: Result<float32>) = powf32(ok(a), b);\nexport fn pow(a: Result<float32>, b: Result<float32>) = powf32(a, b);\nexport fn pow(a: float64, b: float64) = powf64(ok(a), ok(b));\nexport fn pow(a: Result<float64>, b: float64) = powf64(a, ok(b));\nexport fn pow(a: float64, b: Result<float64>) = powf64(ok(a), b);\nexport fn pow(a: Result<float64>, b: Result<float64>) = powf64(a, b);\n\nexport fn sqrt(n: float32) = sqrtf32(n);\nexport fn sqrt(n: Result<float32>) {\n  if n.isErr() {\n    return n;\n  }\n  return sqrtf32(n.getR());\n}\nexport fn sqrt(n: float64) = sqrtf64(n);\nexport fn sqrt(n: Result<float64>) {\n  if n.isErr() {\n    return n;\n  }\n  return sqrtf64(n.getR());\n}\n\nexport fn min(x: Orderable, y: Orderable): Orderable {\n  return cond(lte(x, y), [x, y]);\n}\nexport fn max(x: Orderable, y: Orderable): Orderable {\n  return cond(gte(x, y), [x, y]);\n}\n\n// Boolean and bitwise functions\nexport fn and(a: int8, b: int8) = andi8(a, b);\nexport fn and(a: Result<int8>, b: int8): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(and(a.getR(), b));\n}\nexport fn and(a: int8, b: Result<int8>): Result<int8> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a, b.getR()));\n}\nexport fn and(a: Result<int8>, b: Result<int8>): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a.getR(), b.getR()));\n}\nexport fn and(a: int16, b: int16) = andi16(a, b);\nexport fn and(a: Result<int16>, b: int16): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(and(a.getR(), b));\n}\nexport fn and(a: int16, b: Result<int16>): Result<int16> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a, b.getR()));\n}\nexport fn and(a: Result<int16>, b: Result<int16>): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a.getR(), b.getR()));\n}\nexport fn and(a: int32, b: int32) = andi32(a, b);\nexport fn and(a: Result<int32>, b: int32): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(and(a.getR(), b));\n}\nexport fn and(a: int32, b: Result<int32>): Result<int32> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a, b.getR()));\n}\nexport fn and(a: Result<int32>, b: Result<int32>): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a.getR(), b.getR()));\n}\nexport fn and(a: int64, b: int64) = andi64(a, b);\nexport fn and(a: Result<int64>, b: int64): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(and(a.getR(), b));\n}\nexport fn and(a: int64, b: Result<int64>): Result<int64> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a, b.getR()));\n}\nexport fn and(a: Result<int64>, b: Result<int64>): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a.getR(), b.getR()));\n}\nexport fn and(a: bool, b: bool) = andbool(a, b);\nexport fn and(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(and(a.getR(), b));\n}\nexport fn and(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a, b.getR()));\n}\nexport fn and(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(and(a.getR(), b.getR()));\n}\n\nexport fn or(a: int8, b: int8) = ori8(a, b);\nexport fn or(a: Result<int8>, b: int8): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(or(a.getR(), b));\n}\nexport fn or(a: int8, b: Result<int8>): Result<int8> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a, b.getR()));\n}\nexport fn or(a: Result<int8>, b: Result<int8>): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a.getR(), b.getR()));\n}\nexport fn or(a: int16, b: int16) = ori16(a, b);\nexport fn or(a: Result<int16>, b: int16): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(or(a.getR(), b));\n}\nexport fn or(a: int16, b: Result<int16>): Result<int16> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a, b.getR()));\n}\nexport fn or(a: Result<int16>, b: Result<int16>): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a.getR(), b.getR()));\n}\nexport fn or(a: int32, b: int32) = ori32(a, b);\nexport fn or(a: Result<int32>, b: int32): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(or(a.getR(), b));\n}\nexport fn or(a: int32, b: Result<int32>): Result<int32> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a, b.getR()));\n}\nexport fn or(a: Result<int32>, b: Result<int32>): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a.getR(), b.getR()));\n}\nexport fn or(a: int64, b: int64) = ori64(a, b);\nexport fn or(a: Result<int64>, b: int64): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(or(a.getR(), b));\n}\nexport fn or(a: int64, b: Result<int64>): Result<int64> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a, b.getR()));\n}\nexport fn or(a: Result<int64>, b: Result<int64>): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a.getR(), b.getR()));\n}\nexport fn or(a: bool, b: bool) = orbool(a, b);\nexport fn or(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(or(a.getR(), b));\n}\nexport fn or(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a, b.getR()));\n}\nexport fn or(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(or(a.getR(), b.getR()));\n}\n// This aliasing is for operator definition purposes only\nexport fn boolor(a: bool, b: bool) = orbool(a, b);\nexport fn boolor(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(boolor(a.getR(), b));\n}\nexport fn boolor(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(boolor(a, b.getR()));\n}\nexport fn boolor(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(boolor(a.getR(), b.getR()));\n}\n\nexport fn xor(a: int8, b: int8) = xori8(a, b);\nexport fn xor(a: Result<int8>, b: int8): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xor(a.getR(), b));\n}\nexport fn xor(a: int8, b: Result<int8>): Result<int8> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a, b.getR()));\n}\nexport fn xor(a: Result<int8>, b: Result<int8>): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a.getR(), b.getR()));\n}\nexport fn xor(a: int16, b: int16) = xori16(a, b);\nexport fn xor(a: Result<int16>, b: int16): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xor(a.getR(), b));\n}\nexport fn xor(a: int16, b: Result<int16>): Result<int16> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a, b.getR()));\n}\nexport fn xor(a: Result<int16>, b: Result<int16>): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a.getR(), b.getR()));\n}\nexport fn xor(a: int32, b: int32) = xori32(a, b);\nexport fn xor(a: Result<int32>, b: int32): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xor(a.getR(), b));\n}\nexport fn xor(a: int32, b: Result<int32>): Result<int32> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a, b.getR()));\n}\nexport fn xor(a: Result<int32>, b: Result<int32>): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a.getR(), b.getR()));\n}\nexport fn xor(a: int64, b: int64) = xori64(a, b);\nexport fn xor(a: Result<int64>, b: int64): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xor(a.getR(), b));\n}\nexport fn xor(a: int64, b: Result<int64>): Result<int64> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a, b.getR()));\n}\nexport fn xor(a: Result<int64>, b: Result<int64>): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a.getR(), b.getR()));\n}\nexport fn xor(a: bool, b: bool) = xorbool(a, b);\nexport fn xor(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xor(a.getR(), b));\n}\nexport fn xor(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a, b.getR()));\n}\nexport fn xor(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xor(a.getR(), b.getR()));\n}\n\nexport fn not(n: int8) = noti8(n);\nexport fn not(n: Result<int8>): Result<int8> {\n  if n.isErr() {\n    return n;\n  }\n  return ok(not(n.getR()));\n}\nexport fn not(n: int16) = noti16(n);\nexport fn not(n: Result<int16>): Result<int16> {\n  if n.isErr() {\n    return n;\n  }\n  return ok(not(n.getR()));\n}\nexport fn not(n: int32) = noti32(n);\nexport fn not(n: Result<int32>): Result<int32> {\n  if n.isErr() {\n    return n;\n  }\n  return ok(not(n.getR()));\n}\nexport fn not(n: int64) = noti64(n);\nexport fn not(n: Result<int64>): Result<int64> {\n  if n.isErr() {\n    return n;\n  }\n  return ok(not(n.getR()));\n}\nexport fn not(n: bool) = notbool(n);\nexport fn not(n: Result<bool>): Result<bool> {\n  if n.isErr() {\n    return n;\n  }\n  return ok(not(n.getR()));\n}\n\nexport fn nand(a: int8, b: int8) = nandi8(a, b);\nexport fn nand(a: Result<int8>, b: int8): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nand(a.getR(), b));\n}\nexport fn nand(a: int8, b: Result<int8>): Result<int8> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a, b.getR()));\n}\nexport fn nand(a: Result<int8>, b: Result<int8>): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a.getR(), b.getR()));\n}\nexport fn nand(a: int16, b: int16) = nandi16(a, b);\nexport fn nand(a: Result<int16>, b: int16): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nand(a.getR(), b));\n}\nexport fn nand(a: int16, b: Result<int16>): Result<int16> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a, b.getR()));\n}\nexport fn nand(a: Result<int16>, b: Result<int16>): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a.getR(), b.getR()));\n}\nexport fn nand(a: int32, b: int32) = nandi32(a, b);\nexport fn nand(a: Result<int32>, b: int32): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nand(a.getR(), b));\n}\nexport fn nand(a: int32, b: Result<int32>): Result<int32> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a, b.getR()));\n}\nexport fn nand(a: Result<int32>, b: Result<int32>): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a.getR(), b.getR()));\n}\nexport fn nand(a: int64, b: int64) = nandi64(a, b);\nexport fn nand(a: Result<int64>, b: int64): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nand(a.getR(), b));\n}\nexport fn nand(a: int64, b: Result<int64>): Result<int64> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a, b.getR()));\n}\nexport fn nand(a: Result<int64>, b: Result<int64>): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a.getR(), b.getR()));\n}\nexport fn nand(a: bool, b: bool) = nandboo(a, b);\nexport fn nand(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nand(a.getR(), b));\n}\nexport fn nand(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a, b.getR()));\n}\nexport fn nand(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nand(a.getR(), b.getR()));\n}\n\nexport fn nor(a: int8, b: int8) = nori8(a, b);\nexport fn nor(a: Result<int8>, b: int8): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nor(a.getR(), b));\n}\nexport fn nor(a: int8, b: Result<int8>): Result<int8> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a, b.getR()));\n}\nexport fn nor(a: Result<int8>, b: Result<int8>): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a.getR(), b.getR()));\n}\nexport fn nor(a: int16, b: int16) = nori16(a, b);\nexport fn nor(a: Result<int16>, b: int16): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nor(a.getR(), b));\n}\nexport fn nor(a: int16, b: Result<int16>): Result<int16> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a, b.getR()));\n}\nexport fn nor(a: Result<int16>, b: Result<int16>): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a.getR(), b.getR()));\n}\nexport fn nor(a: int32, b: int32) = nori32(a, b);\nexport fn nor(a: Result<int32>, b: int32): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nor(a.getR(), b));\n}\nexport fn nor(a: int32, b: Result<int32>): Result<int32> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a, b.getR()));\n}\nexport fn nor(a: Result<int32>, b: Result<int32>): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a.getR(), b.getR()));\n}\nexport fn nor(a: int64, b: int64) = nori64(a, b);\nexport fn nor(a: Result<int64>, b: int64): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nor(a.getR(), b));\n}\nexport fn nor(a: int64, b: Result<int64>): Result<int64> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a, b.getR()));\n}\nexport fn nor(a: Result<int64>, b: Result<int64>): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a.getR(), b.getR()));\n}\nexport fn nor(a: bool, b: bool) = norbool(a, b);\nexport fn nor(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(nor(a.getR(), b));\n}\nexport fn nor(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a, b.getR()));\n}\nexport fn nor(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(nor(a.getR(), b.getR()));\n}\n\nexport fn xnor(a: int8, b: int8) = xnori8(a, b);\nexport fn xnor(a: Result<int8>, b: int8): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xnor(a.getR(), b));\n}\nexport fn xnor(a: int8, b: Result<int8>): Result<int8> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a, b.getR()));\n}\nexport fn xnor(a: Result<int8>, b: Result<int8>): Result<int8> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a.getR(), b.getR()));\n}\nexport fn xnor(a: int16, b: int16) = xnori16(a, b);\nexport fn xnor(a: Result<int16>, b: int16): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xnor(a.getR(), b));\n}\nexport fn xnor(a: int16, b: Result<int16>): Result<int16> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a, b.getR()));\n}\nexport fn xnor(a: Result<int16>, b: Result<int16>): Result<int16> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a.getR(), b.getR()));\n}\nexport fn xnor(a: int32, b: int32) = xnori32(a, b);\nexport fn xnor(a: Result<int32>, b: int32): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xnor(a.getR(), b));\n}\nexport fn xnor(a: int32, b: Result<int32>): Result<int32> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a, b.getR()));\n}\nexport fn xnor(a: Result<int32>, b: Result<int32>): Result<int32> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a.getR(), b.getR()));\n}\nexport fn xnor(a: int64, b: int64) = xnori64(a, b);\nexport fn xnor(a: Result<int64>, b: int64): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xnor(a.getR(), b));\n}\nexport fn xnor(a: int64, b: Result<int64>): Result<int64> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a, b.getR()));\n}\nexport fn xnor(a: Result<int64>, b: Result<int64>): Result<int64> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a.getR(), b.getR()));\n}\nexport fn xnor(a: bool, b: bool) = xnorboo(a, b);\nexport fn xnor(a: Result<bool>, b: bool): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  return ok(xnor(a.getR(), b));\n}\nexport fn xnor(a: bool, b: Result<bool>): Result<bool> {\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a, b.getR()));\n}\nexport fn xnor(a: Result<bool>, b: Result<bool>): Result<bool> {\n  if a.isErr() {\n    return a;\n  }\n  if b.isErr() {\n    return b;\n  }\n  return ok(xnor(a.getR(), b.getR()));\n}\n\n// Equality and order functions\n// TODO: Similarly, should equality/orderability functions accept Result-wrapped values?\nexport fn eq(a: int8, b: int8) = eqi8(a, b);\nexport fn eq(a: Result<int8>, b: int8): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: int8, b: Result<int8>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<int8>, b: Result<int8>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: int16, b: int16) = eqi16(a, b);\nexport fn eq(a: Result<int16>, b: int16): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: int16, b: Result<int16>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<int16>, b: Result<int16>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: int32, b: int32) = eqi32(a, b);\nexport fn eq(a: Result<int32>, b: int32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: int32, b: Result<int32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<int32>, b: Result<int32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: int64, b: int64) = eqi64(a, b);\nexport fn eq(a: Result<int64>, b: int64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: int64, b: Result<int64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<int64>, b: Result<int64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: float32, b: float32) = eqf32(a, b);\nexport fn eq(a: Result<float32>, b: float32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: float32, b: Result<float32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<float32>, b: Result<float32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: float64, b: float64) = eqf64(a, b);\nexport fn eq(a: Result<float64>, b: float64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: float64, b: Result<float64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<float64>, b: Result<float64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: string, b: string) = eqstr(a, b);\nexport fn eq(a: Result<string>, b: string): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: string, b: Result<string>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<string>, b: Result<string>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\nexport fn eq(a: bool, b: bool) = eqbool(a, b);\nexport fn eq(a: Result<bool>, b: bool): bool {\n  if a.isErr() {\n    return false;\n  }\n  return eq(a.getR(), b);\n}\nexport fn eq(a: bool, b: Result<bool>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return eq(a, b.getR());\n}\nexport fn eq(a: Result<bool>, b: Result<bool>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return eq(a.getR(), b.getR());\n}\n\nexport fn neq(a: int8, b: int8) = neqi8(a, b);\nexport fn neq(a: Result<int8>, b: int8): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: int8, b: Result<int8>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<int8>, b: Result<int8>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: int16, b: int16) = neqi16(a, b);\nexport fn neq(a: Result<int16>, b: int16): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: int16, b: Result<int16>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<int16>, b: Result<int16>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: int32, b: int32) = neqi32(a, b);\nexport fn neq(a: Result<int32>, b: int32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: int32, b: Result<int32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<int32>, b: Result<int32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: int64, b: int64) = neqi64(a, b);\nexport fn neq(a: Result<int64>, b: int64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: int64, b: Result<int64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<int64>, b: Result<int64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: float32, b: float32) = neqf32(a, b);\nexport fn neq(a: Result<float32>, b: float32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: float32, b: Result<float32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<float32>, b: Result<float32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: float64, b: float64) = neqf64(a, b);\nexport fn neq(a: Result<float64>, b: float64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: float64, b: Result<float64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<float64>, b: Result<float64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: string, b: string) = neqstr(a, b);\nexport fn neq(a: Result<string>, b: string): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: string, b: Result<string>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<string>, b: Result<string>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\nexport fn neq(a: bool, b: bool) = neqbool(a, b);\nexport fn neq(a: Result<bool>, b: bool): bool {\n  if a.isErr() {\n    return false;\n  }\n  return neq(a.getR(), b);\n}\nexport fn neq(a: bool, b: Result<bool>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return neq(a, b.getR());\n}\nexport fn neq(a: Result<bool>, b: Result<bool>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return neq(a.getR(), b.getR());\n}\n\nexport fn lt(a: int8, b: int8) = lti8(a, b);\nexport fn lt(a: Result<int8>, b: int8): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: int8, b: Result<int8>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<int8>, b: Result<int8>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\nexport fn lt(a: int16, b: int16) = lti16(a, b);\nexport fn lt(a: Result<int16>, b: int16): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: int16, b: Result<int16>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<int16>, b: Result<int16>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\nexport fn lt(a: int32, b: int32) = lti32(a, b);\nexport fn lt(a: Result<int32>, b: int32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: int32, b: Result<int32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<int32>, b: Result<int32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\nexport fn lt(a: int64, b: int64) = lti64(a, b);\nexport fn lt(a: Result<int64>, b: int64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: int64, b: Result<int64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<int64>, b: Result<int64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\nexport fn lt(a: float32, b: float32) = ltf32(a, b);\nexport fn lt(a: Result<float32>, b: float32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: float32, b: Result<float32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<float32>, b: Result<float32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\nexport fn lt(a: float64, b: float64) = ltf64(a, b);\nexport fn lt(a: Result<float64>, b: float64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: float64, b: Result<float64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<float64>, b: Result<float64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\nexport fn lt(a: string, b: string) = ltstr(a, b);\nexport fn lt(a: Result<string>, b: string): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lt(a.getR(), b);\n}\nexport fn lt(a: string, b: Result<string>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lt(a, b.getR());\n}\nexport fn lt(a: Result<string>, b: Result<string>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lt(a.getR(), b.getR());\n}\n\nexport fn lte(a: int8, b: int8) = ltei8(a, b);\nexport fn lte(a: Result<int8>, b: int8): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: int8, b: Result<int8>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<int8>, b: Result<int8>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\nexport fn lte(a: int16, b: int16) = ltei16(a, b);\nexport fn lte(a: Result<int16>, b: int16): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: int16, b: Result<int16>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<int16>, b: Result<int16>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\nexport fn lte(a: int32, b: int32) = ltei32(a, b);\nexport fn lte(a: Result<int32>, b: int32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: int32, b: Result<int32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<int32>, b: Result<int32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\nexport fn lte(a: int64, b: int64) = ltei64(a, b);\nexport fn lte(a: Result<int64>, b: int64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: int64, b: Result<int64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<int64>, b: Result<int64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\nexport fn lte(a: float32, b: float32) = ltef32(a, b);\nexport fn lte(a: Result<float32>, b: float32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: float32, b: Result<float32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<float32>, b: Result<float32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\nexport fn lte(a: float64, b: float64) = ltef64(a, b);\nexport fn lte(a: Result<float64>, b: float64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: float64, b: Result<float64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<float64>, b: Result<float64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\nexport fn lte(a: string, b: string) = ltestr(a, b);\nexport fn lte(a: Result<string>, b: string): bool {\n  if a.isErr() {\n    return false;\n  }\n  return lte(a.getR(), b);\n}\nexport fn lte(a: string, b: Result<string>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return lte(a, b.getR());\n}\nexport fn lte(a: Result<string>, b: Result<string>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return lte(a.getR(), b.getR());\n}\n\nexport fn gt(a: int8, b: int8) = gti8(a, b);\nexport fn gt(a: Result<int8>, b: int8): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: int8, b: Result<int8>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<int8>, b: Result<int8>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\nexport fn gt(a: int16, b: int16) = gti16(a, b);\nexport fn gt(a: Result<int16>, b: int16): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: int16, b: Result<int16>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<int16>, b: Result<int16>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\nexport fn gt(a: int32, b: int32) = gti32(a, b);\nexport fn gt(a: Result<int32>, b: int32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: int32, b: Result<int32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<int32>, b: Result<int32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\nexport fn gt(a: int64, b: int64) = gti64(a, b);\nexport fn gt(a: Result<int64>, b: int64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: int64, b: Result<int64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<int64>, b: Result<int64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\nexport fn gt(a: float32, b: float32) = gtf32(a, b);\nexport fn gt(a: Result<float32>, b: float32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: float32, b: Result<float32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<float32>, b: Result<float32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\nexport fn gt(a: float64, b: float64) = gtf64(a, b);\nexport fn gt(a: Result<float64>, b: float64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: float64, b: Result<float64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<float64>, b: Result<float64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\nexport fn gt(a: string, b: string) = gtstr(a, b);\nexport fn gt(a: Result<string>, b: string): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gt(a.getR(), b);\n}\nexport fn gt(a: string, b: Result<string>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gt(a, b.getR());\n}\nexport fn gt(a: Result<string>, b: Result<string>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gt(a.getR(), b.getR());\n}\n\nexport fn gte(a: int8, b: int8) = gtei8(a, b);\nexport fn gte(a: Result<int8>, b: int8): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: int8, b: Result<int8>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<int8>, b: Result<int8>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\nexport fn gte(a: int16, b: int16) = gtei16(a, b);\nexport fn gte(a: Result<int16>, b: int16): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: int16, b: Result<int16>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<int16>, b: Result<int16>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\nexport fn gte(a: int32, b: int32) = gtei32(a, b);\nexport fn gte(a: Result<int32>, b: int32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: int32, b: Result<int32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<int32>, b: Result<int32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\nexport fn gte(a: int64, b: int64) = gtei64(a, b);\nexport fn gte(a: Result<int64>, b: int64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: int64, b: Result<int64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<int64>, b: Result<int64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\nexport fn gte(a: float32, b: float32) = gtef32(a, b);\nexport fn gte(a: Result<float32>, b: float32): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: float32, b: Result<float32>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<float32>, b: Result<float32>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\nexport fn gte(a: float64, b: float64) = gtef64(a, b);\nexport fn gte(a: Result<float64>, b: float64): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: float64, b: Result<float64>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<float64>, b: Result<float64>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\nexport fn gte(a: string, b: string) = gtestr(a, b);\nexport fn gte(a: Result<string>, b: string): bool {\n  if a.isErr() {\n    return false;\n  }\n  return gte(a.getR(), b);\n}\nexport fn gte(a: string, b: Result<string>): bool {\n  if b.isErr() {\n    return false;\n  }\n  return gte(a, b.getR());\n}\nexport fn gte(a: Result<string>, b: Result<string>): bool {\n  if or(a.isErr(), b.isErr()) {\n    return false;\n  }\n  return gte(a.getR(), b.getR());\n}\n\n// Wait functions\nexport fn wait(n: int8) = waitop(i8i64(n));\nexport fn wait(n: int16) = waitop(i16i64(n));\nexport fn wait(n: int32) = waitop(i32i64(n));\nexport fn wait(n: int64) = waitop(n);\n\n// String functions\nexport fn concat(a: string, b: string) = catstr(a, b);\nexport split // opcode with signature `fn split(str: string, spl: string): Array<string>`\nexport fn repeat(s: string, n: int64) = repstr(s, n);\n// export fn template(str: string, map: Map<string, string>) = templ(str, map)\nexport matches // opcode with signature `fn matches(s: string, t: string): bool`\nexport fn index(s: string, t: string) = indstr(s, t);\nexport fn length(s: string) = lenstr(s);\nexport trim // opcode with signature `fn trim(s: string): string`\n// toCharArray would be better as an opcode, but this works for now.\nexport fn toCharArray(a: string): Array<string> = a.split('').filter(fn (c: string) = c.length().gt(0));\n\n// Array functions\nexport fn concat(a: Array<any>, b: Array<any>) = catarr(a, b);\nexport fn repeat(arr: Array<any>, n: int64) = reparr(arr, n);\nexport fn index(arr: Array<any>, val: any) = indarrv(arr, val);\nexport fn index(arr: Array<int8>, val: int8) = indarrf(arr, val);\nexport fn index(arr: Array<int16>, val: int16) = indarrf(arr, val);\nexport fn index(arr: Array<int32>, val: int32) = indarrf(arr, val);\nexport fn index(arr: Array<int64>, val: int64) = indarrf(arr, val);\nexport fn index(arr: Array<float32>, val: float32) = indarrf(arr, val);\nexport fn index(arr: Array<float64>, val: float64) = indarrf(arr, val);\nexport fn index(arr: Array<bool>, val: bool) = indarrf(arr, val);\nexport fn has(arr: Array<any>, val: any) = indarrv(arr, val).isOk();\nexport fn has(arr: Array<int8>, val: int8) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<int16>, val: int16) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<int32>, val: int32) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<int64>, val: int64) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<float32>, val: float32) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<float64>, val: float64) = indarrf(arr, val).isOk();\nexport fn has(arr: Array<bool>, val: bool) = indarrf(arr, val).isOk();\nexport fn length(arr: Array<any>) = lenarr(arr);\nexport fn push(arr: Array<any>, val: any) {\n  pusharr(arr, val, 0);\n  return arr;\n}\nexport fn push(arr: Array<int8>, val: int8) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<int16>, val: int16) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<int32>, val: int32) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<int64>, val: int64) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<float32>, val: float32) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<float64>, val: float64) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn push(arr: Array<bool>, val: bool) {\n  pusharr(arr, val, 8);\n  return arr;\n}\nexport fn pop(arr: Array<any>) = poparr(arr);\nexport each // parallel opcode with signature `fn each(arr: Array<any>, cb: function): void`\nexport fn eachLin(arr: Array<any>, cb: function): void = eachl(arr, cb);\nexport map // parallel opcode with signature `fn map(arr: Array<any>, cb: function): Array<any>`\nexport fn mapLin(arr: Array<any>, cb: function): Array<anythingElse> = mapl(arr, cb);\n/**\n * Unlike the other array functions, reduce is sequential by default and parallelism must be opted\n * in. This is due to the fact that parallelism requires the reducer function to be commutative or\n * associative, otherwise it will return different values on each run, and the compiler has no way\n * to guarantee that your reducer function is commutative or associative.\n *\n * There are four reduce functions instead of two as expected, because a reducer that reduces into\n * the same datatype requires less work than one that reduces into a new datatype. To reduce into a\n * new datatype you need an initial value in that new datatype that the reducer can provide to the\n * first reduction call to \"get the ball rolling.\" And there are extra constraints if you want the\n * reducer to run in parallel: that initial value will be used multiple times for each of the\n * parallel threads of computation, so that initial value has to be idempotent for it to work. Then\n * you're left with multiple reduced results that cannot be combined with each other with the main\n * reducer, so you need to provide a second reducer function that takes the resulting datatype and\n * can combine them with each other successfully, and that one *also* needs to be a commutative or\n * associative function.\n *\n * The complexities involved in writing a parallel reducer are why we decided to make the sequential\n * version the default, as the extra overhead is not something most developers are used to, whether\n * they hail from the functional programming world or the imperative world.\n *\n * On that note, you'll notice that the opcodes are named after `reduce` and `fold`. This is the\n * naming scheme that functional language programmers would be used to, but Java and Javascript\n * combined them both as `reduce`, so we have maintained that convention as we expect fewer people\n * needing to adapt to that change, it being a change they're likely already familiar with, and\n * noting that an extra argument that makes it equivalent to `fold` is easier than trying to find\n * the 3 or 4 arg variant under a different name.\n */\nexport fn reduce(arr: Array<any>, cb: function): any = reducel(arr, cb);\nexport fn reducePar(arr: Array<any>, cb: function): any = reducep(arr, cb);\n/**\n * This type is used to reduce the number of arguments passed to the opcodes, which can only take 2\n * arguments if they return a value, or 3 arguments if they are a side-effect-only opcode, and is an\n * implementation detail of the 3 and 4 arg reduce functions.\n */\ntype InitialReduce<T, U> {\n  arr: Array<T>,\n  initial: U,\n}\nexport fn reduce(arr: Array<any>, cb: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr: arr,\n    initial: initial,\n  };\n  return foldl(args, cb);\n}\nexport fn reducePar(arr: Array<any>, transformer: function, merger: function, initial: anythingElse): anythingElse {\n  const args = new InitialReduce<any, anythingElse> {\n    arr: arr,\n    initial: initial,\n  };\n  const intermediate = new Array<any> [foldl(args, transformer)];\n  return reducep(intermediate, merger);\n}\nexport filter // opcode with signature `fn filter(arr: Array<any>, cb: function): Array<any>`\nexport find // opcode with signature `fn find(arr: Array<any>, cb: function): Result<any>`\nexport fn findLin(arr: Array<any>, cb: function): Result<any> = findl(arr, cb);\nexport every // parallel opcode with signature `fn every(arr: Array<any>, cb: function): bool`\nexport fn everyLin(arr: Array<any>, cb: function): bool = everyl(arr, cb);\nexport some // parallel opcode with signature `fn some(arr: Array<any>, cb: function): bool`\nexport fn someLin(arr: Array<any>, cb: function): bool = somel(arr, cb);\nexport join // opcode with signature `fn join(arr: Array<string>, sep: string): string`\nexport fn delete(arr: Array<any>, idx: int64): Result<any> = delindx(arr, idx);\nexport fn delete(arr: Array<any>, idx: Result<int64>): Result<any> {\n  if idx.isErr() {\n    return idx;\n  }\n  return delindx(arr, idx.getR());\n}\nexport fn set(arr: Array<any>, idx: int64, val: any) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytov(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int8>, idx: int64, val: int8) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int16>, idx: int64, val: int16) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int32>, idx: int64, val: int32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<int64>, idx: int64, val: int64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<float32>, idx: int64, val: float32) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<float64>, idx: int64, val: float64) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\nexport fn set(arr: Array<bool>, idx: int64, val: bool) {\n  if (idx < 0) | (idx > arr.length()) {\n    return err('array out-of-bounds access');\n  } else {\n    copytof(arr, idx, val);\n    return some(arr);\n  }\n}\n\n// Ternary functions\nexport fn pair(trueval: any, falseval: any) = new Array<any> [ trueval, falseval ];\nexport fn cond(c: bool, options: Array<any>) = getR(options[1.sub(c.toInt64())]);\nexport fn cond(c: bool, optional: function): void = condfn(c, optional);\n\n// \"clone\" function useful for hoisting assignments and making duplicates\nexport fn clone(a: any) = copyarr(a);\nexport fn clone(a: Array<any>) = copyarr(a);\nexport fn clone(a: void) = copyvoid(a); // TODO: Eliminate this, covering up a weird error\nexport fn clone() = zeroed(); // TODO: Used for conditionals, eliminate with more clever compiler\nexport fn clone(a: int8) = copyi8(a);\nexport fn clone(a: int16) = copyi16(a);\nexport fn clone(a: int32) = copyi32(a);\nexport fn clone(a: int64) = copyi64(a);\nexport fn clone(a: float32) = copyf32(a);\nexport fn clone(a: float64) = copyf64(a);\nexport fn clone(a: bool) = copybool(a);\nexport fn clone(a: string) = copystr(a);\n\n// toHash functions for all data types\nexport fn toHash(val: any) = hashv(val);\nexport fn toHash(val: int8) = hashf(val);\nexport fn toHash(val: int16) = hashf(val);\nexport fn toHash(val: int32) = hashf(val);\nexport fn toHash(val: int64) = hashf(val);\nexport fn toHash(val: float32) = hashf(val);\nexport fn toHash(val: float64) = hashf(val);\nexport fn toHash(val: bool) = hashf(val);\n\n// HashMap implementation\nexport type KeyVal<K, V> {\n  key: K,\n  val: V,\n}\n\nexport interface Hashable {\n  toHash(Hashable): int64,\n  eq(Hashable, Hashable): bool,\n}\n\nexport type HashMap<K, V> {\n  keyVal: Array<KeyVal<K, V>>,\n  lookup: Array<Array<int64>>,\n}\n\nexport fn keyVal(hm: HashMap<Hashable, any>) = hm.keyVal;\nexport fn keys(hm: HashMap<Hashable, any>): Array<Hashable> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): Hashable = kv.key);\nexport fn vals(hm: HashMap<Hashable, any>): Array<any> = map(hm.keyVal, fn (kv: KeyVal<Hashable, any>): any = kv.val);\nexport fn length(hm: HashMap<Hashable, any>): int64 = length(hm.keyVal);\n\nexport fn get(hm: HashMap<Hashable, any>, key: Hashable): Result<any> {\n  const hash = key.toHash().abs() % length(hm.lookup);\n  const list = getR(hm.lookup[hash]);\n  const index = list.find(fn (i: int64): Result<int64> {\n    const kv = getR(hm.keyVal[i]);\n    return eq(kv.key, key);\n  });\n  if index.isOk() {\n    const i = index.getOr(0);\n    const kv = getR(hm.keyVal[i]);\n    return ok(kv.val);\n  } else {\n    return err('key not found');\n  }\n}\n\nexport fn set(hm: HashMap<Hashable, any>, key: Hashable, val: any): HashMap<Hashable, any> {\n  const kv = new KeyVal<Hashable, any> {\n    key: key,\n    val: val,\n  };\n  const hash = key.toHash().abs() % length(hm.lookup);\n  const list = getR(hm.lookup[hash]);\n  if list.length() == 8 {\n    // Rebucket everything\n    const lookupLen = length(hm.lookup) * 2 || 0;\n    hm.lookup = new Array<Array<int64>> [ new Array<int64> [], ] * lookupLen;\n    eachl(hm.keyVal, fn (kv: KeyVal<Hashable, any>, i: int64) {\n      const hash = toHash(kv.key).abs() % lookupLen;\n      const list = getR(hm.lookup[hash]);\n      list.push(i);\n    });\n  } else if list.find(fn (idx: int64): bool {\n    const rec = hm.keyVal[idx].getR();\n    return eq(rec.key, key);\n  }).isOk() {\n    list.eachLin(fn (idx: int64, i: int64) {\n      const rec = hm.keyVal[idx].getR();\n      if eq(rec.key, key) {\n        hm.keyVal.set(idx, kv);\n      }\n    });\n  } else {\n    const index = length(hm.keyVal);\n    push(hm.keyVal, kv);\n    list.push(index);\n  }\n  return hm;\n}\n\nexport fn newHashMap(firstKey: Hashable, firstVal: any): HashMap<Hashable, any> { // TODO: Rust-like fn::<typeA, typeB> syntax?\n  let hm = new HashMap<Hashable, any> {\n    keyVal: new Array<KeyVal<Hashable, any>> [],\n    lookup: new Array<Array<int64>> [ new Array<int64> [] ] * 128, // 1KB of space\n  };\n  return hm.set(firstKey, firstVal);\n}\n\nexport fn toHashMap(kva: Array<KeyVal<Hashable, any>>) {\n  let hm = new HashMap<Hashable, any> {\n    keyVal: kva,\n    lookup: new Array<Array<int64>> [ new Array<int64> [] ] * 128,\n  };\n  kva.eachl(fn (kv: KeyVal<Hashable, any>, i: int64) {\n    const hash = toHash(kv.key).abs() % length(hm.lookup);\n    const list = getR(hm.lookup[hash]);\n    list.push(i);\n  });\n  return hm;\n}\n\n// Tree implementation\n\n// The Tree type houses all of the values attached to a tree in an array and two secondary arrays to\n// hold the metadata on which value is the parent and which are children, if any. The parent value\n// is `-1` if it has no parent and a positive integer otherwise.\nexport type Tree<T> {\n  vals: Array<T>,\n  parents: Array<int64>,\n  children: Array<Array<int64>>,\n}\n\n// The Node type simply holds the index to look into the tree for a particular value-parent-children\n// triplet, where that index is referred to as a node ID. This allows node-based code to be written\n// while not actually having a recursive data structure that a traditional Node type would define.\nexport type Node<T> {\n  id: int64,\n  tree: Tree<T>,\n}\n\nexport fn newTree(rootVal: any): Tree<any> = new Tree<any> {\n  vals: new Array<any> [ rootVal ],\n  parents: new Array<int64> [ -1 ], // The root node has no parent, so its parent ID is -1.\n  children: new Array<Array<int64>> [ new Array<int64> [ ] ],\n};\n\nexport fn getRootNode(t: Tree<any>): Node<any> {\n  if has(t.parents, -1) {\n    return new Node<any> {\n      id: index(t.parents, -1).getOr(0),\n      tree: t,\n    };\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    };\n  }\n}\n\nexport fn getTree(n: Node<any>): Tree<any> = n.tree;\n\nexport fn length(t: Tree<any>): int64 = length(t.vals);\n\nexport fn getNodeById(t: Tree<any>, i: int64): Node<any> {\n  if length(t.vals).gt(i) {\n    return new Node<any> {\n      id: i,\n      tree: t,\n    };\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    };\n  }\n}\n\nexport fn getParent(n: Node<any>): Node<any> {\n  const parentId = getOr(n.tree.parents[n.id], -1);\n  if parentId > -1 {\n    return new Node<any> {\n      id: parentId,\n      tree: n.tree,\n    };\n  } else {\n    // Return an invalid node, will behave like an error result\n    return new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    };\n  }\n}\n\nexport fn getChildren(n: Node<any>): Array<Node<any>> {\n  if length(n.tree.vals).gt(n.id) {\n    const childIds = getOr(n.tree.children[n.id], new Array<int64> []);\n    return childIds.filter(fn (id: int64): bool {\n      const parentId = getOr(n.tree.parents[id], -1);\n      return parentId.eq(n.id);\n    }).map(fn (id: int64): Node<any> {\n      return new Node<any> {\n        id: id,\n        tree: n.tree,\n      };\n    });\n  } else {\n    return new Array<Node<any>> [ ];\n  }\n}\n\n// Returns the pruned Tree\nexport fn prune(n: Node<any>): Tree<any> {\n  // adjust parent's children\n  const parentRes = n.tree.parents[n.id];\n  if parentRes.isOk() {\n    const parentId = parentRes.getR();\n    const children = getOr(n.tree.children[parentId], new Array<int64> []);\n    const idxRes = index(children, n.id);\n    if idxRes.isOk() {\n      delete(children, idxRes);\n    }\n  }\n  // This is, unfortunately for now, a sequential algorithm. Hope to figure out a parallel version\n  let nodeStack = new Array<int64> [ n.id ];\n  let rmdIds = new Array<int64> [ ];\n  seqdo(newseq(pow(2, 62).getOr(0)), fn (): bool {\n    // Get the nodeId, exit if none left\n    const nodeRes = nodeStack.pop();\n    if nodeRes.isErr() {\n      return false;\n    }\n    const nodeId = nodeRes.getR();\n    // Push the children onto the stack to process if the node has them\n    const childrenRes = n.tree.children[nodeId];\n    if childrenRes.isOk() {\n      const childrenIds = childrenRes.getR();\n      nodeStack = nodeStack.concat(childrenIds);\n    }\n    const delIdx = nodeId - length(rmdIds);\n    delete(n.tree.vals, delIdx);\n    delete(n.tree.parents, delIdx);\n    delete(n.tree.children, delIdx);\n    push(rmdIds, nodeId);\n    return true;\n  });\n\n  // adjust indices for remaining elements\n  const iters = length(n.tree.parents);\n  seqeach(newseq(iters), fn (i: int64) {\n    const parentId = getOr(n.tree.parents[i], -1);\n    const parentDelta = rmdIds.filter(fn (rmId: int64): bool = parentId > rmId).length();\n    if parentDelta > 0 {\n      set(n.tree.parents, i, parentId - parentDelta || 0);\n    }\n    const children = getOr(n.tree.children[i], new Array<int64> []);\n    const newChildren = children.map(fn (cId: int64): int64 {\n      const delta = rmdIds.filter(fn (rmdId: int64): bool = cId > rmdId).length();\n      if delta > 0 {\n        return cId - delta || 0;\n      }\n      return cId;\n    });\n    set(n.tree.children, i, newChildren);\n  });\n  return n.tree;\n}\n\n// Takes the given node and copies that node and all of its children into a new tree with the\n// current node as the root. Unfortunately a sequential algorithm right now.\nexport fn toSubtree(n: Node<any>): Tree<any> {\n  const val = n.tree.vals[n.id].getR();\n  let outTree = newTree(val);\n  let children = n.tree.children[n.id].getOr(new Array<int64> []);\n  if children.length().gt(0) {\n    let parentIds = [0].repeat(children.length());\n    seqdo(newseq(pow(2, 62).getOr(0)), fn (): bool {\n      const childId = children.pop().getOr(-1);\n      const parentId = parentIds.pop().getOr(-1);\n      const childVal = n.tree.vals[childId].getR();\n      const grandchildIds = n.tree.children[childId].getOr(new Array<int64> []);\n      const newParentId = outTree.vals.length();\n      outTree.vals.push(childVal);\n      outTree.parents.push(parentId);\n      outTree.children.push(new Array<int64> []);\n      children = grandchildIds.concat(children);\n      parentIds = [newParentId].repeat(grandchildIds.length()).concat(parentIds);\n      return parentIds.length().gt(0);\n    });\n  }\n  return outTree;\n}\n\nexport fn getChildren(t: Tree<any>): Array<Node<any>> = t.getRootNode().getChildren();\n\n// Attaches the value as a child of the specified node. Returns the new child node added for easier\n// method chaining\nexport fn addChild(n: Node<any>, val: any): Node<any> {\n  const childId = n.tree.vals.length();\n  n.tree.vals.push(val);\n  n.tree.parents.push(n.id);\n  n.tree.children.push(new Array<int64> []);\n  n.tree.children[n.id].getOr(new Array<int64> []).push(childId);\n  return new Node<any> {\n    id: childId,\n    tree: n.tree,\n  };\n}\n\n// Attaches the specified Tree to the specified Node. Can be done with simple maps and concats. This\n// returns the new child node corresponding to the root node of the tree. When adding a tree, we\n// duplicate that tree and attach it to the specified node on the new tree with the parent-child\n// relationships \"re-stitched\" on the node's own tree. This means it is even possible to attach a\n// tree to itself without producing loops in the tree structure:\n//    A          A\n//   / \\   =>   / \\\n//  B   C      B   C\n//                 |\n//                 A'\n//                / \\\n//               B'  C'\nexport fn addChild(n: Node<any>, val: Tree<any>): Node<any> {\n  const childIdOffset = n.tree.vals.length();\n  const newParents = val.parents.map(fn (p: int64): int64 {\n    if p == -1 {\n      return n.id;\n    } else {\n      return p.add(childIdOffset).getOr(0);\n    }\n  });\n  const newChildren = val.children.map(fn (ca: Array<int64>): Array<int64> {\n    return ca.map(fn (c: int64): int64 = c.add(childIdOffset).getOr(0));\n  });\n  n.tree.children = n.tree.children.concat(newChildren);\n  n.tree.children[n.id].getOr(new Array<int64> []).push(childIdOffset);\n  n.tree.vals = n.tree.vals.concat(val.vals);\n  n.tree.parents = n.tree.parents.concat(newParents);\n  return new Node<any> {\n    id: childIdOffset,\n    tree: n.tree,\n  };\n}\n\n// Attaches the specified Node and its children to the specified Node. This returns the new child\n// node corresponding to the attached node\nexport fn addChild(n: Node<any>, val: Node<any>): Node<any> = n.addChild(val.toSubtree());\n\n// Attaches the specified value to the specified Tree, by referencing a Tree directly, attaches to\n// the root node, and returns the new child node\nexport fn addChild(t: Tree<any>, val: any): Node<any> = t.getRootNode().addChild(val);\n\n// Attaches the specified Node and its children to the specified Tree's root node\nexport fn addChild(t: Tree<any>, val: Node<any>): Node<any> = t.getRootNode().addChild(val.toSubtree());\n\n// Attahces one tree to the root node of another tree. Returns the node of the attached tree's root\nexport fn addChild(t: Tree<any>, val: Tree<any>): Node<any> = t.getRootNode().addChild(val);\n\nexport fn getOr(n: Node<any>, default: any): any = getOr(n.tree.vals[n.id], default);\n\nexport fn toNodeArray(t: Tree<any>): Array<Node<any>> = map(\n  t.vals,\n  fn (val: any, i: int64): Node<any> = t.getNodeById(i)\n);\n\nexport fn map(t: Tree<any>, mapper: function): Tree<anythingElse> {\n  return new Tree<anythingElse> {\n    vals: t.toNodeArray().map(mapper),\n    parents: clone(t.parents),\n    children: clone(t.children),\n  };\n}\n\nexport fn some(t: Tree<any>, mapper: function): bool = t.toNodeArray().some(mapper);\n\nexport fn every(t: Tree<any>, mapper: function): bool = t.toNodeArray().every(mapper);\n\nexport fn reduce(t: Tree<any>, cb: function, initial: anythingElse): bool = t\n  .toNodeArray()\n  .reduce(cb, initial);\n\nexport fn find(t: Tree<any>, mapper: function): Node<any> {\n  // Return an invalid node, will behave like an error result\n  return t.toNodeArray().find(mapper).getOr(\n    new Node<any> {\n      id: -1,\n      tree: new Tree<any> {\n        vals: new Array<any> [],\n        parents: new Array<int64> [],\n        children: new Array<Array<int64>> [],\n      },\n    }\n  );\n}\n\n// Operator declarations\nexport infix add as + precedence 2\nexport infix concat as + precedence 2\nexport infix sub as - precedence 2\nexport prefix negate as - precedence 1\nexport infix mul as * precedence 3\nexport infix repeat as * precedence 3\nexport infix div as / precedence 3\nexport infix split as / precedence 3\nexport infix mod as % precedence 3\n// export infix template as % precedence 3\nexport infix pow as ** precedence 4\nexport infix and as & precedence 3\nexport infix and as && precedence 3\nexport infix or as | precedence 2\nexport infix boolor as || precedence 2\nexport infix xor as ^ precedence 2\nexport prefix not as ! precedence 4\nexport infix nand as !& precedence 3\nexport infix nor as !| precedence 2\nexport infix xnor as !^ precedence 2\nexport infix eq as == precedence 1\nexport infix neq as != precedence 1\nexport infix lt as < precedence 1\nexport infix lte as <= precedence 1\nexport infix gt as > precedence 1\nexport infix gte as >= precedence 1\nexport infix matches as ~ precedence 1\nexport infix index as @ precedence 1\nexport prefix length as # precedence 4\nexport prefix trim as ` precedence 4\nexport infix pair as : precedence 5\nexport infix push as : precedence 6\nexport infix cond as ? precedence 0\nexport infix getOr as || precedence 2\n","seq.ln":"/**\n * @std/seq - Tools for sequential algorithms. Use if you must.\n */\n\n// The `Seq` opaque type used by these algorithms to guarantee halting\nexport Seq\n\n// The `seq` constructor function\nexport fn seq(limit: int64): Seq = newseq(limit);\n\n// A basic iterator function, unlikely to be useful outside of these functions\nexport fn next(seq: Seq): Result<int64> = seqnext(seq);\n\n// An automatic iterator that executes the provided function in sequence until the limit is reached\nexport fn each(seq: Seq, func: function): void = seqeach(seq, func);\n\n// A while loop with an initial conditional check\nexport fn while(seq: Seq, condFn: function, bodyFn: function): void = seqwhile(seq, condFn, bodyFn);\n\n// A do-while loop that returns the conditional check\nexport fn doWhile(seq: Seq, bodyFn: function): void = seqdo(seq, bodyFn);\n\n// Recursive functions in Alan require a \"trampoline\" outside of the grammar of the language to work\n// so a special \"Self\" type exists that internally references the Seq type and the relevant function\n// and provides the mechanism to re-schedule the recursive function to call with a new argument.\nexport Self\n\n// There are two `recurse` functions. The first is on the `self` object that has an internal\n// reference to the relevant seq and recursive function to be called and is meant to be used within\n// the recursive function. The second sets it all off with a sequence operator, the recursive\n// function in question, and the query argument, and is using the first function under the hood.\nexport fn recurse(self: Self, arg: any): Result<anythingElse> = selfrec(self, arg);\nexport fn recurse(seq: Seq, recurseFn: function, arg: any): Result<anythingElse> {\n  let self = seqrec(seq, recurseFn);\n  return selfrec(self, arg);\n}\n\n// TODO: Add the generator piece of the seq rfc\n","trig.ln":"export const e = 2.718281828459045;\nexport const pi = 3.141592653589793;\nexport const tau = 6.283185307179586;\n\nexport fn exp(x: float64) = e ** x;\nexport fn exp(x: Result<float64>) = e ** x;\nexport fn exp(x: float32) = toFloat32(e) ** x;\nexport fn exp(x: Result<float32>) = toFloat32(e) ** x;\n\nexport fn ln(x: float64) = lnf64(x);\nexport fn ln(x: float32) = toFloat32(lnf64(toFloat64(x)));\n// TODO: Figure out what's wrong with interfaces where the input and output type are the interface\nexport fn ln(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(ln(x.getR()));\n}\nexport fn ln(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(ln(x.getR()));\n}\n\nexport fn log(x: float64) = logf64(x);\nexport fn log(x: float32) = toFloat32(logf64(toFloat64(x)));\nexport fn log(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(log(x.getR()));\n}\nexport fn log(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(log(x.getR()));\n}\n\nexport fn sin(x: float64) = sinf64(x);\nexport fn sin(x: float32) = toFloat32(sinf64(toFloat64(x)));\nexport fn sin(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(sin(x.getR()));\n}\nexport fn sin(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(sin(x.getR()));\n}\nexport fn sine(x: float64) = sin(x);\nexport fn sine(x: float32) = sin(x);\nexport fn sine(x: Result<float64>) = sin(x);\nexport fn sine(x: Result<float32>) = sin(x);\n\nexport fn cos(x: float64) = cosf64(x);\nexport fn cos(x: float32) = toFloat32(cosf64(toFloat64(x)));\nexport fn cos(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(cos(x.getR()));\n}\nexport fn cos(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(cos(x.getR()));\n}\nexport fn cosine(x: float64) = cos(x);\nexport fn cosine(x: float32) = cos(x);\nexport fn cosine(x: Result<float64>) = cos(x);\nexport fn cosine(x: Result<float32>) = cos(x);\n\nexport fn tan(x: float64) = tanf64(x);\nexport fn tan(x: float32) = toFloat32(tanf64(toFloat64(x)));\nexport fn tan(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(tan(x.getR()));\n}\nexport fn tan(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(tan(x.getR()));\n}\nexport fn tangent(x: float64) = tan(x);\nexport fn tangent(x: float32) = tan(x);\nexport fn tangent(x: Result<float64>) = tan(x);\nexport fn tangent(x: Result<float32>) = tan(x);\n\nexport fn sec(x: float64) = 1.0 / cosf64(x);\nexport fn sec(x: float32): Result<float32> {\n  const s64 = sec(x.toFloat64());\n  if s64.isErr() {\n    return s64;\n  }\n  return ok(s64.getR().toFloat32());\n}\nexport fn sec(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return sec(x.getR());\n}\nexport fn sec(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return sec(x.getR());\n}\nexport fn secant(x: float64) = sec(x);\nexport fn secant(x: float32) = sec(x);\nexport fn secant(x: Result<float64>) = sec(x);\nexport fn secant(x: Result<float32>) = sec(x);\n\nexport fn csc(x: float64) = 1.0 / sinf64(x);\nexport fn csc(x: float32): Result<float32> {\n  const c64 = csc(x.toFloat64());\n  if c64.isErr() {\n    return c64;\n  }\n  return ok(c64.getR().toFloat32());\n}\nexport fn csc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return csc(x.getR());\n}\nexport fn csc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return csc(x.getR());\n}\nexport fn cosecant(x: float64) = csc(x);\nexport fn cosecant(x: float32) = csc(x);\nexport fn cosecant(x: Result<float64>) = csc(x);\nexport fn cosecant(x: Result<float32>) = csc(x);\n\nexport fn cot(x: float64) = 1.0 / tanf64(x);\nexport fn cot(x: float32): Result<float32> {\n  const t64 = cot(x.toFloat64());\n  if t64.isErr() {\n    return t64;\n  }\n  return ok(t64.getR().toFloat32());\n}\nexport fn cot(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return cot(x.getR());\n}\nexport fn cot(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return cot(x.getR());\n}\nexport fn cotangent(x: float64) = cot(x);\nexport fn cotangent(x: float32) = cot(x);\nexport fn cotangent(x: Result<float64>) = cot(x);\nexport fn cotangent(x: Result<float32>) = cot(x);\n\nexport fn asin(x: float64) = asinf64(x);\nexport fn asin(x: float32) = toFloat32(asinf64(toFloat64(x)));\nexport fn asin(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(asin(x.getR()));\n}\nexport fn asin(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(asin(x.getR()));\n}\nexport fn arcsine(x: float64) = asin(x);\nexport fn arcsine(x: float32) = asin(x);\nexport fn arcsine(x: Result<float64>) = asin(x);\nexport fn arcsine(x: Result<float32>) = asin(x);\n\nexport fn acos(x: float64) = acosf64(x);\nexport fn acos(x: float32) = toFloat32(acosf64(toFloat64(x)));\nexport fn acos(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(acos(x.getR()));\n}\nexport fn acos(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(acos(x.getR()));\n}\nexport fn arccosine(x: float64) = acos(x);\nexport fn arccosine(x: float32) = acos(x);\nexport fn arccosine(x: Result<float64>) = acos(x);\nexport fn arccosine(x: Result<float32>) = acos(x);\n\nexport fn atan(x: float64) = atanf64(x);\nexport fn atan(x: float32) = toFloat32(atanf64(toFloat64(x)));\nexport fn atan(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(atan(x.getR()));\n}\nexport fn atan(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(atan(x.getR()));\n}\nexport fn arctangent(x: float64) = atan(x);\nexport fn arctangent(x: float32) = atan(x);\nexport fn arctangent(x: Result<float64>) = atan(x);\nexport fn arctangent(x: Result<float32>) = atan(x);\n\nexport fn asec(x: float64): Result<float64> {\n  const inv = 1.0 / x;\n  if inv.isErr() {\n    return inv;\n  }\n  return ok(acosf64(inv.getR()));\n}\nexport fn asec(x: float32): Result<float32> {\n  const val = asec(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn asec(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return asec(x.getR());\n}\nexport fn asec(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return asec(x.getR());\n}\nexport fn arcsecant(x: float64) = asec(x);\nexport fn arcsecant(x: float32) = asec(x);\nexport fn arcsecant(x: Result<float64>) = asec(x);\nexport fn arcsecant(x: Result<float32>) = asec(x);\n\nexport fn acsc(x: float64): Result<float64> {\n  const inv = 1.0 / x;\n  if inv.isErr() {\n    return inv;\n  }\n  return ok(asinf64(inv.getR()));\n}\nexport fn acsc(x: float32): Result<float32> {\n  const val = acsc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acsc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acsc(x.getR());\n}\nexport fn acsc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acsc(x.getR());\n}\nexport fn arccosecant(x: float64) = acsc(x);\nexport fn arccosecant(x: float32) = acsc(x);\nexport fn arccosecant(x: Result<float64>) = acsc(x);\nexport fn arccosecant(x: Result<float32>) = acsc(x);\n\nexport fn acot(x: float64) = pi / 2.0 - atanf64(x);\nexport fn acot(x: float32): Result<float32> {\n  const val = acot(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acot(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acot(x.getR());\n}\nexport fn acot(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acot(x.getR());\n}\nexport fn arccotangent(x: float64) = acot(x);\nexport fn arccotangent(x: float32) = acot(x);\nexport fn arccotangent(x: Result<float64>) = acot(x);\nexport fn arccotangent(x: Result<float32>) = acot(x);\n\nexport fn ver(x: float64) = 1.0 - cosf64(x);\nexport fn ver(x: float32): Result<float32> {\n  const val = ver(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn ver(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ver(x.getR());\n}\nexport fn ver(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ver(x.getR());\n}\nexport fn versine(x: float64) = ver(x);\nexport fn versine(x: float32) = ver(x);\nexport fn versine(x: Result<float64>) = ver(x);\nexport fn versine(x: Result<float32>) = ver(x);\n\nexport fn vcs(x: float64) = 1.0 + cosf64(x);\nexport fn vcs(x: float32): Result<float32> {\n  const val = vcs(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn vcs(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return vcs(x.getR());\n}\nexport fn vcs(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return vcs(x.getR());\n}\nexport fn vercosine(x: float64) = vcs(x);\nexport fn vercosine(x: float32) = vcs(x);\nexport fn vercosine(x: Result<float64>) = vcs(x);\nexport fn vercosine(x: Result<float32>) = vcs(x);\n\nexport fn cvs(x: float64) = 1.0 - sinf64(x);\nexport fn cvs(x: float32): Result<float32> {\n  const val = cvs(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn cvs(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return cvs(x.getR());\n}\nexport fn cvs(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return cvs(x.getR());\n}\nexport fn coversine(x: float64) = cvs(x);\nexport fn coversine(x: float32) = cvs(x);\nexport fn coversine(x: Result<float64>) = cvs(x);\nexport fn coversine(x: Result<float32>) = cvs(x);\n\nexport fn cvc(x: float64) = 1.0 + sinf64(x);\nexport fn cvc(x: float32): Result<float32> {\n  const val = cvc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn cvc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return cvc(x.getR());\n}\nexport fn cvc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return cvc(x.getR());\n}\nexport fn covercosine(x: float64) = cvc(x);\nexport fn covercosine(x: float32) = cvc(x);\nexport fn covercosine(x: Result<float64>) = cvc(x);\nexport fn covercosine(x: Result<float32>) = cvc(x);\n\nexport fn hav(x: float64) = versine(x) / 2.0;\nexport fn hav(x: float32): Result<float32> {\n  const val = hav(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn hav(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return hav(x.getR());\n}\nexport fn hav(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return hav(x.getR());\n}\nexport fn haversine(x: float64) = hav(x);\nexport fn haversine(x: float32) = hav(x);\nexport fn haversine(x: Result<float64>) = hav(x);\nexport fn haversine(x: Result<float32>) = hav(x);\n\nexport fn hvc(x: float64) = vercosine(x) / 2.0;\nexport fn hvc(x: float32): Result<float32> {\n  const val = hvc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn hvc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return hvc(x.getR());\n}\nexport fn hvc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return hvc(x.getR());\n}\nexport fn havercosine(x: float64) = hvc(x);\nexport fn havercosine(x: float32) = hvc(x);\nexport fn havercosine(x: Result<float64>) = hvc(x);\nexport fn havercosine(x: Result<float32>) = hvc(x);\n\nexport fn hcv(x: float64) = coversine(x) / 2.0;\nexport fn hcv(x: float32): Result<float32> {\n  const val = hcv(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn hcv(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return hcv(x.getR());\n}\nexport fn hcv(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return hcv(x.getR());\n}\nexport fn hacoversine(x: float64) = hcv(x);\nexport fn hacoversine(x: float32) = hcv(x);\nexport fn hacoversine(x: Result<float64>) = hcv(x);\nexport fn hacoversine(x: Result<float32>) = hcv(x);\n\nexport fn hcc(x: float64) = covercosine(x) / 2.0;\nexport fn hcc(x: float32): Result<float32> {\n  const val = hcc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn hcc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return hcc(x.getR());\n}\nexport fn hcc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return hcc(x.getR());\n}\nexport fn hacovercosine(x: float64) = hcc(x);\nexport fn hacovercosine(x: float32) = hcc(x);\nexport fn hacovercosine(x: Result<float64>) = hcc(x);\nexport fn hacovercosine(x: Result<float32>) = hcc(x);\n\nexport fn exs(x: float64) = secant(x) - 1.0;\nexport fn exs(x: float32): Result<float32> {\n  const val = exs(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn exs(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return exs(x.getR());\n}\nexport fn exs(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return exs(x.getR());\n}\nexport fn exsecant(x: float64) = exs(x);\nexport fn exsecant(x: float32) = exs(x);\nexport fn exsecant(x: Result<float64>) = exs(x);\nexport fn exsecant(x: Result<float32>) = exs(x);\n\nexport fn exc(x: float64) = cosecant(x) - 1.0;\nexport fn exc(x: float32): Result<float32> {\n  const val = exc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn exc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return exc(x.getR());\n}\nexport fn exc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return exc(x.getR());\n}\nexport fn excosecant(x: float64) = exc(x);\nexport fn excosecant(x: float32) = exc(x);\nexport fn excosecant(x: Result<float64>) = exc(x);\nexport fn excosecant(x: Result<float32>) = exc(x);\n\nexport fn crd(x: float64) = 2.0 * sine(x / 2.0);\nexport fn crd(x: float32): Result<float32> {\n  const val = crd(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn crd(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return crd(x.getR());\n}\nexport fn crd(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return crd(x.getR());\n}\nexport fn chord(x: float64) = crd(x);\nexport fn chord(x: float32) = crd(x);\nexport fn chord(x: Result<float64>) = crd(x);\nexport fn chord(x: Result<float32>) = crd(x);\n\nexport fn aver(x: float64) = arccosine(1.0 - x);\nexport fn aver(x: float32): Result<float32> {\n  const val = aver(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn aver(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return aver(x.getR());\n}\nexport fn aver(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return aver(x.getR());\n}\nexport fn arcversine(x: float64) = aver(x);\nexport fn arcversine(x: float32) = aver(x);\nexport fn arcversine(x: Result<float64>) = aver(x);\nexport fn arcversine(x: Result<float32>) = aver(x);\n\nexport fn avcs(x: float64) = arccosine(x - 1.0);\nexport fn avcs(x: float32): Result<float32> {\n  const val = avcs(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn avcs(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return avcs(x.getR());\n}\nexport fn avcs(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return avcs(x.getR());\n}\nexport fn arcvercosine(x: float64) = avcs(x);\nexport fn arcvercosine(x: float32) = avcs(x);\nexport fn arcvercosine(x: Result<float64>) = avcs(x);\nexport fn arcvercosine(x: Result<float32>) = avcs(x);\n\nexport fn acvs(x: float64) = arcsine(1.0 - x);\nexport fn acvs(x: float32): Result<float32> {\n  const val = acvs(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acvs(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acvs(x.getR());\n}\nexport fn acvs(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acvs(x.getR());\n}\nexport fn arccoversine(x: float64) = acvs(x);\nexport fn arccoversine(x: float32) = acvs(x);\nexport fn arccoversine(x: Result<float64>) = acvs(x);\nexport fn arccoversine(x: Result<float32>) = acvs(x);\n\nexport fn acvc(x: float64) = arcsine(x - 1.0);\nexport fn acvc(x: float32): Result<float32> {\n  const val = acvc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acvc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acvc(x.getR());\n}\nexport fn acvc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acvc(x.getR());\n}\nexport fn arccovercosine(x: float64) = acvc(x);\nexport fn arccovercosine(x: float32) = acvc(x);\nexport fn arccovercosine(x: Result<float64>) = acvc(x);\nexport fn arccovercosine(x: Result<float32>) = acvc(x);\n\nexport fn ahav(x: float64) = arccosine(1.0 - 2.0 * x);\nexport fn ahav(x: float32): Result<float32> {\n  const val = ahav(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn ahav(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ahav(x.getR());\n}\nexport fn ahav(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ahav(x.getR());\n}\nexport fn archaversine(x: float64) = ahav(x);\nexport fn archaversine(x: float32) = ahav(x);\nexport fn archaversine(x: Result<float64>) = ahav(x);\nexport fn archaversine(x: Result<float32>) = ahav(x);\n\nexport fn ahvc(x: float64) = arccosine(2.0 * x - 1.0);\nexport fn ahvc(x: float32): Result<float32> {\n  const val = ahvc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn ahvc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ahvc(x.getR());\n}\nexport fn ahvc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ahvc(x.getR());\n}\nexport fn archavercosine(x: float64) = ahvc(x);\nexport fn archavercosine(x: float32) = ahvc(x);\nexport fn archavercosine(x: Result<float64>) = ahvc(x);\nexport fn archavercosine(x: Result<float32>) = ahvc(x);\n\nexport fn ahcv(x: float64) = arcsine(1.0 - 2.0 * x);\nexport fn ahcv(x: float32): Result<float32> {\n  const val = ahcv(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn ahcv(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ahcv(x.getR());\n}\nexport fn ahcv(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ahcv(x.getR());\n}\nexport fn archacoversine(x: float64) = ahcv(x);\nexport fn archacoversine(x: float32) = ahcv(x);\nexport fn archacoversine(x: Result<float64>) = ahcv(x);\nexport fn archacoversine(x: Result<float32>) = ahcv(x);\n\nexport fn ahcc(x: float64) = arcsine(2.0 * x - 1.0);\nexport fn ahcc(x: float32): Result<float32> {\n  const val = ahcc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn ahcc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ahcc(x.getR());\n}\nexport fn ahcc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ahcc(x.getR());\n}\nexport fn archacovercosine(x: float64) = ahcc(x);\nexport fn archacovercosine(x: float32) = ahcc(x);\nexport fn archacovercosine(x: Result<float64>) = ahcc(x);\nexport fn archacovercosine(x: Result<float32>) = ahcc(x);\n\nexport fn aexs(x: float64) = arccosine(1.0 / (x + 1.0));\nexport fn aexs(x: float32): Result<float32> {\n  const val = aexs(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn aexs(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return aexs(x.getR());\n}\nexport fn aexs(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return aexs(x.getR());\n}\nexport fn arcexsecant(x: float64) = aexs(x);\nexport fn arcexsecant(x: float32) = aexs(x);\nexport fn arcexsecant(x: Result<float64>) = aexs(x);\nexport fn arcexsecant(x: Result<float32>) = aexs(x);\n\nexport fn aexc(x: float64) = arcsine(1.0 / (x + 1.0));\nexport fn aexc(x: float32): Result<float32> {\n  const val = aexc(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn aexc(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return aexc(x.getR());\n}\nexport fn aexc(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return aexc(x.getR());\n}\nexport fn arcexcosecant(x: float64) = aexc(x);\nexport fn arcexcosecant(x: float32) = aexc(x);\nexport fn arcexcosecant(x: Result<float64>) = aexc(x);\nexport fn arcexcosecant(x: Result<float32>) = aexc(x);\n\nexport fn acrd(x: float64) = 2.0 * arcsine(x / 2.0);\nexport fn acrd(x: float32): Result<float32> {\n  const val = acrd(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acrd(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acrd(x.getR());\n}\nexport fn acrd(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acrd(x.getR());\n}\nexport fn arcchord(x: float64) = acrd(x);\nexport fn arcchord(x: float32) = acrd(x);\nexport fn arcchord(x: Result<float64>) = acrd(x);\nexport fn arcchord(x: Result<float32>) = acrd(x);\n\nexport fn sinh(x: float64) = sinhf64(x);\nexport fn sinh(x: float32) = toFloat32(sinhf64(toFloat64(x)));\nexport fn sinh(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(sinh(x.getR()));\n}\nexport fn sinh(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(sinh(x.getR()));\n}\nexport fn hyperbolicSine(x: float64) = sinh(x);\nexport fn hyperbolicSine(x: float32) = sinh(x);\nexport fn hyperbolicSine(x: Result<float64>) = sinh(x);\nexport fn hyperbolicSine(x: Result<float32>) = sinh(x);\n\nexport fn cosh(x: float64) = coshf64(x);\nexport fn cosh(x: float32) = toFloat32(coshf64(toFloat64(x)));\nexport fn cosh(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(cosh(x.getR()));\n}\nexport fn cosh(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(cosh(x.getR()));\n}\nexport fn hyperbolicCosine(x: float64) = cosh(x);\nexport fn hyperbolicCosine(x: float32) = cosh(x);\nexport fn hyperbolicCosine(x: Result<float64>) = cosh(x);\nexport fn hyperbolicCosine(x: Result<float32>) = cosh(x);\n\nexport fn tanh(x: float64) = tanhf64(x);\nexport fn tanh(x: float32) = toFloat32(tanhf64(toFloat64(x)));\nexport fn tanh(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(tanh(x.getR()));\n}\nexport fn tanh(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return ok(tanh(x.getR()));\n}\nexport fn hyperbolicTangent(x: float64) = tanh(x);\nexport fn hyperbolicTangent(x: float32) = tanh(x);\nexport fn hyperbolicTangent(x: Result<float64>) = tanh(x);\nexport fn hyperbolicTangent(x: Result<float32>) = tanh(x);\n\nexport fn sech(x: float64) = 1.0 / cosh(x);\nexport fn sech(x: float32): Result<float32> {\n  const val = sech(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn sech(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return sech(x.getR());\n}\nexport fn sech(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return sech(x.getR());\n}\nexport fn hyperbolicSecant(x: float64) = sech(x);\nexport fn hyperbolicSecant(x: float32) = sech(x);\nexport fn hyperbolicSecant(x: Result<float64>) = sech(x);\nexport fn hyperbolicSecant(x: Result<float32>) = sech(x);\n\nexport fn csch(x: float64) = 1.0 / sinh(x);\nexport fn csch(x: float32): Result<float32> {\n  const val = csch(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn csch(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return csch(x.getR());\n}\nexport fn csch(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return csch(x.getR());\n}\nexport fn hyperbolicCosecant(x: float64) = csch(x);\nexport fn hyperbolicCosecant(x: float32) = csch(x);\nexport fn hyperbolicCosecant(x: Result<float64>) = csch(x);\nexport fn hyperbolicCosecant(x: Result<float32>) = csch(x);\n\nexport fn coth(x: float64) = 1.0 / tanh(x);\nexport fn coth(x: float32): Result<float32> {\n  const val = coth(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn coth(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return coth(x.getR());\n}\nexport fn coth(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return coth(x.getR());\n}\nexport fn hyperbolicCotangent(x: float64) = coth(x);\nexport fn hyperbolicCotangent(x: float32) = coth(x);\nexport fn hyperbolicCotangent(x: Result<float64>) = coth(x);\nexport fn hyperbolicCotangent(x: Result<float32>) = coth(x);\n\nexport fn asinh(x: float64) = ln(x + sqrt(x ** 2.0 + 1.0));\nexport fn asinh(x: float32): Result<float32> {\n  const val = asinh(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn asinh(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return asinh(x.getR());\n}\nexport fn asinh(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return asinh(x.getR());\n}\nexport fn hyperbolicArcsine(x: float64) = asinh(x);\nexport fn hyperbolicArcsine(x: float32) = asinh(x);\nexport fn hyperbolicArcsine(x: Result<float64>) = asinh(x);\nexport fn hyperbolicArcsine(x: Result<float32>) = asinh(x);\n\nexport fn acosh(x: float64) = ln(x + sqrt(x ** 2.0 - 1.0));\nexport fn acosh(x: float32): Result<float32> {\n  const val = acosh(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acosh(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acosh(x.getR());\n}\nexport fn acosh(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acosh(x.getR());\n}\nexport fn hyperbolicArccosine(x: float64) = acosh(x);\nexport fn hyperbolicArccosine(x: float32) = acosh(x);\nexport fn hyperbolicArccosine(x: Result<float64>) = acosh(x);\nexport fn hyperbolicArccosine(x: Result<float32>) = acosh(x);\n\nexport fn atanh(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0;\nexport fn atanh(x: float32): Result<float32> {\n  const val = atanh(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn atanh(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return atanh(x.getR());\n}\nexport fn atanh(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return atanh(x.getR());\n}\nexport fn hyperbolicArctangent(x: float64) = atanh(x);\nexport fn hyperbolicArctangent(x: float32) = atanh(x);\nexport fn hyperbolicArctangent(x: Result<float64>) = atanh(x);\nexport fn hyperbolicArctangent(x: Result<float32>) = atanh(x);\n\nexport fn asech(x: float64) = ln((1.0 + sqrt(1.0 - x ** 2.0)) / x);\nexport fn asech(x: float32): Result<float32> {\n  const val = asech(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn asech(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return asech(x.getR());\n}\nexport fn asech(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return asech(x.getR());\n}\nexport fn hyperbolicArcsecant(x: float64) = asech(x);\nexport fn hyperbolicArcsecant(x: float32) = asech(x);\nexport fn hyperbolicArcsecant(x: Result<float64>) = asech(x);\nexport fn hyperbolicArcsecant(x: Result<float32>) = asech(x);\n\nexport fn acsch(x: float64) = ln((1.0 / x) + sqrt(1.0 / x ** 2.0 + 1.0));\nexport fn acsch(x: float32): Result<float32> {\n  const val = acsch(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acsch(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acsch(x.getR());\n}\nexport fn acsch(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acsch(x.getR());\n}\nexport fn hyperbolicArccosecant(x: float64) = acsch(x);\nexport fn hyperbolicArccosecant(x: float32) = acsch(x);\nexport fn hyperbolicArccosecant(x: Result<float64>) = acsch(x);\nexport fn hyperbolicArccosecant(x: Result<float32>) = acsch(x);\n\nexport fn acoth(x: float64) = ln((x + 1.0) / (x - 1.0)) / 2.0;\nexport fn acoth(x: float32): Result<float32> {\n  const val = acoth(x.toFloat64());\n  if val.isErr() {\n    return val;\n  }\n  return ok(val.getR().toFloat32());\n}\nexport fn acoth(x: Result<float64>): Result<float64> {\n  if x.isErr() {\n    return x;\n  }\n  return acoth(x.getR());\n}\nexport fn acoth(x: Result<float32>): Result<float32> {\n  if x.isErr() {\n    return x;\n  }\n  return acoth(x.getR());\n}\nexport fn hyperbolicArccotangent(x: float64) = acoth(x);\nexport fn hyperbolicArccotangent(x: float32) = acoth(x);\nexport fn hyperbolicArccotangent(x: Result<float64>) = acoth(x);\nexport fn hyperbolicArccotangent(x: Result<float32>) = acoth(x);\n\n"}
 
 },{}],3:[function(require,module,exports){
@@ -199,12 +199,651 @@ const amm = lp_1.NamedAnd.build({
 });
 exports.default = amm;
 
-},{"./lp":20}],4:[function(require,module,exports){
+},{"./lp":22}],4:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Statement = exports.Block = void 0;
+class Block {
+    constructor(type, name, memSize, statements, deps) {
+        this.type = type;
+        this.name = name;
+        this.memSize = memSize;
+        this.statements = statements;
+        this.deps = deps;
+    }
+    build() {
+        const dependencies = [];
+        const idxByNode = new Map();
+        for (let ii = 0; ii < this.statements.length; ii++) {
+            let stmt = this.statements[ii];
+            if (stmt.depNode === null)
+                continue;
+            idxByNode.set(stmt.depNode, ii);
+            for (let upstream of stmt.depNode.upstream) {
+                if (idxByNode.get(upstream) !== null && idxByNode.get(upstream) !== undefined) {
+                    stmt.deps.push(idxByNode.get(upstream));
+                    dependencies.push({
+                        in: this.name,
+                        stmt: ii,
+                        dependsOn: idxByNode.get(upstream),
+                    });
+                }
+            }
+        }
+        return JSON.stringify(dependencies);
+    }
+    toString() {
+        let b = `${this.type} for ${this.name} with size ${this.memSize}\n`;
+        this.statements.forEach(s => b += `  ${s.toString()}\n`);
+        return b;
+    }
+}
+exports.Block = Block;
+class Statement {
+    constructor(fn, inArgs, outArg, line, deps, depNode) {
+        this.fn = fn;
+        this.inArgs = inArgs;
+        this.outArg = outArg;
+        this.line = line;
+        this.deps = deps;
+        this.depNode = depNode || null;
+    }
+    toString() {
+        let s = '';
+        if (this.outArg !== null) {
+            s += `${this.outArg} = `;
+        }
+        s += `${this.fn}(${this.inArgs.join(', ')}) #${this.line}`;
+        if (this.deps.length > 0) {
+            s += ` <- [${this.deps.map(d => `#${d}`).join(', ')}]`;
+        }
+        return s;
+    }
+}
+exports.Statement = Statement;
+
+},{}],5:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.opcodeParamMutabilities = exports.DepNode = exports.DepGraph = void 0;
+const lp_1 = require("../lp");
+// this is just here for debugging purposes
+const unhandled = (val, reason) => {
+    console.error(`========== UNHANDLED: ${reason}`);
+    console.error(val);
+    console.error();
+    throw new Error();
+};
+class DepGraph {
+    constructor(fn, outer) {
+        this.byOrder = [];
+        this.byVar = {};
+        this.byLP = new Map();
+        this.outerGraph = outer || null;
+        this.outerDeps = [];
+        this.outerMuts = [];
+        this.params = null;
+        if (fn !== null && fn !== undefined) {
+            fn = fn.get('functions');
+            if (fn.has('args'))
+                this.buildParams([...fn.get('args').getAll()]);
+            let stmts = fn.get('functionbody')
+                .get('statements').getAll()
+                .filter(s => !s.has('whitespace'));
+            this.build(stmts);
+        }
+    }
+    buildParams(params) {
+        this.params = {};
+        while (params.length > 0) {
+            let param = params.shift();
+            if (param instanceof lp_1.NamedAnd) {
+                if (param.has('arg')) {
+                    param = param.get('arg');
+                }
+                if (param.has('variable') && param.get('variable').t.trim() !== '') {
+                    // assign a very basic `DepNode` struct to avoid having to go through
+                    // the whole constructor, since this node is just a param declaration
+                    // and doesn't need to go through the whole shebang. We just need it
+                    // for when we're generating the dependencies of the aga output
+                    this.params[param.get('variable').t.trim()] = new DepNode(param, this, true);
+                }
+                else {
+                    unhandled(param, 'unknown param ast');
+                }
+            }
+            else if (param instanceof lp_1.ZeroOrMore) {
+                params.unshift(...param.getAll());
+            }
+            else if (!(param instanceof lp_1.NulLP)) {
+                unhandled(param, 'unknown ast type for function parameters');
+            }
+        }
+    }
+    build(stmts) {
+        for (let stmt of stmts) {
+            let node = new DepNode(stmt, this);
+            // console.log(`mutates:`)
+            // console.log(node.mutates)
+            for (let mutated of node.mutates) {
+                if (this.outerGraph !== null && this.outerGraph.getLastMutationFor(mutated) !== null) {
+                    this.outerMuts.push(mutated);
+                }
+                if (this.byVar[mutated] === null || this.byVar[mutated] === undefined) {
+                    this.byVar[mutated] = [];
+                }
+                this.byVar[mutated].push(node);
+            }
+            this.byOrder.push(node);
+            this.byLP.set(stmt, node);
+        }
+        this.outerDeps = [...new Set(this.outerDeps)];
+    }
+    getLastMutationFor(varName) {
+        let nodes = this.byVar[varName];
+        // console.log(`------- ${varName}`)
+        // console.log('nodes:')
+        // console.log(nodes)
+        if ((nodes !== null && nodes !== undefined) && nodes.length !== 0) {
+            return nodes[nodes.length - 1];
+        }
+        // if there's no mutation, check to see if it's a variable first
+        if (this.params !== null && this.params[varName] !== null && this.params[varName] !== undefined) {
+            // don't even make up a node for it, it's just dependent on the param
+            // which is always guaranteed to be satisfied
+            return this.params[varName];
+        }
+        // console.log('og:')
+        // console.log(this.outerGraph)
+        if (this.outerGraph !== null) {
+            let outer = this.outerGraph.getLastMutationFor(varName);
+            if (outer !== null) {
+                // console.log(`found outer for ${varName}`)
+                this.outerDeps.push(outer);
+                return outer;
+            }
+        }
+        return null;
+    }
+    toJSON() {
+        return {
+            byOrder: this.byOrder.map(n => n.toJSON()),
+            byVar: Object.keys(this.byVar),
+            byLP: this.byLP.size,
+            outerGraph: this.outerGraph !== null,
+            outerDeps: this.outerDeps.map(n => n.toJSON()),
+            outerMuts: this.outerMuts,
+        };
+    }
+}
+exports.DepGraph = DepGraph;
+class DepNode {
+    constructor(stmt, graph, isParam) {
+        this.stmt = stmt.t.trim();
+        this.upstream = [];
+        this.downstream = [];
+        this.closure = null;
+        this.mutates = [];
+        this.graph = graph;
+        this.isParam = isParam || false; // if `isParam` is `true`, retains it. Otherwise, always at least `false`
+        // if this node is a parameter declaration, don't do extra work
+        if (this.isParam) {
+            return;
+        }
+        if (stmt.has('declarations')) {
+            let dec = stmt.get('declarations');
+            if (dec.has('constdeclaration')) {
+                dec = dec.get('constdeclaration');
+            }
+            else if (dec.has('letdeclaration')) {
+                dec = dec.get('letdeclaration');
+            }
+            else {
+                unhandled(dec, 'dec kind');
+            }
+            this.fromAssignment(dec);
+        }
+        else if (stmt.has('assignments')) {
+            this.fromAssignment(stmt.get('assignments'));
+        }
+        else if (stmt.has('calls')) {
+            this.fromCall(stmt.get('calls'));
+        }
+        else if (stmt.has('emits')) {
+            let upstream = graph.getLastMutationFor(stmt.get('emits').get('value').t.trim());
+            if (upstream !== null) {
+                this.upstream.push(upstream);
+                upstream.downstream.push(this);
+            }
+        }
+        else if (stmt.has('exits')) {
+            this.fromExit(stmt.get('exits'));
+        }
+        else {
+            unhandled(stmt, 'node top-level');
+        }
+        this.upstream = [...new Set(this.upstream)];
+        this.mutates = [...new Set(this.mutates)];
+    }
+    fromExit(assign) {
+        if (assign.has('variable')) {
+            let upstream = this.graph.getLastMutationFor(assign.get('variable').t.trim());
+            if (upstream !== null) {
+                this.upstream.push(upstream);
+                upstream.downstream.push(this);
+            }
+        }
+    }
+    fromAssignment(assign) {
+        // console.log(assign)
+        if (!assign.has('assignables')) {
+            unhandled(assign, 'non-assignment assignment?');
+        }
+        let decname = assign.get('decname').t.trim();
+        // console.log(`decname: ${decname}`)
+        let prev = this.graph.getLastMutationFor(decname);
+        if (prev !== null) {
+            this.upstream.push(prev);
+        }
+        this.mutates.push(decname);
+        if (assign.get('fulltypename').t.trim() === 'function') {
+            this.closure = new DepGraph(assign.get('assignables'), this.graph);
+            // for closures, only add upstream since the closure isn't actually
+            // evaluated until its called. this just makes it so that the actual
+            // use-site of the closure can inherit the upstream dependencies.
+            this.upstream.push(...this.closure.outerDeps);
+            this.mutates.push(...this.closure.outerMuts);
+        }
+        else if (assign.has('assignables')) {
+            if (prev !== null) {
+                prev.downstream.push(this);
+            }
+            assign = assign.get('assignables');
+            if (assign.has('calls')) {
+                this.fromCall(assign.get('calls'));
+            }
+            else if (assign.has('value')) {
+                // do nothing
+            }
+            else {
+                unhandled(assign, 'assignable');
+            }
+        }
+        else {
+            unhandled(assign, 'non-assignable... assignable... ?');
+        }
+    }
+    fromCall(call) {
+        let opcodeName = call.get('variable').t.trim();
+        let args = call.get('calllist').getAll().map(c => c.get('variable'));
+        let mutated = [];
+        let opMutability = exports.opcodeParamMutabilities[opcodeName];
+        if (opMutability === undefined || opMutability === null) {
+            unhandled(opMutability, 'opcode ' + opcodeName);
+        }
+        for (let ii = 0; ii < opMutability.length; ii++) {
+            if (opMutability[ii] === true) {
+                mutated.push(args[ii].t.trim());
+            }
+            else if (opMutability[ii] === null) {
+                // null indicates that the parameter expects a closure,
+                // so the mutability of the overall call depends on the
+                // mutability of the specified closure. Because of this,
+                // we have to grab the node for the closure declaration
+                // and use its mutabilities instead
+                // the closure def will be the first node in the list
+                let closure = this.graph.getLastMutationFor(args[ii].t.trim());
+                if (closure.closure) {
+                    if (closure === null || closure === undefined) {
+                        unhandled(this.graph.byVar, `no nodes declared for ${args[ii].t.trim()}`);
+                    }
+                    mutated.push(...closure.mutates);
+                }
+                else if (closure.isParam) {
+                    mutated.push(closure);
+                }
+                else {
+                    unhandled(closure, 'expected to inherit mutations');
+                }
+            }
+        }
+        this.mutates.push(...mutated);
+        // console.log('---')
+        // console.log(this.stmt)
+        for (let arg of args) {
+            // console.log(arg)
+            let upstream = this.graph.getLastMutationFor(arg.t.trim());
+            // console.log(upstream)
+            if (upstream !== null) {
+                if (upstream.closure !== null) {
+                    // if it's a closure, inherit the upstreams
+                    this.upstream.push(...upstream.upstream);
+                }
+                else {
+                    this.upstream.push(upstream);
+                    upstream.downstream.push(this);
+                }
+            }
+        }
+    }
+    toJSON() {
+        let closure = null;
+        if (this.closure)
+            closure = this.closure.toJSON();
+        return {
+            stmt: this.stmt.replace(/\n/g, '\\n'),
+            upstream: this.upstream.length,
+            downstream: this.downstream.length,
+            closure: this.closure,
+            mutates: this.mutates,
+        };
+    }
+}
+exports.DepNode = DepNode;
+exports.opcodeParamMutabilities = {
+    i8f64: [false],
+    i16f64: [false],
+    i32f64: [false],
+    i64f64: [false],
+    f32f64: [false],
+    strf64: [false],
+    boolf64: [false],
+    i8f32: [false],
+    i16f32: [false],
+    i32f32: [false],
+    i64f32: [false],
+    f64f32: [false],
+    strf32: [false],
+    boolf32: [false],
+    i8i64: [false],
+    i16i64: [false],
+    i32i64: [false],
+    f32i64: [false],
+    f64i64: [false],
+    stri64: [false],
+    booli64: [false],
+    i8i32: [false],
+    i16i32: [false],
+    i64i32: [false],
+    f32i32: [false],
+    f64i32: [false],
+    stri32: [false],
+    booli32: [false],
+    i8i16: [false],
+    i32i16: [false],
+    i64i16: [false],
+    f32i16: [false],
+    f64i16: [false],
+    stri16: [false],
+    booli16: [false],
+    i16i8: [false],
+    i32i8: [false],
+    i64i8: [false],
+    f32i8: [false],
+    f64i8: [false],
+    stri8: [false],
+    booli8: [false],
+    i8bool: [false],
+    i16bool: [false],
+    i32bool: [false],
+    i64bool: [false],
+    f32bool: [false],
+    f64bool: [false],
+    strbool: [false],
+    i8str: [false],
+    i16str: [false],
+    i32str: [false],
+    i64str: [false],
+    f32str: [false],
+    f64str: [false],
+    boolstr: [false],
+    addi8: [false, false],
+    addi16: [false, false],
+    addi32: [false, false],
+    addi64: [false, false],
+    addf32: [false, false],
+    addf64: [false, false],
+    subi8: [false, false],
+    subi16: [false, false],
+    subi32: [false, false],
+    subi64: [false, false],
+    subf32: [false, false],
+    subf64: [false, false],
+    negi8: [false, false],
+    negi16: [false, false],
+    negi32: [false, false],
+    negi64: [false, false],
+    negf32: [false, false],
+    negf64: [false, false],
+    absi8: [false, false],
+    absi16: [false, false],
+    absi32: [false, false],
+    absi64: [false, false],
+    absf32: [false, false],
+    absf64: [false, false],
+    muli8: [false, false],
+    muli16: [false, false],
+    muli32: [false, false],
+    muli64: [false, false],
+    mulf32: [false, false],
+    mulf64: [false, false],
+    divi8: [false, false],
+    divi16: [false, false],
+    divi32: [false, false],
+    divi64: [false, false],
+    divf32: [false, false],
+    divf64: [false, false],
+    modi8: [false, false],
+    modi16: [false, false],
+    modi32: [false, false],
+    modi64: [false, false],
+    powi8: [false, false],
+    powi16: [false, false],
+    powi32: [false, false],
+    powi64: [false, false],
+    powf32: [false, false],
+    powf64: [false, false],
+    sqrtf32: [false, false],
+    sqrtf64: [false, false],
+    andi8: [false, false],
+    andi16: [false, false],
+    andi32: [false, false],
+    andi64: [false, false],
+    andbool: [false, false],
+    ori8: [false, false],
+    ori16: [false, false],
+    ori32: [false, false],
+    ori64: [false, false],
+    orbool: [false, false],
+    xori8: [false, false],
+    xori16: [false, false],
+    xori32: [false, false],
+    xori64: [false, false],
+    xorbool: [false, false],
+    noti8: [false, false],
+    noti16: [false, false],
+    noti32: [false, false],
+    noti64: [false, false],
+    notbool: [false, false],
+    nandi8: [false, false],
+    nandi16: [false, false],
+    nandi32: [false, false],
+    nandi64: [false, false],
+    nandboo: [false, false],
+    nori8: [false, false],
+    nori16: [false, false],
+    nori32: [false, false],
+    nori64: [false, false],
+    norbool: [false, false],
+    xnori8: [false, false],
+    xnori16: [false, false],
+    xnori32: [false, false],
+    xnori64: [false, false],
+    xnorboo: [false, false],
+    eqi8: [false, false],
+    eqi16: [false, false],
+    eqi32: [false, false],
+    eqi64: [false, false],
+    eqf32: [false, false],
+    eqf64: [false, false],
+    eqbool: [false, false],
+    eqstr: [false, false],
+    neqi8: [false, false],
+    neqi16: [false, false],
+    neqi32: [false, false],
+    neqi64: [false, false],
+    neqf32: [false, false],
+    neqf64: [false, false],
+    neqbool: [false, false],
+    neqstr: [false, false],
+    lti8: [false, false],
+    lti16: [false, false],
+    lti32: [false, false],
+    lti64: [false, false],
+    ltf32: [false, false],
+    ltf64: [false, false],
+    ltstr: [false, false],
+    ltei8: [false, false],
+    ltei16: [false, false],
+    ltei32: [false, false],
+    ltei64: [false, false],
+    ltef32: [false, false],
+    ltef64: [false, false],
+    ltestr: [false, false],
+    gti8: [false, false],
+    gti16: [false, false],
+    gti32: [false, false],
+    gti64: [false, false],
+    gtf32: [false, false],
+    gtf64: [false, false],
+    gtstr: [false, false],
+    gtei8: [false, false],
+    gtei16: [false, false],
+    gtei32: [false, false],
+    gtei64: [false, false],
+    gtef32: [false, false],
+    gtef64: [false, false],
+    gtestr: [false, false],
+    httpget: [false],
+    httppost: [false],
+    httplsn: [false],
+    httpsend: [false],
+    execop: [false],
+    waitop: [false],
+    catstr: [false, false],
+    catarr: [false, false],
+    split: [false, false],
+    repstr: [false, false],
+    reparr: [false, false],
+    matches: [false, false],
+    indstr: [false, false],
+    indarrf: [false, false],
+    indarrv: [false, false],
+    lenstr: [false],
+    lenarr: [false],
+    trim: [false],
+    condfn: [false, null],
+    pusharr: [true, false, false],
+    poparr: [true],
+    delindx: [true, false],
+    each: [false, null],
+    eachl: [false, null],
+    map: [false, null],
+    mapl: [false, null],
+    reducel: [false, null],
+    reducep: [false, null],
+    foldl: [false, null],
+    foldp: [false, null],
+    filter: [false, null],
+    filterl: [false, null],
+    find: [false, null],
+    findl: [false, null],
+    every: [false, null],
+    everyl: [false, null],
+    some: [false, null],
+    somel: [false, null],
+    join: [false, false],
+    newarr: [false],
+    stdoutp: [false],
+    stderrp: [false],
+    exitop: [false],
+    copyfrom: [false, false],
+    copytof: [true, false, false],
+    copytov: [true, false, false],
+    register: [false, false],
+    copyi8: [false],
+    copyi16: [false],
+    copyi32: [false],
+    copyi64: [false],
+    copyvoid: [false],
+    copyf32: [false],
+    copyf64: [false],
+    copybool: [false],
+    copystr: [false],
+    copyarr: [false],
+    zeroed: [],
+    lnf64: [false],
+    logf64: [false],
+    sinf64: [false],
+    cosf64: [false],
+    tanf64: [false],
+    asinf64: [false],
+    acosf64: [false],
+    atanf64: [false],
+    sinhf64: [false],
+    coshf64: [false],
+    tanhf64: [false],
+    error: [false],
+    reff: [false],
+    refv: [false],
+    noerr: [],
+    errorstr: [false],
+    someM: [false, false],
+    noneM: [],
+    // TODO: RFC-12 might impact these:
+    isSome: [false],
+    isNone: [false],
+    getOrM: [false, false],
+    okR: [false, false],
+    err: [false],
+    isOk: [false],
+    isErr: [false],
+    getOrR: [false, false],
+    getOrRS: [false, false],
+    getR: [false],
+    getErr: [false, false],
+    resfrom: [false, false],
+    mainE: [false, false],
+    altE: [false, false],
+    isMain: [false],
+    isAlt: [false],
+    mainOr: [false, false],
+    altOr: [false, false],
+    hashf: [false],
+    hashv: [false],
+    dssetf: [true, false, false],
+    dssetv: [true, false, false],
+    dshas: [false, false],
+    dsdel: [true, false],
+    dsgetf: [false, false],
+    dsgetv: [false, false],
+    newseq: [false],
+    seqnext: [false],
+    seqeach: [false, null],
+    seqwhile: [false, null, null],
+    seqdo: [false, null],
+    selfrec: [false, false],
+    seqrec: [false, null],
+};
+
+},{"../lp":22}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fromString = exports.fromFile = void 0;
-const lp_1 = require("./lp");
-const amm_1 = require("./amm");
+const lp_1 = require("../lp");
+const amm_1 = require("../amm");
+const depgraph_1 = require("./depgraph");
+const aga_1 = require("./aga");
 // This project depends on BigNum and associated support in Node's Buffer, so must be >= Node 10.20
 // and does not work in the browser. It would be possible to implement a browser-compatible version
 // but there is no need for it and it would make it harder to work with.
@@ -326,8 +965,14 @@ const getHandlersMem = (handlers) => handlers
 const closuresFromDeclaration = (declaration, closureMem, eventDecs, addressMap, 
 // For each scope branch, determine a unique argument rereference so nested scopes can access
 // parent scope arguments
-argRerefOffset, scope) => {
+argRerefOffset, scope, depGraph) => {
     const name = declaration.get('constdeclaration').get('decname').t.trim();
+    if ((depGraph.byVar[name] === null || depGraph.byVar[name] === undefined)
+        || depGraph.byVar[name].length === 0
+        || depGraph.byVar[name][0].closure === null) {
+        throw new Error('trying to build a closure, but the dependency graph did not build a closure');
+    }
+    const graph = depGraph.byVar[name][0].closure;
     const fn = declaration.get('constdeclaration').get('assignables').get('functions');
     let fnArgs = [];
     fn.get('args').getAll()[0].getAll().forEach((argdef) => {
@@ -353,7 +998,8 @@ argRerefOffset, scope) => {
         statement.get('declarations').get('constdeclaration').get('assignables').has('functions')));
     const otherClosures = allStatements.filter(statement => statement.has('declarations') &&
         statement.get('declarations').has('constdeclaration') &&
-        statement.get('declarations').get('constdeclaration').get('assignables').has('functions')).map(s => closuresFromDeclaration(s.get('declarations'), closureMem, eventDecs, addressMap, argRerefOffset, [name, ...scope,])).reduce((obj, rec) => ({
+        statement.get('declarations').get('constdeclaration').get('assignables').has('functions')).map(s => closuresFromDeclaration(s.get('declarations'), closureMem, eventDecs, addressMap, argRerefOffset, [name, ...scope,], // Newest scope gets highest priority
+    graph)).reduce((obj, rec) => ({
         ...obj,
         ...rec,
     }), {});
@@ -365,22 +1011,24 @@ argRerefOffset, scope) => {
             statements,
             closureMem,
             scope: [name, ...scope,],
+            graph,
         },
         ...otherClosures,
     };
 };
-const extractClosures = (handlers, handlerMem, eventDecs, addressMap) => {
+const extractClosures = (handlers, handlerMem, eventDecs, addressMap, depGraphs) => {
     let closures = {};
     let recs = handlers.filter(h => h.get() instanceof lp_1.NamedAnd);
     for (let i = 0; i < recs.length; i++) {
         const rec = recs[i].get();
         const closureMem = handlerMem[i];
+        const handlerGraph = depGraphs[i];
         for (const statement of rec.get('functions').get('functionbody').get('statements').getAll()) {
             if (statement.has('declarations') &&
                 statement.get('declarations').has('constdeclaration') &&
                 statement.get('declarations').get('constdeclaration').get('assignables').has('functions')) {
                 // It's a closure, first try to extract any inner closures it may have
-                const innerClosures = closuresFromDeclaration(statement.get('declarations'), closureMem, eventDecs, addressMap, 5, []);
+                const innerClosures = closuresFromDeclaration(statement.get('declarations'), closureMem, eventDecs, addressMap, 5, [], handlerGraph);
                 closures = {
                     ...closures,
                     ...innerClosures,
@@ -390,27 +1038,7 @@ const extractClosures = (handlers, handlerMem, eventDecs, addressMap) => {
     }
     return Object.values(closures);
 };
-class Statement {
-    constructor(fn, inArgs, outArg, line, deps) {
-        this.fn = fn;
-        this.inArgs = inArgs;
-        this.outArg = outArg;
-        this.line = line;
-        this.deps = deps;
-    }
-    toString() {
-        let s = '';
-        if (this.outArg !== null) {
-            s += `${this.outArg} = `;
-        }
-        s += `${this.fn}(${this.inArgs.join(', ')}) #${this.line}`;
-        if (this.deps.length > 0) {
-            s += ` <- [${this.deps.map(d => `#${d}`).join(', ')}]`;
-        }
-        return s;
-    }
-}
-const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, closureScope) => {
+const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, closureScope, depGraph) => {
     let vec = [];
     let line = 0;
     let localMemToLine = {};
@@ -427,7 +1055,7 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
         if (globalMem.hasOwnProperty(arg + fnName)) {
             let resultAddress = globalMem[arg + fnName];
             let val = CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(i);
-            let s = new Statement('refv', [`@${val}`, '@0'], `@${resultAddress}`, line, []);
+            let s = new aga_1.Statement('refv', [`@${val}`, '@0'], `@${resultAddress}`, line, [], depGraph.params[arg] || null);
             vec.push(s);
             line += 1;
         }
@@ -440,6 +1068,7 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
             // It's a closure, skip it
             continue;
         }
+        const node = depGraph.byLP.get(statement);
         const hasClosureArgs = isClosure && fnArgs.length > 0;
         let s;
         if (statement.has('declarations')) {
@@ -475,7 +1104,7 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
                 }).map(a => typeof a === 'string' ? a : `@${a}`);
                 while (args.length < 2)
                     args.push('@0');
-                s = new Statement(fnName, args, `@${resultAddress}`, line, []);
+                s = new aga_1.Statement(fnName, args, `@${resultAddress}`, line, [], node);
             }
             else if (assignables.has('value')) {
                 // Only required for `let` statements
@@ -517,7 +1146,7 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
                     default:
                         throw new Error(`Unsupported variable type ${dec.get('fulltypename').t}`);
                 }
-                s = new Statement(fn, [val, '@0'], `@${resultAddress}`, line, []);
+                s = new aga_1.Statement(fn, [val, '@0'], `@${resultAddress}`, line, [], node);
             }
             else if (assignables.has('variable')) {
                 throw new Error('This should have been squashed');
@@ -554,7 +1183,7 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
                 }).map(a => typeof a === 'string' ? a : `@${a}`);
                 while (args.length < 2)
                     args.push('@0');
-                s = new Statement(fnName, args, `@${resultAddress}`, line, []);
+                s = new aga_1.Statement(fnName, args, `@${resultAddress}`, line, [], node);
             }
             else if (assignables.has('value')) {
                 // Only required for `let` statements
@@ -579,7 +1208,7 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
                     fn = 'seti64';
                     val = valStr + 'i64';
                 }
-                s = new Statement(fn, [val, '@0'], `@${resultAddress}`, line, []);
+                s = new aga_1.Statement(fn, [val, '@0'], `@${resultAddress}`, line, [], node);
             }
             else if (assignables.has('variable')) {
                 throw new Error('This should have been squashed');
@@ -608,7 +1237,7 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
             }).map(a => typeof a === 'string' ? a : `@${a}`);
             while (args.length < 3)
                 args.push('@0');
-            s = new Statement(fnName, args, null, line, []);
+            s = new aga_1.Statement(fnName, args, null, line, [], node);
         }
         else if (statement.has('emits')) {
             const emit = statement.get('emits');
@@ -621,7 +1250,7 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
                     globalMem.hasOwnProperty(payloadVar) ?
                         globalMem[payloadVar] :
                         payloadVar;
-            s = new Statement('emit', [evtName, typeof payload === 'string' ? payload : `@${payload}`], null, line, []);
+            s = new aga_1.Statement('emit', [evtName, typeof payload === 'string' ? payload : `@${payload}`], null, line, [], node);
         }
         else if (statement.has('exits')) {
             const exit = statement.get('exits');
@@ -648,28 +1277,14 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
             while (args.length < 2)
                 args.push('@0');
             const ref = exitVarType === 'variable' ? 'refv' : 'reff';
-            s = new Statement(ref, args, `@${CLOSURE_ARG_MEM_START}`, line, []);
+            s = new aga_1.Statement(ref, args, `@${CLOSURE_ARG_MEM_START}`, line, [], node);
         }
         vec.push(s);
         line += 1;
     }
     return vec;
 };
-class Block {
-    constructor(type, name, memSize, statements, deps) {
-        this.type = type;
-        this.name = name;
-        this.memSize = memSize;
-        this.statements = statements;
-        this.deps = deps;
-    }
-    toString() {
-        let b = `${this.type} for ${this.name} with size ${this.memSize}\n`;
-        this.statements.forEach(s => b += `  ${s.toString()}\n`);
-        return b;
-    }
-}
-const loadHandlers = (handlers, handlerMem, globalMem) => {
+const loadHandlers = (handlers, handlerMem, globalMem, depGraphs) => {
     const vec = [];
     const recs = handlers.filter(h => h.get() instanceof lp_1.NamedAnd);
     for (let i = 0; i < recs.length; i++) {
@@ -677,7 +1292,7 @@ const loadHandlers = (handlers, handlerMem, globalMem) => {
         const eventName = handler.get('variable').t.trim();
         const memSize = handlerMem[i].memSize;
         const localMem = handlerMem[i].addressMap;
-        const h = new Block('handler', eventName, memSize, loadStatements(handler.get('functions').get('functionbody').get('statements').getAll(), localMem, globalMem, handler.get('functions'), eventName, false, []), []);
+        const h = new aga_1.Block('handler', eventName, memSize, loadStatements(handler.get('functions').get('functionbody').get('statements').getAll(), localMem, globalMem, handler.get('functions'), eventName, false, [], depGraphs[i]), []);
         vec.push(h);
     }
     return vec;
@@ -689,66 +1304,10 @@ const loadClosures = (closures, globalMem) => {
         const eventName = closure.name;
         const memSize = closure.closureMem.memSize;
         const localMem = closure.closureMem.addressMap;
-        const c = new Block('closure', eventName, memSize, loadStatements(closure.statements, localMem, globalMem, closure.fn, eventName, true, closure.scope), []);
+        const c = new aga_1.Block('closure', eventName, memSize, loadStatements(closure.statements, localMem, globalMem, closure.fn, eventName, true, closure.scope, closure.graph), []);
         vec.push(c);
     }
     return vec;
-};
-// Perform basic dependency stitching within a single block, but also attach unknown dependencies
-// to the block object for later "stitching"
-const innerBlockDeps = (block) => {
-    const depMap = {};
-    let lastEmit = null;
-    const statements = block.statements;
-    for (const s of statements) {
-        for (const a of s.inArgs) {
-            if (depMap.hasOwnProperty(a)) {
-                s.deps.push(depMap[a]);
-            }
-            else if (/^@/.test(a)) {
-                block.deps.push(a);
-            }
-        }
-        if (s.fn === 'emit') {
-            if (lastEmit !== null) {
-                s.deps.push(lastEmit);
-            }
-            lastEmit = s.line;
-        }
-        if (s.outArg !== null) {
-            depMap[s.outArg] = s.line;
-        }
-    }
-    return block;
-};
-// Use the unknown dependencies attached to the block scope and attach them in the outer level
-// TODO: Handle dependencies many nested levels deep, perhaps with an iterative approach?
-const closureDeps = (blocks) => {
-    const blockMap = {};
-    for (const b of blocks) {
-        blockMap[b.name] = b;
-    }
-    const blockNames = Object.keys(blockMap);
-    for (const b of blocks) {
-        let argMap = {};
-        for (const s of b.statements) {
-            if (s.outArg !== null) {
-                argMap[s.outArg] = s.line;
-            }
-            for (const a of s.inArgs) {
-                if (blockNames.includes(a)) {
-                    const blockDeps = blockMap[a].deps;
-                    for (const bd of blockDeps) {
-                        if (argMap.hasOwnProperty(bd)) {
-                            s.deps.push(argMap[bd]);
-                        }
-                    }
-                }
-            }
-            s.deps = [...new Set(s.deps)]; // Dedupe the final dependencies list
-        }
-    }
-    return blocks;
 };
 const ammToAga = (amm) => {
     // Declare the AGA header
@@ -766,7 +1325,15 @@ const ammToAga = (amm) => {
     let eventDecs = loadEventDecs(amm.get('eventDec').getAll());
     // Determine the amount of memory to allocate per handler and map declarations to addresses
     const handlerMem = getHandlersMem(amm.get('handlers').getAll());
-    const closures = extractClosures(amm.get('handlers').getAll(), handlerMem, eventDecs, addressMap);
+    const depGraphs = [];
+    for (let handler of amm.get('handlers').getAll()) {
+        handler = handler.get();
+        if (handler instanceof lp_1.NamedAnd) {
+            depGraphs.push(new depgraph_1.DepGraph(handler));
+        }
+    }
+    // console.log(depGraphs.map(g => JSON.stringify(g.toJSON())).join(','))
+    const closures = extractClosures(amm.get('handlers').getAll(), handlerMem, eventDecs, addressMap, depGraphs);
     // Make sure closures are accessible as addresses for statements to use
     closures.forEach((c) => addressMap[c.name] = c.name);
     // Then output the custom events, which may include closures, if needed
@@ -776,10 +1343,11 @@ const ammToAga = (amm) => {
         outStr += '\n';
     }
     // Load the handlers and load the closures (as handlers) if present
-    const handlerVec = loadHandlers(amm.get('handlers').getAll(), handlerMem, addressMap);
+    const handlerVec = loadHandlers(amm.get('handlers').getAll(), handlerMem, addressMap, depGraphs);
     const closureVec = loadClosures(closures, addressMap);
-    const blockVec = closureDeps([...handlerVec, ...closureVec].map(b => innerBlockDeps(b)))
-        .map(b => b.toString());
+    ([...handlerVec, ...closureVec]).map(b => b.build());
+    // console.log(([...handlerVec, ...closureVec]).map(b => b.build()).join(','))
+    const blockVec = [...handlerVec, ...closureVec].map(b => b.toString());
     outStr += blockVec.join('\n');
     return outStr;
 };
@@ -800,7 +1368,7 @@ exports.fromString = (str) => {
     return ammToAga(ast);
 };
 
-},{"./amm":3,"./lp":20}],5:[function(require,module,exports){
+},{"../amm":3,"../lp":22,"./aga":4,"./depgraph":5}],7:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fromString = exports.fromFile = void 0;
@@ -927,7 +1495,7 @@ exports.fromString = (str) => {
     return ammToJsText(ast);
 };
 
-},{"./amm":3,"./lp":20,"alan-js-runtime":"alan-js-runtime"}],6:[function(require,module,exports){
+},{"./amm":3,"./lp":22,"alan-js-runtime":"alan-js-runtime"}],8:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ln = exports.statement = exports.functions = exports.assignables = exports.fulltypename = void 0;
@@ -1600,7 +2168,7 @@ exports.ln = lp_1.NamedAnd.build({
     body,
 });
 
-},{"./lp":20}],7:[function(require,module,exports){
+},{"./lp":22}],9:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.assignablesAstFromString = exports.fulltypenameAstFromString = exports.statementAstFromString = exports.functionAstFromString = exports.resolveImports = exports.resolveDependency = exports.fromFile = exports.fromString = void 0;
@@ -1850,7 +2418,7 @@ exports.assignablesAstFromString = (s) => {
     return ast;
 };
 
-},{"../ln":6,"../lp":20,"fs":24,"path":35}],8:[function(require,module,exports){
+},{"../ln":8,"../lp":22,"fs":26,"path":37}],10:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class Constant {
@@ -1868,7 +2436,7 @@ class Constant {
 }
 exports.default = Constant;
 
-},{}],9:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Type_1 = require("./Type");
@@ -1901,7 +2469,7 @@ let Event = /** @class */ (() => {
 })();
 exports.default = Event;
 
-},{"./Type":16}],10:[function(require,module,exports){
+},{"./Type":18}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const uuid_1 = require("uuid");
@@ -3158,7 +3726,7 @@ ${assignablesAst.t}`;
 }
 exports.default = Microstatement;
 
-},{"./Ast":7,"./Constant":8,"./Event":9,"./Operator":12,"./Scope":13,"./Statement":14,"./StatementType":15,"./Type":16,"./UserFunction":17,"./opcodes":19,"uuid":68}],11:[function(require,module,exports){
+},{"./Ast":9,"./Constant":10,"./Event":11,"./Operator":14,"./Scope":15,"./Statement":16,"./StatementType":17,"./Type":18,"./UserFunction":19,"./opcodes":21,"uuid":70}],13:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Ast = require("./Ast");
@@ -3540,7 +4108,7 @@ ${exportAst.get('functions').t}
 }
 exports.default = Module;
 
-},{"./Ast":7,"./Constant":8,"./Event":9,"./Operator":12,"./Scope":13,"./Type":16,"./UserFunction":17}],12:[function(require,module,exports){
+},{"./Ast":9,"./Constant":10,"./Event":11,"./Operator":14,"./Scope":15,"./Type":18,"./UserFunction":19}],14:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const Ast = require("./Ast");
@@ -3628,7 +4196,7 @@ class Operator {
 }
 exports.default = Operator;
 
-},{"./Ast":7,"./Type":16}],13:[function(require,module,exports){
+},{"./Ast":9,"./Type":18}],15:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class Scope {
@@ -3694,7 +4262,7 @@ class Scope {
 }
 exports.default = Scope;
 
-},{}],14:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 // Only implements the pieces necessary for the first stage compiler
@@ -3806,7 +4374,7 @@ class Statement {
 }
 exports.default = Statement;
 
-},{}],15:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var StatementType;
@@ -3825,7 +4393,7 @@ var StatementType;
 })(StatementType || (StatementType = {}));
 exports.default = StatementType;
 
-},{}],16:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Type = exports.Interface = exports.OperatorType = exports.FunctionType = void 0;
@@ -4432,7 +5000,7 @@ let Type = /** @class */ (() => {
 exports.Type = Type;
 exports.default = Type;
 
-},{"./Ast":7,"./Operator":12,"./Scope":13}],17:[function(require,module,exports){
+},{"./Ast":9,"./Operator":14,"./Scope":15}],19:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const uuid_1 = require("uuid");
@@ -5212,7 +5780,7 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
 }
 exports.default = UserFunction;
 
-},{"./Ast":7,"./Microstatement":10,"./Scope":13,"./Statement":14,"./StatementType":15,"./Type":16,"uuid":68}],18:[function(require,module,exports){
+},{"./Ast":9,"./Microstatement":12,"./Scope":15,"./Statement":16,"./StatementType":17,"./Type":18,"uuid":70}],20:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fromString = exports.fromFile = void 0;
@@ -5464,7 +6032,7 @@ const ammFromModuleAsts = (moduleAsts) => {
 exports.fromFile = (filename) => ammFromModuleAsts(moduleAstsFromFile(filename));
 exports.fromString = (str) => ammFromModuleAsts(moduleAstsFromString(str));
 
-},{"./Ast":7,"./Event":9,"./Microstatement":10,"./Module":11,"./StatementType":15,"./Std":1,"./UserFunction":17,"fs":24,"uuid":68}],19:[function(require,module,exports){
+},{"./Ast":9,"./Event":11,"./Microstatement":12,"./Module":13,"./StatementType":17,"./Std":1,"./UserFunction":19,"fs":26,"uuid":70}],21:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const uuid_1 = require("uuid");
@@ -6212,7 +6780,7 @@ addopcodes({
 });
 exports.default = opcodeModule;
 
-},{"./Ast":7,"./Event":9,"./Microstatement":10,"./Module":11,"./Scope":13,"./StatementType":15,"./Type":16,"./UserFunction":17,"uuid":68}],20:[function(require,module,exports){
+},{"./Ast":9,"./Event":11,"./Microstatement":12,"./Module":13,"./Scope":15,"./StatementType":17,"./Type":18,"./UserFunction":19,"uuid":70}],22:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RangeSet = exports.CharSet = exports.NamedOr = exports.NamedAnd = exports.LeftSubset = exports.ExclusiveOr = exports.Or = exports.And = exports.OneOrMore = exports.ZeroOrMore = exports.ZeroOrOne = exports.Not = exports.Token = exports.NulLP = exports.lpError = exports.LPError = exports.LP = void 0;
@@ -6952,7 +7520,7 @@ exports.RangeSet = (toRepeat, min, max) => {
     return Or.build(sets);
 };
 
-},{"fs":24}],21:[function(require,module,exports){
+},{"fs":26}],23:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const buildPipeline = (converters) => {
@@ -7081,7 +7649,7 @@ const buildPipeline = (converters) => {
 };
 exports.default = buildPipeline;
 
-},{}],22:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -7235,11 +7803,11 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],23:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 
-},{}],24:[function(require,module,exports){
-arguments[4][23][0].apply(exports,arguments)
-},{"dup":23}],25:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
+arguments[4][25][0].apply(exports,arguments)
+},{"dup":25}],27:[function(require,module,exports){
 (function (global){
 /*! https://mths.be/punycode v1.4.1 by @mathias */
 ;(function(root) {
@@ -7776,7 +8344,7 @@ arguments[4][23][0].apply(exports,arguments)
 }(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],26:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 (function (Buffer){
 /*!
  * The buffer module from node.js, for the browser.
@@ -9557,7 +10125,7 @@ function numberIsNaN (obj) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"base64-js":22,"buffer":26,"ieee754":33}],27:[function(require,module,exports){
+},{"base64-js":24,"buffer":28,"ieee754":35}],29:[function(require,module,exports){
 module.exports = {
   "100": "Continue",
   "101": "Switching Protocols",
@@ -9623,7 +10191,7 @@ module.exports = {
   "511": "Network Authentication Required"
 }
 
-},{}],28:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 (function(self) {
 
 var irrelevant = (function (exports) {
@@ -10155,10 +10723,10 @@ var irrelevant = (function (exports) {
 }({}));
 })(typeof self !== 'undefined' ? self : this);
 
-},{}],29:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 exports.UINT32 = require('./lib/uint32')
 exports.UINT64 = require('./lib/uint64')
-},{"./lib/uint32":30,"./lib/uint64":31}],30:[function(require,module,exports){
+},{"./lib/uint32":32,"./lib/uint64":33}],32:[function(require,module,exports){
 /**
 	C-like unsigned 32 bits integers in Javascript
 	Copyright (C) 2013, Pierre Curto
@@ -10611,7 +11179,7 @@ exports.UINT64 = require('./lib/uint64')
 
 })(this)
 
-},{}],31:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 /**
 	C-like unsigned 64 bits integers in Javascript
 	Copyright (C) 2013, Pierre Curto
@@ -11261,7 +11829,7 @@ exports.UINT64 = require('./lib/uint64')
 
 })(this)
 
-},{}],32:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -11786,7 +12354,7 @@ function functionBindPolyfill(context) {
   };
 }
 
-},{}],33:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = (nBytes * 8) - mLen - 1
@@ -11872,7 +12440,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],34:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -11901,7 +12469,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],35:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 (function (process){
 // .dirname, .basename, and .extname methods are extracted from Node.js v8.11.1,
 // backported and transplited with Babel, with backwards-compat fixes
@@ -12207,7 +12775,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":36}],36:[function(require,module,exports){
+},{"_process":38}],38:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -12393,7 +12961,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],37:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -12479,7 +13047,7 @@ var isArray = Array.isArray || function (xs) {
   return Object.prototype.toString.call(xs) === '[object Array]';
 };
 
-},{}],38:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -12566,13 +13134,13 @@ var objectKeys = Object.keys || function (obj) {
   return res;
 };
 
-},{}],39:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 'use strict';
 
 exports.decode = exports.parse = require('./decode');
 exports.encode = exports.stringify = require('./encode');
 
-},{"./decode":37,"./encode":38}],40:[function(require,module,exports){
+},{"./decode":39,"./encode":40}],42:[function(require,module,exports){
 /*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> */
 /* eslint-disable node/no-deprecated-api */
 var buffer = require('buffer')
@@ -12639,7 +13207,7 @@ SafeBuffer.allocUnsafeSlow = function (size) {
   return buffer.SlowBuffer(size)
 }
 
-},{"buffer":26}],41:[function(require,module,exports){
+},{"buffer":28}],43:[function(require,module,exports){
 (function (global){
 var ClientRequest = require('./lib/request')
 var response = require('./lib/response')
@@ -12727,7 +13295,7 @@ http.METHODS = [
 	'UNSUBSCRIBE'
 ]
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./lib/request":43,"./lib/response":44,"builtin-status-codes":27,"url":61,"xtend":77}],42:[function(require,module,exports){
+},{"./lib/request":45,"./lib/response":46,"builtin-status-codes":29,"url":63,"xtend":79}],44:[function(require,module,exports){
 (function (global){
 exports.fetch = isFunction(global.fetch) && isFunction(global.ReadableStream)
 
@@ -12790,7 +13358,7 @@ function isFunction (value) {
 xhr = null // Help gc
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],43:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 (function (process,global,Buffer){
 var capability = require('./capability')
 var inherits = require('inherits')
@@ -13108,7 +13676,7 @@ var unsafeHeaders = [
 ]
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./capability":42,"./response":44,"_process":36,"buffer":26,"inherits":34,"readable-stream":59}],44:[function(require,module,exports){
+},{"./capability":44,"./response":46,"_process":38,"buffer":28,"inherits":36,"readable-stream":61}],46:[function(require,module,exports){
 (function (process,global,Buffer){
 var capability = require('./capability')
 var inherits = require('inherits')
@@ -13319,7 +13887,7 @@ IncomingMessage.prototype._onXHRProgress = function () {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"./capability":42,"_process":36,"buffer":26,"inherits":34,"readable-stream":59}],45:[function(require,module,exports){
+},{"./capability":44,"_process":38,"buffer":28,"inherits":36,"readable-stream":61}],47:[function(require,module,exports){
 'use strict';
 
 function _inheritsLoose(subClass, superClass) { subClass.prototype = Object.create(superClass.prototype); subClass.prototype.constructor = subClass; subClass.__proto__ = superClass; }
@@ -13448,7 +14016,7 @@ createErrorType('ERR_UNKNOWN_ENCODING', function (arg) {
 createErrorType('ERR_STREAM_UNSHIFT_AFTER_END_EVENT', 'stream.unshift() after end event');
 module.exports.codes = codes;
 
-},{}],46:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -13590,7 +14158,7 @@ Object.defineProperty(Duplex.prototype, 'destroyed', {
   }
 });
 }).call(this,require('_process'))
-},{"./_stream_readable":48,"./_stream_writable":50,"_process":36,"inherits":34}],47:[function(require,module,exports){
+},{"./_stream_readable":50,"./_stream_writable":52,"_process":38,"inherits":36}],49:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -13630,7 +14198,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":49,"inherits":34}],48:[function(require,module,exports){
+},{"./_stream_transform":51,"inherits":36}],50:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -14757,7 +15325,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../errors":45,"./_stream_duplex":46,"./internal/streams/async_iterator":51,"./internal/streams/buffer_list":52,"./internal/streams/destroy":53,"./internal/streams/from":55,"./internal/streams/state":57,"./internal/streams/stream":58,"_process":36,"buffer":26,"events":32,"inherits":34,"string_decoder/":60,"util":23}],49:[function(require,module,exports){
+},{"../errors":47,"./_stream_duplex":48,"./internal/streams/async_iterator":53,"./internal/streams/buffer_list":54,"./internal/streams/destroy":55,"./internal/streams/from":57,"./internal/streams/state":59,"./internal/streams/stream":60,"_process":38,"buffer":28,"events":34,"inherits":36,"string_decoder/":62,"util":25}],51:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -14959,7 +15527,7 @@ function done(stream, er, data) {
   if (stream._transformState.transforming) throw new ERR_TRANSFORM_ALREADY_TRANSFORMING();
   return stream.push(null);
 }
-},{"../errors":45,"./_stream_duplex":46,"inherits":34}],50:[function(require,module,exports){
+},{"../errors":47,"./_stream_duplex":48,"inherits":36}],52:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -15659,7 +16227,7 @@ Writable.prototype._destroy = function (err, cb) {
   cb(err);
 };
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../errors":45,"./_stream_duplex":46,"./internal/streams/destroy":53,"./internal/streams/state":57,"./internal/streams/stream":58,"_process":36,"buffer":26,"inherits":34,"util-deprecate":63}],51:[function(require,module,exports){
+},{"../errors":47,"./_stream_duplex":48,"./internal/streams/destroy":55,"./internal/streams/state":59,"./internal/streams/stream":60,"_process":38,"buffer":28,"inherits":36,"util-deprecate":65}],53:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -15869,7 +16437,7 @@ var createReadableStreamAsyncIterator = function createReadableStreamAsyncIterat
 
 module.exports = createReadableStreamAsyncIterator;
 }).call(this,require('_process'))
-},{"./end-of-stream":54,"_process":36}],52:[function(require,module,exports){
+},{"./end-of-stream":56,"_process":38}],54:[function(require,module,exports){
 'use strict';
 
 function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
@@ -16080,7 +16648,7 @@ function () {
 
   return BufferList;
 }();
-},{"buffer":26,"util":23}],53:[function(require,module,exports){
+},{"buffer":28,"util":25}],55:[function(require,module,exports){
 (function (process){
 'use strict'; // undocumented cb() API, needed for core, not for public API
 
@@ -16188,7 +16756,7 @@ module.exports = {
   errorOrDestroy: errorOrDestroy
 };
 }).call(this,require('_process'))
-},{"_process":36}],54:[function(require,module,exports){
+},{"_process":38}],56:[function(require,module,exports){
 // Ported from https://github.com/mafintosh/end-of-stream with
 // permission from the author, Mathias Buus (@mafintosh).
 'use strict';
@@ -16293,12 +16861,12 @@ function eos(stream, opts, callback) {
 }
 
 module.exports = eos;
-},{"../../../errors":45}],55:[function(require,module,exports){
+},{"../../../errors":47}],57:[function(require,module,exports){
 module.exports = function () {
   throw new Error('Readable.from is not available in the browser')
 };
 
-},{}],56:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 // Ported from https://github.com/mafintosh/pump with
 // permission from the author, Mathias Buus (@mafintosh).
 'use strict';
@@ -16396,7 +16964,7 @@ function pipeline() {
 }
 
 module.exports = pipeline;
-},{"../../../errors":45,"./end-of-stream":54}],57:[function(require,module,exports){
+},{"../../../errors":47,"./end-of-stream":56}],59:[function(require,module,exports){
 'use strict';
 
 var ERR_INVALID_OPT_VALUE = require('../../../errors').codes.ERR_INVALID_OPT_VALUE;
@@ -16424,10 +16992,10 @@ function getHighWaterMark(state, options, duplexKey, isDuplex) {
 module.exports = {
   getHighWaterMark: getHighWaterMark
 };
-},{"../../../errors":45}],58:[function(require,module,exports){
+},{"../../../errors":47}],60:[function(require,module,exports){
 module.exports = require('events').EventEmitter;
 
-},{"events":32}],59:[function(require,module,exports){
+},{"events":34}],61:[function(require,module,exports){
 exports = module.exports = require('./lib/_stream_readable.js');
 exports.Stream = exports;
 exports.Readable = exports;
@@ -16438,7 +17006,7 @@ exports.PassThrough = require('./lib/_stream_passthrough.js');
 exports.finished = require('./lib/internal/streams/end-of-stream.js');
 exports.pipeline = require('./lib/internal/streams/pipeline.js');
 
-},{"./lib/_stream_duplex.js":46,"./lib/_stream_passthrough.js":47,"./lib/_stream_readable.js":48,"./lib/_stream_transform.js":49,"./lib/_stream_writable.js":50,"./lib/internal/streams/end-of-stream.js":54,"./lib/internal/streams/pipeline.js":56}],60:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":48,"./lib/_stream_passthrough.js":49,"./lib/_stream_readable.js":50,"./lib/_stream_transform.js":51,"./lib/_stream_writable.js":52,"./lib/internal/streams/end-of-stream.js":56,"./lib/internal/streams/pipeline.js":58}],62:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -16735,7 +17303,7 @@ function simpleWrite(buf) {
 function simpleEnd(buf) {
   return buf && buf.length ? this.write(buf) : '';
 }
-},{"safe-buffer":40}],61:[function(require,module,exports){
+},{"safe-buffer":42}],63:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -17469,7 +18037,7 @@ Url.prototype.parseHost = function() {
   if (host) this.hostname = host;
 };
 
-},{"./util":62,"punycode":25,"querystring":39}],62:[function(require,module,exports){
+},{"./util":64,"punycode":27,"querystring":41}],64:[function(require,module,exports){
 'use strict';
 
 module.exports = {
@@ -17487,7 +18055,7 @@ module.exports = {
   }
 };
 
-},{}],63:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 (function (global){
 
 /**
@@ -17558,7 +18126,7 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],64:[function(require,module,exports){
+},{}],66:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -17583,14 +18151,14 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],65:[function(require,module,exports){
+},{}],67:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],66:[function(require,module,exports){
+},{}],68:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -18180,7 +18748,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":65,"_process":36,"inherits":64}],67:[function(require,module,exports){
+},{"./support/isBuffer":67,"_process":38,"inherits":66}],69:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -18208,7 +18776,7 @@ function bytesToUuid(buf, offset) {
 
 var _default = bytesToUuid;
 exports.default = _default;
-},{}],68:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -18248,7 +18816,7 @@ var _v3 = _interopRequireDefault(require("./v4.js"));
 var _v4 = _interopRequireDefault(require("./v5.js"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-},{"./v1.js":72,"./v3.js":73,"./v4.js":75,"./v5.js":76}],69:[function(require,module,exports){
+},{"./v1.js":74,"./v3.js":75,"./v4.js":77,"./v5.js":78}],71:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -18472,7 +19040,7 @@ function md5ii(a, b, c, d, x, s, t) {
 
 var _default = md5;
 exports.default = _default;
-},{}],70:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -18494,7 +19062,7 @@ function rng() {
 
   return getRandomValues(rnds8);
 }
-},{}],71:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -18596,7 +19164,7 @@ function sha1(bytes) {
 
 var _default = sha1;
 exports.default = _default;
-},{}],72:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -18704,7 +19272,7 @@ function v1(options, buf, offset) {
 
 var _default = v1;
 exports.default = _default;
-},{"./bytesToUuid.js":67,"./rng.js":70}],73:[function(require,module,exports){
+},{"./bytesToUuid.js":69,"./rng.js":72}],75:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -18721,7 +19289,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const v3 = (0, _v.default)('v3', 0x30, _md.default);
 var _default = v3;
 exports.default = _default;
-},{"./md5.js":69,"./v35.js":74}],74:[function(require,module,exports){
+},{"./md5.js":71,"./v35.js":76}],76:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -18798,7 +19366,7 @@ function _default(name, version, hashfunc) {
   generateUUID.URL = URL;
   return generateUUID;
 }
-},{"./bytesToUuid.js":67}],75:[function(require,module,exports){
+},{"./bytesToUuid.js":69}],77:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -18841,7 +19409,7 @@ function v4(options, buf, offset) {
 
 var _default = v4;
 exports.default = _default;
-},{"./bytesToUuid.js":67,"./rng.js":70}],76:[function(require,module,exports){
+},{"./bytesToUuid.js":69,"./rng.js":72}],78:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
@@ -18858,7 +19426,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const v5 = (0, _v.default)('v5', 0x50, _sha.default);
 var _default = v5;
 exports.default = _default;
-},{"./sha1.js":71,"./v35.js":74}],77:[function(require,module,exports){
+},{"./sha1.js":73,"./v35.js":76}],79:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -18879,13 +19447,13 @@ function extend() {
     return target
 }
 
-},{}],78:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 module.exports = {
 	h32: require("./xxhash")
 ,	h64: require("./xxhash64")
 }
 
-},{"./xxhash":79,"./xxhash64":80}],79:[function(require,module,exports){
+},{"./xxhash":81,"./xxhash64":82}],81:[function(require,module,exports){
 (function (Buffer){
 /**
 xxHash implementation in pure Javascript
@@ -19278,7 +19846,7 @@ XXH.prototype.digest = function () {
 module.exports = XXH
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":26,"cuint":29}],80:[function(require,module,exports){
+},{"buffer":28,"cuint":31}],82:[function(require,module,exports){
 (function (Buffer){
 /**
 xxHash64 implementation in pure Javascript
@@ -19726,7 +20294,7 @@ XXH64.prototype.digest = function () {
 module.exports = XXH64
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":26,"cuint":29}],"alan-compiler":[function(require,module,exports){
+},{"buffer":28,"cuint":31}],"alan-compiler":[function(require,module,exports){
 const { default: buildPipeline, } = require('./dist/pipeline')
 const ammtojs = require('./dist/ammtojs')
 const lntoamm = require('./dist/lntoamm')
@@ -19751,7 +20319,7 @@ module.exports = (inFormat, outFormat, text) => {
   }
 }
 
-},{"./dist/ammtoaga":4,"./dist/ammtojs":5,"./dist/lntoamm":18,"./dist/pipeline":21}],"alan-js-runtime":[function(require,module,exports){
+},{"./dist/ammtoaga":6,"./dist/ammtojs":7,"./dist/lntoamm":20,"./dist/pipeline":23}],"alan-js-runtime":[function(require,module,exports){
 (function (process){
 require('cross-fetch/polyfill')
 const EventEmitter = require('events')
@@ -20764,7 +21332,7 @@ module.exports = {
 module.exports.asyncopcodes = Object.keys(module.exports).filter(k => module.exports[k].constructor.name === 'AsyncFunction')
 
 }).call(this,require('_process'))
-},{"_process":36,"child_process":24,"cross-fetch/polyfill":28,"events":32,"http":41,"util":66,"xxhashjs":78}],"alan-runtime":[function(require,module,exports){
+},{"_process":38,"child_process":26,"cross-fetch/polyfill":30,"events":34,"http":43,"util":68,"xxhashjs":80}],"alan-runtime":[function(require,module,exports){
 const r = require('alan-js-runtime')
 
 // Redefined stdoutp and exitop to work in the browser

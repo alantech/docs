@@ -293,6 +293,9 @@ class DepGraph {
             this.build(stmts);
         }
     }
+    get isNop() {
+        return (this.byOrder.length === 0) || this.byOrder.every(n => n.closure != null && n.closure.isNop);
+    }
     buildParams(params) {
         this.params = {};
         while (params.length > 0) {
@@ -848,6 +851,8 @@ const aga_1 = require("./aga");
 // but there is no need for it and it would make it harder to work with.
 const ceil8 = (n) => Math.ceil(n / 8) * 8;
 const CLOSURE_ARG_MEM_START = BigInt(Math.pow(-2, 63));
+// special closure that does nothing
+const NOP_CLOSURE = '-9223372036854775808';
 const loadGlobalMem = (globalMemAst, addressMap) => {
     const globalMem = {};
     let currentOffset = -1;
@@ -998,22 +1003,25 @@ argRerefOffset, scope, depGraph) => {
     const otherClosures = allStatements.filter(statement => statement.has('declarations') &&
         statement.get('declarations').has('constdeclaration') &&
         statement.get('declarations').get('constdeclaration').get('assignables').has('functions')).map(s => closuresFromDeclaration(s.get('declarations'), closureMem, eventDecs, addressMap, argRerefOffset, [name, ...scope,], // Newest scope gets highest priority
-    graph)).reduce((obj, rec) => ({
+    graph)).filter((clos) => clos !== null).reduce((obj, rec) => ({
         ...obj,
         ...rec,
     }), {});
     eventDecs[name] = 0;
-    return {
-        [name]: {
+    if (!graph.isNop) {
+        otherClosures[name] = {
             name,
             fn,
             statements,
             closureMem,
             scope: [name, ...scope,],
             graph,
-        },
-        ...otherClosures,
-    };
+        };
+    }
+    else {
+        addressMap[name] = NOP_CLOSURE;
+    }
+    return otherClosures;
 };
 const extractClosures = (handlers, handlerMem, eventDecs, addressMap, depGraphs) => {
     let closures = {};
@@ -1334,7 +1342,11 @@ const ammToAga = (amm) => {
     // console.log(depGraphs.map(g => JSON.stringify(g.toJSON())).join(','))
     const closures = extractClosures(amm.get('handlers').getAll(), handlerMem, eventDecs, addressMap, depGraphs);
     // Make sure closures are accessible as addresses for statements to use
-    closures.forEach((c) => addressMap[c.name] = c.name);
+    closures.forEach((c) => {
+        if (addressMap[c.name] !== NOP_CLOSURE) {
+            addressMap[c.name] = c.name;
+        }
+    });
     // Then output the custom events, which may include closures, if needed
     if (Object.keys(eventDecs).length > 0) {
         outStr += 'customEvents\n';

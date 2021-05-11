@@ -900,51 +900,44 @@ const CLOSURE_ARG_MEM_START = BigInt(Math.pow(-2, 63));
 // special closure that does nothing
 const NOP_CLOSURE = '-9223372036854775808';
 const loadGlobalMem = (globalMemAst, addressMap) => {
+    const suffixes = {
+        int64: 'i64',
+        int32: 'i32',
+        int16: 'i16',
+        int8: 'i8',
+        float64: 'f64',
+        float32: 'f32',
+    };
     const globalMem = {};
     let currentOffset = -1;
     for (const globalConst of globalMemAst) {
         const rec = globalConst.get();
         if (!(rec instanceof lp_1.NamedAnd))
             continue;
-        let val;
-        switch (rec.get('fulltypename').t.trim()) {
-            case "int64":
-                val = rec.get('assignables').t.trim() + 'i64';
-                globalMem[`@${currentOffset}`] = val;
-                addressMap[rec.get('decname').t] = currentOffset;
-                currentOffset -= 8;
-                break;
-            case "float64":
-                val = rec.get('assignables').t.trim() + 'f64';
-                globalMem[`@${currentOffset}`] = val;
-                addressMap[rec.get('decname').t] = currentOffset;
-                currentOffset -= 8;
-                break;
-            case "string":
-                let str;
-                try {
-                    // Will fail on strings with escape chars
-                    str = JSON.parse(rec.get('assignables').t.trim());
-                }
-                catch (e) {
-                    // Hackery to get these strings to work
-                    str = JSON.stringify(rec.get('assignables').t.trim().replace(/^["']/, '').replace(/["']$/, ''));
-                }
-                let len = ceil8(str.length) + 8;
-                val = rec.get('assignables').t.trim();
-                globalMem[`@${currentOffset}`] = val;
-                addressMap[rec.get('decname').t] = currentOffset;
-                currentOffset -= len;
-                break;
-            case "bool":
-                val = rec.get('assignables').t.trim();
-                globalMem[`@${currentOffset}`] = val;
-                addressMap[rec.get('decname').t] = currentOffset;
-                currentOffset -= 8;
-                break;
-            default:
-                throw new Error(rec.get('fulltypename').t + ' not yet implemented');
+        let offset = 8;
+        let val = rec.get('assignables').t.trim();
+        const typename = rec.get('fulltypename').t.trim();
+        if (typename === 'string') {
+            let str;
+            try {
+                // Will fail on strings with escape chars
+                str = JSON.parse(val);
+            }
+            catch (e) {
+                // Hackery to get these strings to work
+                str = JSON.stringify(val.replace(/^["']/, '').replace(/["']$/, ''));
+            }
+            offset = ceil8(str.length) + 8;
         }
+        else if (suffixes.hasOwnProperty(typename)) {
+            val += suffixes[typename];
+        }
+        else if (typename !== 'bool') {
+            throw new Error(rec.get('fulltypename').t + ' not yet implemented');
+        }
+        globalMem[`@${currentOffset}`] = val;
+        addressMap[rec.get('decname').t] = currentOffset;
+        currentOffset -= offset;
     }
     return globalMem;
 };
@@ -1445,16 +1438,16 @@ const functionbodyToJsText = (fnbody, indent) => {
         if (statement.has('declarations')) {
             if (statement.get('declarations').has('constdeclaration')) {
                 const dec = statement.get('declarations').get('constdeclaration');
-                outText += `const ${dec.get('decname').t} = ${assignableToJsText(dec.get('assignables'), indent)}\n`;
+                outText += `const ${dec.get('decname').t} = ${assignableToJsText(dec.get('assignables'), dec.get('fulltypename'), indent)}\n`;
             }
             else if (statement.get('declarations').has('letdeclaration')) {
                 const dec = statement.get('declarations').get('letdeclaration');
-                outText += `let ${dec.get('decname').t} = ${assignableToJsText(dec.get('assignables'), indent)}\n`;
+                outText += `let ${dec.get('decname').t} = ${assignableToJsText(dec.get('assignables'), dec.get('fulltypename'), indent)}\n`;
             }
         }
         else if (statement.has('assignments')) {
             const assign = statement.get('assignments');
-            outText += `${assign.get('decname').t} = ${assignableToJsText(assign.get('assignables'), indent)}\n`;
+            outText += `${assign.get('decname').t} = ${assignableToJsText(assign.get('assignables'), assign.get('fulltypename'), indent)}\n`;
         }
         else if (statement.has('calls')) {
             outText += `${callToJsText(statement.get('calls'))}\n`;
@@ -1471,7 +1464,7 @@ const functionbodyToJsText = (fnbody, indent) => {
     }
     return outText;
 };
-const assignableToJsText = (assignable, indent) => {
+const assignableToJsText = (assignable, fulltypename, indent) => {
     let outText = "";
     if (assignable.has('functions')) {
         const args = assignable.get('functions').get('args');
@@ -1498,7 +1491,9 @@ const assignableToJsText = (assignable, indent) => {
             const t = assignable.get('value').t;
             if (!/"/.test(t) && t !== 'true' && t !== 'false' && !/\./.test(t)) {
                 parseInt(assignable.get('value').t);
-                outText += 'n';
+                if (fulltypename.t.trim() === 'int64') {
+                    outText += 'n';
+                }
             }
         }
         catch (e) { }
@@ -1514,7 +1509,7 @@ const ammToJsText = (amm) => {
         if (!(rec instanceof lp_1.NamedAnd))
             continue;
         outFile +=
-            `const ${rec.get('decname').t} = ${assignableToJsText(rec.get('assignables'), '')}\n`;
+            `const ${rec.get('decname').t} = ${assignableToJsText(rec.get('assignables'), rec.get('fulltypename'), '')}\n`;
     }
     // We can also skip the event declarations because they are lazily bound by EventEmitter
     // Now we convert the handlers to Javascript. This is the vast majority of the work

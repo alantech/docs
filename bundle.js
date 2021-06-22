@@ -796,6 +796,8 @@ exports.opcodeParamMutabilities = {
     trim: [false],
     condfn: [false, null],
     pusharr: [true, false, false],
+    pushf: [true, false],
+    pushv: [true, false],
     poparr: [true],
     delindx: [true, false],
     each: [false, null],
@@ -21233,6 +21235,8 @@ module.exports = {
   // Array opcodes TODO more to come
   newarr:   size => new Array(), // Ignored because JS push doesn't behave as desired
   pusharr: (arr, val, size) => arr.push(val),
+  pushf: (arr, val) => arr.push(val),
+  pushv: (arr, val) => arr.push(val),
   poparr:   arr => arr.length > 0 ? [ true, arr.pop(), ] : [ false, 'cannot pop empty array', ],
   lenarr:   arr => BigInt(arr.length),
   indarrf: (arr, val) => {

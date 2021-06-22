@@ -94,8 +94,12 @@ const fn = lp_1.Token.build('fn');
 const quote = lp_1.Token.build('"');
 const escapeQuote = lp_1.Token.build('\\"');
 const notQuote = lp_1.Not.build('"');
-const str = lp_1.And.build([quote, lp_1.ZeroOrMore.build(lp_1.Or.build([escapeQuote, notQuote])), quote]);
-const value = lp_1.NamedOr.build({ str, bool, real, integer, });
+const str = lp_1.And.build([
+    quote,
+    lp_1.ZeroOrMore.build(lp_1.Or.build([escapeQuote, notQuote])),
+    quote,
+]);
+const value = lp_1.NamedOr.build({ str, bool, real, integer });
 const decname = variable;
 const typename = variable;
 const typegenerics = lp_1.NamedAnd.build({
@@ -117,10 +121,24 @@ typegenerics.and.generics = lp_1.NamedAnd.build({
         fulltypename,
     })),
 });
-const emits = lp_1.NamedAnd.build({ emit, blank, variable, value: lp_1.ZeroOrOne.build(lp_1.NamedAnd.build({
-        blank, variable
-    })) });
-const events = lp_1.NamedAnd.build({ event, blank, variable, a: optblank, colon, b: optblank, fulltypename });
+const emits = lp_1.NamedAnd.build({
+    emit,
+    blank,
+    variable,
+    value: lp_1.ZeroOrOne.build(lp_1.NamedAnd.build({
+        blank,
+        variable,
+    })),
+});
+const events = lp_1.NamedAnd.build({
+    event,
+    blank,
+    variable,
+    a: optblank,
+    colon,
+    b: optblank,
+    fulltypename,
+});
 const exits = lp_1.NamedAnd.build({ exit, blank, variable, a: optblank });
 const calllist = lp_1.ZeroOrMore.build(lp_1.NamedAnd.build({ variable, optcomma, optblank }));
 const calls = lp_1.NamedAnd.build({
@@ -130,7 +148,7 @@ const calls = lp_1.NamedAnd.build({
     b: optblank,
     calllist,
     c: optblank,
-    closeParen
+    closeParen,
 });
 const assignables = lp_1.NamedOr.build({
     functions: new lp_1.NulLP(),
@@ -165,7 +183,13 @@ const letdeclaration = lp_1.NamedAnd.build({
     assignables,
 });
 const declarations = lp_1.NamedOr.build({ constdeclaration, letdeclaration });
-const assignments = lp_1.NamedAnd.build({ decname, a: blank, eq, b: blank, assignables, });
+const assignments = lp_1.NamedAnd.build({
+    decname,
+    a: blank,
+    eq,
+    b: blank,
+    assignables,
+});
 const statements = lp_1.OneOrMore.build(lp_1.NamedOr.build({
     declarations,
     assignments,
@@ -179,14 +203,20 @@ const functionbody = lp_1.NamedAnd.build({
     statements,
     closeCurly,
 });
-const arg = lp_1.NamedAnd.build({ variable, a: optblank, colon, b: optblank, fulltypename, });
+const arg = lp_1.NamedAnd.build({
+    variable,
+    a: optblank,
+    colon,
+    b: optblank,
+    fulltypename,
+});
 const functions = lp_1.NamedAnd.build({
     fn,
     blank,
     openParen,
     args: lp_1.And.build([
-        lp_1.ZeroOrMore.build(lp_1.NamedAnd.build({ arg, sep, })),
-        lp_1.ZeroOrOne.build(lp_1.NamedAnd.build({ arg, optblank, }))
+        lp_1.ZeroOrMore.build(lp_1.NamedAnd.build({ arg, sep })),
+        lp_1.ZeroOrOne.build(lp_1.NamedAnd.build({ arg, optblank })),
     ]),
     closeParen,
     a: optblank,
@@ -197,7 +227,7 @@ const functions = lp_1.NamedAnd.build({
     functionbody,
 });
 assignables.or.functions = functions;
-const handler = lp_1.NamedAnd.build({ on, a: blank, variable, b: blank, functions, });
+const handler = lp_1.NamedAnd.build({ on, a: blank, variable, b: blank, functions });
 const amm = lp_1.NamedAnd.build({
     a: optblank,
     globalMem: lp_1.ZeroOrMore.build(lp_1.Or.build([constdeclaration, whitespace])),
@@ -222,12 +252,13 @@ class Block {
         const dependencies = [];
         const idxByNode = new Map();
         for (let ii = 0; ii < this.statements.length; ii++) {
-            let stmt = this.statements[ii];
+            const stmt = this.statements[ii];
             if (stmt.depNode === null)
                 continue;
             idxByNode.set(stmt.depNode, ii);
-            for (let upstream of stmt.depNode.upstream) {
-                if (idxByNode.get(upstream) !== null && idxByNode.get(upstream) !== undefined) {
+            for (const upstream of stmt.depNode.upstream) {
+                if (idxByNode.get(upstream) !== null &&
+                    idxByNode.get(upstream) !== undefined) {
                     stmt.deps.push(idxByNode.get(upstream));
                     dependencies.push({
                         in: this.name,
@@ -241,7 +272,7 @@ class Block {
     }
     toString() {
         let b = `${this.type} for ${this.name} with size ${this.memSize}\n`;
-        this.statements.forEach(s => b += `  ${s.toString()}\n`);
+        this.statements.forEach((s) => (b += `  ${s.toString()}\n`));
         return b;
     }
 }
@@ -262,7 +293,7 @@ class Statement {
         }
         s += `${this.fn}(${this.inArgs.join(', ')}) #${this.line}`;
         if (this.deps.length > 0) {
-            s += ` <- [${this.deps.map(d => `#${d}`).join(', ')}]`;
+            s += ` <- [${this.deps.map((d) => `#${d}`).join(', ')}]`;
         }
         return s;
     }
@@ -294,14 +325,17 @@ class DepGraph {
             fn = fn.get('functions');
             if (fn.has('args'))
                 this.buildParams([...fn.get('args').getAll()]);
-            let stmts = fn.get('functionbody')
-                .get('statements').getAll()
-                .filter(s => !s.has('whitespace'));
+            const stmts = fn
+                .get('functionbody')
+                .get('statements')
+                .getAll()
+                .filter((s) => !s.has('whitespace'));
             this.build(stmts);
         }
     }
     get isNop() {
-        return (this.byOrder.length === 0) || this.byOrder.every(n => n.closure != null && n.closure.isNop);
+        return (this.byOrder.length === 0 ||
+            this.byOrder.every((n) => n.closure != null && n.closure.isNop));
     }
     buildParams(params) {
         this.params = {};
@@ -331,12 +365,13 @@ class DepGraph {
         }
     }
     build(stmts) {
-        for (let stmt of stmts) {
-            let node = new DepNode(stmt, this);
+        for (const stmt of stmts) {
+            const node = new DepNode(stmt, this);
             // console.log(`mutates:`)
             // console.log(node.mutates)
-            for (let mutated of node.mutates) {
-                if (this.outerGraph !== null && this.outerGraph.getLastMutationFor(mutated) !== null) {
+            for (const mutated of node.mutates) {
+                if (this.outerGraph !== null &&
+                    this.outerGraph.getLastMutationFor(mutated) !== null) {
                     this.outerMuts.push(mutated);
                 }
                 if (this.byVar[mutated] === null || this.byVar[mutated] === undefined) {
@@ -350,15 +385,17 @@ class DepGraph {
         this.outerDeps = [...new Set(this.outerDeps)];
     }
     getLastMutationFor(varName) {
-        let nodes = this.byVar[varName];
+        const nodes = this.byVar[varName];
         // console.log(`------- ${varName}`)
         // console.log('nodes:')
         // console.log(nodes)
-        if ((nodes !== null && nodes !== undefined) && nodes.length !== 0) {
+        if (nodes !== null && nodes !== undefined && nodes.length !== 0) {
             return nodes[nodes.length - 1];
         }
         // if there's no mutation, check to see if it's a variable first
-        if (this.params !== null && this.params[varName] !== null && this.params[varName] !== undefined) {
+        if (this.params !== null &&
+            this.params[varName] !== null &&
+            this.params[varName] !== undefined) {
             // don't even make up a node for it, it's just dependent on the param
             // which is always guaranteed to be satisfied
             return this.params[varName];
@@ -366,7 +403,7 @@ class DepGraph {
         // console.log('og:')
         // console.log(this.outerGraph)
         if (this.outerGraph !== null) {
-            let outer = this.outerGraph.getLastMutationFor(varName);
+            const outer = this.outerGraph.getLastMutationFor(varName);
             if (outer !== null) {
                 // console.log(`found outer for ${varName}`)
                 this.outerDeps.push(outer);
@@ -377,11 +414,11 @@ class DepGraph {
     }
     toJSON() {
         return {
-            byOrder: this.byOrder.map(n => n.toJSON()),
+            byOrder: this.byOrder.map((n) => n.toJSON()),
             byVar: Object.keys(this.byVar),
             byLP: this.byLP.size,
             outerGraph: this.outerGraph !== null,
-            outerDeps: this.outerDeps.map(n => n.toJSON()),
+            outerDeps: this.outerDeps.map((n) => n.toJSON()),
             outerMuts: this.outerMuts,
         };
     }
@@ -420,7 +457,7 @@ class DepNode {
             this.fromCall(stmt.get('calls'));
         }
         else if (stmt.has('emits')) {
-            let upstream = graph.getLastMutationFor(stmt.get('emits').get('value').t.trim());
+            const upstream = graph.getLastMutationFor(stmt.get('emits').get('value').t.trim());
             if (upstream !== null) {
                 this.upstream.push(upstream);
                 upstream.downstream.push(this);
@@ -437,7 +474,7 @@ class DepNode {
     }
     fromExit(assign) {
         if (assign.has('variable')) {
-            let upstream = this.graph.getLastMutationFor(assign.get('variable').t.trim());
+            const upstream = this.graph.getLastMutationFor(assign.get('variable').t.trim());
             if (upstream !== null) {
                 this.upstream.push(upstream);
                 upstream.downstream.push(this);
@@ -449,9 +486,9 @@ class DepNode {
         if (!assign.has('assignables')) {
             unhandled(assign, 'non-assignment assignment?');
         }
-        let decname = assign.get('decname').t.trim();
+        const decname = assign.get('decname').t.trim();
         // console.log(`decname: ${decname}`)
-        let prev = this.graph.getLastMutationFor(decname);
+        const prev = this.graph.getLastMutationFor(decname);
         if (prev !== null) {
             this.upstream.push(prev);
         }
@@ -484,10 +521,13 @@ class DepNode {
         }
     }
     fromCall(call) {
-        let opcodeName = call.get('variable').t.trim();
-        let args = call.get('calllist').getAll().map(c => c.get('variable'));
-        let mutated = [];
-        let opMutability = exports.opcodeParamMutabilities[opcodeName];
+        const opcodeName = call.get('variable').t.trim();
+        const args = call
+            .get('calllist')
+            .getAll()
+            .map((c) => c.get('variable'));
+        const mutated = [];
+        const opMutability = exports.opcodeParamMutabilities[opcodeName];
         if (opMutability === undefined || opMutability === null) {
             unhandled(opMutability, 'opcode ' + opcodeName);
         }
@@ -502,7 +542,7 @@ class DepNode {
                 // we have to grab the node for the closure declaration
                 // and use its mutabilities instead
                 // the closure def will be the first node in the list
-                let closure = this.graph.getLastMutationFor(args[ii].t.trim());
+                const closure = this.graph.getLastMutationFor(args[ii].t.trim());
                 if (closure.closure) {
                     if (closure === null || closure === undefined) {
                         unhandled(this.graph.byVar, `no nodes declared for ${args[ii].t.trim()}`);
@@ -520,9 +560,9 @@ class DepNode {
         this.mutates.push(...mutated);
         // console.log('---')
         // console.log(this.stmt)
-        for (let arg of args) {
+        for (const arg of args) {
             // console.log(arg)
-            let upstream = this.graph.getLastMutationFor(arg.t.trim());
+            const upstream = this.graph.getLastMutationFor(arg.t.trim());
             // console.log(upstream)
             if (upstream !== null) {
                 if (upstream.closure !== null) {
@@ -544,7 +584,7 @@ class DepNode {
             stmt: this.stmt.replace(/\n/g, '\\n'),
             upstream: this.upstream.length,
             downstream: this.downstream.length,
-            closure: this.closure,
+            closure,
             mutates: this.mutates,
         };
     }
@@ -909,7 +949,7 @@ const aga_1 = require("./aga");
 const ceil8 = (n) => Math.ceil(n / 8) * 8;
 const CLOSURE_ARG_MEM_START = BigInt(Math.pow(-2, 63));
 // special closure that does nothing
-const NOP_CLOSURE = '-9223372036854775808';
+const NOP_CLOSURE = BigInt('-9223372036854775808');
 const loadGlobalMem = (globalMemAst, addressMap) => {
     const suffixes = {
         int64: 'i64',
@@ -959,9 +999,19 @@ const loadEventDecs = (eventAst) => {
         if (!(rec instanceof lp_1.NamedAnd))
             continue;
         const evtName = rec.get('variable').t.trim();
-        const evtSize = rec.get('fulltypename').t.trim() === 'void' ? 0 : [
-            'int8', 'int16', 'int32', 'int64', 'float32', 'float64', 'bool',
-        ].includes(rec.get('fulltypename').t.trim()) ? 8 : -1;
+        const evtSize = rec.get('fulltypename').t.trim() === 'void'
+            ? 0
+            : [
+                'int8',
+                'int16',
+                'int32',
+                'int64',
+                'float32',
+                'float64',
+                'bool',
+            ].includes(rec.get('fulltypename').t.trim())
+                ? 8
+                : -1;
         eventMem[evtName] = evtSize;
     }
     return eventMem;
@@ -972,7 +1022,11 @@ const getFunctionbodyMem = (functionbody) => {
     for (const statement of functionbody.get('statements').getAll()) {
         if (statement.has('declarations')) {
             if (statement.get('declarations').has('constdeclaration')) {
-                if (statement.get('declarations').get('constdeclaration').get('assignables').has('functions')) {
+                if (statement
+                    .get('declarations')
+                    .get('constdeclaration')
+                    .get('assignables')
+                    .has('functions')) {
                     // Because closures re-use their parent memory space, their own memory needs to be included
                     const closureMem = getFunctionbodyMem(statement
                         .get('declarations')
@@ -980,16 +1034,24 @@ const getFunctionbodyMem = (functionbody) => {
                         .get('assignables')
                         .get('functions')
                         .get('functionbody'));
-                    Object.keys(closureMem.addressMap).forEach(name => addressMap[name] = closureMem.addressMap[name] + memSize);
+                    Object.keys(closureMem.addressMap).forEach((name) => (addressMap[name] = closureMem.addressMap[name] + memSize));
                     memSize += closureMem.memSize;
                 }
                 else {
-                    addressMap[statement.get('declarations').get('constdeclaration').get('decname').t.trim()] = memSize;
+                    addressMap[statement
+                        .get('declarations')
+                        .get('constdeclaration')
+                        .get('decname')
+                        .t.trim()] = memSize;
                     memSize += 1;
                 }
             }
             else {
-                addressMap[statement.get('declarations').get('letdeclaration').get('decname').t.trim()] = memSize;
+                addressMap[statement
+                    .get('declarations')
+                    .get('letdeclaration')
+                    .get('decname')
+                    .t.trim()] = memSize;
                 memSize += 1;
             }
         }
@@ -1000,9 +1062,9 @@ const getFunctionbodyMem = (functionbody) => {
     };
 };
 const getHandlersMem = (handlers) => handlers
-    .map(h => h.get())
-    .filter(h => h instanceof lp_1.NamedAnd)
-    .map(handler => {
+    .map((h) => h.get())
+    .filter((h) => h instanceof lp_1.NamedAnd)
+    .map((handler) => {
     const handlerMem = getFunctionbodyMem(handler.get('functions').get('functionbody'));
     let arg = handler.get('functions').get('args').get(0).get(0).get('arg');
     if (arg instanceof lp_1.NulLP) {
@@ -1011,7 +1073,7 @@ const getHandlersMem = (handlers) => handlers
     if (!(arg instanceof lp_1.NulLP)) {
         // Increase the memory usage and shift *everything* down, then add the new address
         handlerMem.memSize += 1;
-        Object.keys(handlerMem.addressMap).forEach(name => handlerMem.addressMap[name] += 1);
+        Object.keys(handlerMem.addressMap).forEach((name) => (handlerMem.addressMap[name] += 1));
         handlerMem.addressMap[arg.get('variable').t.trim()] = 0;
     }
     return handlerMem;
@@ -1021,22 +1083,33 @@ const closuresFromDeclaration = (declaration, closureMem, eventDecs, addressMap,
 // parent scope arguments
 argRerefOffset, scope, depGraph) => {
     const name = declaration.get('constdeclaration').get('decname').t.trim();
-    if ((depGraph.byVar[name] === null || depGraph.byVar[name] === undefined)
-        || depGraph.byVar[name].length === 0
-        || depGraph.byVar[name][0].closure === null) {
+    if (depGraph.byVar[name] === null ||
+        depGraph.byVar[name] === undefined ||
+        depGraph.byVar[name].length === 0 ||
+        depGraph.byVar[name][0].closure === null) {
         throw new Error('trying to build a closure, but the dependency graph did not build a closure');
     }
     const graph = depGraph.byVar[name][0].closure;
-    const fn = declaration.get('constdeclaration').get('assignables').get('functions');
+    const fn = declaration
+        .get('constdeclaration')
+        .get('assignables')
+        .get('functions');
     let fnArgs = [];
-    fn.get('args').getAll()[0].getAll().forEach((argdef) => {
+    fn.get('args')
+        .getAll()[0]
+        .getAll()
+        .forEach((argdef) => {
         fnArgs.push(argdef.get('arg').get('variable').t);
     });
     if (fn.get('args').getAll()[1].has()) {
-        fnArgs.push(...fn.get('args').getAll()[1].getAll().map(t => t.get('variable').t));
-        fnArgs = fnArgs.filter(t => t !== '');
+        fnArgs.push(...fn
+            .get('args')
+            .getAll()[1]
+            .getAll()
+            .map((t) => t.get('variable').t));
+        fnArgs = fnArgs.filter((t) => t !== '');
     }
-    fnArgs.forEach(arg => {
+    fnArgs.forEach((arg) => {
         addressMap[arg + name] = CLOSURE_ARG_MEM_START + BigInt(argRerefOffset);
         argRerefOffset++;
     });
@@ -1047,13 +1120,25 @@ argRerefOffset, scope, depGraph) => {
         .get('functionbody')
         .get('statements')
         .getAll();
-    const statements = allStatements.filter(statement => !(statement.has('declarations') &&
+    const statements = allStatements.filter((statement) => !(statement.has('declarations') &&
         statement.get('declarations').has('constdeclaration') &&
-        statement.get('declarations').get('constdeclaration').get('assignables').has('functions')));
-    const otherClosures = allStatements.filter(statement => statement.has('declarations') &&
+        statement
+            .get('declarations')
+            .get('constdeclaration')
+            .get('assignables')
+            .has('functions')));
+    const otherClosures = allStatements
+        .filter((statement) => statement.has('declarations') &&
         statement.get('declarations').has('constdeclaration') &&
-        statement.get('declarations').get('constdeclaration').get('assignables').has('functions')).map(s => closuresFromDeclaration(s.get('declarations'), closureMem, eventDecs, addressMap, argRerefOffset, [name, ...scope,], // Newest scope gets highest priority
-    graph)).filter((clos) => clos !== null).reduce((obj, rec) => ({
+        statement
+            .get('declarations')
+            .get('constdeclaration')
+            .get('assignables')
+            .has('functions'))
+        .map((s) => closuresFromDeclaration(s.get('declarations'), closureMem, eventDecs, addressMap, argRerefOffset, [name, ...scope], // Newest scope gets highest priority
+    graph))
+        .filter((clos) => clos !== null)
+        .reduce((obj, rec) => ({
         ...obj,
         ...rec,
     }), {});
@@ -1064,7 +1149,7 @@ argRerefOffset, scope, depGraph) => {
             fn,
             statements,
             closureMem,
-            scope: [name, ...scope,],
+            scope: [name, ...scope],
             graph,
         };
     }
@@ -1075,15 +1160,23 @@ argRerefOffset, scope, depGraph) => {
 };
 const extractClosures = (handlers, handlerMem, eventDecs, addressMap, depGraphs) => {
     let closures = {};
-    let recs = handlers.filter(h => h.get() instanceof lp_1.NamedAnd);
+    const recs = handlers.filter((h) => h.get() instanceof lp_1.NamedAnd);
     for (let i = 0; i < recs.length; i++) {
         const rec = recs[i].get();
         const closureMem = handlerMem[i];
         const handlerGraph = depGraphs[i];
-        for (const statement of rec.get('functions').get('functionbody').get('statements').getAll()) {
+        for (const statement of rec
+            .get('functions')
+            .get('functionbody')
+            .get('statements')
+            .getAll()) {
             if (statement.has('declarations') &&
                 statement.get('declarations').has('constdeclaration') &&
-                statement.get('declarations').get('constdeclaration').get('assignables').has('functions')) {
+                statement
+                    .get('declarations')
+                    .get('constdeclaration')
+                    .get('assignables')
+                    .has('functions')) {
                 // It's a closure, first try to extract any inner closures it may have
                 const innerClosures = closuresFromDeclaration(statement.get('declarations'), closureMem, eventDecs, addressMap, 5, [], handlerGraph);
                 closures = {
@@ -1096,23 +1189,30 @@ const extractClosures = (handlers, handlerMem, eventDecs, addressMap, depGraphs)
     return Object.values(closures);
 };
 const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, closureScope, depGraph) => {
-    let vec = [];
+    const vec = [];
     let line = 0;
-    let localMemToLine = {};
-    statements = statements.filter(s => !s.has('whitespace'));
+    const localMemToLine = {};
+    statements = statements.filter((s) => !s.has('whitespace'));
     let fnArgs = [];
-    fn.get('args').getAll()[0].getAll().forEach((argdef) => {
+    fn.get('args')
+        .getAll()[0]
+        .getAll()
+        .forEach((argdef) => {
         fnArgs.push(argdef.get('arg').get('variable').t);
     });
     if (fn.get('args').getAll()[1].has()) {
-        fnArgs.push(...fn.get('args').getAll()[1].getAll().map(t => t.get('variable').t));
-        fnArgs = fnArgs.filter(t => t !== '');
+        fnArgs.push(...fn
+            .get('args')
+            .getAll()[1]
+            .getAll()
+            .map((t) => t.get('variable').t));
+        fnArgs = fnArgs.filter((t) => t !== '');
     }
     fnArgs.forEach((arg, i) => {
         if (globalMem.hasOwnProperty(arg + fnName)) {
-            let resultAddress = globalMem[arg + fnName];
-            let val = CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(i);
-            let s = new aga_1.Statement('refv', [`@${val}`, '@0'], `@${resultAddress}`, line, [], depGraph.params[arg] || null);
+            const resultAddress = globalMem[arg + fnName];
+            const val = CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(i);
+            const s = new aga_1.Statement('refv', [`@${val}`, '@0'], `@${resultAddress}`, line, [], depGraph.params[arg] || null);
             vec.push(s);
             line += 1;
         }
@@ -1121,7 +1221,11 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
         const statement = statements[idx];
         if (statement.has('declarations') &&
             statement.get('declarations').has('constdeclaration') &&
-            statement.get('declarations').get('constdeclaration').get('assignables').has('functions')) {
+            statement
+                .get('declarations')
+                .get('constdeclaration')
+                .get('assignables')
+                .has('functions')) {
             // It's a closure, skip it
             continue;
         }
@@ -1129,10 +1233,10 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
         const hasClosureArgs = isClosure && fnArgs.length > 0;
         let s;
         if (statement.has('declarations')) {
-            const dec = statement.get('declarations').has('constdeclaration') ?
-                statement.get('declarations').get('constdeclaration') :
-                statement.get('declarations').get('letdeclaration');
-            let resultAddress = localMem[dec.get('decname').t.trim()];
+            const dec = statement.get('declarations').has('constdeclaration')
+                ? statement.get('declarations').get('constdeclaration')
+                : statement.get('declarations').get('letdeclaration');
+            const resultAddress = localMem[dec.get('decname').t.trim()];
             localMemToLine[dec.get('decname').t.trim()] = line;
             const assignables = dec.get('assignables');
             if (assignables.has('functions')) {
@@ -1141,24 +1245,28 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
             else if (assignables.has('calls')) {
                 const call = assignables.get('calls');
                 const fnName = call.get('variable').t.trim();
-                const vars = (call.has('calllist') ? call.get('calllist').getAll() : []).map(v => v.get('variable').t.trim());
-                const args = vars.map(v => {
+                const vars = (call.has('calllist') ? call.get('calllist').getAll() : []).map((v) => v.get('variable').t.trim());
+                const args = vars
+                    .map((v) => {
                     if (localMem.hasOwnProperty(v)) {
                         return localMem[v];
                     }
                     else if (globalMem.hasOwnProperty(v)) {
                         return globalMem[v];
                     }
-                    else if (Object.keys(globalMem).some(k => closureScope.map(s => v + s).includes(k))) {
-                        return globalMem[closureScope.map(s => v + s).find(k => Object.keys(globalMem).includes(k))];
+                    else if (Object.keys(globalMem).some((k) => closureScope.map((s) => v + s).includes(k))) {
+                        return globalMem[closureScope
+                            .map((s) => v + s)
+                            .find((k) => Object.keys(globalMem).includes(k))];
                     }
                     else if (hasClosureArgs) {
-                        return CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v));
+                        return (CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v)));
                     }
                     else {
                         return v;
                     }
-                }).map(a => typeof a === 'string' ? a : `@${a}`);
+                })
+                    .map((a) => (typeof a === 'string' ? a : `@${a}`));
                 while (args.length < 2)
                     args.push('@0');
                 s = new aga_1.Statement(fnName, args, `@${resultAddress}`, line, [], node);
@@ -1220,24 +1328,28 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
             else if (assignables.has('calls')) {
                 const call = assignables.get('calls');
                 const fnName = call.get('variable').t.trim();
-                const vars = (call.has('calllist') ? call.get('calllist').getAll() : []).map(v => v.get('variable').t.trim());
+                const vars = (call.has('calllist') ? call.get('calllist').getAll() : []).map((v) => v.get('variable').t.trim());
                 const hasClosureArgs = isClosure && vars.length > 0;
-                const args = vars.map(v => {
+                const args = vars
+                    .map((v) => {
                     if (localMem.hasOwnProperty(v)) {
                         return localMem[v];
                     }
                     else if (globalMem.hasOwnProperty(v)) {
                         return globalMem[v];
                     }
-                    else if (Object.keys(globalMem).some(k => closureScope.map(s => v + s).includes(k))) {
-                        return globalMem[closureScope.map(s => v + s).find(k => Object.keys(globalMem).includes(k))];
+                    else if (Object.keys(globalMem).some((k) => closureScope.map((s) => v + s).includes(k))) {
+                        return globalMem[closureScope
+                            .map((s) => v + s)
+                            .find((k) => Object.keys(globalMem).includes(k))];
                     }
                     else if (hasClosureArgs) {
-                        return CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v));
+                        return (CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v)));
                     }
                     else
                         return v;
-                }).map(a => typeof a === 'string' ? a : `@${a}`);
+                })
+                    .map((a) => (typeof a === 'string' ? a : `@${a}`));
                 while (args.length < 2)
                     args.push('@0');
                 s = new aga_1.Statement(fnName, args, `@${resultAddress}`, line, [], node);
@@ -1249,19 +1361,23 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
                 // TODO: Relying on little-endian trimming integers correctly and doesn't support float32
                 // correctly. Need to find the correct type data from the original variable.
                 const valStr = assignables.t;
-                if (valStr[0] === '"' || valStr[0] === "'") { // It's a string, which doesn't work here...
+                if (valStr[0] === '"' || valStr[0] === "'") {
+                    // It's a string, which doesn't work here...
                     fn = 'setestr';
                     val = '0i64';
                 }
-                else if (valStr[0] === 't' || valStr[0] === 'f') { // It's a bool
+                else if (valStr[0] === 't' || valStr[0] === 'f') {
+                    // It's a bool
                     fn = 'setbool';
                     val = assignables.t === 'true' ? '1i8' : '0i8'; // Bools are bytes in the runtime
                 }
-                else if (valStr.indexOf('.') > -1) { // It's a floating point number, assume 64-bit
+                else if (valStr.indexOf('.') > -1) {
+                    // It's a floating point number, assume 64-bit
                     fn = 'setf64';
                     val = valStr + 'f64';
                 }
-                else { // It's an integer. i64 will "work" for now
+                else {
+                    // It's an integer. i64 will "work" for now
                     fn = 'seti64';
                     val = valStr + 'i64';
                 }
@@ -1274,24 +1390,28 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
         else if (statement.has('calls')) {
             const call = statement.get('calls');
             const fnName = call.get('variable').t.trim();
-            const vars = (call.has('calllist') ? call.get('calllist').getAll() : []).map(v => v.get('variable').t.trim());
+            const vars = (call.has('calllist') ? call.get('calllist').getAll() : []).map((v) => v.get('variable').t.trim());
             const hasClosureArgs = isClosure && vars.length > 0;
-            const args = vars.map(v => {
+            const args = vars
+                .map((v) => {
                 if (localMem.hasOwnProperty(v)) {
                     return localMem[v];
                 }
                 else if (globalMem.hasOwnProperty(v)) {
                     return globalMem[v];
                 }
-                else if (Object.keys(globalMem).some(k => closureScope.map(s => v + s).includes(k))) {
-                    return globalMem[closureScope.map(s => v + s).find(k => Object.keys(globalMem).includes(k))];
+                else if (Object.keys(globalMem).some((k) => closureScope.map((s) => v + s).includes(k))) {
+                    return globalMem[closureScope
+                        .map((s) => v + s)
+                        .find((k) => Object.keys(globalMem).includes(k))];
                 }
                 else if (hasClosureArgs) {
-                    return CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v));
+                    return (CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v)));
                 }
                 else
                     return v;
-            }).map(a => typeof a === 'string' ? a : `@${a}`);
+            })
+                .map((a) => (typeof a === 'string' ? a : `@${a}`));
             while (args.length < 3)
                 args.push('@0');
             s = new aga_1.Statement(fnName, args, null, line, [], node);
@@ -1299,38 +1419,48 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
         else if (statement.has('emits')) {
             const emit = statement.get('emits');
             const evtName = emit.get('variable').t.trim();
-            const payloadVar = emit.has('value') ? emit.get('value').t.trim() : undefined;
-            const payload = !payloadVar ?
-                0 :
-                localMem.hasOwnProperty(payloadVar) ?
-                    localMem[payloadVar] :
-                    globalMem.hasOwnProperty(payloadVar) ?
-                        globalMem[payloadVar] :
-                        payloadVar;
+            const payloadVar = emit.has('value')
+                ? emit.get('value').t.trim()
+                : undefined;
+            const payload = !payloadVar
+                ? 0
+                : localMem.hasOwnProperty(payloadVar)
+                    ? localMem[payloadVar]
+                    : globalMem.hasOwnProperty(payloadVar)
+                        ? globalMem[payloadVar]
+                        : payloadVar;
             s = new aga_1.Statement('emit', [evtName, typeof payload === 'string' ? payload : `@${payload}`], null, line, [], node);
         }
         else if (statement.has('exits')) {
             const exit = statement.get('exits');
             const exitVar = exit.get('variable').t.trim();
-            let exitVarType = localMem.hasOwnProperty(exitVar) ? 'variable' : (globalMem.hasOwnProperty(exitVar) && typeof globalMem[exitVar] !== 'string' ?
-                'fixed' : 'variable');
+            const exitVarType = localMem.hasOwnProperty(exitVar)
+                ? 'variable'
+                : globalMem.hasOwnProperty(exitVar) &&
+                    typeof globalMem[exitVar] !== 'string'
+                    ? 'fixed'
+                    : 'variable';
             const vars = [exitVar];
-            const args = vars.map(v => {
+            const args = vars
+                .map((v) => {
                 if (localMem.hasOwnProperty(v)) {
                     return localMem[v];
                 }
                 else if (globalMem.hasOwnProperty(v)) {
                     return globalMem[v];
                 }
-                else if (Object.keys(globalMem).some(k => closureScope.map(s => v + s).includes(k))) {
-                    return globalMem[closureScope.map(s => v + s).find(k => Object.keys(globalMem).includes(k))];
+                else if (Object.keys(globalMem).some((k) => closureScope.map((s) => v + s).includes(k))) {
+                    return globalMem[closureScope
+                        .map((s) => v + s)
+                        .find((k) => Object.keys(globalMem).includes(k))];
                 }
                 else if (hasClosureArgs) {
-                    return CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v));
+                    return (CLOSURE_ARG_MEM_START + BigInt(1) + BigInt(fnArgs.indexOf(v)));
                 }
                 else
                     return v;
-            }).map(a => typeof a === 'string' ? a : `@${a}`);
+            })
+                .map((a) => (typeof a === 'string' ? a : `@${a}`));
             while (args.length < 2)
                 args.push('@0');
             const ref = exitVarType === 'variable' ? 'refv' : 'reff';
@@ -1343,7 +1473,7 @@ const loadStatements = (statements, localMem, globalMem, fn, fnName, isClosure, 
 };
 const loadHandlers = (handlers, handlerMem, globalMem, depGraphs) => {
     const vec = [];
-    const recs = handlers.filter(h => h.get() instanceof lp_1.NamedAnd);
+    const recs = handlers.filter((h) => h.get() instanceof lp_1.NamedAnd);
     for (let i = 0; i < recs.length; i++) {
         const handler = recs[i].get();
         const eventName = handler.get('variable').t.trim();
@@ -1375,11 +1505,11 @@ const ammToAga = (amm) => {
     if (Object.keys(globalMem).length > 0) {
         // Output the global memory
         outStr += 'globalMem\n';
-        Object.keys(globalMem).forEach(addr => outStr += `  ${addr}: ${globalMem[addr]}\n`);
+        Object.keys(globalMem).forEach((addr) => (outStr += `  ${addr}: ${globalMem[addr]}\n`));
         outStr += '\n';
     }
     // Load the events, get the event id offset (for reuse with closures) and the event declarations
-    let eventDecs = loadEventDecs(amm.get('eventDec').getAll());
+    const eventDecs = loadEventDecs(amm.get('eventDec').getAll());
     // Determine the amount of memory to allocate per handler and map declarations to addresses
     const handlerMem = getHandlersMem(amm.get('handlers').getAll());
     const depGraphs = [];
@@ -1400,15 +1530,15 @@ const ammToAga = (amm) => {
     // Then output the custom events, which may include closures, if needed
     if (Object.keys(eventDecs).length > 0) {
         outStr += 'customEvents\n';
-        Object.keys(eventDecs).forEach(evt => outStr += `  ${evt}: ${eventDecs[evt]}\n`);
+        Object.keys(eventDecs).forEach((evt) => (outStr += `  ${evt}: ${eventDecs[evt]}\n`));
         outStr += '\n';
     }
     // Load the handlers and load the closures (as handlers) if present
     const handlerVec = loadHandlers(amm.get('handlers').getAll(), handlerMem, addressMap, depGraphs);
     const closureVec = loadClosures(closures, addressMap);
-    ([...handlerVec, ...closureVec]).map(b => b.build());
+    [...handlerVec, ...closureVec].map((b) => b.build());
     // console.log(([...handlerVec, ...closureVec]).map(b => b.build()).join(','))
-    const blockVec = [...handlerVec, ...closureVec].map(b => b.toString());
+    const blockVec = [...handlerVec, ...closureVec].map((b) => b.toString());
     outStr += blockVec.join('\n');
     return outStr;
 };
@@ -1437,15 +1567,22 @@ const alan_js_runtime_1 = require("alan-js-runtime");
 const lp_1 = require("./lp");
 const amm_1 = require("./amm");
 const callToJsText = (call) => {
-    const args = call.has('calllist') ?
-        call.get('calllist').getAll().map(r => r.get('variable').t).join(', ') : "";
+    const args = call.has('calllist')
+        ? call
+            .get('calllist')
+            .getAll()
+            .map((r) => r.get('variable').t)
+            .join(', ')
+        : '';
     const opcode = call.get('variable').t;
-    return alan_js_runtime_1.asyncopcodes.includes(opcode) ? `await r.${opcode}(${args})` : `r.${opcode}(${args})`;
+    return alan_js_runtime_1.asyncopcodes.includes(opcode)
+        ? `await r.${opcode}(${args})`
+        : `r.${opcode}(${args})`;
 };
 const functionbodyToJsText = (fnbody, indent) => {
-    let outText = "";
+    let outText = '';
     for (const statement of fnbody.get('statements').getAll()) {
-        outText += indent + "  "; // For legibility of the output
+        outText += indent + '  '; // For legibility of the output
         if (statement.has('declarations')) {
             if (statement.get('declarations').has('constdeclaration')) {
                 const dec = statement.get('declarations').get('constdeclaration');
@@ -1466,7 +1603,9 @@ const functionbodyToJsText = (fnbody, indent) => {
         else if (statement.has('emits')) {
             const emit = statement.get('emits');
             const name = emit.get('variable').t;
-            const arg = emit.has('value') ? emit.get('value').get('variable').t : 'undefined';
+            const arg = emit.has('value')
+                ? emit.get('value').get('variable').t
+                : 'undefined';
             outText += `r.emit('${name}', ${arg})\n`;
         }
         else if (statement.has('exits')) {
@@ -1476,7 +1615,7 @@ const functionbodyToJsText = (fnbody, indent) => {
     return outText;
 };
 const assignableToJsText = (assignable, fulltypename, indent) => {
-    let outText = "";
+    let outText = '';
     if (assignable.has('functions')) {
         const args = assignable.get('functions').get('args');
         const argnames = [];
@@ -1487,7 +1626,7 @@ const assignableToJsText = (assignable, fulltypename, indent) => {
             argnames.push(args.get(1).get('arg').get('variable').t);
         }
         outText += `async (${argnames.join(', ')}) => {\n`;
-        outText += functionbodyToJsText(assignable.get('functions').get('functionbody'), indent + "  ");
+        outText += functionbodyToJsText(assignable.get('functions').get('functionbody'), indent + '  ');
         outText += indent + '  }'; // End this closure
     }
     else if (assignable.has('calls')) {
@@ -1507,7 +1646,7 @@ const assignableToJsText = (assignable, fulltypename, indent) => {
                 }
             }
         }
-        catch (e) { }
+        catch (e) { } // eslint-disable-line no-empty
     }
     return outText;
 };
@@ -1519,8 +1658,7 @@ const ammToJsText = (amm) => {
         const rec = globalConst.get();
         if (!(rec instanceof lp_1.NamedAnd))
             continue;
-        outFile +=
-            `const ${rec.get('decname').t} = ${assignableToJsText(rec.get('assignables'), rec.get('fulltypename'), '')}\n`;
+        outFile += `const ${rec.get('decname').t} = ${assignableToJsText(rec.get('assignables'), rec.get('fulltypename'), '')}\n`;
     }
     // We can also skip the event declarations because they are lazily bound by EventEmitter
     // Now we convert the handlers to Javascript. This is the vast majority of the work
@@ -1534,8 +1672,7 @@ const ammToJsText = (amm) => {
         if (arg instanceof lp_1.NulLP) {
             arg = rec.get('functions').get('args').get(1).get('arg');
         }
-        const eventVarName = !(arg instanceof lp_1.NulLP) ?
-            arg.get('variable').t : "";
+        const eventVarName = !(arg instanceof lp_1.NulLP) ? arg.get('variable').t : '';
         if (rec.get('variable').t === '__conn')
             hasConn = true;
         if (rec.get('variable').t === '__ctrl')
@@ -1581,7 +1718,11 @@ const blank = lp_1.OneOrMore.build(space);
 const optblank = lp_1.ZeroOrOne.build(blank);
 const newline = lp_1.Or.build([lp_1.Token.build('\n'), lp_1.Token.build('\r')]);
 const notnewline = lp_1.Not.build('\n');
-const singlelinecomment = lp_1.And.build([lp_1.Token.build('//'), lp_1.ZeroOrMore.build(notnewline), newline]);
+const singlelinecomment = lp_1.And.build([
+    lp_1.Token.build('//'),
+    lp_1.ZeroOrMore.build(notnewline),
+    newline,
+]);
 const star = lp_1.Token.build('*');
 const notstar = lp_1.Not.build('*');
 const notslash = lp_1.Not.build('/');
@@ -1680,8 +1821,16 @@ const notDoublequote = lp_1.Not.build('"');
 const sep = lp_1.And.build([optwhitespace, comma, optwhitespace]);
 const optsep = lp_1.ZeroOrOne.build(sep);
 const str = lp_1.Or.build([
-    lp_1.And.build([quote, lp_1.ZeroOrMore.build(lp_1.Or.build([escapeQuote, notQuote])), quote]),
-    lp_1.And.build([doublequote, lp_1.ZeroOrMore.build(lp_1.Or.build([escapeDoublequote, notDoublequote])), doublequote]),
+    lp_1.And.build([
+        quote,
+        lp_1.ZeroOrMore.build(lp_1.Or.build([escapeQuote, notQuote])),
+        quote,
+    ]),
+    lp_1.And.build([
+        doublequote,
+        lp_1.ZeroOrMore.build(lp_1.Or.build([escapeDoublequote, notDoublequote])),
+        doublequote,
+    ]),
 ]);
 const arrayaccess = lp_1.NamedAnd.build({
     openArr,
@@ -2275,7 +2424,7 @@ exports.fromString = (str) => {
     return ast;
 };
 exports.fromFile = (filename) => {
-    const ast = exports.fromString(fs.readFileSync(filename, { encoding: 'utf8', }));
+    const ast = exports.fromString(fs.readFileSync(filename, { encoding: 'utf8' }));
     ast.filename = filename;
     return ast;
 };
@@ -2289,16 +2438,16 @@ exports.resolveDependency = (modulePath, dependency) => {
     // what is being imported. It's either the relative path to a file with the language
     // extension, or the relative path to a directory containing an "index.ln" file
     if (dependency.has('localdependency')) {
-        const dirPath = resolve(path.join(path.dirname(modulePath), dependency.get('localdependency').t, "index.ln"));
-        const filePath = resolve(path.join(path.dirname(modulePath), dependency.get('localdependency').t + ".ln"));
+        const dirPath = resolve(path.join(path.dirname(modulePath), dependency.get('localdependency').t, 'index.ln'));
+        const filePath = resolve(path.join(path.dirname(modulePath), dependency.get('localdependency').t + '.ln'));
         // It's possible for both to exist. Prefer the directory-based one, but warn the user
-        if (typeof dirPath === "string" && typeof filePath === "string") {
-            console.error(dirPath + " and " + filePath + " both exist. Using " + dirPath);
+        if (typeof dirPath === 'string' && typeof filePath === 'string') {
+            console.error(dirPath + ' and ' + filePath + ' both exist. Using ' + dirPath);
         }
-        if (typeof filePath === "string") {
+        if (typeof filePath === 'string') {
             importPath = filePath;
         }
-        if (typeof dirPath === "string") {
+        if (typeof dirPath === 'string') {
             importPath = dirPath;
         }
         if (importPath === null) {
@@ -2346,15 +2495,15 @@ exports.resolveDependency = (modulePath, dependency) => {
     // else. At least things like `modules/logger`, `modules/config`, etc should belong there.
     if (dependency.has('globaldependency')) {
         // Get the two potential dependency types, file and directory-style.
-        const fileModule = dependency.get('globaldependency').t.substring(1) + ".ln";
-        const dirModule = dependency.get('globaldependency').t.substring(1) + "/index.ln";
+        const fileModule = dependency.get('globaldependency').t.substring(1) + '.ln';
+        const dirModule = dependency.get('globaldependency').t.substring(1) + '/index.ln';
         // Get the initial root to check
         let pathRoot = path.dirname(modulePath);
         // Search the recursively up the directory structure in the `modules` directories for the
         // specified dependency, and if found, return it.
         while (pathRoot != null) {
-            const dirPath = resolve(path.join(pathRoot, "modules", dirModule));
-            const filePath = resolve(path.join(pathRoot, "modules", fileModule));
+            const dirPath = resolve(path.join(pathRoot, 'modules', dirModule));
+            const filePath = resolve(path.join(pathRoot, 'modules', fileModule));
             // It's possible for a module to accidentally resolve to itself when the module wraps the
             // actual dependency it is named for.
             if (dirPath === modulePath || filePath === modulePath) {
@@ -2362,18 +2511,18 @@ exports.resolveDependency = (modulePath, dependency) => {
                 continue;
             }
             // It's possible for both to exist. Prefer the directory-based one, but warn the user
-            if (typeof dirPath === "string" && typeof filePath === "string") {
-                console.error(dirPath + " and " + filePath + " both exist. Using " + dirPath);
+            if (typeof dirPath === 'string' && typeof filePath === 'string') {
+                console.error(dirPath + ' and ' + filePath + ' both exist. Using ' + dirPath);
             }
-            if (typeof filePath === "string") {
+            if (typeof filePath === 'string') {
                 importPath = filePath;
                 break;
             }
-            if (typeof dirPath === "string") {
+            if (typeof dirPath === 'string') {
                 importPath = dirPath;
                 break;
             }
-            if (pathRoot === "/" || /[A-Z]:\\/.test(pathRoot)) {
+            if (pathRoot === '/' || /[A-Z]:\\/.test(pathRoot)) {
                 pathRoot = null;
             }
             else {
@@ -2383,7 +2532,7 @@ exports.resolveDependency = (modulePath, dependency) => {
         if (importPath == null) {
             // If we can't find it defined in a `modules` directory, check if it's an `@std/...`
             // module and abort here so the built-in standard library is used.
-            if (dependency.get('globaldependency').t.substring(0, 5) === "@std/") {
+            if (dependency.get('globaldependency').t.substring(0, 5) === '@std/') {
                 // Not a valid path (starting with '@') to be used as signal to use built-in library)
                 importPath = dependency.get('globaldependency').t;
             }
@@ -2391,21 +2540,21 @@ exports.resolveDependency = (modulePath, dependency) => {
                 // Go back to the original point and search up the tree for `dependencies` directories
                 pathRoot = path.dirname(modulePath);
                 while (pathRoot != null) {
-                    const dirPath = resolve(path.join(pathRoot, "dependencies", dirModule));
-                    const filePath = resolve(path.join(pathRoot, "dependencies", fileModule));
+                    const dirPath = resolve(path.join(pathRoot, 'dependencies', dirModule));
+                    const filePath = resolve(path.join(pathRoot, 'dependencies', fileModule));
                     // It's possible for both to exist. Prefer the directory-based one, but warn the user
-                    if (typeof dirPath === "string" && typeof filePath === "string") {
-                        console.error(dirPath + " and " + filePath + " both exist. Using " + dirPath);
+                    if (typeof dirPath === 'string' && typeof filePath === 'string') {
+                        console.error(dirPath + ' and ' + filePath + ' both exist. Using ' + dirPath);
                     }
-                    if (typeof filePath === "string") {
+                    if (typeof filePath === 'string') {
                         importPath = filePath;
                         break;
                     }
-                    if (typeof dirPath === "string") {
+                    if (typeof dirPath === 'string') {
                         importPath = dirPath;
                         break;
                     }
-                    if (pathRoot === "/" || /[A-Z]:\\/.test(pathRoot)) {
+                    if (pathRoot === '/' || /[A-Z]:\\/.test(pathRoot)) {
                         pathRoot = null;
                     }
                     else {
@@ -2421,8 +2570,8 @@ exports.resolveDependency = (modulePath, dependency) => {
     return importPath;
 };
 exports.resolveImports = (modulePath, ast) => {
-    let resolvedImports = [];
-    let imports = ast.get('imports').getAll();
+    const resolvedImports = [];
+    const imports = ast.get('imports').getAll();
     for (let i = 0; i < imports.length; i++) {
         let dependency = null;
         if (imports[i].has('standardImport')) {
@@ -2518,8 +2667,7 @@ const Type_1 = require("./Type");
 let Event = /** @class */ (() => {
     class Event {
         constructor(name, type, builtIn) {
-            this.name = name,
-                this.type = type;
+            (this.name = name), (this.type = type);
             this.builtIn = builtIn;
             this.handlers = [];
             Event.allEvents.push(this);
@@ -2531,10 +2679,10 @@ let Event = /** @class */ (() => {
             const name = eventAst.get('variable').t;
             const type = scope.deepGet(eventAst.get('fulltypename').t);
             if (!type) {
-                throw new Error("Could not find specified type: " + eventAst.get('fulltypename').t);
+                throw new Error('Could not find specified type: ' + eventAst.get('fulltypename').t);
             }
             else if (!(type instanceof Type_1.default)) {
-                throw new Error(eventAst.get('fulltypename').t + " is not a type");
+                throw new Error(eventAst.get('fulltypename').t + ' is not a type');
             }
             return new Event(name, type, false);
         }
@@ -2547,6 +2695,7 @@ exports.default = Event;
 },{"./Type":18}],12:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+/* eslint-disable @typescript-eslint/no-var-requires */
 const uuid_1 = require("uuid");
 const Ast = require("./Ast");
 const Event_1 = require("./Event");
@@ -2557,7 +2706,16 @@ const Statement_1 = require("./Statement");
 const StatementType_1 = require("./StatementType");
 const Type_1 = require("./Type");
 const UserFunction_1 = require("./UserFunction");
-const FIXED_TYPES = ['int64', 'int32', 'int16', 'int8', 'float64', 'float32', 'bool', 'void'];
+const FIXED_TYPES = [
+    'int64',
+    'int32',
+    'int16',
+    'int8',
+    'float64',
+    'float32',
+    'bool',
+    'void',
+];
 class Microstatement {
     constructor(statementType, scope, pure, outputName, outputType = Type_1.default.builtinTypes.void, inputNames = [], fns = [], alias = '', closurePure = true, closureStatements = [], closureArgs = {}, closureOutputType = Type_1.default.builtinTypes.void) {
         this.statementType = statementType;
@@ -2574,72 +2732,90 @@ class Microstatement {
         this.closureOutputType = closureOutputType;
     }
     toString() {
-        let outString = "";
+        let outString = '';
         switch (this.statementType) {
             case StatementType_1.default.CONSTDEC:
-                outString = "const " + this.outputName + ": " + this.outputType.typename;
+                outString =
+                    'const ' + this.outputName + ': ' + this.outputType.typename;
                 if (this.fns.length > 0) {
-                    outString += " = " + this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
+                    outString +=
+                        ' = ' +
+                            this.fns[0].getName() +
+                            '(' +
+                            this.inputNames.join(', ') +
+                            ')';
                 }
                 else if (this.inputNames.length > 0) {
-                    outString += " = " + this.inputNames[0]; // Doesn't appear the list is ever used here
+                    outString += ' = ' + this.inputNames[0]; // Doesn't appear the list is ever used here
                 }
                 break;
             case StatementType_1.default.LETDEC:
-                outString = "let " + this.outputName + ": " + this.outputType.typename;
+                outString = 'let ' + this.outputName + ': ' + this.outputType.typename;
                 if (this.fns.length > 0) {
-                    outString += " = " + this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
+                    outString +=
+                        ' = ' +
+                            this.fns[0].getName() +
+                            '(' +
+                            this.inputNames.join(', ') +
+                            ')';
                 }
                 else if (this.inputNames.length > 0) {
-                    outString += " = " + this.inputNames[0]; // Doesn't appear the list is ever used here
+                    outString += ' = ' + this.inputNames[0]; // Doesn't appear the list is ever used here
                 }
                 break;
             case StatementType_1.default.ASSIGNMENT:
                 outString = this.outputName;
                 if (this.fns.length > 0) {
-                    outString += " = " + this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
+                    outString +=
+                        ' = ' +
+                            this.fns[0].getName() +
+                            '(' +
+                            this.inputNames.join(', ') +
+                            ')';
                 }
                 else if (this.inputNames.length > 0) {
-                    outString += " = " + this.inputNames[0]; // Doesn't appear the list is ever used here
+                    outString += ' = ' + this.inputNames[0]; // Doesn't appear the list is ever used here
                 }
                 else {
-                    outString += "NO!";
+                    outString += 'NO!';
                 }
                 break;
             case StatementType_1.default.CALL:
                 if (this.fns.length > 0) {
-                    outString += this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
+                    outString +=
+                        this.fns[0].getName() + '(' + this.inputNames.join(', ') + ')';
                 }
                 break;
             case StatementType_1.default.EMIT:
-                outString = "emit " + this.outputName + " ";
+                outString = 'emit ' + this.outputName + ' ';
                 if (this.fns.length > 0) {
-                    outString += this.fns[0].getName() + "(" + this.inputNames.join(", ") + ")";
+                    outString +=
+                        this.fns[0].getName() + '(' + this.inputNames.join(', ') + ')';
                 }
                 else if (this.inputNames.length > 0) {
                     outString += this.inputNames[0]; // Doesn't appear the list is ever used here
                 }
                 break;
             case StatementType_1.default.EXIT:
-                outString = "return " + this.outputName;
+                outString = 'return ' + this.outputName;
                 break;
             case StatementType_1.default.CLOSURE:
-                outString = "const " + this.outputName + ": function = fn (";
-                let args = [];
+                outString = 'const ' + this.outputName + ': function = fn (';
+                const args = [];
                 for (const [name, type] of Object.entries(this.closureArgs)) {
-                    if (name !== "" && type.typename != "") {
-                        args.push(name + ": " + type.typename);
+                    if (name !== '' && type.typename != '') {
+                        args.push(name + ': ' + type.typename);
                     }
                 }
-                outString += args.join(",");
-                outString += "): " + this.closureOutputType.typename + " {\n";
+                outString += args.join(',');
+                outString += '): ' + this.closureOutputType.typename + ' {\n';
                 for (const m of this.closureStatements) {
                     const s = m.toString();
-                    if (s !== "") {
-                        outString += "    " + m.toString() + "\n";
+                    if (s !== '') {
+                        outString += '    ' + m.toString() + '\n';
                     }
                 }
-                outString += "  }";
+                outString += '  }';
                 break;
             case StatementType_1.default.REREF:
             case StatementType_1.default.ARG:
@@ -2678,15 +2854,14 @@ class Microstatement {
             scope.deepGet(varName) instanceof Constant_1.default) {
             const globalConst = scope.deepGet(varName);
             Microstatement.fromAssignablesAst(globalConst.assignablesAst, globalConst.scope, // Eval this in its original scope in case it was an exported const
-            microstatements // that was dependent on unexported internal functions or constants
-            );
+            microstatements);
             const last = microstatements[microstatements.length - 1];
             microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, last.outputName, last.outputType, [], [], globalConst.name));
         }
         return original;
     }
     static fromConstantsAst(constantsAst, scope, microstatements) {
-        const constName = "_" + uuid_1.v4().replace(/-/g, "_");
+        const constName = '_' + uuid_1.v4().replace(/-/g, '_');
         let constType = 'void';
         if (constantsAst.has('bool'))
             constType = 'bool';
@@ -2726,16 +2901,22 @@ class Microstatement {
             // calls are emitted to insert the relevant data into the array, and finally the array itself
             // is REREFed for the outer microstatement generation call.
             let arrayLiteralContents = [];
-            const arraybase = objectLiteralsAst.get('arrayliteral').has('arraybase') ?
-                objectLiteralsAst.get('arrayliteral').get('arraybase') :
-                objectLiteralsAst.get('arrayliteral').get('fullarrayliteral').get('arraybase');
+            const arraybase = objectLiteralsAst.get('arrayliteral').has('arraybase')
+                ? objectLiteralsAst.get('arrayliteral').get('arraybase')
+                : objectLiteralsAst
+                    .get('arrayliteral')
+                    .get('fullarrayliteral')
+                    .get('arraybase');
             if (arraybase.has('assignablelist')) {
                 const assignablelist = arraybase.get('assignablelist');
                 arrayLiteralContents.push(assignablelist.get('assignables'));
-                assignablelist.get('cdr').getAll().forEach(r => {
+                assignablelist
+                    .get('cdr')
+                    .getAll()
+                    .forEach((r) => {
                     arrayLiteralContents.push(r.get('assignables'));
                 });
-                arrayLiteralContents = arrayLiteralContents.map(r => {
+                arrayLiteralContents = arrayLiteralContents.map((r) => {
                     Microstatement.fromAssignablesAst(r, scope, microstatements);
                     return microstatements[microstatements.length - 1];
                 });
@@ -2757,9 +2938,14 @@ class Microstatement {
 ${objectLiteralsAst.t} on line ${objectLiteralsAst.line}:${objectLiteralsAst.char}`);
                         }
                         const generics = [];
-                        const genericsAst = arrayTypeAst.get('opttypegenerics').get('generics');
+                        const genericsAst = arrayTypeAst
+                            .get('opttypegenerics')
+                            .get('generics');
                         generics.push(genericsAst.get('fulltypename').t);
-                        genericsAst.get('cdr').getAll().forEach(r => {
+                        genericsAst
+                            .get('cdr')
+                            .getAll()
+                            .forEach((r) => {
                             generics.push(r.get('fulltypename').t);
                         });
                         outerType.solidify(generics, scope);
@@ -2781,11 +2967,13 @@ ${objectLiteralsAst.t} on line ${objectLiteralsAst.line}:${objectLiteralsAst.cha
 ${objectLiteralsAst.t} on line ${objectLiteralsAst.line}:${objectLiteralsAst.char}`);
             }
             // Create a new variable to hold the size of the array literal
-            const lenName = "_" + uuid_1.v4().replace(/-/g, "_");
+            const lenName = '_' + uuid_1.v4().replace(/-/g, '_');
             microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, lenName, Type_1.default.builtinTypes['int64'], [`${arrayLiteralContents.length}`], []));
             // Add the opcode to create a new array with the specified size
             const opcodes = require('./opcodes').default;
-            opcodes.exportScope.get('newarr')[0].microstatementInlining([lenName], scope, microstatements);
+            opcodes.exportScope
+                .get('newarr')[0]
+                .microstatementInlining([lenName], scope, microstatements);
             // Get the array microstatement and extract the name and insert the correct type
             const array = microstatements[microstatements.length - 1];
             array.outputType = type;
@@ -2797,12 +2985,16 @@ ${objectLiteralsAst.t} on line ${objectLiteralsAst.line}:${objectLiteralsAst.cha
             // Push the values into the array
             for (let i = 0; i < arrayLiteralContents.length; i++) {
                 // Create a new variable to hold the size of the array value
-                const size = FIXED_TYPES.includes(arrayLiteralContents[i].outputType.typename) ? "8" : "0";
-                const sizeName = "_" + uuid_1.v4().replace(/-/g, "_");
+                const size = FIXED_TYPES.includes(arrayLiteralContents[i].outputType.typename)
+                    ? '8'
+                    : '0';
+                const sizeName = '_' + uuid_1.v4().replace(/-/g, '_');
                 microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], [size], []));
                 // Push the value into the array
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('pusharr')[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
+                opcodes.exportScope
+                    .get('pusharr')[0]
+                    .microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
             }
             // REREF the array
             microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, arrayName, array.outputType, [], []));
@@ -2818,7 +3010,10 @@ ${objectLiteralsAst.t} on line ${objectLiteralsAst.line}:${objectLiteralsAst.cha
             // If the type literal is missing any fields, that's a hard compile error to make sure
             // accessing undefined data is impossible. If a value might not be needed, they should use
             // the `Option` type and provide a `None` value there.
-            const typeAst = objectLiteralsAst.get('typeliteral').get('literaldec').get('fulltypename');
+            const typeAst = objectLiteralsAst
+                .get('typeliteral')
+                .get('literaldec')
+                .get('fulltypename');
             let type = scope.deepGet(typeAst.t.trim());
             if (type === null) {
                 // Try to define it if it's a generic type
@@ -2831,7 +3026,10 @@ ${objectLiteralsAst.t} on line ${objectLiteralsAst.line}:${objectLiteralsAst.cha
                     const generics = [];
                     const genericsAst = typeAst.get('opttypegenerics').get('generics');
                     generics.push(genericsAst.get('fulltypename').t);
-                    genericsAst.get('cdr').getAll().forEach(r => {
+                    genericsAst
+                        .get('cdr')
+                        .getAll()
+                        .forEach((r) => {
                         generics.push(r.get('fulltypename').t);
                     });
                     outerType.solidify(generics, scope);
@@ -2842,25 +3040,31 @@ ${objectLiteralsAst.t} on line ${objectLiteralsAst.line}:${objectLiteralsAst.cha
                 throw new Error(`${typeAst.t.trim()} is not a type
 ${objectLiteralsAst.t} on line ${objectLiteralsAst.line}:${objectLiteralsAst.char}`);
             }
-            const assignlist = objectLiteralsAst.get('typeliteral').get('typebase').get('typeassignlist');
+            const assignlist = objectLiteralsAst
+                .get('typeliteral')
+                .get('typebase')
+                .get('typeassignlist');
             const assignArr = [];
             assignArr.push({
                 field: assignlist.get('variable'),
                 val: assignlist.get('assignables'),
             });
-            assignlist.get('cdr').getAll().forEach(r => {
+            assignlist
+                .get('cdr')
+                .getAll()
+                .forEach((r) => {
                 assignArr.push({
                     field: r.get('variable'),
                     val: r.get('assignables'),
                 });
             });
-            const assignfields = assignArr.map(r => r.field.t);
-            const assignvals = assignArr.map(r => r.val);
+            const assignfields = assignArr.map((r) => r.field.t);
+            const assignvals = assignArr.map((r) => r.val);
             const fields = Object.keys(type.properties);
-            let missingFields = [];
-            let foundFields = [];
-            let extraFields = [];
-            let astLookup = {};
+            const missingFields = [];
+            const foundFields = [];
+            const extraFields = [];
+            const astLookup = {};
             for (let i = 0; i < assignfields.length; i++) {
                 const assignfield = assignfields[i];
                 const assignval = assignvals[i];
@@ -2886,12 +3090,13 @@ ${objectLiteralsAst.t} on line ${objectLiteralsAst.line}:${objectLiteralsAst.cha
                 if (extraFields.length > 0) {
                     errMsg += '\n' + `Extra fields: ${extraFields.join(', ')}`;
                 }
-                errMsg += '\n' +
-                    objectLiteralsAst.t +
-                    " on line " +
-                    objectLiteralsAst.line +
-                    ":" +
-                    objectLiteralsAst.char;
+                errMsg +=
+                    '\n' +
+                        objectLiteralsAst.t +
+                        ' on line ' +
+                        objectLiteralsAst.line +
+                        ':' +
+                        objectLiteralsAst.char;
                 throw new Error(errMsg);
             }
             // The assignment looks good, now we'll mimic the array literal logic mostly
@@ -2901,11 +3106,13 @@ ${objectLiteralsAst.t} on line ${objectLiteralsAst.line}:${objectLiteralsAst.cha
                 arrayLiteralContents.push(microstatements[microstatements.length - 1]);
             }
             // Create a new variable to hold the size of the array literal
-            const lenName = "_" + uuid_1.v4().replace(/-/g, "_");
+            const lenName = '_' + uuid_1.v4().replace(/-/g, '_');
             microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, lenName, Type_1.default.builtinTypes['int64'], [`${fields.length}`], []));
             // Add the opcode to create a new array with the specified size
             const opcodes = require('./opcodes').default;
-            opcodes.exportScope.get('newarr')[0].microstatementInlining([lenName], scope, microstatements);
+            opcodes.exportScope
+                .get('newarr')[0]
+                .microstatementInlining([lenName], scope, microstatements);
             // Get the array microstatement and extract the name and insert the correct type
             const array = microstatements[microstatements.length - 1];
             array.outputType = type;
@@ -2913,21 +3120,25 @@ ${objectLiteralsAst.t} on line ${objectLiteralsAst.line}:${objectLiteralsAst.cha
             // Push the values into the array
             for (let i = 0; i < arrayLiteralContents.length; i++) {
                 // Create a new variable to hold the size of the array value
-                const size = FIXED_TYPES.includes(arrayLiteralContents[i].outputType.typename) ? "8" : "0";
-                const sizeName = "_" + uuid_1.v4().replace(/-/g, "_");
+                const size = FIXED_TYPES.includes(arrayLiteralContents[i].outputType.typename)
+                    ? '8'
+                    : '0';
+                const sizeName = '_' + uuid_1.v4().replace(/-/g, '_');
                 microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], [size], []));
                 // Push the value into the array
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('pusharr')[0].microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
+                opcodes.exportScope
+                    .get('pusharr')[0]
+                    .microstatementInlining([arrayName, arrayLiteralContents[i].outputName, sizeName], scope, microstatements);
             }
             // REREF the array
             microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, arrayName, array.outputType, [], []));
         }
     }
     static closureDef(fns, scope, microstatements) {
-        const closuredefName = "_" + uuid_1.v4().replace(/-/g, "_");
+        const closuredefName = '_' + uuid_1.v4().replace(/-/g, '_');
         // Keep any rerefs around as closure references
-        const rerefs = microstatements.filter(m => m.statementType === StatementType_1.default.REREF);
+        const rerefs = microstatements.filter((m) => m.statementType === StatementType_1.default.REREF);
         microstatements.push(new Microstatement(StatementType_1.default.CLOSUREDEF, scope, true, // TODO: What should this be?
         closuredefName, Type_1.default.builtinTypes['function'], [], fns, '', true, rerefs));
     }
@@ -2936,7 +3147,7 @@ ${objectLiteralsAst.t} on line ${objectLiteralsAst.line}:${objectLiteralsAst.cha
         const idx = microstatements.length;
         const args = Object.entries(fn.args);
         for (const [name, type] of args) {
-            if (name !== "" && type.typename != "") {
+            if (name !== '' && type.typename != '') {
                 microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, name, type));
             }
         }
@@ -2949,11 +3160,12 @@ ${objectLiteralsAst.t} on line ${objectLiteralsAst.line}:${objectLiteralsAst.cha
         // There might be off-by-one bugs in the conversion here
         const innerMicrostatements = microstatements.slice(len, newlen);
         microstatements.splice(len, newlen - len);
-        const constName = "_" + uuid_1.v4().replace(/-/g, "_");
+        const constName = '_' + uuid_1.v4().replace(/-/g, '_');
         // if closure is not void return the last inner statement
         // TODO: Revisit this, if the closure doesn't have a type defined, sometimes it can only be
         // determined in the calling context and shouldn't be assumed to be `void`
-        if (innerMicrostatements.length > 0 && fn.getReturnType() !== Type_1.default.builtinTypes.void) {
+        if (innerMicrostatements.length > 0 &&
+            fn.getReturnType() !== Type_1.default.builtinTypes.void) {
             const last = innerMicrostatements[innerMicrostatements.length - 1];
             innerMicrostatements.push(new Microstatement(StatementType_1.default.EXIT, scope, true, last.outputName, last.outputType));
         }
@@ -3001,8 +3213,8 @@ ${emitsAst.t} on line ${emitsAst.line}:${emitsAst.char}`);
         }
         else {
             // Otherwise, create a microstatement with no value
-            const constName = "_" + uuid_1.v4().replace(/-/g, "_");
-            microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, Type_1.default.builtinTypes.void, ["void"], null));
+            const constName = '_' + uuid_1.v4().replace(/-/g, '_');
+            microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, constName, Type_1.default.builtinTypes.void, ['void'], null));
         }
     }
     static fromAssignmentsAst(assignmentsAst, scope, microstatements) {
@@ -3056,7 +3268,8 @@ ${assignmentsAst.t} on line ${assignmentsAst.line}:${assignmentsAst.char}`);
             throw new Error(`Attempting to reassign to an undeclared variable
 ${assignmentsAst.t} on line ${assignmentsAst.line}:${assignmentsAst.char}`);
         }
-        if (segments.length === 1) { // Could be a simple let variable
+        if (segments.length === 1) {
+            // Could be a simple let variable
             const letName = segments[0].t;
             let actualLetName;
             for (let i = microstatements.length - 1; i >= 0; i--) {
@@ -3090,8 +3303,9 @@ ${letName} on line ${assignmentsAst.line}:${assignmentsAst.char}`);
             if (last.statementType === StatementType_1.default.REREF) {
                 // Find what it's rereferencing and adjust that, instead
                 for (let i = microstatements.length - 2; i >= 0; i--) {
-                    let m = microstatements[i];
-                    if (m.outputName === last.outputName && m.statementType !== StatementType_1.default.REREF) {
+                    const m = microstatements[i];
+                    if (m.outputName === last.outputName &&
+                        m.statementType !== StatementType_1.default.REREF) {
                         last = m;
                         break;
                     }
@@ -3104,8 +3318,9 @@ ${letName} on line ${assignmentsAst.line}:${assignmentsAst.char}`);
                 if (last.statementType === StatementType_1.default.REREF) {
                     // Find what it's rereferencing and adjust that, instead
                     for (let i = microstatements.length - 2; i >= 0; i--) {
-                        let m = microstatements[i];
-                        if (m.outputName === last.outputName && m.statementType !== StatementType_1.default.REREF) {
+                        const m = microstatements[i];
+                        if (m.outputName === last.outputName &&
+                            m.statementType !== StatementType_1.default.REREF) {
                             last = m;
                             break;
                         }
@@ -3119,30 +3334,41 @@ ${letName} on line ${assignmentsAst.line}:${assignmentsAst.char}`);
             // or `Either` with the result value only in one branch or one type in each of the branches
             // for `Either`).
             if (original.outputType.typename !== last.outputType.typename) {
-                if (!!original.outputType.iface) {
+                if (original.outputType.iface) {
                     // Just overwrite if it's an interface type
                     original.outputType = last.outputType;
                 }
                 else if (!!original.outputType.originalType &&
                     !!last.outputType.originalType &&
-                    original.outputType.originalType.typename === last.outputType.originalType.typename) {
+                    original.outputType.originalType.typename ===
+                        last.outputType.originalType.typename) {
                     // The tricky path, let's try to merge the two types together
                     const baseType = original.outputType.originalType;
                     const originalTypeAst = Ast.fulltypenameAstFromString(original.outputType.typename);
                     const lastTypeAst = Ast.fulltypenameAstFromString(last.outputType.typename);
                     const originalSubtypes = [];
                     if (originalTypeAst.has('opttypegenerics')) {
-                        const originalTypeGenerics = originalTypeAst.get('opttypegenerics').get('generics');
+                        const originalTypeGenerics = originalTypeAst
+                            .get('opttypegenerics')
+                            .get('generics');
                         originalSubtypes.push(originalTypeGenerics.get('fulltypename').t);
-                        originalTypeGenerics.get('cdr').getAll().forEach(r => {
+                        originalTypeGenerics
+                            .get('cdr')
+                            .getAll()
+                            .forEach((r) => {
                             originalSubtypes.push(r.get('fulltypename').t);
                         });
                     }
                     const lastSubtypes = [];
                     if (lastTypeAst.has('opttypegenerics')) {
-                        const lastTypeGenerics = lastTypeAst.get('opttypegenerics').get('generics');
+                        const lastTypeGenerics = lastTypeAst
+                            .get('opttypegenerics')
+                            .get('generics');
                         lastSubtypes.push(lastTypeGenerics.get('fulltypename').t);
-                        lastTypeGenerics.get('cdr').getAll().forEach(r => {
+                        lastTypeGenerics
+                            .get('cdr')
+                            .getAll()
+                            .forEach((r) => {
                             lastSubtypes.push(r.get('fulltypename').t);
                         });
                     }
@@ -3152,11 +3378,11 @@ ${letName} on line ${assignmentsAst.line}:${assignmentsAst.char}`);
                             newSubtypes.push(originalSubtypes[i]);
                         }
                         else {
-                            let originalSubtype = scope.deepGet(originalSubtypes[i]);
-                            if (!!originalSubtype.iface) {
+                            const originalSubtype = scope.deepGet(originalSubtypes[i]);
+                            if (originalSubtype.iface) {
                                 newSubtypes.push(lastSubtypes[i]);
                             }
-                            else if (!!originalSubtype.originalType) {
+                            else if (originalSubtype.originalType) {
                                 // TODO: Support nesting
                                 newSubtypes.push(originalSubtypes[i]);
                             }
@@ -3205,11 +3431,13 @@ ${assignmentsAst.get('varn').t} on line ${assignmentsAst.line}:${assignmentsAst.
 ${assignmentsAst.get('varn').t} on line ${assignmentsAst.get('varn').line}:${assignmentsAst.get('varn').char}`);
                 }
                 // Create a new variable to hold the address within the array literal
-                const addrName = "_" + uuid_1.v4().replace(/-/g, "_");
+                const addrName = '_' + uuid_1.v4().replace(/-/g, '_');
                 microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, addrName, Type_1.default.builtinTypes['int64'], [`${fieldNum}`], []));
                 // Insert a `register` opcode.
                 const opcodes = require('./opcodes').default;
-                opcodes.exportScope.get('register')[0].microstatementInlining([original.outputName, addrName], scope, microstatements);
+                opcodes.exportScope
+                    .get('register')[0]
+                    .microstatementInlining([original.outputName, addrName], scope, microstatements);
                 // Now, we need to update the type we're working with.
                 nestedLetType = Object.values(nestedLetType.properties)[fieldNum];
                 // Now update the `original` record to the new `register` result
@@ -3222,8 +3450,16 @@ ${assignmentsAst.get('varn').t} on line ${assignmentsAst.get('varn').line}:${ass
         // Next, determine which kind of final segment this is and perform the appropriate action to
         // insert into with a `copytof` or `copytov` opcode.
         const copytoop = [
-            'int8', 'int16', 'int32', 'int64', 'float32', 'float64', 'bool'
-        ].includes(assign.outputType.typename) ? 'copytof' : 'copytov';
+            'int8',
+            'int16',
+            'int32',
+            'int64',
+            'float32',
+            'float64',
+            'bool',
+        ].includes(assign.outputType.typename)
+            ? 'copytof'
+            : 'copytov';
         const finalSegment = segments[segments.length - 1];
         if (finalSegment.has('variable')) {
             const fieldName = finalSegment.t;
@@ -3240,11 +3476,13 @@ ${letName} on line ${assignmentsAst.line}:${assignmentsAst.char}`);
                 throw new Error(`${letName}.${fieldName} is of type ${originalType.typename} but assigned a value of type ${assign.outputType.typename}`);
             }
             // Create a new variable to hold the address within the array literal
-            const addrName = "_" + uuid_1.v4().replace(/-/g, "_");
+            const addrName = '_' + uuid_1.v4().replace(/-/g, '_');
             microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, addrName, Type_1.default.builtinTypes['int64'], [`${fieldNum}`], []));
             // Insert a `copytof` or `copytov` opcode.
             const opcodes = require('./opcodes').default;
-            opcodes.exportScope.get(copytoop)[0].microstatementInlining([original.outputName, addrName, assign.outputName], scope, microstatements);
+            opcodes.exportScope
+                .get(copytoop)[0]
+                .microstatementInlining([original.outputName, addrName, assign.outputName], scope, microstatements);
         }
         else {
             throw new Error(`${finalSegment.t} cannot be the final piece in a reassignment statement
@@ -3253,9 +3491,9 @@ ${letName} on line ${assignmentsAst.line}:${assignmentsAst.char}`);
     }
     static fromLetdeclarationAst(letdeclarationAst, scope, microstatements) {
         const letAlias = letdeclarationAst.get('variable').t;
-        const letTypeHint = letdeclarationAst.get('typedec').has() ?
-            letdeclarationAst.get('typedec').get('fulltypename').t :
-            '';
+        const letTypeHint = letdeclarationAst.get('typedec').has()
+            ? letdeclarationAst.get('typedec').get('fulltypename').t
+            : '';
         const type = scope.deepGet(letTypeHint);
         if (type === null && letTypeHint !== '') {
             // Try to define it if it's a generic type
@@ -3269,7 +3507,10 @@ ${letdeclarationAst.t} on line ${letdeclarationAst.line}:${letdeclarationAst.cha
                 const generics = [];
                 const genericAst = letTypeAst.get('opttypegenerics').get('generics');
                 generics.push(genericAst.get('fulltypename').t);
-                genericAst.get('cdr').getAll().forEach(r => {
+                genericAst
+                    .get('cdr')
+                    .getAll()
+                    .forEach((r) => {
                     generics.push(r.get('fulltypename').t);
                 });
                 outerType.solidify(generics, scope);
@@ -3288,15 +3529,17 @@ ${letdeclarationAst.t} on line ${letdeclarationAst.line}:${letdeclarationAst.cha
         microstatements.push(new Microstatement(StatementType_1.default.REREF, scope, true, val.outputName, val.outputType, [], [], letAlias));
     }
     static fromConstdeclarationAst(constdeclarationAst, scope, microstatements) {
-        const constName = "_" + uuid_1.v4().replace(/-/g, "_");
+        const constName = '_' + uuid_1.v4().replace(/-/g, '_');
         const constAlias = constdeclarationAst.get('variable').t;
-        const constTypeHint = constdeclarationAst.get('typedec').has() ?
-            constdeclarationAst.get('typedec').get('fulltypename').t :
-            '';
+        const constTypeHint = constdeclarationAst.get('typedec').has()
+            ? constdeclarationAst.get('typedec').get('fulltypename').t
+            : '';
         const type = scope.deepGet(constTypeHint);
         if (type === null && constTypeHint !== '') {
             // Try to define it if it's a generic type
-            const constTypeAst = constdeclarationAst.get('typedec').get('fulltypename');
+            const constTypeAst = constdeclarationAst
+                .get('typedec')
+                .get('fulltypename');
             if (constTypeAst.has('opttypegenerics')) {
                 const outerType = scope.deepGet(constTypeAst.get('typename').t);
                 if (outerType === null) {
@@ -3306,7 +3549,10 @@ ${constdeclarationAst.t} on line ${constdeclarationAst.line}:${constdeclarationA
                 const generics = [];
                 const genericAst = constTypeAst.get('opttypegenerics').get('generics');
                 generics.push(genericAst.get('fulltypename').t);
-                genericAst.get('cdr').getAll().forEach(r => {
+                genericAst
+                    .get('cdr')
+                    .getAll()
+                    .forEach((r) => {
                     generics.push(r.get('fulltypename').t);
                 });
                 outerType.solidify(generics, scope);
@@ -3398,31 +3644,36 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                 // TODO: Do we even do anything else in this branch?
             }
             else if (baseassignable.has('variable')) {
-                const nextassignable = !!baseAssignableAsts[i + 1] ?
-                    baseAssignableAsts[i + 1].get('baseassignable') :
-                    undefined;
+                const nextassignable = baseAssignableAsts[i + 1]
+                    ? baseAssignableAsts[i + 1].get('baseassignable')
+                    : undefined;
                 if (!!nextassignable && nextassignable.has('fncall')) {
                     // This is a function call path
                     const fncall = nextassignable.get('fncall');
                     const argAsts = [];
                     if (fncall.get('assignablelist').has()) {
                         argAsts.push(fncall.get('assignablelist').get('assignables'));
-                        fncall.get('assignablelist').get('cdr').getAll().forEach(r => {
+                        fncall
+                            .get('assignablelist')
+                            .get('cdr')
+                            .getAll()
+                            .forEach((r) => {
                             argAsts.push(r.get('assignables'));
                         });
                     }
-                    const argMicrostatements = argAsts.map(arg => {
+                    const argMicrostatements = argAsts.map((arg) => {
                         Microstatement.fromAssignablesAst(arg, scope, microstatements);
                         return microstatements[microstatements.length - 1];
                     });
                     if (currVal === null) {
                         // This is a basic function call
-                        const realArgNames = argMicrostatements.map(arg => arg.outputName);
-                        const realArgTypes = argMicrostatements.map(arg => arg.outputType);
+                        const realArgNames = argMicrostatements.map((arg) => arg.outputName);
+                        const realArgTypes = argMicrostatements.map((arg) => arg.outputType);
                         // Do a scan of the microstatements for an inner defined closure that might exist.
                         const fn = scope.deepGet(baseassignable.get('variable').t);
                         if (!fn ||
-                            !(fn instanceof Array && fn[0].microstatementInlining instanceof Function)) {
+                            !(fn instanceof Array &&
+                                fn[0].microstatementInlining instanceof Function)) {
                             const fnName = baseassignable.get('variable').t;
                             let actualFnName;
                             let inlinedClosure = false;
@@ -3433,13 +3684,16 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                                 }
                                 if (microstatements[i].outputName === actualFnName &&
                                     microstatements[i].statementType === StatementType_1.default.CLOSUREDEF) {
-                                    const m = [...microstatements, ...microstatements[i].closureStatements];
+                                    const m = [
+                                        ...microstatements,
+                                        ...microstatements[i].closureStatements,
+                                    ];
                                     const fn = UserFunction_1.default.dispatchFn(microstatements[i].fns, realArgTypes, scope);
                                     const interfaceMap = new Map();
                                     Object.values(fn.getArguments()).forEach((t, i) => t.typeApplies(realArgTypes[i], scope, interfaceMap));
                                     Microstatement.closureFromUserFunction(fn, fn.scope || scope, m, interfaceMap);
                                     const closure = m.pop();
-                                    microstatements.push(...closure.closureStatements.filter(s => s.statementType !== StatementType_1.default.EXIT));
+                                    microstatements.push(...closure.closureStatements.filter((s) => s.statementType !== StatementType_1.default.EXIT));
                                     currVal = microstatements[microstatements.length - 1];
                                     inlinedClosure = true;
                                     break;
@@ -3454,51 +3708,48 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                             // Generate the relevant microstatements for this function. UserFunctions get inlined
                             // with the return statement turned into a const assignment as the last statement,
                             // while built-in functions are kept as function calls with the correct renaming.
-                            UserFunction_1.default
-                                .dispatchFn(fn, realArgTypes, scope)
-                                .microstatementInlining(realArgNames, scope, microstatements);
+                            UserFunction_1.default.dispatchFn(fn, realArgTypes, scope).microstatementInlining(realArgNames, scope, microstatements);
                             currVal = microstatements[microstatements.length - 1];
                         }
                     }
                     else if (currVal instanceof Scope_1.default) {
                         // This is calling a function by its parent scope
-                        const realArgNames = argMicrostatements.map(arg => arg.outputName);
-                        const realArgTypes = argMicrostatements.map(arg => arg.outputType);
+                        const realArgNames = argMicrostatements.map((arg) => arg.outputName);
+                        const realArgTypes = argMicrostatements.map((arg) => arg.outputType);
                         const fn = currVal.deepGet(baseassignable.get('variable').t);
                         if (!fn ||
-                            !(fn instanceof Array && fn[0].microstatementInlining instanceof Function)) {
+                            !(fn instanceof Array &&
+                                fn[0].microstatementInlining instanceof Function)) {
                             throw new Error(`${baseassignable.get('variable').t} is not a function but used as one.
 ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                         }
                         // Generate the relevant microstatements for this function. UserFunctions get inlined
                         // with the return statement turned into a const assignment as the last statement,
                         // while built-in functions are kept as function calls with the correct renaming.
-                        UserFunction_1.default
-                            .dispatchFn(fn, realArgTypes, scope)
-                            .microstatementInlining(realArgNames, scope, microstatements);
+                        UserFunction_1.default.dispatchFn(fn, realArgTypes, scope).microstatementInlining(realArgNames, scope, microstatements);
                         currVal = microstatements[microstatements.length - 1];
                     }
-                    else { // It's a method-style function call
+                    else {
+                        // It's a method-style function call
                         const realArgNames = [
                             currVal.outputName,
-                            ...argMicrostatements.map(arg => arg.outputName)
+                            ...argMicrostatements.map((arg) => arg.outputName),
                         ];
                         const realArgTypes = [
                             currVal.outputType,
-                            ...argMicrostatements.map(arg => arg.outputType)
+                            ...argMicrostatements.map((arg) => arg.outputType),
                         ];
                         const fn = scope.deepGet(baseassignable.get('variable').t);
                         if (!fn ||
-                            !(fn instanceof Array && fn[0].microstatementInlining instanceof Function)) {
+                            !(fn instanceof Array &&
+                                fn[0].microstatementInlining instanceof Function)) {
                             throw new Error(`${baseassignable.get('variable').t} is not a function but used as one.
 ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                         }
                         // Generate the relevant microstatements for this function. UserFunctions get inlined
                         // with the return statement turned into a const assignment as the last statement,
                         // while built-in functions are kept as function calls with the correct renaming.
-                        UserFunction_1.default
-                            .dispatchFn(fn, realArgTypes, scope)
-                            .microstatementInlining(realArgNames, scope, microstatements);
+                        UserFunction_1.default.dispatchFn(fn, realArgTypes, scope).microstatementInlining(realArgNames, scope, microstatements);
                         currVal = microstatements[microstatements.length - 1];
                     }
                     // Intentionally skip over the `fncall` block on the next iteration
@@ -3534,11 +3785,13 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
   ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                         }
                         // Create a new variable to hold the address within the array literal
-                        const addrName = "_" + uuid_1.v4().replace(/-/g, "_");
+                        const addrName = '_' + uuid_1.v4().replace(/-/g, '_');
                         microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, addrName, Type_1.default.builtinTypes['int64'], [`${fieldNum}`], []));
                         // Insert a `register` opcode.
                         const opcodes = require('./opcodes').default;
-                        opcodes.exportScope.get('register')[0].microstatementInlining([currVal.outputName, addrName], scope, microstatements);
+                        opcodes.exportScope
+                            .get('register')[0]
+                            .microstatementInlining([currVal.outputName, addrName], scope, microstatements);
                         // We'll need a reference to this for later
                         const typeRecord = currVal;
                         // Set the original to this newly-generated microstatement
@@ -3572,7 +3825,9 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                 }
                 // So the closures eval correctly, we add the alias microstatements to the scope
                 // TODO: Is this the right approach?
-                microstatements.filter(m => !!m.alias).forEach(m => scope.put(m.alias, m));
+                microstatements
+                    .filter((m) => !!m.alias)
+                    .forEach((m) => scope.put(m.alias, m));
                 const fn = UserFunction_1.default.fromFunctionsAst(baseassignable.get('functions'), scope);
                 currVal = fn;
             }
@@ -3585,7 +3840,8 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                 else {
                     // Can only be an array accessor syntax
                     const objlit = baseassignable.get('objectliterals');
-                    if (objlit.has('typeliteral') || objlit.get('arrayliteral').has('fullarrayliteral')) {
+                    if (objlit.has('typeliteral') ||
+                        objlit.get('arrayliteral').has('fullarrayliteral')) {
                         throw new Error(`Unexpected object literal definition detected.
 Previous value type: ${typeof currVal}
 ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
@@ -3596,7 +3852,9 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                         throw new Error(`Array access must provide only one index value to query the array with
 ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                     }
-                    const assignableAst = arrbase.get('assignablelist').get('assignables');
+                    const assignableAst = arrbase
+                        .get('assignablelist')
+                        .get('assignables');
                     Microstatement.fromAssignablesAst(assignableAst, scope, microstatements);
                     const arrIndex = microstatements[microstatements.length - 1];
                     if (!(currVal instanceof Microstatement) ||
@@ -3608,18 +3866,24 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                     if (arrIndex.outputType.typename === 'int64') {
                         const opcodes = require('./opcodes').default;
                         // Create a new variable to hold the `okR` size value
-                        const sizeName = "_" + uuid_1.v4().replace(/-/g, "_");
+                        const sizeName = '_' + uuid_1.v4().replace(/-/g, '_');
                         microstatements.push(new Microstatement(StatementType_1.default.CONSTDEC, scope, true, sizeName, Type_1.default.builtinTypes['int64'], ['8'], []));
                         // Insert an `okR` opcode.
-                        opcodes.exportScope.get('okR')[0].microstatementInlining([arrIndex.outputName, sizeName], scope, microstatements);
+                        opcodes.exportScope
+                            .get('okR')[0]
+                            .microstatementInlining([arrIndex.outputName, sizeName], scope, microstatements);
                         const wrapped = microstatements[microstatements.length - 1];
                         // Insert a `resfrom` opcode.
-                        opcodes.exportScope.get('resfrom')[0].microstatementInlining([currVal.outputName, wrapped.outputName], scope, microstatements);
+                        opcodes.exportScope
+                            .get('resfrom')[0]
+                            .microstatementInlining([currVal.outputName, wrapped.outputName], scope, microstatements);
                     }
                     else if (arrIndex.outputType.typename === 'Result<int64>') {
                         const opcodes = require('./opcodes').default;
                         // Insert a `resfrom` opcode.
-                        opcodes.exportScope.get('resfrom')[0].microstatementInlining([currVal.outputName, arrIndex.outputName], scope, microstatements);
+                        opcodes.exportScope
+                            .get('resfrom')[0]
+                            .microstatementInlining([currVal.outputName, arrIndex.outputName], scope, microstatements);
                     }
                     else {
                         throw new Error(`Array access must be done with an int64 or Result<int64> value
@@ -3640,12 +3904,19 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                 if (!currVal) {
                     // It's probably an assignable group
                     if (!baseassignable.get('fncall').get('assignablelist').has() ||
-                        baseassignable.get('fncall').get('assignablelist').get('cdr').getAll().length > 0) {
+                        baseassignable
+                            .get('fncall')
+                            .get('assignablelist')
+                            .get('cdr')
+                            .getAll().length > 0) {
                         throw new Error(`Expected a group of assignable values, but got a function call signature.
 ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                     }
                     // It *is* an assignable group!
-                    Microstatement.fromAssignablesAst(baseassignable.get('fncall').get('assignablelist').get('assignables'), scope, microstatements);
+                    Microstatement.fromAssignablesAst(baseassignable
+                        .get('fncall')
+                        .get('assignablelist')
+                        .get('assignables'), scope, microstatements);
                     currVal = microstatements[microstatements.length - 1];
                 }
                 else {
@@ -3662,7 +3933,8 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
             if (currVal instanceof UserFunction_1.default) {
                 Microstatement.closureDef([currVal], currVal.scope || scope, microstatements);
             }
-            else if (currVal instanceof Array && currVal[0] instanceof UserFunction_1.default) {
+            else if (currVal instanceof Array &&
+                currVal[0] instanceof UserFunction_1.default) {
                 Microstatement.closureDef(currVal, currVal[0].scope || scope, microstatements);
             }
         }
@@ -3672,18 +3944,24 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
     }
     static fromAssignablesAst(assignablesAst, scope, microstatements) {
         const withoperators = assignablesAst.getAll();
-        let withOperatorsList = [];
+        const withOperatorsList = [];
         for (const operatorOrAssignable of withoperators) {
             if (operatorOrAssignable.get('withoperators').has('operators')) {
-                const operator = operatorOrAssignable.get('withoperators').get('operators').get(1);
+                const operator = operatorOrAssignable
+                    .get('withoperators')
+                    .get('operators')
+                    .get(1);
                 const op = scope.get(operator.t);
                 if (op == null || !(op instanceof Array && op[0] instanceof Operator_1.default)) {
-                    throw new Error("Operator " + operator.t + " is not defined");
+                    throw new Error('Operator ' + operator.t + ' is not defined');
                 }
                 withOperatorsList.push(op);
             }
             else if (operatorOrAssignable.get('withoperators').has('baseassignablelist')) {
-                Microstatement.fromBaseAssignableAst(operatorOrAssignable.get('withoperators').get('baseassignablelist').getAll(), scope, microstatements);
+                Microstatement.fromBaseAssignableAst(operatorOrAssignable
+                    .get('withoperators')
+                    .get('baseassignablelist')
+                    .getAll(), scope, microstatements);
                 const last = microstatements[microstatements.length - 1];
                 withOperatorsList.push(last);
             }
@@ -3700,7 +3978,8 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
             let maxOperatorLoc = -1;
             let maxOperatorListLoc = -1;
             for (let i = 0; i < withOperatorsList.length; i++) {
-                if (withOperatorsList[i] instanceof Array && withOperatorsList[i][0] instanceof Operator_1.default) {
+                if (withOperatorsList[i] instanceof Array &&
+                    withOperatorsList[i][0] instanceof Operator_1.default) {
                     const ops = withOperatorsList[i];
                     let op = null;
                     let operatorListLoc = -1;
@@ -3726,11 +4005,11 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
                         if (right === null || right instanceof Microstatement) {
                             for (let j = 0; j < ops.length; j++) {
                                 if (ops[j].precedence > operatorPrecedence &&
-                                    ops[j].applicableFunction(!left ? // Left is special, if two operators are in a row, this one
-                                        null : // needs to be a prefix operator for this to work at all
-                                        left instanceof Microstatement ?
-                                            left.outputType :
-                                            null, right === null ? null : right.outputType, scope) != null) {
+                                    ops[j].applicableFunction(!left // Left is special, if two operators are in a row, this one
+                                        ? null // needs to be a prefix operator for this to work at all
+                                        : left instanceof Microstatement
+                                            ? left.outputType
+                                            : null, right === null ? null : right.outputType, scope) != null) {
                                     op = ops[j];
                                     operatorListLoc = j;
                                     operatorPrecedence = op.precedence;
@@ -3754,22 +4033,22 @@ ${baseassignable.t} on line ${baseassignable.line}:${baseassignable.char}`);
             if (maxPrecedence == -1 || maxOperatorLoc == -1) {
                 let errMsg = `Cannot resolve operators with remaining statement
 ${assignablesAst.t}`;
-                let withOperatorsTranslation = [];
+                const withOperatorsTranslation = [];
                 for (let i = 0; i < withOperatorsList.length; i++) {
                     const node = withOperatorsList[i];
                     if (node instanceof Array && node[0] instanceof Operator_1.default) {
                         withOperatorsTranslation.push(node[0].name);
                     }
                     else {
-                        withOperatorsTranslation.push("<" + node.outputType.typename + ">");
+                        withOperatorsTranslation.push('<' + node.outputType.typename + '>');
                     }
                 }
                 errMsg += '\n' + withOperatorsTranslation.join(' ');
                 throw new Error(errMsg);
             }
             const op = withOperatorsList[maxOperatorLoc][maxOperatorListLoc];
-            let realArgNames = [];
-            let realArgTypes = [];
+            const realArgNames = [];
+            const realArgTypes = [];
             if (!op.isPrefix) {
                 const left = withOperatorsList[maxOperatorLoc - 1];
                 realArgNames.push(left.outputName);
@@ -3778,9 +4057,7 @@ ${assignablesAst.t}`;
             const right = withOperatorsList[maxOperatorLoc + 1];
             realArgNames.push(right.outputName);
             realArgTypes.push(right.outputType);
-            UserFunction_1.default
-                .dispatchFn(op.potentialFunctions, realArgTypes, scope)
-                .microstatementInlining(realArgNames, scope, microstatements);
+            UserFunction_1.default.dispatchFn(op.potentialFunctions, realArgTypes, scope).microstatementInlining(realArgNames, scope, microstatements);
             const last = microstatements[microstatements.length - 1];
             withOperatorsList[maxOperatorLoc] = last;
             withOperatorsList.splice(maxOperatorLoc + 1, 1);
@@ -3831,7 +4108,7 @@ class Module {
         // it is a built-in std module, it inherits from the root scope, otherwise it attaches all
         // exported references. This way std modules get access to the opcode scope via inheritance and
         // 'normal' modules do not.
-        let module = new Module(isStd ? rootScope : undefined);
+        const module = new Module(isStd ? rootScope : undefined);
         if (!isStd) {
             for (const rootModuleName of Object.keys(rootScope.vals)) {
                 module.moduleScope.put(rootModuleName, rootScope.vals[rootModuleName]);
@@ -3849,7 +4126,7 @@ class Module {
                     importName = standardImport.get('renamed').get('varop').t;
                 }
                 else {
-                    let nameParts = standardImport.get('dependency').t.split('/');
+                    const nameParts = standardImport.get('dependency').t.split('/');
                     importName = nameParts[nameParts.length - 1];
                 }
                 const importedModule = modules[Ast.resolveDependency(path, importAst.get('standardImport').get('dependency'))];
@@ -3861,7 +4138,12 @@ class Module {
                 const importedModule = modules[Ast.resolveDependency(path, importAst.get('fromImport').get('dependency'))];
                 const vars = [];
                 vars.push(importAst.get('fromImport').get('varlist').get('renameablevar'));
-                importAst.get('fromImport').get('varlist').get('cdr').getAll().forEach(r => {
+                importAst
+                    .get('fromImport')
+                    .get('varlist')
+                    .get('cdr')
+                    .getAll()
+                    .forEach((r) => {
                     vars.push(r.get('renameablevar'));
                 });
                 for (const moduleVar of vars) {
@@ -3871,7 +4153,8 @@ class Module {
                         importName = moduleVar.get('renamed').get('varop').t;
                     }
                     const thing = importedModule.exportScope.shallowGet(exportName);
-                    if (thing instanceof Array && thing[0].microstatementInlining instanceof Function) {
+                    if (thing instanceof Array &&
+                        thing[0].microstatementInlining instanceof Function) {
                         const otherthing = module.moduleScope.deepGet(importName);
                         if (!!otherthing &&
                             otherthing instanceof Array &&
@@ -3884,7 +4167,9 @@ class Module {
                     }
                     else if (thing instanceof Array && thing[0] instanceof Operator_1.default) {
                         const otherthing = module.moduleScope.deepGet(importName);
-                        if (!!otherthing && otherthing instanceof Array && otherthing instanceof Operator_1.default) {
+                        if (!!otherthing &&
+                            otherthing instanceof Array &&
+                            otherthing instanceof Operator_1.default) {
                             module.moduleScope.put(importName, [...thing, ...otherthing]);
                         }
                         else {
@@ -3901,32 +4186,33 @@ class Module {
                     if (thing instanceof Type_1.Type && thing.iface) {
                         const iface = thing.iface;
                         const typesToCheck = Object.keys(importedModule.exportScope.vals)
-                            .map(n => importedModule.exportScope.vals[n])
-                            .filter(v => v instanceof Type_1.Type);
+                            .map((n) => importedModule.exportScope.vals[n])
+                            .filter((v) => v instanceof Type_1.Type);
                         const fnsToCheck = Object.keys(importedModule.exportScope.vals)
-                            .map(n => importedModule.exportScope.vals[n])
-                            .filter(v => v instanceof Array && v[0].microstatementInlining instanceof Function);
+                            .map((n) => importedModule.exportScope.vals[n])
+                            .filter((v) => v instanceof Array &&
+                            v[0].microstatementInlining instanceof Function);
                         const opsToCheck = Object.keys(importedModule.exportScope.vals)
-                            .map(n => importedModule.exportScope.vals[n])
-                            .filter(v => v instanceof Array && v[0] instanceof Operator_1.default);
+                            .map((n) => importedModule.exportScope.vals[n])
+                            .filter((v) => v instanceof Array && v[0] instanceof Operator_1.default);
                         typesToCheck
-                            .filter(t => iface.typeApplies(t, importedModule.exportScope))
-                            .forEach(t => {
+                            .filter((t) => iface.typeApplies(t, importedModule.exportScope))
+                            .forEach((t) => {
                             module.moduleScope.put(t.typename, t);
                         });
                         fnsToCheck
-                            .filter(fn => {
+                            .filter((fn) => {
                             // TODO: Make this better and move it to the Interface file in the future
                             return iface.functionTypes.some((ft) => ft.functionname === fn[0].getName());
                         })
-                            .forEach(fn => {
+                            .forEach((fn) => {
                             module.moduleScope.put(fn[0].getName(), fn);
                         });
                         opsToCheck
-                            .filter(op => {
+                            .filter((op) => {
                             return iface.operatorTypes.some((ot) => ot.operatorname === op[0].name);
                         })
-                            .forEach(op => {
+                            .forEach((op) => {
                             module.moduleScope.put(op[0].name, op);
                         });
                     }
@@ -3935,38 +4221,44 @@ class Module {
         }
         const body = ast.get('body').getAll();
         // Next, types
-        const types = body.filter(r => r.has('types')).map(r => r.get('types'));
+        const types = body.filter((r) => r.has('types')).map((r) => r.get('types'));
         for (const typeAst of types) {
             const newType = Type_1.Type.fromAst(typeAst, module.moduleScope);
             module.moduleScope.put(newType.typename, newType.alias ? newType.alias : newType);
         }
         // Next, interfaces
-        const interfaces = body.filter(r => r.has('interfaces')).map(r => r.get('interfaces'));
+        const interfaces = body
+            .filter((r) => r.has('interfaces'))
+            .map((r) => r.get('interfaces'));
         for (const interfaceAst of interfaces) {
             Type_1.Interface.fromAst(interfaceAst, module.moduleScope);
             // Automatically inserts the interface into the module scope, we're done.
         }
         // Next, constants
         const constdeclarations = body
-            .filter(r => r.has('constdeclaration'))
-            .map(r => r.get('constdeclaration'));
+            .filter((r) => r.has('constdeclaration'))
+            .map((r) => r.get('constdeclaration'));
         for (const constdeclaration of constdeclarations) {
             Constant_1.default.fromAst(constdeclaration, module.moduleScope);
         }
         // Next, events
-        const events = body.filter(r => r.has('events')).map(r => r.get('events'));
+        const events = body
+            .filter((r) => r.has('events'))
+            .map((r) => r.get('events'));
         for (const eventAst of events) {
             const newEvent = Event_1.default.fromAst(eventAst, module.moduleScope);
             module.moduleScope.put(newEvent.name, newEvent);
         }
         // Next, functions
-        const functions = body.filter(r => r.has('functions')).map(r => r.get('functions'));
+        const functions = body
+            .filter((r) => r.has('functions'))
+            .map((r) => r.get('functions'));
         for (const functionAst of functions) {
             const newFunc = UserFunction_1.default.fromAst(functionAst, module.moduleScope);
             if (newFunc.getName() == null) {
-                throw new Error("Module-level functions must have a name");
+                throw new Error('Module-level functions must have a name');
             }
-            let fns = module.moduleScope.get(newFunc.getName());
+            const fns = module.moduleScope.get(newFunc.getName());
             if (fns == null) {
                 module.moduleScope.put(newFunc.getName(), [newFunc]);
             }
@@ -3976,15 +4268,23 @@ class Module {
         }
         // Next, operators
         const operatorMapping = body
-            .filter(r => r.has('operatormapping'))
-            .map(r => r.get('operatormapping'));
+            .filter((r) => r.has('operatormapping'))
+            .map((r) => r.get('operatormapping'));
         for (const operatorAst of operatorMapping) {
             const isPrefix = operatorAst.get('fix').has('prefix');
-            const name = operatorAst.get('opmap').get().get('fntoop').get('operators').t.trim();
+            const name = operatorAst
+                .get('opmap')
+                .get()
+                .get('fntoop')
+                .get('operators')
+                .t.trim();
             const precedence = parseInt(operatorAst.get('opmap').get().get('opprecedence').get('num').t, 10);
             const fns = module.moduleScope.deepGet(operatorAst.get('opmap').get().get('fntoop').get('fnname').t);
             if (!fns) {
-                throw new Error("Operator " + name + " declared for unknown function " + operatorAst.t);
+                throw new Error('Operator ' +
+                    name +
+                    ' declared for unknown function ' +
+                    operatorAst.t);
             }
             const op = new Operator_1.default(name, precedence, isPrefix, fns);
             const opsBox = module.moduleScope.deepGet(name);
@@ -3993,15 +4293,15 @@ class Module {
             }
             else {
                 // To make sure we don't accidentally mutate other scopes, we're cloning this operator list
-                let ops = [...opsBox];
+                const ops = [...opsBox];
                 ops.push(op);
                 module.moduleScope.put(name, ops);
             }
         }
         // Next, exports, which can be most of the above
         const exports = body
-            .filter(r => r.has('exportsn'))
-            .map(r => r.get('exportsn').get('exportable'));
+            .filter((r) => r.has('exportsn'))
+            .map((r) => r.get('exportsn').get('exportable'));
         for (const exportAst of exports) {
             if (exportAst.has('ref')) {
                 const exportVar = module.moduleScope.deepGet(exportAst.get('ref').t);
@@ -4033,14 +4333,14 @@ ${exportAst.get('functions').t}
                 }
                 // Exported scope must be checked first because it will fall through to the not-exported
                 // scope by default.
-                let expFns = module.exportScope.shallowGet(newFunc.getName());
+                const expFns = module.exportScope.shallowGet(newFunc.getName());
                 if (!expFns) {
                     module.exportScope.put(newFunc.getName(), [newFunc]);
                 }
                 else {
                     expFns.push(newFunc);
                 }
-                let modFns = module.moduleScope.get(newFunc.getName());
+                const modFns = module.moduleScope.get(newFunc.getName());
                 if (!modFns) {
                     module.moduleScope.put(newFunc.getName(), [newFunc]);
                 }
@@ -4051,39 +4351,44 @@ ${exportAst.get('functions').t}
             else if (exportAst.has('operatormapping')) {
                 const operatorAst = exportAst.get('operatormapping');
                 const isPrefix = operatorAst.get('fix').has('prefix');
-                const name = operatorAst.get('opmap').get().get('fntoop').get('operators').t.trim();
+                const name = operatorAst
+                    .get('opmap')
+                    .get()
+                    .get('fntoop')
+                    .get('operators')
+                    .t.trim();
                 const precedence = parseInt(operatorAst.get('opmap').get().get('opprecedence').get('num').t, 10);
                 let fns = module.moduleScope.deepGet(operatorAst.get('opmap').get().get('fntoop').get('fnname').t);
                 if (!fns) {
                     fns = module.moduleScope.deepGet(operatorAst.get('opmap').get().get('fntoop').get('fnname').t);
-                    if (!!fns) {
-                        throw new Error("Exported operator " +
+                    if (fns) {
+                        throw new Error('Exported operator ' +
                             name +
-                            " wrapping unexported function " +
+                            ' wrapping unexported function ' +
                             operatorAst.get('opmap').get('fntoop').get('fnname').t +
-                            " which is not allowed, please export the function, as well.");
+                            ' which is not allowed, please export the function, as well.');
                     }
-                    throw new Error("Operator " +
+                    throw new Error('Operator ' +
                         name +
-                        " declared for unknown function " +
+                        ' declared for unknown function ' +
                         operatorAst.get('opmap').get('fntoop').get('fnname').t);
                 }
                 const op = new Operator_1.default(name, precedence, isPrefix, fns);
-                let modOpsBox = module.moduleScope.deepGet(name);
+                const modOpsBox = module.moduleScope.deepGet(name);
                 if (!modOpsBox) {
                     module.moduleScope.put(name, [op]);
                 }
                 else {
-                    let ops = [...modOpsBox];
+                    const ops = [...modOpsBox];
                     ops.push(op);
                     module.moduleScope.put(name, ops);
                 }
-                let expOpsBox = module.exportScope.deepGet(name);
+                const expOpsBox = module.exportScope.deepGet(name);
                 if (!expOpsBox) {
                     module.exportScope.put(name, [op]);
                 }
                 else {
-                    let ops = [...expOpsBox];
+                    const ops = [...expOpsBox];
                     ops.push(op);
                     module.exportScope.put(name, ops);
                 }
@@ -4095,29 +4400,33 @@ ${exportAst.get('functions').t}
             }
             else {
                 // What?
-                throw new Error("What should be an impossible export state has been reached.");
+                throw new Error('What should be an impossible export state has been reached.');
             }
         }
         // Finally, event handlers, so they can depend on events that are exported from the same module
-        const handlers = body.filter(r => r.has('handlers')).map(r => r.get('handlers'));
+        const handlers = body
+            .filter((r) => r.has('handlers'))
+            .map((r) => r.get('handlers'));
         for (const handlerAst of handlers) {
             const evt = module.moduleScope.deepGet(handlerAst.get('eventname').t);
             if (!evt)
-                throw new Error("Could not find specified event: " + handlerAst.get('eventname').t);
+                throw new Error('Could not find specified event: ' + handlerAst.get('eventname').t);
             if (!(evt instanceof Event_1.default))
-                throw new Error(handlerAst.get('eventname').t + " is not an event");
+                throw new Error(handlerAst.get('eventname').t + ' is not an event');
             const handler = handlerAst.get('handler');
             let fn = null;
             if (handler.has('fnname')) {
                 const fnName = handler.get('fnname').t;
                 const fns = module.moduleScope.deepGet(fnName);
                 if (!fns)
-                    throw new Error("Could not find specified function: " + fnName);
-                if (!(fns instanceof Array && fns[0].microstatementInlining instanceof Function)) {
-                    throw new Error(fnName + " is not a function");
+                    throw new Error('Could not find specified function: ' + fnName);
+                if (!(fns instanceof Array &&
+                    fns[0].microstatementInlining instanceof Function)) {
+                    throw new Error(fnName + ' is not a function');
                 }
                 for (let i = 0; i < fns.length; i++) {
-                    if (evt.type.typename === "void" && Object.values(fns[i].getArguments()).length === 0) {
+                    if (evt.type.typename === 'void' &&
+                        Object.values(fns[i].getArguments()).length === 0) {
                         fn = fns[i];
                         break;
                     }
@@ -4130,9 +4439,9 @@ ${exportAst.get('functions').t}
                     }
                 }
                 if (fn == null) {
-                    throw new Error("Could not find function named " +
+                    throw new Error('Could not find function named ' +
                         fnName +
-                        " with matching function signature");
+                        ' with matching function signature');
                 }
             }
             if (handler.has('functions')) {
@@ -4143,20 +4452,21 @@ ${exportAst.get('functions').t}
             }
             if (!fn) {
                 // Shouldn't be possible
-                throw new Error("Impossible state reached processing event handler");
+                throw new Error('Impossible state reached processing event handler');
             }
             if (Object.keys(fn.getArguments()).length > 1 ||
-                (evt.type === Type_1.Type.builtinTypes["void"] && Object.keys(fn.getArguments()).length !== 0)) {
-                throw new Error("Function provided for " +
+                (evt.type === Type_1.Type.builtinTypes['void'] &&
+                    Object.keys(fn.getArguments()).length !== 0)) {
+                throw new Error('Function provided for ' +
                     handlerAst.get('eventname').t +
-                    " has invalid argument signature");
+                    ' has invalid argument signature');
             }
             evt.handlers.push(fn);
         }
         return module;
     }
     static modulesFromAsts(astMap, rootScope) {
-        let modulePaths = Object.keys(astMap);
+        const modulePaths = Object.keys(astMap);
         while (modulePaths.length > 0) {
             for (let i = 0; i < modulePaths.length; i++) {
                 const path = modulePaths[i];
@@ -4196,7 +4506,7 @@ class Operator {
         this.potentialFunctions = potentialFunctions;
     }
     applicableFunction(left, right, scope) {
-        let argumentTypeList = [];
+        const argumentTypeList = [];
         if (!this.isPrefix) {
             if (left == null)
                 return null;
@@ -4216,7 +4526,8 @@ class Operator {
                 if (argList[j].iface &&
                     argList[j].iface.typeApplies(argumentTypeList[j], scope))
                     continue;
-                if (argList[j].generics.length > 0 && argumentTypeList[j].originalType == argList[j]) {
+                if (argList[j].generics.length > 0 &&
+                    argumentTypeList[j].originalType == argList[j]) {
                     continue;
                 }
                 if (argList[j].originalType != null &&
@@ -4225,15 +4536,33 @@ class Operator {
                     const argumentTypeListAst = Ast.fulltypenameAstFromString(argumentTypeList[j].typename);
                     const argGenericTypes = [];
                     if (argListAst.has('opttypegenerics')) {
-                        argGenericTypes.push(argListAst.get('opttypegenerics').get('generics').get('fulltypename').t);
-                        argListAst.get('opttypegenerics').get('generics').get('cdr').getAll().map(r => {
+                        argGenericTypes.push(argListAst
+                            .get('opttypegenerics')
+                            .get('generics')
+                            .get('fulltypename').t);
+                        argListAst
+                            .get('opttypegenerics')
+                            .get('generics')
+                            .get('cdr')
+                            .getAll()
+                            .map((r) => {
                             argGenericTypes.push(r.get('fulltypename').t);
                         });
                     }
                     const argumentGenericTypes = [];
                     if (argumentTypeListAst.has('opttypegenerics')) {
-                        argumentGenericTypes.push(argumentTypeListAst.get('opttypegenerics').get('generics').get('fulltypename').t);
-                        argumentTypeListAst.get('opttypegenerics').get('generics').get('cdr').getAll().map(r => { argumentGenericTypes.push(r.get('fulltypename').t); });
+                        argumentGenericTypes.push(argumentTypeListAst
+                            .get('opttypegenerics')
+                            .get('generics')
+                            .get('fulltypename').t);
+                        argumentTypeListAst
+                            .get('opttypegenerics')
+                            .get('generics')
+                            .get('cdr')
+                            .getAll()
+                            .map((r) => {
+                            argumentGenericTypes.push(r.get('fulltypename').t);
+                        });
                     }
                     let innerSkip = false;
                     for (let i = 0; i < argGenericTypes.length; i++) {
@@ -4247,7 +4576,8 @@ class Operator {
                             innerSkip = true;
                             break;
                         }
-                        if (!argumentTypeListProp || !(argumentTypeListProp instanceof Type_1.default)) {
+                        if (!argumentTypeListProp ||
+                            !(argumentTypeListProp instanceof Type_1.default)) {
                             innerSkip = true;
                             break;
                         }
@@ -4284,7 +4614,7 @@ class Scope {
         if (this.vals.hasOwnProperty(name)) {
             return this.vals[name];
         }
-        if (!!this.par) {
+        if (this.par) {
             const val = this.par.get(name);
             if (!val && !!this.secondaryPar) {
                 return this.secondaryPar.get(name);
@@ -4302,7 +4632,7 @@ class Scope {
         return null;
     }
     deepGet(fullName) {
-        const fullVar = fullName.trim().split(".");
+        const fullVar = fullName.trim().split('.');
         let boxedVar;
         for (let i = 0; i < fullVar.length; i++) {
             if (i === 0) {
@@ -4326,7 +4656,7 @@ class Scope {
         if (this.vals.hasOwnProperty(name)) {
             return true;
         }
-        if (!!this.par) {
+        if (this.par) {
             return this.par.has(name);
         }
         return false;
@@ -4343,8 +4673,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // Only implements the pieces necessary for the first stage compiler
 class Statement {
     constructor(statementAst, scope, pure) {
-        this.statementAst = statementAst,
-            this.scope = scope;
+        (this.statementAst = statementAst), (this.scope = scope);
         this.pure = pure;
     }
     isConditionalStatement() {
@@ -4368,7 +4697,11 @@ class Statement {
                 if (ba.has('fncall') && ba.get('fncall').has('assignablelist')) {
                     const innerAssignables = [];
                     innerAssignables.push(ba.get('fncall').get('assignablelist').get('assignables'));
-                    ba.get('fncall').get('assignablelist').get('cdr').getAll().map(a => {
+                    ba.get('fncall')
+                        .get('assignablelist')
+                        .get('cdr')
+                        .getAll()
+                        .map((a) => {
                         innerAssignables.push(a.get('assignables'));
                     });
                     for (const ia of innerAssignables) {
@@ -4386,9 +4719,9 @@ class Statement {
     hasObjectLiteral() {
         const s = this.statementAst;
         if (s.has('declarations')) {
-            const d = s.get('declarations').has('constdeclaration') ?
-                s.get('declarations').get('constdeclaration') :
-                s.get('declarations').get('letdeclaration');
+            const d = s.get('declarations').has('constdeclaration')
+                ? s.get('declarations').get('constdeclaration')
+                : s.get('declarations').get('letdeclaration');
             return Statement.assignablesHasObjectLiteral(d.get('assignables'));
         }
         if (s.has('assignments'))
@@ -4414,13 +4747,19 @@ class Statement {
         let pure = true;
         if (statementAst.has('declarations')) {
             if (statementAst.get('declarations').has('constdeclaration')) {
-                pure = Statement.isAssignablePure(statementAst.get('declarations').get('constdeclaration').get('assignables'), scope);
+                pure = Statement.isAssignablePure(statementAst
+                    .get('declarations')
+                    .get('constdeclaration')
+                    .get('assignables'), scope);
             }
             else if (statementAst.get('declarations').has('letdeclaration')) {
-                pure = Statement.isAssignablePure(statementAst.get('declarations').get('letdeclaration').get('assignables'), scope);
+                pure = Statement.isAssignablePure(statementAst
+                    .get('declarations')
+                    .get('letdeclaration')
+                    .get('assignables'), scope);
             }
             else {
-                throw new Error("Malformed AST. Invalid const/let declaration structure");
+                throw new Error('Malformed AST. Invalid const/let declaration structure');
             }
         }
         if (statementAst.has('assignments')) {
@@ -4512,20 +4851,21 @@ class Interface {
             if (!potentialFunctions ||
                 !(potentialFunctions instanceof Array &&
                     potentialFunctions[0].microstatementInlining instanceof Function)) {
-                throw new Error(functionType.functionname + " is not the name of a function");
+                throw new Error(functionType.functionname + ' is not the name of a function');
             }
             let functionFound = false;
             for (const potentialFunction of potentialFunctions) {
                 const argTypes = potentialFunction.getArguments();
                 let argsMatch = true;
-                let typeNames = Object.keys(argTypes);
+                const typeNames = Object.keys(argTypes);
                 for (let i = 0; i < typeNames.length; i++) {
                     const functionTypeArgType = functionType.args[i];
                     if (argTypes[typeNames[i]] === functionTypeArgType)
                         continue;
                     if (argTypes[typeNames[i]].originalType === functionTypeArgType)
                         continue;
-                    if (argTypes[typeNames[i]].originalType === functionTypeArgType.originalType &&
+                    if (argTypes[typeNames[i]].originalType ===
+                        functionTypeArgType.originalType &&
                         Object.values(functionTypeArgType.properties).every((prop, j) => {
                             const comparable = Object.values(argTypes[typeNames[i]].properties)[j];
                             if (prop === comparable)
@@ -4564,7 +4904,7 @@ class Interface {
                 for (const potentialFunction of potentialOperator.potentialFunctions) {
                     const argTypes = potentialFunction.getArguments();
                     let argsMatch = true;
-                    let typeNames = Object.keys(argTypes);
+                    const typeNames = Object.keys(argTypes);
                     for (let i = 0; i < typeNames.length; i++) {
                         const operatorTypeArgType = operatorType.args[i];
                         if (argTypes[typeNames[i]] === operatorTypeArgType)
@@ -4596,21 +4936,28 @@ class Interface {
         // This is all necessary so the interface can self-reference when constructing the function and
         // operator types.
         const interfacename = interfaceAst.get('variable').t;
-        let iface = new Interface(interfacename);
+        const iface = new Interface(interfacename);
         const ifaceType = new Type(interfacename, false, false, {}, {}, null, iface);
         scope.put(interfacename, ifaceType);
         // Now, insert the actual declarations of the interface, if there are any (if there are none,
         // it will provide only as much as a type generic -- you can set it to a variable and return it
         // but nothing else, unlike Go's ridiculous interpretation of a bare interface).
         if (interfaceAst.get('interfacedef').has('interfacebody') &&
-            interfaceAst.get('interfacedef').get('interfacebody').get('interfacelist').has()) {
+            interfaceAst
+                .get('interfacedef')
+                .get('interfacebody')
+                .get('interfacelist')
+                .has()) {
             const interfacelist = interfaceAst
                 .get('interfacedef')
                 .get('interfacebody')
                 .get('interfacelist');
             const interfacelines = [];
             interfacelines.push(interfacelist.get('interfaceline'));
-            interfacelist.get('cdr').getAll().forEach(l => {
+            interfacelist
+                .get('cdr')
+                .getAll()
+                .forEach((l) => {
                 interfacelines.push(l.get('interfaceline'));
             });
             for (const interfaceline of interfacelines) {
@@ -4619,19 +4966,23 @@ class Interface {
                     const functionname = functiontypeline.get('variable').t;
                     const typenames = [];
                     typenames.push(functiontypeline.get('functiontype').get('fulltypename').t);
-                    functiontypeline.get('functiontype').get('cdr').getAll().forEach(r => {
+                    functiontypeline
+                        .get('functiontype')
+                        .get('cdr')
+                        .getAll()
+                        .forEach((r) => {
                         typenames.push(r.get('fulltypename').t);
                     });
                     const returnType = scope.deepGet(functiontypeline.get('functiontype').get('returntype').t);
                     if (!returnType || !(returnType instanceof Type)) {
                         throw new Error(functiontypeline.get('functiontype').get('returntype').t +
-                            " is not a type");
+                            ' is not a type');
                     }
-                    let args = [];
+                    const args = [];
                     for (let i = 0; i < typenames.length; i++) {
                         const argument = scope.deepGet(typenames[i]);
                         if (!argument || !(argument instanceof Type)) {
-                            throw new Error(typenames[i] + " is not a type");
+                            throw new Error(typenames[i] + ' is not a type');
                         }
                         args.push(argument);
                     }
@@ -4639,15 +4990,24 @@ class Interface {
                     iface.functionTypes.push(functionType);
                 }
                 if (interfaceline.has('operatortypeline')) {
-                    const operatorname = interfaceline.get('operatortypeline').get('operators').t;
-                    const isPrefix = !interfaceline.get('operatortypeline').has('optleftarg');
+                    const operatorname = interfaceline
+                        .get('operatortypeline')
+                        .get('operators').t;
+                    const isPrefix = !interfaceline
+                        .get('operatortypeline')
+                        .has('optleftarg');
                     const argTypenames = [];
                     if (!isPrefix) {
-                        argTypenames.push(interfaceline.get('operatortypeline').get('optleftarg').get('leftarg').t);
+                        argTypenames.push(interfaceline
+                            .get('operatortypeline')
+                            .get('optleftarg')
+                            .get('leftarg').t);
                     }
                     argTypenames.push(interfaceline.get('operatortypeline').get('rightarg').t);
-                    const returnTypename = interfaceline.get('operatortypeline').get('fulltypename').t;
-                    const args = argTypenames.map(n => {
+                    const returnTypename = interfaceline
+                        .get('operatortypeline')
+                        .get('fulltypename').t;
+                    const args = argTypenames.map((n) => {
                         const box = scope.deepGet(n);
                         if (!box || !(box instanceof Type)) {
                             throw new Error(`${n} is not a type`);
@@ -4664,16 +5024,21 @@ class Interface {
                 if (interfaceline.has('propertytypeline')) {
                     const propertyType = scope.deepGet(interfaceline.get('propertytypeline').get('variable').t);
                     if (!propertyType || !(propertyType instanceof Type)) {
-                        throw new Error(interfaceline.get('propertytypeline').get('variable').t + " is not a type");
+                        throw new Error(interfaceline.get('propertytypeline').get('variable').t +
+                            ' is not a type');
                     }
                     iface.requiredProperties[interfaceline.get('propertytypeline').get('variable').t] = propertyType;
                 }
             }
         }
         else if (interfaceAst.get('interfacedef').has('interfacealias')) {
-            const otherInterface = scope.deepGet(interfaceAst.get('interfacedef').get('interfacealias').get('variable').t);
+            const otherInterface = scope.deepGet(interfaceAst.get('interfacedef').get('interfacealias').get('variable')
+                .t);
             if (!(otherInterface instanceof Type) || !otherInterface.iface) {
-                throw new Error(`${interfaceAst.get('interfacedef').get('interfacealias').get('variable').t} is not an interface`);
+                throw new Error(`${interfaceAst
+                    .get('interfacedef')
+                    .get('interfacealias')
+                    .get('variable').t} is not an interface`);
             }
             // Replace the interface with the other one
             ifaceType.iface = otherInterface.iface;
@@ -4696,32 +5061,39 @@ let Type = /** @class */ (() => {
         }
         toString() {
             if (this.iface != null)
-                return "// Interfaces TBD";
-            let outString = "type " + this.typename;
+                return '// Interfaces TBD';
+            let outString = 'type ' + this.typename;
             if (this.alias != null) {
-                outString += " = " + this.alias.typename;
+                outString += ' = ' + this.alias.typename;
                 return outString;
             }
             if (this.generics.length > 0) {
-                outString += "<" + Object.keys(this.generics).join(", ") + ">";
+                outString += '<' + Object.keys(this.generics).join(', ') + '>';
             }
-            outString += "{\n";
+            outString += '{\n';
             for (const propName of Object.keys(this.properties)) {
-                outString += "  " + propName + ": " + this.properties[propName].typename + "\n";
+                outString +=
+                    '  ' + propName + ': ' + this.properties[propName].typename + '\n';
             }
-            outString += "}\n";
+            outString += '}\n';
             return outString;
         }
         static fromAst(typeAst, scope) {
-            let type = new Type(typeAst.get('fulltypename').get('typename').t);
+            const type = new Type(typeAst.get('fulltypename').get('typename').t);
             const genScope = new Scope_1.default();
             const typeScope = new Scope_1.default(scope);
             typeScope.secondaryPar = genScope;
             if (typeAst.get('fulltypename').has('opttypegenerics')) {
-                const genericsAst = typeAst.get('fulltypename').get('opttypegenerics').get('generics');
+                const genericsAst = typeAst
+                    .get('fulltypename')
+                    .get('opttypegenerics')
+                    .get('generics');
                 const generics = [];
                 generics.push(genericsAst.get('fulltypename').t);
-                genericsAst.get('cdr').getAll().forEach(r => {
+                genericsAst
+                    .get('cdr')
+                    .getAll()
+                    .forEach((r) => {
                     generics.push(r.get('fulltypename').t);
                 });
                 for (let i = 0; i < generics.length; i++) {
@@ -4733,7 +5105,10 @@ let Type = /** @class */ (() => {
                 const typelist = typeAst.get('typedef').get('typebody').get('typelist');
                 const lines = [];
                 lines.push(typelist.get('typeline'));
-                typelist.get('cdr').getAll().forEach(r => {
+                typelist
+                    .get('cdr')
+                    .getAll()
+                    .forEach((r) => {
                     lines.push(r.get('typeline'));
                 });
                 for (const lineAst of lines) {
@@ -4745,9 +5120,15 @@ let Type = /** @class */ (() => {
                         const baseTypeName = lineAst.get('fulltypename').get('typename').t;
                         const genericsList = [];
                         if (lineAst.get('fulltypename').has('opttypegenerics')) {
-                            const innerGenerics = lineAst.get('fulltypename').get('opttypegenerics').get('generics');
+                            const innerGenerics = lineAst
+                                .get('fulltypename')
+                                .get('opttypegenerics')
+                                .get('generics');
                             genericsList.push(innerGenerics.get('fulltypename'));
-                            innerGenerics.get('cdr').getAll().forEach(r => {
+                            innerGenerics
+                                .get('cdr')
+                                .getAll()
+                                .forEach((r) => {
                                 genericsList.push(r.get('fulltypename'));
                             });
                         }
@@ -4757,9 +5138,14 @@ let Type = /** @class */ (() => {
                             const generic = genericsList.shift();
                             genericsQueue.push(generic);
                             if (generic.has('opttypegenerics')) {
-                                const innerInnerGenerics = generic.get('opttypegenerics').get('generics');
+                                const innerInnerGenerics = generic
+                                    .get('opttypegenerics')
+                                    .get('generics');
                                 genericsList.push(innerInnerGenerics.get('fulltypename'));
-                                innerInnerGenerics.get('cdr').getAll().forEach(r => {
+                                innerInnerGenerics
+                                    .get('cdr')
+                                    .getAll()
+                                    .forEach((r) => {
                                     genericsList.push(r.get('fulltypename'));
                                 });
                             }
@@ -4775,9 +5161,14 @@ let Type = /** @class */ (() => {
                                 }
                                 const innerBaseGenerics = [];
                                 if (generic.has('opttypegenerics')) {
-                                    const innerInnerGenerics = generic.get('opttypegenerics').get('generics');
+                                    const innerInnerGenerics = generic
+                                        .get('opttypegenerics')
+                                        .get('generics');
                                     innerBaseGenerics.push(innerInnerGenerics.get('fulltypename').t);
-                                    innerInnerGenerics.get('cdr').getAll().forEach(r => {
+                                    innerInnerGenerics
+                                        .get('cdr')
+                                        .getAll()
+                                        .forEach((r) => {
                                         innerBaseGenerics.push(r.get('fulltypename').t);
                                     });
                                 }
@@ -4786,9 +5177,9 @@ let Type = /** @class */ (() => {
                         }
                         const baseType = scope.deepGet(baseTypeName);
                         if (!baseType || !(baseType instanceof Type)) {
-                            throw new Error(lineAst.get('fulltypename').t + " is not a type");
+                            throw new Error(lineAst.get('fulltypename').t + ' is not a type');
                         }
-                        type.properties[propertyName] = baseType.solidify(innerGenerics.map(r => r.t), typeScope);
+                        type.properties[propertyName] = baseType.solidify(innerGenerics.map((r) => r.t), typeScope);
                     }
                     else {
                         type.properties[propertyName] = property;
@@ -4796,16 +5187,27 @@ let Type = /** @class */ (() => {
                 }
             }
             if (typeAst.get('typedef').has('typealias')) {
-                const otherType = scope.deepGet(typeAst.get('typedef').get('typealias').get('fulltypename').get('typename').t);
+                const otherType = scope.deepGet(typeAst
+                    .get('typedef')
+                    .get('typealias')
+                    .get('fulltypename')
+                    .get('typename').t);
                 if (!otherType) {
-                    throw new Error("Type " + typeAst.get('typedef').get('typealias').get('fulltypename').t + " not defined");
+                    throw new Error('Type ' +
+                        typeAst.get('typedef').get('typealias').get('fulltypename').t +
+                        ' not defined');
                 }
                 if (!(otherType instanceof Type)) {
-                    throw new Error(typeAst.get('typedef').get('typealias').get('fulltypename').t + " is not a valid type");
+                    throw new Error(typeAst.get('typedef').get('typealias').get('fulltypename').t +
+                        ' is not a valid type');
                 }
                 let fulltypename = otherType;
                 if (Object.keys(fulltypename.generics).length > 0 &&
-                    typeAst.get('typedef').get('typealias').get('fulltypename').has('opttypegenerics')) {
+                    typeAst
+                        .get('typedef')
+                        .get('typealias')
+                        .get('fulltypename')
+                        .has('opttypegenerics')) {
                     const solidTypes = [];
                     const innerTypeGenerics = typeAst
                         .get('typedef')
@@ -4814,7 +5216,10 @@ let Type = /** @class */ (() => {
                         .get('opttypegenerics')
                         .get('generics');
                     solidTypes.push(innerTypeGenerics.get('fulltypename').t);
-                    innerTypeGenerics.get('cdr').getAll().forEach(r => {
+                    innerTypeGenerics
+                        .get('cdr')
+                        .getAll()
+                        .forEach((r) => {
                         solidTypes.push(r.get('fulltypename').t);
                     });
                     fulltypename = fulltypename.solidify(solidTypes, scope);
@@ -4831,8 +5236,8 @@ let Type = /** @class */ (() => {
             return type;
         }
         solidify(genericReplacements, scope) {
-            let genericTypes = Object.keys(this.generics).map(t => new Type(t, true, true));
-            let replacementTypes = [];
+            const genericTypes = Object.keys(this.generics).map((t) => new Type(t, true, true));
+            const replacementTypes = [];
             for (const typename of genericReplacements) {
                 const typebox = scope.deepGet(typename);
                 if (!typebox || !(typebox instanceof Type)) {
@@ -4840,13 +5245,21 @@ let Type = /** @class */ (() => {
                     if (fulltypename.has('opttypegenerics')) {
                         const basename = fulltypename.get('typename').t;
                         const generics = [];
-                        generics.push(fulltypename.get('opttypegenerics').get('generics').get('fulltypename').t);
-                        fulltypename.get('opttypegenerics').get('generics').get('cdr').getAll().forEach(r => {
+                        generics.push(fulltypename
+                            .get('opttypegenerics')
+                            .get('generics')
+                            .get('fulltypename').t);
+                        fulltypename
+                            .get('opttypegenerics')
+                            .get('generics')
+                            .get('cdr')
+                            .getAll()
+                            .forEach((r) => {
                             generics.push(r.get('fulltypename').t);
                         });
                         const baseType = scope.deepGet(basename);
                         if (!baseType || !(baseType instanceof Type)) {
-                            throw new Error(basename + " type not found");
+                            throw new Error(basename + ' type not found');
                         }
                         else {
                             const newtype = baseType.solidify(generics, scope);
@@ -4854,7 +5267,7 @@ let Type = /** @class */ (() => {
                         }
                     }
                     else {
-                        throw new Error(typename + " type not found");
+                        throw new Error(typename + ' type not found');
                     }
                 }
                 else {
@@ -4863,8 +5276,8 @@ let Type = /** @class */ (() => {
             }
             const genericMap = new Map();
             genericTypes.forEach((g, i) => genericMap.set(g, replacementTypes[i]));
-            const solidifiedName = this.typename + "<" + genericReplacements.join(", ") + ">";
-            let solidified = new Type(solidifiedName, this.builtIn);
+            const solidifiedName = this.typename + '<' + genericReplacements.join(', ') + '>';
+            const solidified = new Type(solidifiedName, this.builtIn);
             solidified.originalType = this;
             for (const propKey of Object.keys(this.properties)) {
                 const propValue = this.properties[propKey];
@@ -4877,7 +5290,7 @@ let Type = /** @class */ (() => {
         typeApplies(otherType, scope, interfaceMap = new Map()) {
             if (this.typename === otherType.typename)
                 return true;
-            if (!!this.iface) {
+            if (this.iface) {
                 const applies = this.iface.typeApplies(otherType, scope);
                 if (applies) {
                     interfaceMap.set(this, otherType);
@@ -4893,23 +5306,38 @@ let Type = /** @class */ (() => {
             let generics = [];
             if (typeAst.has('opttypegenerics')) {
                 generics.push(typeAst.get('opttypegenerics').get('generics').get('fulltypename').t);
-                typeAst.get('opttypegenerics').get('generics').get('cdr').getAll().forEach(r => {
+                typeAst
+                    .get('opttypegenerics')
+                    .get('generics')
+                    .get('cdr')
+                    .getAll()
+                    .forEach((r) => {
                     generics.push(r.get('fulltypename').t);
                 });
             }
-            generics = generics.map(g => scope.deepGet(g) || Type.fromStringWithMap(g, interfaceMap, scope) || new Type('-bogus-', false, true));
+            generics = generics.map((g) => scope.deepGet(g) ||
+                Type.fromStringWithMap(g, interfaceMap, scope) ||
+                new Type('-bogus-', false, true));
             let otherGenerics = [];
             if (otherTypeAst.has('opttypegenerics')) {
-                otherGenerics.push(otherTypeAst.get('opttypegenerics').get('generics').get('fulltypename').t);
-                otherTypeAst.get('opttypegenerics').get('generics').get('cdr').getAll().forEach(r => {
+                otherGenerics.push(otherTypeAst.get('opttypegenerics').get('generics').get('fulltypename')
+                    .t);
+                otherTypeAst
+                    .get('opttypegenerics')
+                    .get('generics')
+                    .get('cdr')
+                    .getAll()
+                    .forEach((r) => {
                     otherGenerics.push(r.get('fulltypename').t);
                 });
             }
-            otherGenerics = otherGenerics.map(g => scope.deepGet(g) || Type.fromStringWithMap(g, interfaceMap, scope) || new Type('-bogus-', false, true));
+            otherGenerics = otherGenerics.map((g) => scope.deepGet(g) ||
+                Type.fromStringWithMap(g, interfaceMap, scope) ||
+                new Type('-bogus-', false, true));
             return generics.every((t, i) => t.typeApplies(otherGenerics[i], scope, interfaceMap));
         }
         hasInterfaceType() {
-            if (!!this.iface)
+            if (this.iface)
                 return true;
             return Object.values(this.properties).some((t) => t.hasInterfaceType());
         }
@@ -4921,35 +5349,38 @@ let Type = /** @class */ (() => {
             if (typeAst.has('opttypegenerics')) {
                 const genericNames = [];
                 genericNames.push(typeAst.get('opttypegenerics').get('generics').get('fulltypename').t);
-                typeAst.get('opttypegenerics').get('generics').get('cdr').getAll().forEach(r => {
+                typeAst
+                    .get('opttypegenerics')
+                    .get('generics')
+                    .get('cdr')
+                    .getAll()
+                    .forEach((r) => {
                     genericNames.push(r.get('fulltypename').t);
                 });
                 const generics = genericNames.map((t) => {
-                    const interfaceMapping = [
-                        ...interfaceMap.entries()
-                    ].find(e => e[0].typename === t.trim());
+                    const interfaceMapping = [...interfaceMap.entries()].find((e) => e[0].typename === t.trim());
                     if (interfaceMapping)
                         return interfaceMapping[1];
                     const innerType = Type.fromStringWithMap(t, interfaceMap, scope);
                     return innerType;
                 });
-                return baseType.solidify(generics.map((g) => interfaceMap.get(g) || g).map((t) => t.typename), scope);
+                return baseType.solidify(generics
+                    .map((g) => interfaceMap.get(g) || g)
+                    .map((t) => t.typename), scope);
             }
             else {
                 return interfaceMap.get(baseType) || baseType;
             }
         }
         realize(interfaceMap, scope) {
-            if (!!this.isGenericStandin)
-                return [
-                    ...interfaceMap.entries()
-                ].find(e => e[0].typename === this.typename)[1];
+            if (this.isGenericStandin)
+                return [...interfaceMap.entries()].find((e) => e[0].typename === this.typename)[1];
             if (!this.iface && !this.originalType)
                 return this;
-            if (!!this.iface)
+            if (this.iface)
                 return interfaceMap.get(this) || this;
-            const self = new Type(this.typename, this.builtIn, this.isGenericStandin, { ...this.properties, }, { ...this.generics, }, this.originalType, this.iface, this.alias);
-            const newProps = Object.values(self.properties).map(t => t.realize(interfaceMap, scope));
+            const self = new Type(this.typename, this.builtIn, this.isGenericStandin, { ...this.properties }, { ...this.generics }, this.originalType, this.iface, this.alias);
+            const newProps = Object.values(self.properties).map((t) => t.realize(interfaceMap, scope));
             Object.keys(self.properties).forEach((k, i) => {
                 self.properties[k] = newProps[i];
             });
@@ -4958,122 +5389,125 @@ let Type = /** @class */ (() => {
         }
         // This is only necessary for the numeric types. TODO: Can we eliminate it?
         castable(otherType) {
-            const intTypes = ["int8", "int16", "int32", "int64"];
-            const floatTypes = ["float32", "float64"];
-            if (intTypes.includes(this.typename) && intTypes.includes(otherType.typename))
+            const intTypes = ['int8', 'int16', 'int32', 'int64'];
+            const floatTypes = ['float32', 'float64'];
+            if (intTypes.includes(this.typename) &&
+                intTypes.includes(otherType.typename))
                 return true;
-            if (floatTypes.includes(this.typename) && floatTypes.includes(otherType.typename))
+            if (floatTypes.includes(this.typename) &&
+                floatTypes.includes(otherType.typename))
                 return true;
-            if (floatTypes.includes(this.typename) && intTypes.includes(otherType.typename))
+            if (floatTypes.includes(this.typename) &&
+                intTypes.includes(otherType.typename))
                 return true;
             return false;
         }
     }
     Type.builtinTypes = {
-        void: new Type("void", true),
-        int8: new Type("int8", true),
-        int16: new Type("int16", true),
-        int32: new Type("int32", true),
-        int64: new Type("int64", true),
-        float32: new Type("float32", true),
-        float64: new Type("float64", true),
-        bool: new Type("bool", true),
-        string: new Type("string", true),
-        "Error": new Type("Error", true, false, {
-            msg: new Type("string", true, true),
+        void: new Type('void', true),
+        int8: new Type('int8', true),
+        int16: new Type('int16', true),
+        int32: new Type('int32', true),
+        int64: new Type('int64', true),
+        float32: new Type('float32', true),
+        float64: new Type('float64', true),
+        bool: new Type('bool', true),
+        string: new Type('string', true),
+        Error: new Type('Error', true, false, {
+            msg: new Type('string', true, true),
         }),
-        "Maybe": new Type("Maybe", true, false, {
-            value: new Type("T", true, true),
+        Maybe: new Type('Maybe', true, false, {
+            value: new Type('T', true, true),
         }, {
             T: 0,
         }),
-        "Result": new Type("Result", true, false, {
-            value: new Type("T", true, true),
-            error: new Type("Error", true, false, {
-                msg: new Type("string", true, true),
+        Result: new Type('Result', true, false, {
+            value: new Type('T', true, true),
+            error: new Type('Error', true, false, {
+                msg: new Type('string', true, true),
             }),
         }, {
             T: 0,
         }),
-        "Either": new Type("Either", true, false, {
-            main: new Type("T", true, true),
-            alt: new Type("U", true, true),
+        Either: new Type('Either', true, false, {
+            main: new Type('T', true, true),
+            alt: new Type('U', true, true),
         }, {
             T: 0,
             U: 1,
         }),
-        "Array": new Type("Array", true, false, {
-            records: new Type("V", true, true),
+        Array: new Type('Array', true, false, {
+            records: new Type('V', true, true),
         }, {
             V: 0,
         }),
-        ExecRes: new Type("ExecRes", false, false, {
-            exitCode: new Type("int64", true),
-            stdout: new Type("string", true),
-            stderr: new Type("string", true),
+        ExecRes: new Type('ExecRes', false, false, {
+            exitCode: new Type('int64', true),
+            stdout: new Type('string', true),
+            stderr: new Type('string', true),
         }),
-        InitialReduce: new Type("InitialReduce", false, false, {
-            arr: new Type("Array<T>", true, false, {
-                records: new Type("T", true, true),
+        InitialReduce: new Type('InitialReduce', false, false, {
+            arr: new Type('Array<T>', true, false, {
+                records: new Type('T', true, true),
             }, {
                 T: 0,
             }),
-            initial: new Type("U", true, true),
+            initial: new Type('U', true, true),
         }, {
             T: 0,
             U: 1,
         }),
-        KeyVal: new Type("KeyVal", false, false, {
-            key: new Type("K", true, true),
-            val: new Type("V", true, true),
+        KeyVal: new Type('KeyVal', false, false, {
+            key: new Type('K', true, true),
+            val: new Type('V', true, true),
         }, {
             K: 0,
             V: 1,
         }),
         // Placeholders to be replaced through weirdness with opcodes.ts as the self-referential piece
         // does not play well with `static`
-        InternalRequest: new Type("InternalRequest", true, false, {
-            method: new Type("string", true),
-            url: new Type("string", true),
-            headers: new Type("headers", true),
+        InternalRequest: new Type('InternalRequest', true, false, {
+            method: new Type('string', true),
+            url: new Type('string', true),
+            headers: new Type('headers', true),
             body: new Type('string', true),
             connId: new Type('int64', true),
         }),
-        InternalResponse: new Type("InternalResponse", true, false, {
-            status: new Type("int64", true),
-            headers: new Type("headers", true),
+        InternalResponse: new Type('InternalResponse', true, false, {
+            status: new Type('int64', true),
+            headers: new Type('headers', true),
             body: new Type('string', true),
             connId: new Type('int64', true),
         }),
-        Seq: new Type("Seq", true, false, {
-            counter: new Type("int64", true, true),
-            limit: new Type("int64", true, true),
+        Seq: new Type('Seq', true, false, {
+            counter: new Type('int64', true, true),
+            limit: new Type('int64', true, true),
         }),
-        Self: new Type("Self", true, false, {
-            seq: new Type("Seq", true, false, {
-                counter: new Type("int64", true, true),
-                limit: new Type("int64", true, true),
+        Self: new Type('Self', true, false, {
+            seq: new Type('Seq', true, false, {
+                counter: new Type('int64', true, true),
+                limit: new Type('int64', true, true),
             }),
-            recurseFn: new Type("function", true),
+            recurseFn: new Type('function', true),
         }),
-        TcpChannel: new Type("TcpChannel", true),
-        TcpContext: new Type("TcpContext", true, false, {
-            context: new Type("C", true, true),
-            channel: new Type("TcpChannel", true),
+        TcpChannel: new Type('TcpChannel', true),
+        TcpContext: new Type('TcpContext', true, false, {
+            context: new Type('C', true, true),
+            channel: new Type('TcpChannel', true),
         }, {
             C: 0,
         }),
-        Chunk: new Type("Chunk", true),
-        "function": new Type("function", true),
-        operator: new Type("operator", true),
-        Event: new Type("Event", true, false, {
-            type: new Type("E", true, true),
+        Chunk: new Type('Chunk', true),
+        function: new Type('function', true),
+        operator: new Type('operator', true),
+        Event: new Type('Event', true, false, {
+            type: new Type('E', true, true),
         }, {
             E: 0,
         }),
-        type: new Type("type", true),
-        scope: new Type("scope", true),
-        microstatement: new Type("microstatement", true),
+        type: new Type('type', true),
+        scope: new Type('scope', true),
+        microstatement: new Type('microstatement', true),
     };
     return Type;
 })();
@@ -5109,7 +5543,8 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
     static fromAst(functionishAst, scope) {
         if (functionishAst.has('fnname') ||
             functionishAst.has('functions') ||
-            functionishAst.has('functionbody')) { // It's a `blocklike` node
+            functionishAst.has('functionbody')) {
+            // It's a `blocklike` node
             if (functionishAst.has('functions')) {
                 return UserFunction.fromFunctionsAst(functionishAst.get('functions'), scope);
             }
@@ -5120,20 +5555,22 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                 // TODO: We didn't cover this path before?
             }
         }
-        if (functionishAst.has('fn')) { // It's a `functions` node
+        if (functionishAst.has('fn')) {
+            // It's a `functions` node
             return UserFunction.fromFunctionsAst(functionishAst, scope);
         }
-        if (functionishAst.has('openCurly')) { // It's a `functionbody` node
+        if (functionishAst.has('openCurly')) {
+            // It's a `functionbody` node
             return UserFunction.fromFunctionbodyAst(functionishAst, scope);
         }
         return null;
     }
     static fromFunctionbodyAst(functionbodyAst, scope) {
-        let args = {};
+        const args = {};
         const returnType = Type_1.default.builtinTypes.void;
         let pure = true; // Assume purity and then downgrade if needed
         const statementsAst = functionbodyAst.get('statements');
-        const statements = statementsAst.getAll().map(r => {
+        const statements = statementsAst.getAll().map((r) => {
             const statement = Statement_1.default.create(r.get('statement'), scope);
             if (!statement.pure)
                 pure = false;
@@ -5142,8 +5579,10 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
         return new UserFunction(null, args, returnType, scope, statements, pure);
     }
     static fromFunctionsAst(functionAst, scope) {
-        const name = functionAst.has('optname') ? functionAst.get('optname').t : null;
-        let args = {};
+        const name = functionAst.has('optname')
+            ? functionAst.get('optname').t
+            : null;
+        const args = {};
         if (functionAst.get('optargs').has('arglist')) {
             const argsAst = functionAst.get('optargs').get('arglist');
             const argsArr = [];
@@ -5151,7 +5590,10 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                 variable: argsAst.get('variable').t,
                 fulltypename: argsAst.get('fulltypename'),
             });
-            argsAst.get('cdr').getAll().forEach(r => {
+            argsAst
+                .get('cdr')
+                .getAll()
+                .forEach((r) => {
                 argsArr.push({
                     variable: r.get('variable').t,
                     fulltypename: r.get('fulltypename'),
@@ -5162,28 +5604,40 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                 let getArgType = scope.deepGet(argsArr[i].fulltypename.t);
                 if (!getArgType) {
                     if (argsArr[i].fulltypename.has('opttypegenerics')) {
-                        getArgType =
-                            scope.deepGet(argsArr[i].fulltypename.get('typename').t);
+                        getArgType = scope.deepGet(argsArr[i].fulltypename.get('typename').t);
                         if (!getArgType) {
-                            throw new Error("Could not find type " + argsArr[i].fulltypename.t + " for argument " + argName);
+                            throw new Error('Could not find type ' +
+                                argsArr[i].fulltypename.t +
+                                ' for argument ' +
+                                argName);
                         }
                         if (!(getArgType instanceof Type_1.default)) {
-                            throw new Error("Function argument is not a valid type: " + argsArr[i].fulltypename.t);
+                            throw new Error('Function argument is not a valid type: ' +
+                                argsArr[i].fulltypename.t);
                         }
                         const genericTypes = [];
-                        const genericAst = argsArr[i].fulltypename.get('opttypegenerics').get('generics');
+                        const genericAst = argsArr[i].fulltypename
+                            .get('opttypegenerics')
+                            .get('generics');
                         genericTypes.push(genericAst.get('fulltypename').t);
-                        genericAst.get('cdr').getAll().forEach(r => {
+                        genericAst
+                            .get('cdr')
+                            .getAll()
+                            .forEach((r) => {
                             genericTypes.push(r.get('fulltypename').t);
                         });
                         getArgType = getArgType.solidify(genericTypes, scope);
                     }
                     else {
-                        throw new Error("Could not find type " + argsArr[i].fulltypename.t + " for argument " + argName);
+                        throw new Error('Could not find type ' +
+                            argsArr[i].fulltypename.t +
+                            ' for argument ' +
+                            argName);
                     }
                 }
                 if (!(getArgType instanceof Type_1.default)) {
-                    throw new Error("Function argument is not a valid type: " + argsArr[i].fulltypename.t);
+                    throw new Error('Function argument is not a valid type: ' +
+                        argsArr[i].fulltypename.t);
                 }
                 args[argName] = getArgType;
             }
@@ -5191,9 +5645,14 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
         let pure = true;
         let statements = [];
         if (functionAst.get('fullfunctionbody').has('functionbody')) {
-            const functionbody = functionAst.get('fullfunctionbody').get('functionbody');
-            statements = functionbody.get('statements').getAll().map(r => {
-                let statement = Statement_1.default.create(r.get('statement'), scope);
+            const functionbody = functionAst
+                .get('fullfunctionbody')
+                .get('functionbody');
+            statements = functionbody
+                .get('statements')
+                .getAll()
+                .map((r) => {
+                const statement = Statement_1.default.create(r.get('statement'), scope);
                 if (!statement.pure)
                     pure = false;
                 return statement;
@@ -5221,8 +5680,8 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
     generateReturnType() {
         const functionAst = this.returnType; // Abusing field to lazily load the return type
         let returnType = null;
-        let scope = this.scope;
-        let args = this.args;
+        const scope = this.scope;
+        const args = this.args;
         if (functionAst.has('optreturntype')) {
             const fulltypename = functionAst.get('optreturntype').get('fulltypename');
             let getReturnType = scope.deepGet(fulltypename.t);
@@ -5230,25 +5689,33 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                 if (fulltypename.has('opttypegenerics')) {
                     getReturnType = scope.deepGet(fulltypename.get('typename').t);
                     if (getReturnType == null) {
-                        throw new Error("Could not find type " +
+                        throw new Error('Could not find type ' +
                             fulltypename.t +
-                            " for function " +
+                            ' for function ' +
                             functionAst.get('optname').t);
                     }
                     if (!(getReturnType instanceof Type_1.default)) {
-                        throw new Error("Function return is not a valid type: " + fulltypename.t);
+                        throw new Error('Function return is not a valid type: ' + fulltypename.t);
                     }
-                    let genericTypes = [];
-                    genericTypes.push(fulltypename.get('opttypegenerics').get('generics').get('fulltypename').t);
-                    fulltypename.get('opttypegenerics').get('generics').get('cdr').getAll().forEach(r => {
+                    const genericTypes = [];
+                    genericTypes.push(fulltypename
+                        .get('opttypegenerics')
+                        .get('generics')
+                        .get('fulltypename').t);
+                    fulltypename
+                        .get('opttypegenerics')
+                        .get('generics')
+                        .get('cdr')
+                        .getAll()
+                        .forEach((r) => {
                         genericTypes.push(r.get('fulltypename').t);
                     });
                     getReturnType = getReturnType.solidify(genericTypes, scope);
                 }
                 else {
-                    throw new Error("Could not find type " +
+                    throw new Error('Could not find type ' +
                         fulltypename.t +
-                        " for function " +
+                        ' for function ' +
                         functionAst.get('optname').t);
                 }
             }
@@ -5263,17 +5730,18 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                 .get('fullfunctionbody')
                 .get('assignfunction')
                 .get('assignables');
-            if (!returnType && Object.keys(args).every(arg => args[arg].typename !== 'function')) {
+            if (!returnType &&
+                Object.keys(args).every((arg) => args[arg].typename !== 'function')) {
                 // We're going to use the Microstatement logic here
                 const microstatements = [];
                 // First lets add all microstatements from the provided scope into the list
                 // TODO: If this pattern is ever used more than once, add a new method to the Scope type
-                Object.keys(scope.vals).forEach(val => {
+                Object.keys(scope.vals).forEach((val) => {
                     if (scope.vals[val] instanceof Microstatement_1.default) {
                         microstatements.push(scope.vals[val]);
                     }
                 });
-                Object.keys(args).forEach(arg => {
+                Object.keys(args).forEach((arg) => {
                     microstatements.push(new Microstatement_1.default(StatementType_1.default.REREF, scope, true, arg, args[arg], [], [], arg));
                 });
                 Microstatement_1.default.fromAssignablesAst(assignablesAst, scope, microstatements);
@@ -5291,7 +5759,9 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                 // TODO: Generalize this hackery for opcodes that take closure functions
                 const opcodeName = assignablesAst.t.split('(')[0];
                 const opcode = scope.deepGet(opcodeName);
-                returnType = opcode ? opcode[0].getReturnType() : Type_1.default.builtinTypes['void'];
+                returnType = opcode
+                    ? opcode[0].getReturnType()
+                    : Type_1.default.builtinTypes['void'];
             }
         }
         return returnType;
@@ -5307,24 +5777,26 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
     }
     toFnStr() {
         return `
-      fn ${this.name || ''} (${Object.keys(this.args).map(argName => `${argName}: ${this.args[argName].typename}`).join(', ')}): ${this.getReturnType().typename} {
-        ${this.statements.map(s => s.statementAst.t).join('\n')}
+      fn ${this.name || ''} (${Object.keys(this.args)
+            .map((argName) => `${argName}: ${this.args[argName].typename}`)
+            .join(', ')}): ${this.getReturnType().typename} {
+        ${this.statements.map((s) => s.statementAst.t).join('\n')}
       }
     `.trim();
     }
     static conditionalToCond(cond, scope) {
-        let newStatements = [];
+        const newStatements = [];
         let hasConditionalReturn = false; // Flag for potential second pass
-        const condName = "_" + uuid_1.v4().replace(/-/g, "_");
+        const condName = '_' + uuid_1.v4().replace(/-/g, '_');
         const condStatement = Ast.statementAstFromString(`
       const ${condName}: bool = ${cond.get('assignables').t}
     `.trim() + ';');
-        const condBlockFn = (cond.get('blocklike').has('functionbody') ?
-            UserFunction.fromFunctionbodyAst(cond.get('blocklike').get('functionbody'), scope) :
-            cond.get('blocklike').has('fnname') ?
-                // TODO: If more than one function matches, need to run multiple dispatch logic
-                scope.deepGet(cond.get('blocklike').get('fnname').t)[0] :
-                UserFunction.fromFunctionsAst(cond.get('blocklike').get('functions'), scope)).maybeTransform(new Map(), scope);
+        const condBlockFn = (cond.get('blocklike').has('functionbody')
+            ? UserFunction.fromFunctionbodyAst(cond.get('blocklike').get('functionbody'), scope)
+            : cond.get('blocklike').has('fnname')
+                ? // TODO: If more than one function matches, need to run multiple dispatch logic
+                    scope.deepGet(cond.get('blocklike').get('fnname').t)[0]
+                : UserFunction.fromFunctionsAst(cond.get('blocklike').get('functions'), scope)).maybeTransform(new Map(), scope);
         if (condBlockFn.statements[condBlockFn.statements.length - 1].isReturnStatement()) {
             hasConditionalReturn = true;
         }
@@ -5337,12 +5809,12 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
             const notcond = cond.get('elsebranch');
             if (notcond.get('condorblock').has('blocklike')) {
                 const notblock = notcond.get('condorblock').get('blocklike');
-                const elseBlockFn = (notblock.has('functionbody') ?
-                    UserFunction.fromFunctionbodyAst(notblock.get('functionbody'), scope) :
-                    notblock.has('fnname') ?
-                        // TODO: If more than one function matches, need to run multiple dispatch logic
-                        scope.deepGet(notblock.get('fnname').t)[0] :
-                        UserFunction.fromFunctionsAst(notblock.get('functions'), scope)).maybeTransform(new Map(), scope);
+                const elseBlockFn = (notblock.has('functionbody')
+                    ? UserFunction.fromFunctionbodyAst(notblock.get('functionbody'), scope)
+                    : notblock.has('fnname')
+                        ? // TODO: If more than one function matches, need to run multiple dispatch logic
+                            scope.deepGet(notblock.get('fnname').t)[0]
+                        : UserFunction.fromFunctionsAst(notblock.get('functions'), scope)).maybeTransform(new Map(), scope);
                 if (elseBlockFn.statements[elseBlockFn.statements.length - 1].isReturnStatement()) {
                     hasConditionalReturn = true;
                 }
@@ -5359,7 +5831,7 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                     hasConditionalReturn = true;
                 const elseStatement = Ast.statementAstFromString(`
           cond(!${condName}, fn {
-            ${innerCondStatements.map(s => s.t).join('\n')}
+            ${innerCondStatements.map((s) => s.t).join('\n')}
           })
         `.trim() + ';');
                 newStatements.push(elseStatement);
@@ -5368,7 +5840,7 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
         return [newStatements, hasConditionalReturn];
     }
     static earlyReturnRewrite(retVal, retNotSet, statements, scope) {
-        let replacementStatements = [];
+        const replacementStatements = [];
         while (statements.length > 0) {
             const s = statements.shift();
             // TODO: This doesn't work for actual direct-usage of `cond` in some sort of method chaining
@@ -5380,8 +5852,7 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                     .getAll()[0]
                     .get('withoperators')
                     .get('baseassignablelist')
-                    .getAll()
-                    .length >= 2 &&
+                    .getAll().length >= 2 &&
                 s
                     .get('assignables')
                     .get('assignables')
@@ -5389,8 +5860,7 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                     .get('withoperators')
                     .get('baseassignablelist')
                     .getAll()[0]
-                    .t
-                    .trim() === 'cond' &&
+                    .t.trim() === 'cond' &&
                 s
                     .get('assignables')
                     .get('assignables')
@@ -5414,7 +5884,10 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                 const args = [];
                 if (argsAst.has('assignables')) {
                     args.push(argsAst.get('assignables'));
-                    argsAst.get('cdr').getAll().forEach(r => {
+                    argsAst
+                        .get('cdr')
+                        .getAll()
+                        .forEach((r) => {
                         args.push(r.get('assignables'));
                     });
                 }
@@ -5422,23 +5895,23 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                     const block = args[1]
                         .getAll()[0]
                         .get('withoperators')
-                        .has('baseassignablelist') ?
-                        args[1]
+                        .has('baseassignablelist')
+                        ? args[1]
                             .getAll()[0]
                             .get('withoperators')
                             .get('baseassignablelist')
                             .getAll()[0]
-                            .get('baseassignable') :
-                        null;
+                            .get('baseassignable')
+                        : null;
                     if (block) {
                         const blockFn = UserFunction.fromAst(block, scope);
                         if (blockFn.statements[blockFn.statements.length - 1].isReturnStatement()) {
-                            const innerStatements = blockFn.statements.map(s => s.statementAst);
+                            const innerStatements = blockFn.statements.map((s) => s.statementAst);
                             const newBlockStatements = UserFunction.earlyReturnRewrite(retVal, retNotSet, innerStatements, scope);
                             const cond = args[0].t.trim();
                             const newBlock = Ast.statementAstFromString(`
                 cond(${cond}, fn {
-                  ${newBlockStatements.map(s => s.t).join('\n')}
+                  ${newBlockStatements.map((s) => s.t).join('\n')}
                 })
               `.trim() + ';');
                             replacementStatements.push(newBlock);
@@ -5446,7 +5919,7 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                                 const remainingStatements = UserFunction.earlyReturnRewrite(retVal, retNotSet, statements, scope);
                                 const remainingBlock = Ast.statementAstFromString(`
                   cond(${retNotSet}, fn {
-                    ${remainingStatements.map(s => s.t).join('\n')}
+                    ${remainingStatements.map((s) => s.t).join('\n')}
                   })
                 `.trim() + ';');
                                 replacementStatements.push(remainingBlock);
@@ -5484,17 +5957,17 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
         return replacementStatements;
     }
     maybeTransform(interfaceMap, scope) {
-        if (this.statements.some(s => s.isConditionalStatement()) ||
-            this.statements.some(s => s.hasObjectLiteral())) {
+        if (this.statements.some((s) => s.isConditionalStatement()) ||
+            this.statements.some((s) => s.hasObjectLiteral())) {
             // First pass, convert conditionals to `cond` fn calls and wrap assignment statements
             let statementAsts = [];
             let hasConditionalReturn = false; // Flag for potential second pass
             for (let i = 0; i < this.statements.length; i++) {
-                let s = new Statement_1.default(this.statements[i].statementAst, this.statements[i].scope, this.statements[i].pure);
+                const s = new Statement_1.default(this.statements[i].statementAst, this.statements[i].scope, this.statements[i].pure);
                 // Potentially rewrite the type for the object literal to match the interface type used by
                 // a specific call
                 const str = s.statementAst.t;
-                const corrected = str.replace(/new ([^<]+)<([^{\[]+)> *([{\[])/g, (_, basetypestr, genericstr, openstr) => {
+                const corrected = str.replace(/new ([^<]+)<([^{[]+)> *([{[])/g, (_, basetypestr, genericstr, openstr) => {
                     let newScope = this.scope;
                     if (scope !== undefined) {
                         newScope = new Scope_1.default(scope);
@@ -5508,14 +5981,20 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                         const baseTypeName = typeAst.get('typename').t;
                         const generics = [];
                         if (typeAst.has('opttypegenerics')) {
-                            const genericsAst = typeAst.get('opttypegenerics').get('generics');
+                            const genericsAst = typeAst
+                                .get('opttypegenerics')
+                                .get('generics');
                             generics.push(genericsAst.get('fulltypename').t);
-                            genericsAst.get('cdr').getAll().forEach(r => {
+                            genericsAst
+                                .get('cdr')
+                                .getAll()
+                                .forEach((r) => {
                                 generics.push(r.get('fulltypename').t);
                             });
                         }
                         const baseType = newScope.deepGet(baseTypeName);
-                        if (!baseType || !(baseType instanceof Type_1.default)) { // Now we panic
+                        if (!baseType || !(baseType instanceof Type_1.default)) {
+                            // Now we panic
                             throw new Error('This should be impossible');
                         }
                         originalType = baseType.solidify(generics, newScope);
@@ -5524,7 +6003,7 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                     return `new ${replacementType.typename} ${openstr}`;
                 });
                 // TODO: Get rid of these regex-based type corrections
-                const secondCorrection = corrected.replace(/: (?!new )([^:<,]+)<([^{\)]+)>( *[,{\)])/g, (_, basetypestr, genericstr, openstr) => {
+                const secondCorrection = corrected.replace(/: (?!new )([^:<,]+)<([^{)]+)>( *[,{)])/g, (_, basetypestr, genericstr, openstr) => {
                     let newScope = this.scope;
                     if (scope !== undefined) {
                         newScope = new Scope_1.default(scope);
@@ -5538,14 +6017,20 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                         const baseTypeName = typeAst.get('typename').t;
                         const generics = [];
                         if (typeAst.has('opttypegenerics')) {
-                            const genericsAst = typeAst.get('opttypegenerics').get('generics');
+                            const genericsAst = typeAst
+                                .get('opttypegenerics')
+                                .get('generics');
                             generics.push(genericsAst.get('fulltypename').t);
-                            genericsAst.get('cdr').getAll().forEach(r => {
+                            genericsAst
+                                .get('cdr')
+                                .getAll()
+                                .forEach((r) => {
                                 generics.push(r.get('fulltypename').t);
                             });
                         }
                         const baseType = newScope.deepGet(baseTypeName);
-                        if (!baseType || !(baseType instanceof Type_1.default)) { // Now we panic
+                        if (!baseType || !(baseType instanceof Type_1.default)) {
+                            // Now we panic
                             throw new Error('This should be impossible');
                         }
                         originalType = baseType.solidify(generics, newScope);
@@ -5580,7 +6065,9 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                     s.statementAst.get('declarations').has('letdeclaration')) {
                     const l = s.statementAst.get('declarations').get('letdeclaration');
                     const name = l.get('variable').t;
-                    const type = l.has('typedec') ? l.get('typedec').get('fulltypename').t : undefined;
+                    const type = l.has('typedec')
+                        ? l.get('typedec').get('fulltypename').t
+                        : undefined;
                     const v = l.get('assignables').t;
                     const wrappedAst = Ast.statementAstFromString(`
             let ${name}${type ? `: ${type}` : ''} = ref(${v})
@@ -5595,16 +6082,16 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
             // instead hoisted into writing a closure variable
             if (hasConditionalReturn) {
                 // Need the UUID to make sure this is unique if there's multiple layers of nested returns
-                const retNamePostfix = "_" + uuid_1.v4().replace(/-/g, "_");
-                const retVal = "retVal" + retNamePostfix;
-                const retNotSet = "retNotSet" + retNamePostfix;
+                const retNamePostfix = '_' + uuid_1.v4().replace(/-/g, '_');
+                const retVal = 'retVal' + retNamePostfix;
+                const retNotSet = 'retNotSet' + retNamePostfix;
                 const retValStatement = Ast.statementAstFromString(`
           let ${retVal}: ${this.getReturnType().typename} = clone()
         `.trim() + ';');
                 const retNotSetStatement = Ast.statementAstFromString(`
           let ${retNotSet}: bool = clone(true)
         `.trim() + ';');
-                let replacementStatements = [retValStatement, retNotSetStatement];
+                const replacementStatements = [retValStatement, retNotSetStatement];
                 replacementStatements.push(...UserFunction.earlyReturnRewrite(retVal, retNotSet, statementAsts, this.scope));
                 replacementStatements.push(Ast.statementAstFromString(`
           return ${retVal}
@@ -5618,12 +6105,15 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                 newArgs[argName] = interfaceMap.has(a) ? interfaceMap.get(a) : a;
                 this.scope.put(newArgs[argName].typename, newArgs[argName]);
             }
-            const newRet = interfaceMap.has(this.getReturnType()) ?
-                interfaceMap.get(this.getReturnType()) : this.getReturnType();
+            const newRet = interfaceMap.has(this.getReturnType())
+                ? interfaceMap.get(this.getReturnType())
+                : this.getReturnType();
             this.scope.put(newRet.typename, newRet);
             const fnStr = `
-        fn ${this.name || ''} (${Object.keys(newArgs).map(argName => `${argName}: ${newArgs[argName].typename}`).join(', ')}): ${newRet.typename} {
-          ${statementAsts.map(s => s.t).join('\n')}
+        fn ${this.name || ''} (${Object.keys(newArgs)
+                .map((argName) => `${argName}: ${newArgs[argName].typename}`)
+                .join(', ')}): ${newRet.typename} {
+          ${statementAsts.map((s) => s.t).join('\n')}
         }
       `.trim();
             const fn = UserFunction.fromAst(Ast.functionAstFromString(fnStr), this.scope);
@@ -5640,17 +6130,20 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                     hasNewType = true;
                 }
             }
-            const newRet = interfaceMap.has(this.getReturnType()) ?
-                interfaceMap.get(this.getReturnType()) : this.getReturnType();
+            const newRet = interfaceMap.has(this.getReturnType())
+                ? interfaceMap.get(this.getReturnType())
+                : this.getReturnType();
             if (newRet !== this.getReturnType()) {
                 this.scope.put(newRet.typename, newRet);
                 hasNewType = true;
             }
             if (hasNewType) {
-                const statementAsts = this.statements.map(s => s.statementAst);
+                const statementAsts = this.statements.map((s) => s.statementAst);
                 const fnStr = `
-          fn ${this.name || ''} (${Object.keys(newArgs).map(argName => `${argName}: ${newArgs[argName].typename}`).join(', ')}): ${newRet.typename} {
-            ${statementAsts.map(s => s.t).join('\n')}
+          fn ${this.name || ''} (${Object.keys(newArgs)
+                    .map((argName) => `${argName}: ${newArgs[argName].typename}`)
+                    .join(', ')}): ${newRet.typename} {
+            ${statementAsts.map((s) => s.t).join('\n')}
           }
         `.trim();
                 const fn = UserFunction.fromAst(Ast.functionAstFromString(fnStr), this.scope);
@@ -5669,14 +6162,14 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
         // First, check if there are any ENTERFN microstatements indicating a nested inlining, then
         // check that list for self-containment, which would cause an infinite loop in compilation and
         // abort with a useful error message.
-        const enterfns = microstatements.filter(m => m.statementType === StatementType_1.default.ENTERFN);
-        const isRecursive = enterfns.some(m => m.fns[0] === this);
+        const enterfns = microstatements.filter((m) => m.statementType === StatementType_1.default.ENTERFN);
+        const isRecursive = enterfns.some((m) => m.fns[0] === this);
         if (isRecursive) {
-            let path = enterfns
-                .slice(enterfns.findIndex(m => m.fns[0] === this))
-                .map(m => m.fns[0].getName());
+            const path = enterfns
+                .slice(enterfns.findIndex((m) => m.fns[0] === this))
+                .map((m) => m.fns[0].getName());
             path.push(this.getName());
-            let pathstr = path.join(' -> ');
+            const pathstr = path.join(' -> ');
             throw new Error(`Recursive callstack detected: ${pathstr}. Aborting.`);
         }
         else {
@@ -5686,8 +6179,8 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
         // Perform a transform, if necessary, before generating the microstatements
         // Resolve circular dependency issue
         const internalNames = Object.keys(this.args);
-        const inputs = realArgNames.map(n => Microstatement_1.default.fromVarName(n, scope, microstatements));
-        const inputTypes = inputs.map(i => i.outputType);
+        const inputs = realArgNames.map((n) => Microstatement_1.default.fromVarName(n, scope, microstatements));
+        const inputTypes = inputs.map((i) => i.outputType);
         const originalTypes = Object.values(this.getArguments());
         const interfaceMap = new Map();
         originalTypes.forEach((t, i) => t.typeApplies(inputTypes[i], scope, interfaceMap));
@@ -5723,16 +6216,23 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                 const generics = returnTypeAst.get('opttypegenerics').get('generics');
                 const returnSubtypeAsts = [];
                 returnSubtypeAsts.push(generics.get('fulltypename'));
-                generics.get('cdr').getAll().forEach(r => {
+                generics
+                    .get('cdr')
+                    .getAll()
+                    .forEach((r) => {
                     returnSubtypeAsts.push(r.get('fulltypename'));
                 });
-                returnSubtypes = returnSubtypeAsts.map(r => {
+                returnSubtypes = returnSubtypeAsts.map((r) => {
                     let t = scope.deepGet(r.t);
                     if (!t) {
                         const innerGenerics = [];
                         if (r.has('opttypegenerics')) {
                             innerGenerics.push(r.get('opttypegenerics').get('generics').get('fulltypename').t);
-                            r.get('opttypegenerics').get('generics').get('cdr').getAll().forEach(r2 => {
+                            r.get('opttypegenerics')
+                                .get('generics')
+                                .get('cdr')
+                                .getAll()
+                                .forEach((r2) => {
                                 innerGenerics.push(r2.t);
                             });
                         }
@@ -5745,7 +6245,8 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                 const originalArgTypes = Object.values(this.args);
                 for (let i = 0; i < inputTypes.length; i++) {
                     if (this.getReturnType() === originalArgTypes[i]) {
-                        microstatements[microstatements.length - 1].outputType = inputTypes[i];
+                        microstatements[microstatements.length - 1].outputType =
+                            inputTypes[i];
                     }
                 }
             }
@@ -5765,7 +6266,7 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                 }
                 else {
                     // We were able to piece together the right type info, let's use it
-                    let newReturnType = oldReturnType.originalType.solidify(returnSubtypes.map((t) => t.typename), scope);
+                    const newReturnType = oldReturnType.originalType.solidify(returnSubtypes.map((t) => t.typename), scope);
                     last.outputType = newReturnType;
                 }
             }
@@ -5775,7 +6276,10 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                 if (lastTypeAst.has('opttypegenerics')) {
                     const generics = lastTypeAst.get('opttypegenerics').get('generics');
                     lastSubtypes.push(scope.deepGet(generics.get('fulltypename').t));
-                    generics.get('cdr').getAll().forEach(r => {
+                    generics
+                        .get('cdr')
+                        .getAll()
+                        .forEach((r) => {
                         lastSubtypes.push(scope.deepGet(r.get('fulltypename').t));
                     });
                 }
@@ -5794,7 +6298,7 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                         last.outputType = this.getReturnType();
                     }
                     else {
-                        let newLastType = oldLastType.originalType.solidify(lastSubtypes.map((t) => t.typename), scope);
+                        const newLastType = oldLastType.originalType.solidify(lastSubtypes.map((t) => t.typename), scope);
                         last.outputType = newLastType;
                     }
                 }
@@ -5802,8 +6306,9 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
         }
         // If `last` is a REREF, we also need to potentially update the type on the original record
         for (let i = 0; i < microstatements.length; i++) {
-            let m = microstatements[i];
-            if (m.outputName === last.outputName && m.statementType !== StatementType_1.default.REREF) {
+            const m = microstatements[i];
+            if (m.outputName === last.outputName &&
+                m.statementType !== StatementType_1.default.REREF) {
                 m.outputType = last.outputType;
                 break;
             }
@@ -5839,12 +6344,12 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
             fn = fns[i];
         }
         if (fn == null) {
-            let errMsg = "Unable to find matching function for name and argument type set";
-            let argTypes = [];
+            let errMsg = 'Unable to find matching function for name and argument type set';
+            const argTypes = [];
             for (let i = 0; i < argumentTypeList.length; i++) {
-                argTypes.push("<" + argumentTypeList[i].typename + ">");
+                argTypes.push('<' + argumentTypeList[i].typename + '>');
             }
-            errMsg += '\n' + fns[0].getName() + "(" + argTypes.join(", ") + ")\n";
+            errMsg += '\n' + fns[0].getName() + '(' + argTypes.join(', ') + ')\n';
             errMsg += 'Candidate functions considered:\n';
             for (let i = 0; i < fns.length; i++) {
                 const fn = fns[i];
@@ -5854,7 +6359,7 @@ ${statements[i].statementAst.t.trim()} on line ${statements[i].statementAst.line
                 }
                 else {
                     // TODO: Add this to the opcode definition, too?
-                    errMsg += `fn ${fn.getName()}(${Object.entries(fn.getArguments()).map(kv => `${kv[0]}: ${kv[1].typename}`)}): ${fn.getReturnType().typename}\n`;
+                    errMsg += `fn ${fn.getName()}(${Object.entries(fn.getArguments()).map((kv) => `${kv[0]}: ${kv[1].typename}`)}): ${fn.getReturnType().typename}\n`;
                 }
             }
             throw new Error(errMsg);
@@ -5881,8 +6386,7 @@ const hoistConst = (microstatements, constantDedupeLookup, constantDuplicateLook
     let i = 0;
     while (i < microstatements.length) {
         const m = microstatements[i];
-        if (m.statementType === StatementType_1.default.CONSTDEC &&
-            m.fns.length === 0) {
+        if (m.statementType === StatementType_1.default.CONSTDEC && m.fns.length === 0) {
             const original = constantDedupeLookup[m.inputNames[0]];
             if (!original) {
                 constants.add(m);
@@ -5918,9 +6422,10 @@ const hoistConst = (microstatements, constantDedupeLookup, constantDuplicateLook
 const finalDedupe = (microstatements, constantDuplicateLookup) => {
     for (let i = 0; i < microstatements.length; i++) {
         const m = microstatements[i];
-        if (m.statementType !== StatementType_1.default.LETDEC && m.statementType !== StatementType_1.default.CLOSURE) {
+        if (m.statementType !== StatementType_1.default.LETDEC &&
+            m.statementType !== StatementType_1.default.CLOSURE) {
             for (let j = 0; j < m.inputNames.length; j++) {
-                if (!!constantDuplicateLookup[m.inputNames[j]]) {
+                if (constantDuplicateLookup[m.inputNames[j]]) {
                     m.inputNames[j] = constantDuplicateLookup[m.inputNames[j]];
                 }
             }
@@ -5931,8 +6436,8 @@ const finalDedupe = (microstatements, constantDuplicateLookup) => {
     }
 };
 const moduleAstsFromFile = (filename) => {
-    let moduleAsts = {};
-    let paths = [];
+    const moduleAsts = {};
+    const paths = [];
     const rootPath = fs.realpathSync(filename);
     paths.push(rootPath);
     while (paths.length > 0) {
@@ -5942,13 +6447,14 @@ const moduleAstsFromFile = (filename) => {
             module = Ast.fromFile(modulePath);
         }
         catch (e) {
-            console.error("Could not load " + modulePath);
+            console.error('Could not load ' + modulePath);
             throw e;
         }
         moduleAsts[modulePath] = module;
         const imports = Ast.resolveImports(modulePath, module);
         for (let i = 0; i < imports.length; i++) {
-            if (!moduleAsts[imports[i]] && !(imports[i].substring(0, 5) === "@std/")) {
+            if (!moduleAsts[imports[i]] &&
+                !(imports[i].substring(0, 5) === '@std/')) {
                 paths.push(imports[i]);
             }
         }
@@ -5960,20 +6466,21 @@ const moduleAstsFromString = (str) => {
     // this doesn't appear to affect things, but better to compile from a known state
     Event_1.default.allEvents = [Event_1.default.allEvents[0]]; // Keep the `start` event
     Event_1.default.allEvents[0].handlers = []; // Reset the registered handlers on the `start` event
-    let moduleAsts = {};
+    const moduleAsts = {};
     const fakeRoot = '/fake/root/test.ln';
     let module = null;
     try {
         module = Ast.fromString(str);
     }
     catch (e) {
-        console.error("Could not load test.ln");
+        console.error('Could not load test.ln');
         throw e;
     }
     moduleAsts[fakeRoot] = module;
     const imports = Ast.resolveImports(fakeRoot, module);
     for (let i = 0; i < imports.length; i++) {
-        if (moduleAsts[imports[i]] === null && !(imports[i].substring(0, 5) === "@std/")) {
+        if (moduleAsts[imports[i]] === null &&
+            !(imports[i].substring(0, 5) === '@std/')) {
             console.error('Only @std imports allowed in the playground');
             throw new Error('Import declaration error');
         }
@@ -5982,10 +6489,10 @@ const moduleAstsFromString = (str) => {
 };
 const ammFromModuleAsts = (moduleAsts) => {
     // Load the standard library
-    let stdFiles = new Set();
+    const stdFiles = new Set();
     for (const [modulePath, module] of Object.entries(moduleAsts)) {
         for (const importt of Ast.resolveImports(modulePath, module)) {
-            if (importt.substring(0, 5) === "@std/") {
+            if (importt.substring(0, 5) === '@std/') {
                 stdFiles.add(importt.substring(5, importt.length) + '.ln');
             }
         }
@@ -5998,12 +6505,12 @@ const ammFromModuleAsts = (moduleAsts) => {
     // use to serialize out the definitions, skipping the built-in events. In the process we're need
     // to check a hashset for duplicate event names and rename as necessary. We also need to get the
     // list of user-defined types that we need to emit.
-    let eventNames = new Set();
-    let eventTypeNames = new Set();
-    let eventTypes = new Set();
-    let constantDedupeLookup = {}; // String to Microstatement object
-    let constantDuplicateLookup = {}; // String to String object
-    let constants = new Set(); // Microstatment objects
+    const eventNames = new Set();
+    const eventTypeNames = new Set();
+    const eventTypes = new Set();
+    const constantDedupeLookup = {}; // String to Microstatement object
+    const constantDuplicateLookup = {}; // String to String object
+    const constants = new Set(); // Microstatment objects
     for (const evt of Event_1.default.allEvents) {
         // Skip built-in events
         if (evt.builtIn)
@@ -6011,7 +6518,7 @@ const ammFromModuleAsts = (moduleAsts) => {
         // Check if there's a collision
         if (eventNames.has(evt.name)) {
             // We modify the event name by attaching a UUIDv4 to it
-            evt.name = evt.name + "_" + uuid_1.v4().replace(/-/g, "_");
+            evt.name = evt.name + '_' + uuid_1.v4().replace(/-/g, '_');
         }
         // Add the event to the list
         eventNames.add(evt.name);
@@ -6026,7 +6533,7 @@ const ammFromModuleAsts = (moduleAsts) => {
             if (eventTypes.has(type))
                 continue; // This event was already processed, so we're done
             // Modify the type name by attaching a UUIDv4 to it
-            type.typename = type.typename + "_" + uuid_1.v4().replace(/-/g, "_");
+            type.typename = type.typename + '_' + uuid_1.v4().replace(/-/g, '_');
         }
         // Add the type to the list
         eventTypeNames.add(type.typename);
@@ -6042,7 +6549,8 @@ const ammFromModuleAsts = (moduleAsts) => {
                 if (eventTypes.has(propType))
                     continue; // This event was already processed, so we're done
                 // Modify the type name by attaching a UUIDv4 to it
-                propType.typename = propType.typename + "_" + uuid_1.v4().replace(/-/g, "_");
+                propType.typename =
+                    propType.typename + '_' + uuid_1.v4().replace(/-/g, '_');
             }
             // Add the type to the list
             eventTypeNames.add(propType.typename);
@@ -6050,20 +6558,20 @@ const ammFromModuleAsts = (moduleAsts) => {
         }
     }
     // Extract the handler definitions and constant data
-    let handlers = {}; // String to array of Microstatement objects
-    for (let evt of Event_1.default.allEvents) {
-        for (let handler of evt.handlers) {
+    const handlers = {}; // String to array of Microstatement objects
+    for (const evt of Event_1.default.allEvents) {
+        for (const handler of evt.handlers) {
             if (handler instanceof UserFunction_1.default) {
                 // Define the handler preamble
-                let handlerDec = "on " + evt.name + " fn (";
-                let argList = [];
-                let microstatements = [];
+                let handlerDec = 'on ' + evt.name + ' fn (';
+                const argList = [];
+                const microstatements = [];
                 for (const arg of Object.keys(handler.getArguments())) {
-                    argList.push(arg + ": " + handler.getArguments()[arg].typename);
+                    argList.push(arg + ': ' + handler.getArguments()[arg].typename);
                     microstatements.push(new Microstatement_1.default(StatementType_1.default.ARG, handler.scope, true, arg, handler.getArguments()[arg], [], []));
                 }
-                handlerDec += argList.join(", ");
-                handlerDec += "): " + handler.getReturnType().typename + " {";
+                handlerDec += argList.join(', ');
+                handlerDec += '): ' + handler.getReturnType().typename + ' {';
                 // Extract the handler statements and compile into microstatements
                 const statements = handler.maybeTransform(new Map()).statements;
                 for (const s of statements) {
@@ -6072,43 +6580,45 @@ const ammFromModuleAsts = (moduleAsts) => {
                 // Pull the constants out of the microstatements into the constants set.
                 hoistConst(microstatements, constantDedupeLookup, constantDuplicateLookup, constants, eventTypes);
                 // Register the handler and remaining statements
-                handlers.hasOwnProperty(handlerDec) ? handlers[handlerDec].push(microstatements) : handlers[handlerDec] = [microstatements];
+                handlers.hasOwnProperty(handlerDec)
+                    ? handlers[handlerDec].push(microstatements)
+                    : (handlers[handlerDec] = [microstatements]);
             }
         }
     }
     // Second pass to fully-deduplicate constants
-    for (let handler of Object.keys(handlers)) {
+    for (const handler of Object.keys(handlers)) {
         const functions = handlers[handler];
-        for (let microstatements of functions) {
+        for (const microstatements of functions) {
             finalDedupe(microstatements, constantDuplicateLookup);
         }
     }
-    let outStr = "";
+    let outStr = '';
     // Print the event types
     /* for (const eventType of eventTypes) {
       outStr += eventType.toString() + "\n"
     } */ // TODO: It doesn't appear to be required in the rest of the stack
     // Print the constants
     for (const constant of constants) {
-        outStr += constant.toString() + "\n";
+        outStr += constant.toString() + '\n';
     }
     // Print the user-defined event declarations
     for (const evt of Event_1.default.allEvents) {
         if (evt.builtIn)
             continue; // Skip built-in events
-        outStr += evt.toString() + "\n";
+        outStr += evt.toString() + '\n';
     }
     // Print the user-defined event handlers
     for (const [handlerDec, handlersList] of Object.entries(handlers)) {
         for (const microstatements of handlersList) {
-            outStr += handlerDec + "\n";
+            outStr += handlerDec + '\n';
             for (const m of microstatements) {
                 const mString = m.toString();
-                if (mString === "")
+                if (mString === '')
                     continue;
-                outStr += "  " + mString + "\n";
+                outStr += '  ' + mString + '\n';
             }
-            outStr += "}\n";
+            outStr += '}\n';
         }
     }
     return outStr;
@@ -6134,12 +6644,34 @@ const opcodeModule = new Module_1.default(opcodeScope);
 const addBuiltIn = (name) => {
     opcodeScope.put(name, Type_1.Type.builtinTypes[name]);
 };
-([
-    'void', 'int8', 'int16', 'int32', 'int64', 'float32', 'float64', 'bool', 'string', 'function',
-    'operator', 'Error', 'Maybe', 'Result', 'Either', 'Array', 'ExecRes', 'InitialReduce',
-    'KeyVal', 'InternalRequest', 'InternalResponse', 'Seq', 'Self', 'TcpChannel', 'TcpContext',
+[
+    'void',
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+    'float32',
+    'float64',
+    'bool',
+    'string',
+    'function',
+    'operator',
+    'Error',
+    'Maybe',
+    'Result',
+    'Either',
+    'Array',
+    'ExecRes',
+    'InitialReduce',
+    'KeyVal',
+    'InternalRequest',
+    'InternalResponse',
+    'Seq',
+    'Self',
+    'TcpChannel',
+    'TcpContext',
     'Chunk',
-].map(addBuiltIn));
+].map(addBuiltIn);
 Type_1.Type.builtinTypes['Array'].solidify(['string'], opcodeScope);
 opcodeScope.put('any', new Type_1.Type('any', true, false, {}, {}, null, new Type_1.Interface('any')));
 opcodeScope.put('anythingElse', new Type_1.Type('anythingElse', true, false, {}, {}, null, new Type_1.Interface('anythingElse')));
@@ -6176,12 +6708,12 @@ Type_1.Type.builtinTypes.Result.solidify(['string'], opcodeScope);
 Type_1.Type.builtinTypes.Result.solidify(['InternalResponse'], opcodeScope);
 Type_1.Type.builtinTypes.Either.solidify(['any', 'anythingElse'], opcodeScope);
 Type_1.Type.builtinTypes.InitialReduce.solidify(['any', 'anythingElse'], opcodeScope);
-opcodeScope.put("start", new Event_1.default("_start", Type_1.Type.builtinTypes.void, true));
-opcodeScope.put("__conn", new Event_1.default("__conn", Type_1.Type.builtinTypes.InternalRequest, true));
-opcodeScope.put("__ctrl", new Event_1.default("__ctrl", Type_1.Type.builtinTypes.InternalRequest, true));
-opcodeScope.put("tcpConn", new Event_1.default("tcpConn", Type_1.Type.builtinTypes.TcpChannel, true));
-opcodeScope.put("chunk", new Event_1.default("chunk", opcodeScope.get('TcpContext<any>'), true));
-opcodeScope.put("tcpClose", new Event_1.default("tcpClose", opcodeScope.get('TcpContext<any>'), true));
+opcodeScope.put('start', new Event_1.default('_start', Type_1.Type.builtinTypes.void, true));
+opcodeScope.put('__conn', new Event_1.default('__conn', Type_1.Type.builtinTypes.InternalRequest, true));
+opcodeScope.put('__ctrl', new Event_1.default('__ctrl', Type_1.Type.builtinTypes.InternalRequest, true));
+opcodeScope.put('tcpConn', new Event_1.default('tcpConn', Type_1.Type.builtinTypes.TcpChannel, true));
+opcodeScope.put('chunk', new Event_1.default('chunk', opcodeScope.get('TcpContext<any>'), true));
+opcodeScope.put('tcpClose', new Event_1.default('tcpClose', opcodeScope.get('TcpContext<any>'), true));
 const t = (str) => opcodeScope.get(str);
 // opcode declarations
 const addopcodes = (opcodes) => {
@@ -6189,7 +6721,8 @@ const addopcodes = (opcodes) => {
     opcodeNames.forEach((opcodeName) => {
         const opcodeDef = opcodes[opcodeName];
         const [args, returnType] = opcodeDef;
-        if (!returnType) { // This is a three-arg, 0-return opcode
+        if (!returnType) {
+            // This is a three-arg, 0-return opcode
             const opcodeObj = {
                 getName: () => opcodeName,
                 getArguments: () => args,
@@ -6197,7 +6730,7 @@ const addopcodes = (opcodes) => {
                 isPure: () => true,
                 microstatementInlining: (realArgNames, scope, microstatements) => {
                     if (['seqwhile'].includes(opcodeName)) {
-                        const inputs = realArgNames.map(n => Microstatement_1.default.fromVarName(n, scope, microstatements));
+                        const inputs = realArgNames.map((n) => Microstatement_1.default.fromVarName(n, scope, microstatements));
                         const condfn = UserFunction_1.default.dispatchFn(inputs[1].fns, [], scope);
                         const condidx = microstatements.indexOf(inputs[1]);
                         const condm = microstatements.slice(0, condidx);
@@ -6226,11 +6759,11 @@ const addopcodes = (opcodes) => {
                 getReturnType: () => returnType,
                 isPure: () => true,
                 microstatementInlining: (realArgNames, scope, microstatements) => {
-                    const inputs = realArgNames.map(n => Microstatement_1.default.fromVarName(n, scope, microstatements));
-                    const inputTypes = inputs.map(i => i.outputType);
+                    const inputs = realArgNames.map((n) => Microstatement_1.default.fromVarName(n, scope, microstatements));
+                    const inputTypes = inputs.map((i) => i.outputType);
                     const interfaceMap = new Map();
                     Object.values(args).forEach((t, i) => t.typeApplies(inputTypes[i], scope, interfaceMap));
-                    microstatements.push(new Microstatement_1.default(StatementType_1.default.CONSTDEC, scope, true, "_" + uuid_1.v4().replace(/-/g, "_"), ((inputTypes, scope) => {
+                    microstatements.push(new Microstatement_1.default(StatementType_1.default.CONSTDEC, scope, true, '_' + uuid_1.v4().replace(/-/g, '_'), ((inputTypes, scope) => {
                         // The `syncop` opcode's return type is always the return type of the closure it was
                         // given, so we can short circuit this really quickly.
                         if (opcodeName === 'syncop') {
@@ -6243,7 +6776,7 @@ const addopcodes = (opcodes) => {
                             realArgNames[0] = closure.outputName;
                             return fn.getReturnType();
                         }
-                        if (!!returnType.iface) {
+                        if (returnType.iface) {
                             // Path 1: the opcode returns an interface based on the interface type of an input
                             let replacementType;
                             Object.values(args).forEach((a, i) => {
@@ -6253,17 +6786,25 @@ const addopcodes = (opcodes) => {
                                     let fn;
                                     // TODO: Remove this hackery after function types are more than just 'function'
                                     if ([
-                                        'map', 'mapl', 'each', 'eachl', 'every', 'everyl', 'some', 'somel', 'filter',
-                                        'filterl', 'seqeach',
+                                        'map',
+                                        'mapl',
+                                        'each',
+                                        'eachl',
+                                        'every',
+                                        'everyl',
+                                        'some',
+                                        'somel',
+                                        'filter',
+                                        'filterl',
+                                        'seqeach',
                                     ].includes(opcodeName)) {
                                         // TODO: Try to re-unify these blocks from above
-                                        const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
-                                        const innerType = inputTypes[0].originalType ?
-                                            arrayInnerType :
-                                            Type_1.Type.builtinTypes.int64; // Hackery for seqeach
+                                        const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, '$1'));
+                                        const innerType = inputTypes[0].originalType
+                                            ? arrayInnerType
+                                            : Type_1.Type.builtinTypes.int64; // Hackery for seqeach
                                         try {
-                                            fn = UserFunction_1.default.dispatchFn(inputs[i].fns, [innerType], scope)(Object.values(fn.getArguments())[0])
-                                                .typeApplies(innerType, scope, interfaceMap);
+                                            fn = UserFunction_1.default.dispatchFn(inputs[i].fns, [innerType], scope)(Object.values(fn.getArguments())[0]).typeApplies(innerType, scope, interfaceMap);
                                         }
                                         catch {
                                             try {
@@ -6278,7 +6819,7 @@ const addopcodes = (opcodes) => {
                                         }
                                     }
                                     else if (['reducel', 'reducep'].includes(opcodeName)) {
-                                        const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
+                                        const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, '$1'));
                                         fn = UserFunction_1.default.dispatchFn(inputs[i].fns, [arrayInnerType, arrayInnerType], scope);
                                         const closureArgs = Object.values(fn.getArguments());
                                         closureArgs[0].typeApplies(arrayInnerType, scope, interfaceMap);
@@ -6286,11 +6827,8 @@ const addopcodes = (opcodes) => {
                                     }
                                     else if (['foldl'].includes(opcodeName)) {
                                         const reducerTypes = Object.values(inputTypes[0].properties);
-                                        const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
-                                        const fnArgTypes = [
-                                            reducerTypes[1],
-                                            inType,
-                                        ];
+                                        const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, '$1'));
+                                        const fnArgTypes = [reducerTypes[1], inType];
                                         fn = UserFunction_1.default.dispatchFn(inputs[i].fns, fnArgTypes, scope);
                                         const closureArgs = Object.values(fn.getArguments());
                                         closureArgs[0].typeApplies(reducerTypes[1], scope, interfaceMap);
@@ -6298,11 +6836,8 @@ const addopcodes = (opcodes) => {
                                     }
                                     else if (['foldp'].includes(opcodeName)) {
                                         const reducerTypes = Object.values(inputTypes[0].properties);
-                                        const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
-                                        const fnArgTypes = [
-                                            reducerTypes[1],
-                                            inType,
-                                        ];
+                                        const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, '$1'));
+                                        const fnArgTypes = [reducerTypes[1], inType];
                                         fn = UserFunction_1.default.dispatchFn(inputs[i].fns, fnArgTypes, scope);
                                         const closureArgs = Object.values(fn.getArguments());
                                         closureArgs[0].typeApplies(reducerTypes[1], scope, interfaceMap);
@@ -6325,12 +6860,17 @@ const addopcodes = (opcodes) => {
                                     microstatements.splice(idx, 0, closure);
                                     realArgNames[i] = closure.outputName;
                                 }
-                                if (!!a.iface && a.iface.interfacename === returnType.iface.interfacename) {
+                                if (!!a.iface &&
+                                    a.iface.interfacename === returnType.iface.interfacename) {
                                     replacementType = inputTypes[i];
                                 }
-                                if (Object.values(a.properties).some(p => !!p.iface && p.iface.interfacename === returnType.iface.interfacename)) {
+                                if (Object.values(a.properties).some((p) => !!p.iface &&
+                                    p.iface.interfacename ===
+                                        returnType.iface.interfacename)) {
                                     Object.values(a.properties).forEach((p, j) => {
-                                        if (!!p.iface && p.iface.interfacename === returnType.iface.interfacename) {
+                                        if (!!p.iface &&
+                                            p.iface.interfacename ===
+                                                returnType.iface.interfacename) {
                                             replacementType = Object.values(inputTypes[i].properties)[j];
                                         }
                                     });
@@ -6344,32 +6884,49 @@ const addopcodes = (opcodes) => {
                             Object.values(returnType.properties).some((p) => !!p.iface)) {
                             // TODO: Remove this hackery after function types are more than just 'function'
                             if ([
-                                'map', 'mapl', 'each', 'eachl', 'every', 'everyl', 'some', 'somel', 'filter',
-                                'filterl', 'seqeach',
+                                'map',
+                                'mapl',
+                                'each',
+                                'eachl',
+                                'every',
+                                'everyl',
+                                'some',
+                                'somel',
+                                'filter',
+                                'filterl',
+                                'seqeach',
                             ].includes(opcodeName)) {
                                 // The ideal `map` opcode type declaration is something like:
                                 // `map(Array<any>, fn (any): anythingElse): Array<anythingElse>` and then the
                                 // interface matching logic figures out what the return type of the opcode is
                                 // based on the return type of the function given to it.
                                 // For now, we just do that "by hand."
-                                const arrayInnerTypeStr = inputTypes[0].typename.replace(/^Array<(.*)>$/, "$1");
-                                const arrayInnerType = arrayInnerTypeStr.includes('<') ?
-                                    (() => {
+                                const arrayInnerTypeStr = inputTypes[0].typename.replace(/^Array<(.*)>$/, '$1');
+                                const arrayInnerType = arrayInnerTypeStr.includes('<')
+                                    ? (() => {
                                         const fulltypenameAst = Ast_1.fulltypenameAstFromString(arrayInnerTypeStr);
                                         const baseTypeStr = fulltypenameAst.get('typename').t;
                                         const baseType = scope.deepGet(baseTypeStr);
                                         const generics = [
-                                            fulltypenameAst.get('opttypegenerics').get('generics').get('fulltypename').t
+                                            fulltypenameAst
+                                                .get('opttypegenerics')
+                                                .get('generics')
+                                                .get('fulltypename').t,
                                         ];
-                                        fulltypenameAst.get('opttypegenerics').get('generics').get('cdr').getAll()
-                                            .forEach(r => {
+                                        fulltypenameAst
+                                            .get('opttypegenerics')
+                                            .get('generics')
+                                            .get('cdr')
+                                            .getAll()
+                                            .forEach((r) => {
                                             generics.push(r.get('fulltypename').t);
                                         });
                                         return baseType.solidify(generics, scope);
-                                    })() : scope.deepGet(arrayInnerTypeStr);
-                                const innerType = inputTypes[0].originalType ?
-                                    arrayInnerType :
-                                    Type_1.Type.builtinTypes.int64; // Hackery for seqeach
+                                    })()
+                                    : scope.deepGet(arrayInnerTypeStr);
+                                const innerType = inputTypes[0].originalType
+                                    ? arrayInnerType
+                                    : Type_1.Type.builtinTypes.int64; // Hackery for seqeach
                                 let fn;
                                 try {
                                     fn = UserFunction_1.default.dispatchFn(inputs[1].fns, [innerType], scope);
@@ -6402,18 +6959,18 @@ const addopcodes = (opcodes) => {
                                     const innerType = closure.closureOutputType;
                                     const newInnerType = innerType.realize(interfaceMap, scope); // Necessary?
                                     const baseType = returnType.originalType;
-                                    const newReturnType = baseType ?
-                                        baseType.solidify([newInnerType.typename], scope) :
-                                        returnType;
+                                    const newReturnType = baseType
+                                        ? baseType.solidify([newInnerType.typename], scope)
+                                        : returnType;
                                     return newReturnType;
                                 }
                             }
                             else if (['find', 'findl'].includes(opcodeName)) {
-                                const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
-                                const innerType = inputTypes[0].originalType ?
-                                    arrayInnerType :
-                                    Type_1.Type.builtinTypes.int64; // Hackery for seqeach
-                                let fn = UserFunction_1.default.dispatchFn(inputs[1].fns, [arrayInnerType], scope);
+                                const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, '$1'));
+                                const innerType = inputTypes[0].originalType
+                                    ? arrayInnerType
+                                    : Type_1.Type.builtinTypes.int64; // Hackery for seqeach
+                                const fn = UserFunction_1.default.dispatchFn(inputs[1].fns, [arrayInnerType], scope);
                                 const closureArgs = Object.values(fn.getArguments());
                                 if (closureArgs[0]) {
                                     closureArgs[0].typeApplies(innerType, scope, interfaceMap);
@@ -6427,8 +6984,8 @@ const addopcodes = (opcodes) => {
                                 return Type_1.Type.builtinTypes.Result.solidify([innerType.typename], scope);
                             }
                             else if (['reducel', 'reducep'].includes(opcodeName)) {
-                                const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
-                                let fn = UserFunction_1.default.dispatchFn(inputs[1].fns, [arrayInnerType, arrayInnerType], scope);
+                                const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, '$1'));
+                                const fn = UserFunction_1.default.dispatchFn(inputs[1].fns, [arrayInnerType, arrayInnerType], scope);
                                 const closureArgs = Object.values(fn.getArguments());
                                 closureArgs[0].typeApplies(arrayInnerType, scope, interfaceMap);
                                 closureArgs[1].typeApplies(arrayInnerType, scope, interfaceMap);
@@ -6442,12 +6999,9 @@ const addopcodes = (opcodes) => {
                             }
                             else if (['foldl'].includes(opcodeName)) {
                                 const reducerTypes = Object.values(inputTypes[0].properties);
-                                const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
-                                const fnArgTypes = [
-                                    reducerTypes[1],
-                                    inType,
-                                ];
-                                let fn = UserFunction_1.default.dispatchFn(inputs[1].fns, fnArgTypes, scope);
+                                const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, '$1'));
+                                const fnArgTypes = [reducerTypes[1], inType];
+                                const fn = UserFunction_1.default.dispatchFn(inputs[1].fns, fnArgTypes, scope);
                                 const closureArgs = Object.values(fn.getArguments());
                                 closureArgs[0].typeApplies(reducerTypes[1], scope, interfaceMap);
                                 closureArgs[1].typeApplies(inType, scope, interfaceMap);
@@ -6461,11 +7015,8 @@ const addopcodes = (opcodes) => {
                             }
                             else if (['foldp'].includes(opcodeName)) {
                                 const reducerTypes = Object.values(inputTypes[0].properties);
-                                const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
-                                const fnArgTypes = [
-                                    reducerTypes[1],
-                                    inType,
-                                ];
+                                const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, '$1'));
+                                const fnArgTypes = [reducerTypes[1], inType];
                                 const fn = UserFunction_1.default.dispatchFn(inputs[1].fns, fnArgTypes, scope);
                                 const closureArgs = Object.values(fn.getArguments());
                                 closureArgs[0].typeApplies(reducerTypes[1], scope, interfaceMap);
@@ -6492,13 +7043,16 @@ const addopcodes = (opcodes) => {
                             }
                             else if (['selfrec'].includes(opcodeName)) {
                                 // TODO: This is absolute crap. How to fix?
-                                return inputs[0].inputNames[1] ? Microstatement_1.default.fromVarName(inputs[0].inputNames[1], scope, microstatements).closureOutputType : returnType;
+                                return inputs[0].inputNames[1]
+                                    ? Microstatement_1.default.fromVarName(inputs[0].inputNames[1], scope, microstatements).closureOutputType
+                                    : returnType;
                             }
                             else {
                                 // Path 2: the opcode returns solidified generic type with an interface generic
                                 // that mathces the interface type of an input
                                 const returnIfaces = Object.values(returnType.properties)
-                                    .filter((p) => !!p.iface).map((p) => p.iface);
+                                    .filter((p) => !!p.iface)
+                                    .map((p) => p.iface);
                                 if (returnIfaces.length > 0) {
                                     const newReturnType = returnType.realize(interfaceMap, scope);
                                     return newReturnType;
@@ -6517,28 +7071,45 @@ const addopcodes = (opcodes) => {
                                     let fn;
                                     // TODO: Remove this hackery after function types are more than just 'function'
                                     if ([
-                                        'map', 'mapl', 'each', 'eachl', 'every', 'everyl', 'some', 'somel', 'filter',
-                                        'filterl', 'seqeach',
+                                        'map',
+                                        'mapl',
+                                        'each',
+                                        'eachl',
+                                        'every',
+                                        'everyl',
+                                        'some',
+                                        'somel',
+                                        'filter',
+                                        'filterl',
+                                        'seqeach',
                                     ].includes(opcodeName)) {
                                         // TODO: Try to re-unify these blocks from above
-                                        const arrayInnerTypeStr = inputTypes[0].typename.replace(/^Array<(.*)>$/, "$1");
-                                        const arrayInnerType = arrayInnerTypeStr.includes('<') ?
-                                            (() => {
+                                        const arrayInnerTypeStr = inputTypes[0].typename.replace(/^Array<(.*)>$/, '$1');
+                                        const arrayInnerType = arrayInnerTypeStr.includes('<')
+                                            ? (() => {
                                                 const fulltypenameAst = Ast_1.fulltypenameAstFromString(arrayInnerTypeStr);
                                                 const baseTypeStr = fulltypenameAst.get('typename').t;
                                                 const baseType = scope.deepGet(baseTypeStr);
                                                 const generics = [
-                                                    fulltypenameAst.get('opttypegenerics').get('generics').get('fulltypename').t
+                                                    fulltypenameAst
+                                                        .get('opttypegenerics')
+                                                        .get('generics')
+                                                        .get('fulltypename').t,
                                                 ];
-                                                fulltypenameAst.get('opttypegenerics').get('generics').get('cdr').getAll()
-                                                    .forEach(r => {
+                                                fulltypenameAst
+                                                    .get('opttypegenerics')
+                                                    .get('generics')
+                                                    .get('cdr')
+                                                    .getAll()
+                                                    .forEach((r) => {
                                                     generics.push(r.get('fulltypename').t);
                                                 });
                                                 return baseType.solidify(generics, scope);
-                                            })() : scope.deepGet(arrayInnerTypeStr);
-                                        const innerType = inputTypes[0].originalType ?
-                                            arrayInnerType :
-                                            Type_1.Type.builtinTypes.int64; // Hackery for seqeach
+                                            })()
+                                            : scope.deepGet(arrayInnerTypeStr);
+                                        const innerType = inputTypes[0].originalType
+                                            ? arrayInnerType
+                                            : Type_1.Type.builtinTypes.int64; // Hackery for seqeach
                                         try {
                                             fn = UserFunction_1.default.dispatchFn(inputs[i].fns, [innerType], scope);
                                         }
@@ -6559,7 +7130,7 @@ const addopcodes = (opcodes) => {
                                         }
                                     }
                                     else if (['reducel', 'reducep'].includes(opcodeName)) {
-                                        const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
+                                        const arrayInnerType = scope.deepGet(inputTypes[0].typename.replace(/^Array<(.*)>$/, '$1'));
                                         fn = UserFunction_1.default.dispatchFn(inputs[1].fns, [arrayInnerType, arrayInnerType], scope);
                                         const closureArgs = Object.values(fn.getArguments());
                                         closureArgs[0].typeApplies(arrayInnerType, scope, interfaceMap);
@@ -6567,12 +7138,9 @@ const addopcodes = (opcodes) => {
                                     }
                                     else if (['foldl'].includes(opcodeName)) {
                                         const reducerTypes = Object.values(inputTypes[0].properties);
-                                        const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, "$1"));
-                                        const fnArgTypes = [
-                                            reducerTypes[1],
-                                            inType,
-                                        ];
-                                        let fn = UserFunction_1.default.dispatchFn(inputs[1].fns, fnArgTypes, scope);
+                                        const inType = scope.deepGet(reducerTypes[0].typename.replace(/^Array<(.*)>$/, '$1'));
+                                        const fnArgTypes = [reducerTypes[1], inType];
+                                        const fn = UserFunction_1.default.dispatchFn(inputs[1].fns, fnArgTypes, scope);
                                         const closureArgs = Object.values(fn.getArguments());
                                         closureArgs[0].typeApplies(reducerTypes[1], scope, interfaceMap);
                                         closureArgs[1].typeApplies(inType, scope, interfaceMap);
@@ -6605,350 +7173,440 @@ const addopcodes = (opcodes) => {
     });
 };
 addopcodes({
-    i8f64: [{ number: t('int8'), }, t('float64')],
-    i16f64: [{ number: t('int16'), }, t('float64')],
-    i32f64: [{ number: t('int32'), }, t('float64')],
-    i64f64: [{ number: t('int64'), }, t('float64')],
-    f32f64: [{ number: t('float32'), }, t('float64')],
-    strf64: [{ str: t('string'), }, t('float64')],
-    boolf64: [{ boo: t('bool'), }, t('float64')],
-    i8f32: [{ number: t('int8'), }, t('float32')],
-    i16f32: [{ number: t('int16'), }, t('float32')],
-    i32f32: [{ number: t('int32'), }, t('float32')],
-    i64f32: [{ number: t('int64'), }, t('float32')],
-    f64f32: [{ number: t('float64'), }, t('float32')],
-    strf32: [{ str: t('string'), }, t('float32')],
-    boolf32: [{ boo: t('bool'), }, t('float32')],
-    i8i64: [{ number: t('int8'), }, t('int64')],
-    i16i64: [{ number: t('int16'), }, t('int64')],
-    i32i64: [{ number: t('int32'), }, t('int64')],
-    f32i64: [{ number: t('float32'), }, t('int64')],
-    f64i64: [{ number: t('float64'), }, t('int64')],
-    stri64: [{ str: t('string'), }, t('int64')],
-    booli64: [{ boo: t('bool'), }, t('int64')],
-    i8i32: [{ number: t('int8'), }, t('int32')],
-    i16i32: [{ number: t('int16'), }, t('int32')],
-    i64i32: [{ number: t('int64'), }, t('int32')],
-    f32i32: [{ number: t('float32'), }, t('int32')],
-    f64i32: [{ number: t('float64'), }, t('int32')],
-    stri32: [{ str: t('string'), }, t('int32')],
-    booli32: [{ boo: t('bool'), }, t('int32')],
-    i8i16: [{ number: t('int8'), }, t('int16')],
-    i32i16: [{ number: t('int32'), }, t('int16')],
-    i64i16: [{ number: t('int64'), }, t('int16')],
-    f32i16: [{ number: t('float32'), }, t('int16')],
-    f64i16: [{ number: t('float64'), }, t('int16')],
-    stri16: [{ str: t('string'), }, t('int16')],
-    booli16: [{ boo: t('bool'), }, t('int16')],
-    i16i8: [{ number: t('int16'), }, t('int8')],
-    i32i8: [{ number: t('int32'), }, t('int8')],
-    i64i8: [{ number: t('int64'), }, t('int8')],
-    f32i8: [{ number: t('float32'), }, t('int8')],
-    f64i8: [{ number: t('float64'), }, t('int8')],
-    stri8: [{ str: t('string'), }, t('int8')],
-    booli8: [{ boo: t('bool'), }, t('int8')],
-    i8bool: [{ number: t('int8'), }, t('bool')],
-    i16bool: [{ number: t('int16'), }, t('bool')],
-    i32bool: [{ number: t('int32'), }, t('bool')],
-    i64bool: [{ number: t('int64'), }, t('bool')],
-    f32bool: [{ number: t('float32'), }, t('bool')],
-    f64bool: [{ number: t('float64'), }, t('bool')],
-    strbool: [{ str: t('string'), }, t('bool')],
-    i8str: [{ number: t('int8'), }, t('string')],
-    i16str: [{ number: t('int16'), }, t('string')],
-    i32str: [{ number: t('int32'), }, t('string')],
-    i64str: [{ number: t('int64'), }, t('string')],
-    f32str: [{ number: t('float32'), }, t('string')],
-    f64str: [{ number: t('float64'), }, t('string')],
-    boolstr: [{ boo: t('bool'), }, t('string')],
-    addi8: [{ a: t('Result<int8>'), b: t('Result<int8>'), }, t('Result<int8>')],
-    addi16: [{ a: t('Result<int16>'), b: t('Result<int16>'), }, t('Result<int16>')],
-    addi32: [{ a: t('Result<int32>'), b: t('Result<int32>'), }, t('Result<int32>')],
-    addi64: [{ a: t('Result<int64>'), b: t('Result<int64>'), }, t('Result<int64>')],
-    addf32: [{ a: t('Result<float32>'), b: t('Result<float32>'), }, t('Result<float32>')],
-    addf64: [{ a: t('Result<float64>'), b: t('Result<float64>'), }, t('Result<float64>')],
-    subi8: [{ a: t('Result<int8>'), b: t('Result<int8>'), }, t('Result<int8>')],
-    subi16: [{ a: t('Result<int16>'), b: t('Result<int16>'), }, t('Result<int16>')],
-    subi32: [{ a: t('Result<int32>'), b: t('Result<int32>'), }, t('Result<int32>')],
-    subi64: [{ a: t('Result<int64>'), b: t('Result<int64>'), }, t('Result<int64>')],
-    subf32: [{ a: t('Result<float32>'), b: t('Result<float32>'), }, t('Result<float32>')],
-    subf64: [{ a: t('Result<float64>'), b: t('Result<float64>'), }, t('Result<float64>')],
-    negi8: [{ a: t('Result<int8>'), }, t('Result<int8>')],
-    negi16: [{ a: t('Result<int16>'), }, t('Result<int16>')],
-    negi32: [{ a: t('Result<int32>'), }, t('Result<int32>')],
-    negi64: [{ a: t('Result<int64>'), }, t('Result<int64>')],
-    negf32: [{ a: t('Result<float32>'), }, t('Result<float32>')],
-    negf64: [{ a: t('Result<float64>'), }, t('Result<float64>')],
-    absi8: [{ a: t('Result<int8>'), }, t('Result<int8>')],
-    absi16: [{ a: t('Result<int16>'), }, t('Result<int16>')],
-    absi32: [{ a: t('Result<int32>'), }, t('Result<int32>')],
-    absi64: [{ a: t('Result<int64>'), }, t('Result<int64>')],
-    absf32: [{ a: t('Result<float32>'), }, t('Result<float32>')],
-    absf64: [{ a: t('Result<float64>'), }, t('Result<float64>')],
-    muli8: [{ a: t('Result<int8>'), b: t('Result<int8>'), }, t('Result<int8>')],
-    muli16: [{ a: t('Result<int16>'), b: t('Result<int16>'), }, t('Result<int16>')],
-    muli32: [{ a: t('Result<int32>'), b: t('Result<int32>'), }, t('Result<int32>')],
-    muli64: [{ a: t('Result<int64>'), b: t('Result<int64>'), }, t('Result<int64>')],
-    mulf32: [{ a: t('Result<float32>'), b: t('Result<float32>'), }, t('Result<float32>')],
-    mulf64: [{ a: t('Result<float64>'), b: t('Result<float64>'), }, t('Result<float64>')],
-    divi8: [{ a: t('Result<int8>'), b: t('Result<int8>'), }, t('Result<int8>')],
-    divi16: [{ a: t('Result<int16>'), b: t('Result<int16>'), }, t('Result<int16>')],
-    divi32: [{ a: t('Result<int32>'), b: t('Result<int32>'), }, t('Result<int32>')],
-    divi64: [{ a: t('Result<int64>'), b: t('Result<int64>'), }, t('Result<int64>')],
-    divf32: [{ a: t('Result<float32>'), b: t('Result<float32>'), }, t('Result<float32>')],
-    divf64: [{ a: t('Result<float64>'), b: t('Result<float64>'), }, t('Result<float64>')],
-    modi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    modi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    modi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    modi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    powi8: [{ a: t('Result<int8>'), b: t('Result<int8>'), }, t('Result<int8>')],
-    powi16: [{ a: t('Result<int16>'), b: t('Result<int16>'), }, t('Result<int16>')],
-    powi32: [{ a: t('Result<int32>'), b: t('Result<int32>'), }, t('Result<int32>')],
-    powi64: [{ a: t('Result<int64>'), b: t('Result<int64>'), }, t('Result<int64>')],
-    powf32: [{ a: t('Result<float32>'), b: t('Result<float32>'), }, t('Result<float32>')],
-    powf64: [{ a: t('Result<float64>'), b: t('Result<float64>'), }, t('Result<float64>')],
-    sqrtf32: [{ a: t('float32'), }, t('float32')],
-    sqrtf64: [{ a: t('float64'), }, t('float64')],
-    saddi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    saddi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    saddi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    saddi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    saddf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-    saddf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
-    ssubi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    ssubi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    ssubi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    ssubi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    ssubf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-    ssubf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
-    snegi8: [{ a: t('int8'), }, t('int8')],
-    snegi16: [{ a: t('int16'), }, t('int16')],
-    snegi32: [{ a: t('int32'), }, t('int32')],
-    snegi64: [{ a: t('int64'), }, t('int64')],
-    snegf32: [{ a: t('float32'), }, t('float32')],
-    snegf64: [{ a: t('float64'), }, t('float64')],
-    sabsi8: [{ a: t('int8'), }, t('int8')],
-    sabsi16: [{ a: t('int16'), }, t('int16')],
-    sabsi32: [{ a: t('int32'), }, t('int32')],
-    sabsi64: [{ a: t('int64'), }, t('int64')],
-    sabsf32: [{ a: t('float32'), }, t('float32')],
-    sabsf64: [{ a: t('float64'), }, t('float64')],
-    smuli8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    smuli16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    smuli32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    smuli64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    smulf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-    smulf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
-    sdivi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    sdivi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    sdivi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    sdivi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    sdivf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-    sdivf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
-    spowi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    spowi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    spowi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    spowi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    spowf32: [{ a: t('float32'), b: t('float32'), }, t('float32')],
-    spowf64: [{ a: t('float64'), b: t('float64'), }, t('float64')],
-    andi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    andi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    andi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    andi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    andbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-    ori8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    ori16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    ori32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    ori64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    orbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-    xori8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    xori16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    xori32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    xori64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    xorbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-    noti8: [{ a: t('int8'), }, t('int8')],
-    noti16: [{ a: t('int16'), }, t('int16')],
-    noti32: [{ a: t('int32'), }, t('int32')],
-    noti64: [{ a: t('int64'), }, t('int64')],
-    notbool: [{ a: t('bool'), }, t('bool')],
-    nandi8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    nandi16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    nandi32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    nandi64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    nandboo: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-    nori8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    nori16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    nori32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    nori64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    norbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-    xnori8: [{ a: t('int8'), b: t('int8'), }, t('int8')],
-    xnori16: [{ a: t('int16'), b: t('int16'), }, t('int16')],
-    xnori32: [{ a: t('int32'), b: t('int32'), }, t('int32')],
-    xnori64: [{ a: t('int64'), b: t('int64'), }, t('int64')],
-    xnorboo: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-    eqi8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
-    eqi16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
-    eqi32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
-    eqi64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
-    eqf32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
-    eqf64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
-    eqbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-    eqstr: [{ a: t('string'), b: t('string'), }, t('bool')],
-    neqi8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
-    neqi16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
-    neqi32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
-    neqi64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
-    neqf32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
-    neqf64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
-    neqbool: [{ a: t('bool'), b: t('bool'), }, t('bool')],
-    neqstr: [{ a: t('string'), b: t('string'), }, t('bool')],
-    lti8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
-    lti16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
-    lti32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
-    lti64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
-    ltf32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
-    ltf64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
-    ltstr: [{ a: t('string'), b: t('string'), }, t('bool')],
-    ltei8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
-    ltei16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
-    ltei32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
-    ltei64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
-    ltef32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
-    ltef64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
-    ltestr: [{ a: t('string'), b: t('string'), }, t('bool')],
-    gti8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
-    gti16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
-    gti32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
-    gti64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
-    gtf32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
-    gtf64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
-    gtstr: [{ a: t('string'), b: t('string'), }, t('bool')],
-    gtei8: [{ a: t('int8'), b: t('int8'), }, t('bool')],
-    gtei16: [{ a: t('int16'), b: t('int16'), }, t('bool')],
-    gtei32: [{ a: t('int32'), b: t('int32'), }, t('bool')],
-    gtei64: [{ a: t('int64'), b: t('int64'), }, t('bool')],
-    gtef32: [{ a: t('float32'), b: t('float32'), }, t('bool')],
-    gtef64: [{ a: t('float64'), b: t('float64'), }, t('bool')],
-    gtestr: [{ a: t('string'), b: t('string'), }, t('bool')],
+    i8f64: [{ number: t('int8') }, t('float64')],
+    i16f64: [{ number: t('int16') }, t('float64')],
+    i32f64: [{ number: t('int32') }, t('float64')],
+    i64f64: [{ number: t('int64') }, t('float64')],
+    f32f64: [{ number: t('float32') }, t('float64')],
+    strf64: [{ str: t('string') }, t('float64')],
+    boolf64: [{ boo: t('bool') }, t('float64')],
+    i8f32: [{ number: t('int8') }, t('float32')],
+    i16f32: [{ number: t('int16') }, t('float32')],
+    i32f32: [{ number: t('int32') }, t('float32')],
+    i64f32: [{ number: t('int64') }, t('float32')],
+    f64f32: [{ number: t('float64') }, t('float32')],
+    strf32: [{ str: t('string') }, t('float32')],
+    boolf32: [{ boo: t('bool') }, t('float32')],
+    i8i64: [{ number: t('int8') }, t('int64')],
+    i16i64: [{ number: t('int16') }, t('int64')],
+    i32i64: [{ number: t('int32') }, t('int64')],
+    f32i64: [{ number: t('float32') }, t('int64')],
+    f64i64: [{ number: t('float64') }, t('int64')],
+    stri64: [{ str: t('string') }, t('int64')],
+    booli64: [{ boo: t('bool') }, t('int64')],
+    i8i32: [{ number: t('int8') }, t('int32')],
+    i16i32: [{ number: t('int16') }, t('int32')],
+    i64i32: [{ number: t('int64') }, t('int32')],
+    f32i32: [{ number: t('float32') }, t('int32')],
+    f64i32: [{ number: t('float64') }, t('int32')],
+    stri32: [{ str: t('string') }, t('int32')],
+    booli32: [{ boo: t('bool') }, t('int32')],
+    i8i16: [{ number: t('int8') }, t('int16')],
+    i32i16: [{ number: t('int32') }, t('int16')],
+    i64i16: [{ number: t('int64') }, t('int16')],
+    f32i16: [{ number: t('float32') }, t('int16')],
+    f64i16: [{ number: t('float64') }, t('int16')],
+    stri16: [{ str: t('string') }, t('int16')],
+    booli16: [{ boo: t('bool') }, t('int16')],
+    i16i8: [{ number: t('int16') }, t('int8')],
+    i32i8: [{ number: t('int32') }, t('int8')],
+    i64i8: [{ number: t('int64') }, t('int8')],
+    f32i8: [{ number: t('float32') }, t('int8')],
+    f64i8: [{ number: t('float64') }, t('int8')],
+    stri8: [{ str: t('string') }, t('int8')],
+    booli8: [{ boo: t('bool') }, t('int8')],
+    i8bool: [{ number: t('int8') }, t('bool')],
+    i16bool: [{ number: t('int16') }, t('bool')],
+    i32bool: [{ number: t('int32') }, t('bool')],
+    i64bool: [{ number: t('int64') }, t('bool')],
+    f32bool: [{ number: t('float32') }, t('bool')],
+    f64bool: [{ number: t('float64') }, t('bool')],
+    strbool: [{ str: t('string') }, t('bool')],
+    i8str: [{ number: t('int8') }, t('string')],
+    i16str: [{ number: t('int16') }, t('string')],
+    i32str: [{ number: t('int32') }, t('string')],
+    i64str: [{ number: t('int64') }, t('string')],
+    f32str: [{ number: t('float32') }, t('string')],
+    f64str: [{ number: t('float64') }, t('string')],
+    boolstr: [{ boo: t('bool') }, t('string')],
+    addi8: [{ a: t('Result<int8>'), b: t('Result<int8>') }, t('Result<int8>')],
+    addi16: [
+        { a: t('Result<int16>'), b: t('Result<int16>') },
+        t('Result<int16>'),
+    ],
+    addi32: [
+        { a: t('Result<int32>'), b: t('Result<int32>') },
+        t('Result<int32>'),
+    ],
+    addi64: [
+        { a: t('Result<int64>'), b: t('Result<int64>') },
+        t('Result<int64>'),
+    ],
+    addf32: [
+        { a: t('Result<float32>'), b: t('Result<float32>') },
+        t('Result<float32>'),
+    ],
+    addf64: [
+        { a: t('Result<float64>'), b: t('Result<float64>') },
+        t('Result<float64>'),
+    ],
+    subi8: [{ a: t('Result<int8>'), b: t('Result<int8>') }, t('Result<int8>')],
+    subi16: [
+        { a: t('Result<int16>'), b: t('Result<int16>') },
+        t('Result<int16>'),
+    ],
+    subi32: [
+        { a: t('Result<int32>'), b: t('Result<int32>') },
+        t('Result<int32>'),
+    ],
+    subi64: [
+        { a: t('Result<int64>'), b: t('Result<int64>') },
+        t('Result<int64>'),
+    ],
+    subf32: [
+        { a: t('Result<float32>'), b: t('Result<float32>') },
+        t('Result<float32>'),
+    ],
+    subf64: [
+        { a: t('Result<float64>'), b: t('Result<float64>') },
+        t('Result<float64>'),
+    ],
+    negi8: [{ a: t('Result<int8>') }, t('Result<int8>')],
+    negi16: [{ a: t('Result<int16>') }, t('Result<int16>')],
+    negi32: [{ a: t('Result<int32>') }, t('Result<int32>')],
+    negi64: [{ a: t('Result<int64>') }, t('Result<int64>')],
+    negf32: [{ a: t('Result<float32>') }, t('Result<float32>')],
+    negf64: [{ a: t('Result<float64>') }, t('Result<float64>')],
+    absi8: [{ a: t('Result<int8>') }, t('Result<int8>')],
+    absi16: [{ a: t('Result<int16>') }, t('Result<int16>')],
+    absi32: [{ a: t('Result<int32>') }, t('Result<int32>')],
+    absi64: [{ a: t('Result<int64>') }, t('Result<int64>')],
+    absf32: [{ a: t('Result<float32>') }, t('Result<float32>')],
+    absf64: [{ a: t('Result<float64>') }, t('Result<float64>')],
+    muli8: [{ a: t('Result<int8>'), b: t('Result<int8>') }, t('Result<int8>')],
+    muli16: [
+        { a: t('Result<int16>'), b: t('Result<int16>') },
+        t('Result<int16>'),
+    ],
+    muli32: [
+        { a: t('Result<int32>'), b: t('Result<int32>') },
+        t('Result<int32>'),
+    ],
+    muli64: [
+        { a: t('Result<int64>'), b: t('Result<int64>') },
+        t('Result<int64>'),
+    ],
+    mulf32: [
+        { a: t('Result<float32>'), b: t('Result<float32>') },
+        t('Result<float32>'),
+    ],
+    mulf64: [
+        { a: t('Result<float64>'), b: t('Result<float64>') },
+        t('Result<float64>'),
+    ],
+    divi8: [{ a: t('Result<int8>'), b: t('Result<int8>') }, t('Result<int8>')],
+    divi16: [
+        { a: t('Result<int16>'), b: t('Result<int16>') },
+        t('Result<int16>'),
+    ],
+    divi32: [
+        { a: t('Result<int32>'), b: t('Result<int32>') },
+        t('Result<int32>'),
+    ],
+    divi64: [
+        { a: t('Result<int64>'), b: t('Result<int64>') },
+        t('Result<int64>'),
+    ],
+    divf32: [
+        { a: t('Result<float32>'), b: t('Result<float32>') },
+        t('Result<float32>'),
+    ],
+    divf64: [
+        { a: t('Result<float64>'), b: t('Result<float64>') },
+        t('Result<float64>'),
+    ],
+    modi8: [{ a: t('int8'), b: t('int8') }, t('int8')],
+    modi16: [{ a: t('int16'), b: t('int16') }, t('int16')],
+    modi32: [{ a: t('int32'), b: t('int32') }, t('int32')],
+    modi64: [{ a: t('int64'), b: t('int64') }, t('int64')],
+    powi8: [{ a: t('Result<int8>'), b: t('Result<int8>') }, t('Result<int8>')],
+    powi16: [
+        { a: t('Result<int16>'), b: t('Result<int16>') },
+        t('Result<int16>'),
+    ],
+    powi32: [
+        { a: t('Result<int32>'), b: t('Result<int32>') },
+        t('Result<int32>'),
+    ],
+    powi64: [
+        { a: t('Result<int64>'), b: t('Result<int64>') },
+        t('Result<int64>'),
+    ],
+    powf32: [
+        { a: t('Result<float32>'), b: t('Result<float32>') },
+        t('Result<float32>'),
+    ],
+    powf64: [
+        { a: t('Result<float64>'), b: t('Result<float64>') },
+        t('Result<float64>'),
+    ],
+    sqrtf32: [{ a: t('float32') }, t('float32')],
+    sqrtf64: [{ a: t('float64') }, t('float64')],
+    saddi8: [{ a: t('int8'), b: t('int8') }, t('int8')],
+    saddi16: [{ a: t('int16'), b: t('int16') }, t('int16')],
+    saddi32: [{ a: t('int32'), b: t('int32') }, t('int32')],
+    saddi64: [{ a: t('int64'), b: t('int64') }, t('int64')],
+    saddf32: [{ a: t('float32'), b: t('float32') }, t('float32')],
+    saddf64: [{ a: t('float64'), b: t('float64') }, t('float64')],
+    ssubi8: [{ a: t('int8'), b: t('int8') }, t('int8')],
+    ssubi16: [{ a: t('int16'), b: t('int16') }, t('int16')],
+    ssubi32: [{ a: t('int32'), b: t('int32') }, t('int32')],
+    ssubi64: [{ a: t('int64'), b: t('int64') }, t('int64')],
+    ssubf32: [{ a: t('float32'), b: t('float32') }, t('float32')],
+    ssubf64: [{ a: t('float64'), b: t('float64') }, t('float64')],
+    snegi8: [{ a: t('int8') }, t('int8')],
+    snegi16: [{ a: t('int16') }, t('int16')],
+    snegi32: [{ a: t('int32') }, t('int32')],
+    snegi64: [{ a: t('int64') }, t('int64')],
+    snegf32: [{ a: t('float32') }, t('float32')],
+    snegf64: [{ a: t('float64') }, t('float64')],
+    sabsi8: [{ a: t('int8') }, t('int8')],
+    sabsi16: [{ a: t('int16') }, t('int16')],
+    sabsi32: [{ a: t('int32') }, t('int32')],
+    sabsi64: [{ a: t('int64') }, t('int64')],
+    sabsf32: [{ a: t('float32') }, t('float32')],
+    sabsf64: [{ a: t('float64') }, t('float64')],
+    smuli8: [{ a: t('int8'), b: t('int8') }, t('int8')],
+    smuli16: [{ a: t('int16'), b: t('int16') }, t('int16')],
+    smuli32: [{ a: t('int32'), b: t('int32') }, t('int32')],
+    smuli64: [{ a: t('int64'), b: t('int64') }, t('int64')],
+    smulf32: [{ a: t('float32'), b: t('float32') }, t('float32')],
+    smulf64: [{ a: t('float64'), b: t('float64') }, t('float64')],
+    sdivi8: [{ a: t('int8'), b: t('int8') }, t('int8')],
+    sdivi16: [{ a: t('int16'), b: t('int16') }, t('int16')],
+    sdivi32: [{ a: t('int32'), b: t('int32') }, t('int32')],
+    sdivi64: [{ a: t('int64'), b: t('int64') }, t('int64')],
+    sdivf32: [{ a: t('float32'), b: t('float32') }, t('float32')],
+    sdivf64: [{ a: t('float64'), b: t('float64') }, t('float64')],
+    spowi8: [{ a: t('int8'), b: t('int8') }, t('int8')],
+    spowi16: [{ a: t('int16'), b: t('int16') }, t('int16')],
+    spowi32: [{ a: t('int32'), b: t('int32') }, t('int32')],
+    spowi64: [{ a: t('int64'), b: t('int64') }, t('int64')],
+    spowf32: [{ a: t('float32'), b: t('float32') }, t('float32')],
+    spowf64: [{ a: t('float64'), b: t('float64') }, t('float64')],
+    andi8: [{ a: t('int8'), b: t('int8') }, t('int8')],
+    andi16: [{ a: t('int16'), b: t('int16') }, t('int16')],
+    andi32: [{ a: t('int32'), b: t('int32') }, t('int32')],
+    andi64: [{ a: t('int64'), b: t('int64') }, t('int64')],
+    andbool: [{ a: t('bool'), b: t('bool') }, t('bool')],
+    ori8: [{ a: t('int8'), b: t('int8') }, t('int8')],
+    ori16: [{ a: t('int16'), b: t('int16') }, t('int16')],
+    ori32: [{ a: t('int32'), b: t('int32') }, t('int32')],
+    ori64: [{ a: t('int64'), b: t('int64') }, t('int64')],
+    orbool: [{ a: t('bool'), b: t('bool') }, t('bool')],
+    xori8: [{ a: t('int8'), b: t('int8') }, t('int8')],
+    xori16: [{ a: t('int16'), b: t('int16') }, t('int16')],
+    xori32: [{ a: t('int32'), b: t('int32') }, t('int32')],
+    xori64: [{ a: t('int64'), b: t('int64') }, t('int64')],
+    xorbool: [{ a: t('bool'), b: t('bool') }, t('bool')],
+    noti8: [{ a: t('int8') }, t('int8')],
+    noti16: [{ a: t('int16') }, t('int16')],
+    noti32: [{ a: t('int32') }, t('int32')],
+    noti64: [{ a: t('int64') }, t('int64')],
+    notbool: [{ a: t('bool') }, t('bool')],
+    nandi8: [{ a: t('int8'), b: t('int8') }, t('int8')],
+    nandi16: [{ a: t('int16'), b: t('int16') }, t('int16')],
+    nandi32: [{ a: t('int32'), b: t('int32') }, t('int32')],
+    nandi64: [{ a: t('int64'), b: t('int64') }, t('int64')],
+    nandboo: [{ a: t('bool'), b: t('bool') }, t('bool')],
+    nori8: [{ a: t('int8'), b: t('int8') }, t('int8')],
+    nori16: [{ a: t('int16'), b: t('int16') }, t('int16')],
+    nori32: [{ a: t('int32'), b: t('int32') }, t('int32')],
+    nori64: [{ a: t('int64'), b: t('int64') }, t('int64')],
+    norbool: [{ a: t('bool'), b: t('bool') }, t('bool')],
+    xnori8: [{ a: t('int8'), b: t('int8') }, t('int8')],
+    xnori16: [{ a: t('int16'), b: t('int16') }, t('int16')],
+    xnori32: [{ a: t('int32'), b: t('int32') }, t('int32')],
+    xnori64: [{ a: t('int64'), b: t('int64') }, t('int64')],
+    xnorboo: [{ a: t('bool'), b: t('bool') }, t('bool')],
+    eqi8: [{ a: t('int8'), b: t('int8') }, t('bool')],
+    eqi16: [{ a: t('int16'), b: t('int16') }, t('bool')],
+    eqi32: [{ a: t('int32'), b: t('int32') }, t('bool')],
+    eqi64: [{ a: t('int64'), b: t('int64') }, t('bool')],
+    eqf32: [{ a: t('float32'), b: t('float32') }, t('bool')],
+    eqf64: [{ a: t('float64'), b: t('float64') }, t('bool')],
+    eqbool: [{ a: t('bool'), b: t('bool') }, t('bool')],
+    eqstr: [{ a: t('string'), b: t('string') }, t('bool')],
+    neqi8: [{ a: t('int8'), b: t('int8') }, t('bool')],
+    neqi16: [{ a: t('int16'), b: t('int16') }, t('bool')],
+    neqi32: [{ a: t('int32'), b: t('int32') }, t('bool')],
+    neqi64: [{ a: t('int64'), b: t('int64') }, t('bool')],
+    neqf32: [{ a: t('float32'), b: t('float32') }, t('bool')],
+    neqf64: [{ a: t('float64'), b: t('float64') }, t('bool')],
+    neqbool: [{ a: t('bool'), b: t('bool') }, t('bool')],
+    neqstr: [{ a: t('string'), b: t('string') }, t('bool')],
+    lti8: [{ a: t('int8'), b: t('int8') }, t('bool')],
+    lti16: [{ a: t('int16'), b: t('int16') }, t('bool')],
+    lti32: [{ a: t('int32'), b: t('int32') }, t('bool')],
+    lti64: [{ a: t('int64'), b: t('int64') }, t('bool')],
+    ltf32: [{ a: t('float32'), b: t('float32') }, t('bool')],
+    ltf64: [{ a: t('float64'), b: t('float64') }, t('bool')],
+    ltstr: [{ a: t('string'), b: t('string') }, t('bool')],
+    ltei8: [{ a: t('int8'), b: t('int8') }, t('bool')],
+    ltei16: [{ a: t('int16'), b: t('int16') }, t('bool')],
+    ltei32: [{ a: t('int32'), b: t('int32') }, t('bool')],
+    ltei64: [{ a: t('int64'), b: t('int64') }, t('bool')],
+    ltef32: [{ a: t('float32'), b: t('float32') }, t('bool')],
+    ltef64: [{ a: t('float64'), b: t('float64') }, t('bool')],
+    ltestr: [{ a: t('string'), b: t('string') }, t('bool')],
+    gti8: [{ a: t('int8'), b: t('int8') }, t('bool')],
+    gti16: [{ a: t('int16'), b: t('int16') }, t('bool')],
+    gti32: [{ a: t('int32'), b: t('int32') }, t('bool')],
+    gti64: [{ a: t('int64'), b: t('int64') }, t('bool')],
+    gtf32: [{ a: t('float32'), b: t('float32') }, t('bool')],
+    gtf64: [{ a: t('float64'), b: t('float64') }, t('bool')],
+    gtstr: [{ a: t('string'), b: t('string') }, t('bool')],
+    gtei8: [{ a: t('int8'), b: t('int8') }, t('bool')],
+    gtei16: [{ a: t('int16'), b: t('int16') }, t('bool')],
+    gtei32: [{ a: t('int32'), b: t('int32') }, t('bool')],
+    gtei64: [{ a: t('int64'), b: t('int64') }, t('bool')],
+    gtef32: [{ a: t('float32'), b: t('float32') }, t('bool')],
+    gtef64: [{ a: t('float64'), b: t('float64') }, t('bool')],
+    gtestr: [{ a: t('string'), b: t('string') }, t('bool')],
     httpreq: [{ a: t('InternalRequest') }, t('Result<InternalResponse>')],
-    httpsend: [{ a: t('InternalResponse'), }, t('Result<string>')],
+    httpsend: [{ a: t('InternalResponse') }, t('Result<string>')],
     execop: [{ a: t('string') }, t('ExecRes')],
     waitop: [{ a: t('int64') }, t('void')],
     syncop: [{ f: t('function'), a: t('any') }, t('anythingElse')],
-    catstr: [{ a: t('string'), b: t('string'), }, t('string')],
+    catstr: [{ a: t('string'), b: t('string') }, t('string')],
     catarr: [{ a: t('Array<any>'), b: t('Array<any>') }, t('Array<any>')],
-    split: [{ str: t('string'), spl: t('string'), }, t('Array<string>')],
-    repstr: [{ s: t('string'), n: t('int64'), }, t('string')],
-    reparr: [{ arr: t('Array<any>'), n: t('int64'), }, t('Array<any>')],
-    matches: [{ s: t('string'), t: t('string'), }, t('bool')],
-    indstr: [{ s: t('string'), t: t('string'), }, t('Result<int64>')],
-    indarrf: [{ arr: t('Array<any>'), val: t('any'), }, t('Result<int64>')],
-    indarrv: [{ arr: t('Array<any>'), val: t('any'), }, t('Result<int64>')],
-    lenstr: [{ s: t('string'), }, t('int64')],
-    lenarr: [{ arr: t('Array<any>'), }, t('int64')],
-    trim: [{ s: t('string'), }, t('string')],
-    condfn: [{ cond: t('bool'), optional: t('function'), }, t('any')],
+    split: [{ str: t('string'), spl: t('string') }, t('Array<string>')],
+    repstr: [{ s: t('string'), n: t('int64') }, t('string')],
+    reparr: [{ arr: t('Array<any>'), n: t('int64') }, t('Array<any>')],
+    matches: [{ s: t('string'), t: t('string') }, t('bool')],
+    indstr: [{ s: t('string'), t: t('string') }, t('Result<int64>')],
+    indarrf: [{ arr: t('Array<any>'), val: t('any') }, t('Result<int64>')],
+    indarrv: [{ arr: t('Array<any>'), val: t('any') }, t('Result<int64>')],
+    lenstr: [{ s: t('string') }, t('int64')],
+    lenarr: [{ arr: t('Array<any>') }, t('int64')],
+    trim: [{ s: t('string') }, t('string')],
+    condfn: [{ cond: t('bool'), optional: t('function') }, t('any')],
     pusharr: [{ arr: t('Array<any>'), val: t('any'), size: t('int64') }],
     poparr: [{ arr: t('Array<any>') }, t('Result<any>')],
     delindx: [{ arr: t('Array<any>'), idx: t('int64') }, t('Result<any>')],
-    each: [{ arr: t('Array<any>'), cb: t('function'), }, t('void')],
-    eachl: [{ arr: t('Array<any>'), cb: t('function'), }, t('void')],
-    map: [{ arr: t('Array<any>'), cb: t('function'), }, t('Array<any>')],
-    mapl: [{ arr: t('Array<any>'), cb: t('function'), }, t('Array<any>')],
-    reducel: [{ arr: t('Array<any>'), cb: t('function'), }, t('any')],
-    reducep: [{ arr: t('Array<any>'), cb: t('function'), }, t('any')],
-    foldl: [{ arr: t('InitialReduce<any, anythingElse>'), cb: t('function'), }, t('anythingElse')],
-    foldp: [{ arr: t('InitialReduce<any, anythingElse>'), cb: t('function'), }, t('Array<anythingElse>')],
-    filter: [{ arr: t('Array<any>'), cb: t('function'), }, t('Array<any>')],
-    filterl: [{ arr: t('Array<any>'), cb: t('function'), }, t('Array<any>')],
-    find: [{ arr: t('Array<any>'), cb: t('function'), }, t('Result<any>')],
-    findl: [{ arr: t('Array<any>'), cb: t('function'), }, t('Result<any>')],
-    every: [{ arr: t('Array<any>'), cb: t('function'), }, t('bool')],
-    everyl: [{ arr: t('Array<any>'), cb: t('function'), }, t('bool')],
-    some: [{ arr: t('Array<any>'), cb: t('function'), }, t('bool')],
-    somel: [{ arr: t('Array<any>'), cb: t('function'), }, t('bool')],
-    join: [{ arr: t('Array<string>'), sep: t('string'), }, t('string')],
-    newarr: [{ size: t('int64'), }, t('Array<any>')],
-    stdoutp: [{ out: t('string'), }, t('void')],
-    stderrp: [{ err: t('string'), }, t('void')],
-    exitop: [{ code: t('int8'), }, t('void')],
+    each: [{ arr: t('Array<any>'), cb: t('function') }, t('void')],
+    eachl: [{ arr: t('Array<any>'), cb: t('function') }, t('void')],
+    map: [{ arr: t('Array<any>'), cb: t('function') }, t('Array<any>')],
+    mapl: [{ arr: t('Array<any>'), cb: t('function') }, t('Array<any>')],
+    reducel: [{ arr: t('Array<any>'), cb: t('function') }, t('any')],
+    reducep: [{ arr: t('Array<any>'), cb: t('function') }, t('any')],
+    foldl: [
+        { arr: t('InitialReduce<any, anythingElse>'), cb: t('function') },
+        t('anythingElse'),
+    ],
+    foldp: [
+        { arr: t('InitialReduce<any, anythingElse>'), cb: t('function') },
+        t('Array<anythingElse>'),
+    ],
+    filter: [{ arr: t('Array<any>'), cb: t('function') }, t('Array<any>')],
+    filterl: [{ arr: t('Array<any>'), cb: t('function') }, t('Array<any>')],
+    find: [{ arr: t('Array<any>'), cb: t('function') }, t('Result<any>')],
+    findl: [{ arr: t('Array<any>'), cb: t('function') }, t('Result<any>')],
+    every: [{ arr: t('Array<any>'), cb: t('function') }, t('bool')],
+    everyl: [{ arr: t('Array<any>'), cb: t('function') }, t('bool')],
+    some: [{ arr: t('Array<any>'), cb: t('function') }, t('bool')],
+    somel: [{ arr: t('Array<any>'), cb: t('function') }, t('bool')],
+    join: [{ arr: t('Array<string>'), sep: t('string') }, t('string')],
+    newarr: [{ size: t('int64') }, t('Array<any>')],
+    stdoutp: [{ out: t('string') }, t('void')],
+    stderrp: [{ err: t('string') }, t('void')],
+    exitop: [{ code: t('int8') }, t('void')],
     copyfrom: [{ arr: t('Array<any>'), addr: t('int64') }, t('any')],
     copytof: [{ arr: t('Array<any>'), addr: t('int64'), val: t('any') }],
     copytov: [{ arr: t('Array<any>'), addr: t('int64'), val: t('any') }],
     register: [{ arr: t('Array<any>'), addr: t('int64') }, t('Array<any>')],
-    copyi8: [{ a: t('int8'), }, t('int8')],
-    copyi16: [{ a: t('int16'), }, t('int16')],
-    copyi32: [{ a: t('int32'), }, t('int32')],
-    copyi64: [{ a: t('int64'), }, t('int64')],
-    copyvoid: [{ a: t('void'), }, t('void')],
-    copyf32: [{ a: t('float32'), }, t('float32')],
-    copyf64: [{ a: t('float64'), }, t('float64')],
-    copybool: [{ a: t('bool'), }, t('bool')],
-    copystr: [{ a: t('string'), }, t('string')],
-    copyarr: [{ a: t('any'), }, t('any')],
+    copyi8: [{ a: t('int8') }, t('int8')],
+    copyi16: [{ a: t('int16') }, t('int16')],
+    copyi32: [{ a: t('int32') }, t('int32')],
+    copyi64: [{ a: t('int64') }, t('int64')],
+    copyvoid: [{ a: t('void') }, t('void')],
+    copyf32: [{ a: t('float32') }, t('float32')],
+    copyf64: [{ a: t('float64') }, t('float64')],
+    copybool: [{ a: t('bool') }, t('bool')],
+    copystr: [{ a: t('string') }, t('string')],
+    copyarr: [{ a: t('any') }, t('any')],
     zeroed: [{}, t('any')],
-    lnf64: [{ a: t('float64'), }, t('float64')],
-    logf64: [{ a: t('float64'), }, t('float64')],
-    sinf64: [{ a: t('float64'), }, t('float64')],
-    cosf64: [{ a: t('float64'), }, t('float64')],
-    tanf64: [{ a: t('float64'), }, t('float64')],
-    asinf64: [{ a: t('float64'), }, t('float64')],
-    acosf64: [{ a: t('float64'), }, t('float64')],
-    atanf64: [{ a: t('float64'), }, t('float64')],
-    sinhf64: [{ a: t('float64'), }, t('float64')],
-    coshf64: [{ a: t('float64'), }, t('float64')],
-    tanhf64: [{ a: t('float64'), }, t('float64')],
-    error: [{ a: t('string'), }, t('Error')],
-    reff: [{ a: t('any'), }, t('any')],
-    refv: [{ a: t('any'), }, t('any')],
+    lnf64: [{ a: t('float64') }, t('float64')],
+    logf64: [{ a: t('float64') }, t('float64')],
+    sinf64: [{ a: t('float64') }, t('float64')],
+    cosf64: [{ a: t('float64') }, t('float64')],
+    tanf64: [{ a: t('float64') }, t('float64')],
+    asinf64: [{ a: t('float64') }, t('float64')],
+    acosf64: [{ a: t('float64') }, t('float64')],
+    atanf64: [{ a: t('float64') }, t('float64')],
+    sinhf64: [{ a: t('float64') }, t('float64')],
+    coshf64: [{ a: t('float64') }, t('float64')],
+    tanhf64: [{ a: t('float64') }, t('float64')],
+    error: [{ a: t('string') }, t('Error')],
+    reff: [{ a: t('any') }, t('any')],
+    refv: [{ a: t('any') }, t('any')],
     noerr: [{}, t('Error')],
-    errorstr: [{ a: t('Error'), }, t('string')],
-    someM: [{ a: t('any'), size: t('int64'), }, t('Maybe<any>')],
+    errorstr: [{ a: t('Error') }, t('string')],
+    someM: [{ a: t('any'), size: t('int64') }, t('Maybe<any>')],
     noneM: [{}, t('Maybe<any>')],
-    isSome: [{ a: t('Maybe<any>'), }, t('bool')],
-    isNone: [{ a: t('Maybe<any>'), }, t('bool')],
-    getOrM: [{ a: t('Maybe<any>'), b: t('any'), }, t('any')],
+    isSome: [{ a: t('Maybe<any>') }, t('bool')],
+    isNone: [{ a: t('Maybe<any>') }, t('bool')],
+    getOrM: [{ a: t('Maybe<any>'), b: t('any') }, t('any')],
     getMaybe: [{ a: t('Maybe<any>') }, t('any')],
-    okR: [{ a: t('any'), size: t('int64'), }, t('Result<any>')],
-    err: [{ a: t('string'), }, t('Result<any>')],
-    isOk: [{ a: t('Result<any>'), }, t('bool')],
-    isErr: [{ a: t('Result<any>'), }, t('bool')],
-    getOrR: [{ a: t('Result<any>'), b: t('any'), }, t('any')],
-    getOrRS: [{ a: t('Result<any>'), b: t('string'), }, t('string')],
-    getR: [{ a: t('Result<any>'), }, t('any')],
-    getErr: [{ a: t('Result<any>'), b: t('Error'), }, t('Error')],
-    resfrom: [{ arr: t('Array<any>'), addr: t('Result<int64>') }, t('Result<any>')],
-    mainE: [{ a: t('any'), size: t('int64'), }, t('Either<any, anythingElse>')],
-    altE: [{ a: t('anythingElse'), size: t('int64'), }, t('Either<any, anythingElse>')],
-    isMain: [{ a: t('Either<any, anythingElse>'), }, t('bool')],
-    isAlt: [{ a: t('Either<any, anythingElse>'), }, t('bool')],
-    mainOr: [{ a: t('Either<any, anythingElse>'), b: t('any'), }, t('any')],
-    altOr: [{ a: t('Either<any, anythingElse>'), b: t('anythingElse'), }, t('anythingElse')],
+    okR: [{ a: t('any'), size: t('int64') }, t('Result<any>')],
+    err: [{ a: t('string') }, t('Result<any>')],
+    isOk: [{ a: t('Result<any>') }, t('bool')],
+    isErr: [{ a: t('Result<any>') }, t('bool')],
+    getOrR: [{ a: t('Result<any>'), b: t('any') }, t('any')],
+    getOrRS: [{ a: t('Result<any>'), b: t('string') }, t('string')],
+    getR: [{ a: t('Result<any>') }, t('any')],
+    getErr: [{ a: t('Result<any>'), b: t('Error') }, t('Error')],
+    resfrom: [
+        { arr: t('Array<any>'), addr: t('Result<int64>') },
+        t('Result<any>'),
+    ],
+    mainE: [{ a: t('any'), size: t('int64') }, t('Either<any, anythingElse>')],
+    altE: [
+        { a: t('anythingElse'), size: t('int64') },
+        t('Either<any, anythingElse>'),
+    ],
+    isMain: [{ a: t('Either<any, anythingElse>') }, t('bool')],
+    isAlt: [{ a: t('Either<any, anythingElse>') }, t('bool')],
+    mainOr: [{ a: t('Either<any, anythingElse>'), b: t('any') }, t('any')],
+    altOr: [
+        { a: t('Either<any, anythingElse>'), b: t('anythingElse') },
+        t('anythingElse'),
+    ],
     getMain: [{ a: t('Either<any, anythingElse>') }, t('any')],
     getAlt: [{ a: t('Either<any, anythingElse>') }, t('anythingElse')],
-    hashf: [{ a: t('any'), }, t('int64')],
-    hashv: [{ a: t('any'), }, t('int64')],
-    dssetf: [{ ns: t('string'), key: t('string'), val: t('any'), }],
-    dssetv: [{ ns: t('string'), key: t('string'), val: t('any'), }],
-    dshas: [{ ns: t('string'), key: t('string'), }, t('bool')],
-    dsdel: [{ ns: t('string'), key: t('string'), }, t('bool')],
-    dsgetf: [{ ns: t('string'), key: t('string'), }, t('Result<any>')],
-    dsgetv: [{ ns: t('string'), key: t('string'), }, t('Result<any>')],
+    hashf: [{ a: t('any') }, t('int64')],
+    hashv: [{ a: t('any') }, t('int64')],
+    dssetf: [{ ns: t('string'), key: t('string'), val: t('any') }],
+    dssetv: [{ ns: t('string'), key: t('string'), val: t('any') }],
+    dshas: [{ ns: t('string'), key: t('string') }, t('bool')],
+    dsdel: [{ ns: t('string'), key: t('string') }, t('bool')],
+    dsgetf: [{ ns: t('string'), key: t('string') }, t('Result<any>')],
+    dsgetv: [{ ns: t('string'), key: t('string') }, t('Result<any>')],
     getcs: [{}, t('Maybe<string>')],
-    newseq: [{ limit: t('int64'), }, t('Seq')],
-    seqnext: [{ seq: t('Seq'), }, t('Result<int64>')],
-    seqeach: [{ seq: t('Seq'), func: t('function'), }, t('void')],
-    seqwhile: [{ seq: t('Seq'), condFn: t('function'), bodyFn: t('function'), }],
-    seqdo: [{ seq: t('Seq'), bodyFn: t('function'), }, t('void')],
-    selfrec: [{ self: t('Self'), arg: t('any'), }, t('Result<anythingElse>')],
-    seqrec: [{ seq: t('Seq'), recurseFn: t('function'), }, t('Self')],
-    tcpconn: [{ host: t('string'), port: t('int16'), }, t('TcpChannel')],
-    tcpAddC: [{ channel: t('TcpChannel'), context: t('any'), }, t('TcpChannel')],
-    tcpReady: [{ channel: t('TcpChannel'), }, t('TcpChannel')],
-    tcpRead: [{ channel: t('TcpChannel'), }, t('Chunk')],
-    tcpWrite: [{ channel: t('TcpChannel'), chunk: t('Chunk'), }, t('TcpChannel')],
-    tcpTerm: [{ channel: t('TcpChannel'), }, t('void')],
-    tcptun: [{ port: t('int16'), }, t('bool')],
+    newseq: [{ limit: t('int64') }, t('Seq')],
+    seqnext: [{ seq: t('Seq') }, t('Result<int64>')],
+    seqeach: [{ seq: t('Seq'), func: t('function') }, t('void')],
+    seqwhile: [{ seq: t('Seq'), condFn: t('function'), bodyFn: t('function') }],
+    seqdo: [{ seq: t('Seq'), bodyFn: t('function') }, t('void')],
+    selfrec: [{ self: t('Self'), arg: t('any') }, t('Result<anythingElse>')],
+    seqrec: [{ seq: t('Seq'), recurseFn: t('function') }, t('Self')],
+    tcpconn: [{ host: t('string'), port: t('int16') }, t('TcpChannel')],
+    tcpAddC: [{ channel: t('TcpChannel'), context: t('any') }, t('TcpChannel')],
+    tcpReady: [{ channel: t('TcpChannel') }, t('TcpChannel')],
+    tcpRead: [{ channel: t('TcpChannel') }, t('Chunk')],
+    tcpWrite: [{ channel: t('TcpChannel'), chunk: t('Chunk') }, t('TcpChannel')],
+    tcpTerm: [{ channel: t('TcpChannel') }, t('void')],
+    tcptun: [{ port: t('int16') }, t('bool')],
 });
 exports.default = opcodeModule;
 
@@ -6995,7 +7653,7 @@ class LP {
         return {
             line: this.line,
             char: this.char,
-            i: this.i
+            i: this.i,
         };
     }
     restore(snap) {
@@ -7202,7 +7860,7 @@ class ZeroOrMore {
         const line = lp.line;
         const char = lp.char;
         let t = '';
-        let zeroOrMore = [];
+        const zeroOrMore = [];
         do {
             const s = lp.snapshot();
             const z = this.zeroOrMore[0].apply(lp);
@@ -7216,7 +7874,7 @@ class ZeroOrMore {
             }
             t += t2;
             zeroOrMore.push(z);
-        } while (true);
+        } while (true); // eslint-disable-line no-constant-condition
     }
 }
 exports.ZeroOrMore = ZeroOrMore;
@@ -7257,7 +7915,7 @@ class OneOrMore {
         const line = lp.line;
         const char = lp.char;
         let t = '';
-        let oneOrMore = [];
+        const oneOrMore = [];
         do {
             const s = lp.snapshot();
             const o = this.oneOrMore[0].apply(lp);
@@ -7276,7 +7934,7 @@ class OneOrMore {
             }
             t += t2;
             oneOrMore.push(o);
-        } while (true);
+        } while (true); // eslint-disable-line no-constant-condition
     }
 }
 exports.OneOrMore = OneOrMore;
@@ -7290,7 +7948,7 @@ class And {
         this.char = char;
     }
     static build(and) {
-        return new And(`(${and.map(a => a.t).join(' & ')})`, and, '', -1, -1);
+        return new And(`(${and.map((a) => a.t).join(' & ')})`, and, '', -1, -1);
     }
     toString() {
         return this.t;
@@ -7317,7 +7975,7 @@ class And {
         const line = lp.line;
         const char = lp.char;
         let t = '';
-        let and = [];
+        const and = [];
         const s = lp.snapshot();
         // This can fail, allow the underlying error to bubble up
         for (let i = 0; i < this.and.length; i++) {
@@ -7343,7 +8001,7 @@ class Or {
         this.char = char;
     }
     static build(or) {
-        return new Or(`(${or.map(o => o.t).join(' | ')})`, or, '', -1, -1);
+        return new Or(`(${or.map((o) => o.t).join(' | ')})`, or, '', -1, -1);
     }
     toString() {
         return this.t;
@@ -7370,8 +8028,8 @@ class Or {
         const line = lp.line;
         const char = lp.char;
         let t = '';
-        let or = [];
-        let errs = [];
+        const or = [];
+        const errs = [];
         // Return the first match (if there are multiple matches, it is the first one)
         for (let i = 0; i < this.or.length; i++) {
             const s = lp.snapshot();
@@ -7387,7 +8045,7 @@ class Or {
             break;
         }
         if (or.length === 0) {
-            const err = exports.lpError(`No matching tokens ${this.or.map(o => o.t).join(' | ')} found`, lp);
+            const err = exports.lpError(`No matching tokens ${this.or.map((o) => o.t).join(' | ')} found`, lp);
             err.parent = errs;
             return err;
         }
@@ -7404,7 +8062,7 @@ class ExclusiveOr {
         this.char = char;
     }
     static build(xor) {
-        return new ExclusiveOr(`(${xor.map(x => x.t).join(' ^ ')})`, xor, '', -1, -1);
+        return new ExclusiveOr(`(${xor.map((x) => x.t).join(' ^ ')})`, xor, '', -1, -1);
     }
     toString() {
         return this.t;
@@ -7431,8 +8089,8 @@ class ExclusiveOr {
         const line = lp.line;
         const char = lp.char;
         let t = '';
-        let xor = [];
-        let errs = [];
+        const xor = [];
+        const errs = [];
         // Checks the matches, it only succeeds if there's only one match
         for (let i = 0; i < this.xor.length; i++) {
             const s = lp.snapshot();
@@ -7551,7 +8209,7 @@ class NamedAnd {
         const line = lp.line;
         const char = lp.char;
         let t = '';
-        let and = {};
+        const and = {};
         const andNames = Object.keys(this.and);
         const s = lp.snapshot();
         // This can fail, allow the underlying error to bubble up
@@ -7606,8 +8264,8 @@ class NamedOr {
         const line = lp.line;
         const char = lp.char;
         let t = '';
-        let or = {};
-        let errs = [];
+        const or = {};
+        const errs = [];
         const orNames = Object.keys(this.or);
         // Return the first match (if there are multiple matches, it is the first one)
         for (let i = 0; i < orNames.length; i++) {
@@ -7650,7 +8308,7 @@ class CharSet {
         return this.t;
     }
     check(lp) {
-        let lpCharCode = lp.data.charCodeAt(lp.i);
+        const lpCharCode = lp.data.charCodeAt(lp.i);
         return this.lowerCharCode <= lpCharCode && this.upperCharCode >= lpCharCode;
     }
     get() {
@@ -7675,14 +8333,14 @@ exports.CharSet = CharSet;
 // A composite AST 'node' that matches the child node between the minimum and maximum repetitions or
 // fails.
 exports.RangeSet = (toRepeat, min, max) => {
-    let sets = [];
+    const sets = [];
     for (let i = min; i <= max; i++) {
         if (i === 0) {
             sets.push(Token.build(''));
             continue;
         }
         else {
-            let set = [];
+            const set = [];
             for (let j = 0; j < i; j++) {
                 set.push(toRepeat);
             }
@@ -7703,7 +8361,7 @@ const buildPipeline = (converters) => {
     const byInput = new Map();
     const byOutput = new Map();
     const byBoth = new Map();
-    converters.forEach(converter => {
+    converters.forEach((converter) => {
         inputs.add(converter[0]);
         outputs.add(converter[1]);
         both.add(converter[0]);
@@ -7736,7 +8394,7 @@ const buildPipeline = (converters) => {
             const nodes = new Set();
             const dist = new Map();
             const prev = new Map();
-            both.forEach(n => {
+            both.forEach((n) => {
                 nodes.add(n);
                 dist.set(n, Infinity);
                 prev.set(n, undefined);
@@ -7759,7 +8417,10 @@ const buildPipeline = (converters) => {
                     }
                 });
                 if (byInput.has(n)) {
-                    byInput.get(n).map((r) => r[1]).forEach((neighbor) => {
+                    byInput
+                        .get(n)
+                        .map((r) => r[1])
+                        .forEach((neighbor) => {
                         const newDist = dist.get(n) + 1;
                         if (newDist < dist.get(neighbor)) {
                             dist.set(neighbor, newDist);
@@ -7786,8 +8447,8 @@ const buildPipeline = (converters) => {
         });
     });
     const lookup = {};
-    Object.keys(paths).forEach(i => {
-        Object.keys(paths[i]).forEach(o => {
+    Object.keys(paths).forEach((i) => {
+        Object.keys(paths[i]).forEach((o) => {
             if (!lookup[i])
                 lookup[i] = {};
             const c = paths[i][o].reduce((cumu, curr) => {
@@ -7810,7 +8471,7 @@ const buildPipeline = (converters) => {
                     fromFile: (filename) => converter.fromString(cumu.fromFile(filename)),
                     fromString: (str) => converter.fromString(cumu.fromString(str)),
                 };
-            }, { prev: undefined, fromFile: undefined, fromString: undefined, });
+            }, { prev: undefined, fromFile: undefined, fromString: undefined });
             lookup[i][o] = {
                 fromFile: c.fromFile,
                 fromString: c.fromString,
